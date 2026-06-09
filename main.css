@@ -1,0 +1,206 @@
+:root {
+    --bg:        #000000;
+    --surface:   #181b24;
+    --border:    #2a2e3c;
+    --text:      #d0d4e0;
+    --muted:     #7b8196;
+    /* --accent:    #6c8cff; */
+    --accent:    #f07c5a;
+
+    --accent-dim:#4a62cc;
+    --hover:     #1e2130;
+
+    --lang-go:   #6ad9c5;
+    --lang-ts:   #5b9bd5;
+    --lang-py:   #f0c040;
+    --lang-rs:   #f07c5a;
+    --lang-js:   #f7df1e;
+    --divider-w: 6px;
+}
+
+a {
+    color: var(--text);
+}
+a:hover {
+    color: var(--accent);
+}
+
+body {
+    font: 20px / 32px "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, 'Times New Roman', serif;
+    letter-spacing: 0.002em;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    /* overflow: hidden; */
+    margin: auto;
+
+}
+
+.indent {
+    text-indent: 2em;
+}
+
+header {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    /* padding: 1em; */
+    margin: auto;
+    /* min-width: 80%; */
+}
+
+nav {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 1em;
+    margin: auto;
+}
+nav a {
+    text-decoration: none;
+    padding: 1em;
+}
+
+hr {
+    margin: auto;
+    min-width: 100%;
+    border: none;
+    border-bottom: var(--text) solid 2px;
+}
+
+.stretch {
+    font-weight: 100;
+    /* font-size: clamp(32px, 5cqw, 1000px); */
+    text-transform: uppercase;
+
+    display: inline-block;
+    transform: scaleX(0.79); /* Scales text to 150% width */
+    transform-origin: center;
+}
+
+
+.grow {
+    font-size: clamp(48px, 4cqw, 1000px);
+    text-transform: uppercase;
+
+    display: inline-block;
+    transform: scaleX(0.79); /* Scales text to 150% width */
+    transform-origin: center;
+}
+
+.grow-1 {
+    /* font-size: clamp(32px, 3cqw, 1000px); */
+    text-transform: uppercase;
+
+    display: inline-block;
+    transform: scaleX(0.79); /* Scales text to 150% width */
+    transform-origin: center;
+}
+
+main {
+    line-height: 32px;
+    padding: 1em 0;
+    max-width: 8in;
+    margin: auto;
+}
+
+/* ═══════════════  sections  ═══════════════ */
+
+section {
+    border-left: 4px solid var(--muted);
+    padding: 1em 0 1em 1.2em;
+    margin: 1.2em 0;
+}
+
+section:hover {
+    border-left: 4px solid var(--accent);
+}
+
+section h2 {
+    margin: 0 0 0.4em 0;
+    font-size: 1.3em;
+    letter-spacing: 0.04em;
+}
+
+section h3 {
+    margin: 0 0 0.3em 0;
+    font-size: 1.1em;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+}
+
+section p {
+    margin: 0.5em 0;
+    color: var(--muted);
+    font-size: 0.9em;
+    line-height: 1.55;
+}
+
+section a {
+    text-decoration: none;
+}
+
+/* ─────────  links row  ───────── */
+
+.card-links {
+    display: flex;
+    gap: 1em;
+    margin: 0.6em 0;
+    padding: 0;
+    text-align: left;
+    font-size: 0.9em;
+}
+
+.card-links a {
+    font-size: 0.9em;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.1em;
+}
+
+/* ─────────  meta  ───────── */
+
+.meta {
+    font-size: 0.8em !important;
+    color: var(--muted) !important;
+    opacity: 0.7;
+}
+
+/* ─────────  health dashboard  ───────── */
+
+.health {
+    display: flex;
+    align-items: center;
+    gap: 1.4em;
+    flex-wrap: wrap;
+    margin: 0.4em 0 0 0;
+}
+
+.status {
+    font-size: 0.9em;
+    letter-spacing: 0.03em;
+    font-weight: 600;
+}
+
+.status.operational {
+    color: #4ade80;
+}
+
+.enter {
+    font-size: 0.85em;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 0.1em;
+}
+
+.enter:hover {
+    color: var(--accent);
+}
+
+.metric {
+    font-size: 0.85em;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+}
