@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Turncoats</title>
+<style>
+  :root {
+    --felt: #1f2a24;
+    --felt-deep: #16201b;
+    --bone: #f0e7d3;
+    --bone-dim: #c9bfa8;
+    --ink: #14110c;
+    --gold: #e8b54a;
+    --red: #d6453c;
+    --blue: #6fb7d6;
+    --black: #2b2b30;
+    --panel: #2a3830;
+    --line: #3d4f45;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    background: var(--felt-deep);
+    color: var(--bone);
+    font-family: Georgia, 'Times New Roman', serif;
+    display: flex; justify-content: center;
+  }
+  #app { width: 100%; max-width: 520px; min-height: 100%; background: var(--felt);
+         display: flex; flex-direction: column; box-shadow: 0 0 60px rgba(0,0,0,.6); }
+
+  header {
+    padding: 14px 16px 10px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  }
+  header h1 { font-size: 22px; letter-spacing: .35em; text-transform: uppercase; font-weight: normal; }
+  header h1 .coat { color: var(--red); }
+  .turn-info { font-size: 13px; color: var(--bone-dim); text-align: right; line-height: 1.4; }
+  .turn-info b { color: var(--bone); font-size: 15px; }
+  .mode-badge { font-size: 10px; letter-spacing: .15em; text-transform: uppercase;
+    border: 1px solid var(--line); border-radius: 3px; padding: 2px 6px; color: var(--bone-dim); }
+
+  /* ---------- setup ---------- */
+  .setup { flex: 1; display: flex; flex-direction: column; justify-content: center;
+           padding: 28px; gap: 22px; }
+  .setup h1 { font-size: 38px; letter-spacing: .3em; text-transform: uppercase;
+              text-align: center; font-weight: normal; }
+  .setup h1 .coat { color: var(--red); }
+  .setup .tagline { text-align: center; color: var(--bone-dim); font-style: italic;
+                    margin-top: -14px; font-size: 14px; }
+  .setup-label { font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+                 color: var(--bone-dim); margin-bottom: 8px; }
+  .count-row { display: flex; gap: 8px; }
+  .count-row button {
+    flex: 1; padding: 13px 0; font-size: 18px; font-family: inherit;
+    background: var(--panel); color: var(--bone); border: 1px solid var(--line);
+    border-radius: 6px; cursor: pointer;
+  }
+  .count-row button.sel { border-color: var(--gold); color: var(--gold);
+    box-shadow: inset 0 0 0 1px var(--gold); }
+  .player-rows { display: flex; flex-direction: column; gap: 7px; }
+  .player-row { display: flex; align-items: center; gap: 10px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; }
+  .player-row label { font-size: 14px; flex: 1; }
+  .player-row select {
+    font-family: inherit; font-size: 13.5px; background: var(--felt-deep); color: var(--bone);
+    border: 1px solid var(--line); border-radius: 4px; padding: 7px 8px; max-width: 200px;
+  }
+  .mode-cards { display: flex; flex-direction: column; gap: 10px; }
+  .mode-card {
+    text-align: left; padding: 13px 16px; background: var(--panel); color: var(--bone);
+    border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font-family: inherit;
+  }
+  .mode-card.sel { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+  .mode-card .mc-title { font-size: 15px; letter-spacing: .08em; }
+  .mode-card.sel .mc-title { color: var(--gold); }
+  .mode-card .mc-desc { font-size: 12.5px; color: var(--bone-dim); margin-top: 4px; line-height: 1.45; }
+  .start-btn {
+    padding: 16px; font-size: 15px; letter-spacing: .25em; text-transform: uppercase;
+    font-family: inherit; background: var(--gold); color: var(--ink); border: none;
+    border-radius: 6px; cursor: pointer;
+  }
+
+  /* ---------- action bar ---------- */
+  .action-bar { padding: 10px 14px; border-bottom: 1px solid var(--line);
+                min-height: 86px; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+  .prompt { font-size: 14.5px; line-height: 1.4; }
+  .prompt .step-tag { color: var(--gold); font-size: 11px; letter-spacing: .15em;
+                      text-transform: uppercase; display: block; margin-bottom: 2px; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  button.act {
+    flex: 1; min-width: 70px; padding: 11px 4px; font-family: inherit; font-size: 13.5px;
+    letter-spacing: .05em; background: var(--panel); color: var(--bone);
+    border: 1px solid var(--line); border-radius: 6px; cursor: pointer;
+  }
+  button.act:disabled { opacity: .32; cursor: default; }
+  button.confirm { background: var(--gold); color: var(--ink); border-color: var(--gold); font-weight: bold; }
+  button.confirm:disabled { background: var(--panel); color: var(--bone); font-weight: normal; }
+  button.cancel { background: transparent; color: var(--bone-dim); }
+  .amount-ctl { display: flex; align-items: center; gap: 12px; }
+  .amount-ctl button { width: 44px; padding: 8px 0; font-size: 18px; background: var(--panel);
+    color: var(--bone); border: 1px solid var(--line); border-radius: 6px; font-family: inherit; cursor: pointer; }
+  .amount-ctl button:disabled { opacity: .3; }
+  .amount-ctl .amt { font-size: 20px; min-width: 30px; text-align: center; }
+  .thinking { display: flex; align-items: center; gap: 10px; color: var(--bone-dim); font-size: 14px; }
+  .spinner { width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--gold);
+    border-radius: 50%; animation: spin .8s linear infinite; flex: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- board ---------- */
+  .board-wrap { padding: 6px 8px; }
+  svg { display: block; width: 100%; height: auto; }
+  .hex { cursor: default; }
+  .hex.selectable { cursor: pointer; }
+  .hex.selectable .tile { stroke: var(--gold); stroke-width: 4; animation: pulse 1.1s ease-in-out infinite; }
+  .hex.selected .tile { stroke: var(--gold); stroke-width: 6; }
+  .hex.dimmed { opacity: .35; }
+  @keyframes pulse { 0%,100% { stroke-opacity: 1; } 50% { stroke-opacity: .35; } }
+  @media (prefers-reduced-motion: reduce) { .hex.selectable .tile { animation: none; } .spinner { animation-duration: 2s; } }
+  text.tnum { font-family: Georgia, serif; font-size: 15px; fill: #8a8170; user-select: none; }
+
+  /* ---------- piles & hands & log ---------- */
+  .panels { padding: 4px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; }
+  .panel-title { font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase;
+                 color: var(--bone-dim); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .stones { display: flex; flex-wrap: wrap; gap: 5px; min-height: 22px; align-items: center; }
+  .stone { width: 20px; height: 20px; border-radius: 50%; border: 2px solid rgba(240,231,211,.55); flex: none; }
+  .stone.sm { width: 14px; height: 14px; border-width: 1.5px; }
+  .stone.selectable { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(232,181,74,.45); cursor: pointer; }
+  .stone.selected { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold); }
+  .stone.dimmed { opacity: .3; }
+  .pile-row { display: flex; gap: 10px; }
+  .pile-row .panel { flex: 1; }
+  .empty-note { color: var(--bone-dim); font-size: 12px; font-style: italic; }
+  .hand-panel.active-hand { border-color: var(--gold); }
+  .hand-panel.active-hand .panel-title { color: var(--gold); }
+  .bag-count { font-size: 13px; color: var(--bone); }
+  .hidden-hand { font-size: 12.5px; color: var(--bone-dim); font-style: italic; }
+  .log-list { font-size: 12.5px; color: var(--bone-dim); line-height: 1.55; }
+  .log-list .latest { color: var(--bone); }
+
+  /* ---------- overlays ---------- */
+  .overlay {
+    position: fixed; inset: 0; background: var(--felt-deep); z-index: 50;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 22px; padding: 30px; text-align: center;
+  }
+  .overlay .big { font-size: 26px; letter-spacing: .1em; }
+  .overlay .sub { color: var(--bone-dim); font-size: 14px; line-height: 1.5; max-width: 320px; }
+  .overlay button { padding: 16px 38px; font-size: 14px; letter-spacing: .2em; text-transform: uppercase;
+    font-family: inherit; background: var(--gold); color: var(--ink); border: none; border-radius: 6px; cursor: pointer; }
+  .overlay .swatch { width: 54px; height: 54px; border-radius: 50%; border: 3px solid var(--bone); }
+  .reset-link { background: none; border: none; color: var(--bone-dim); font-family: inherit;
+    font-size: 12px; text-decoration: underline; cursor: pointer; padding: 8px; }
+  footer { padding: 6px 14px 16px; text-align: center; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="screen"></div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================================
+   PART 1 — PURE GAME CORE (headless, no DOM)
+   State is a plain serializable object. All rules live in legalMoves /
+   applyMove / evaluate so bots and UI share one implementation.
+   ========================================================================= */
+
+const TerritoryType = { Normal: "transparent", Red: "red", Blue: "skyblue", Black: "black" };
+const FACTIONS = ["red", "skyblue", "black"];
+const FACTION_COLORS = { red: "#d6453c", skyblue: "#6fb7d6", black: "#2b2b30", green: "#5d9b6c" };
+const FACTION_NAMES = { red: "Red", skyblue: "Blue", black: "Black", green: "Neutral", tie: "Tie" };
+
+/* Static board definition (never changes during play) */
+const BOARD = {
+  cells: [
+    { row: 0, col: 1, type: TerritoryType.Normal },
+    { row: 0, col: 2, type: TerritoryType.Normal },
+    { row: 0, col: 3, type: TerritoryType.Red },
+    { row: 1, col: 0, type: TerritoryType.Normal },
+    { row: 1, col: 1, type: TerritoryType.Normal },
+    { row: 1, col: 3, type: TerritoryType.Normal },
+    { row: 2, col: 1, type: TerritoryType.Blue },
+    { row: 2, col: 2, type: TerritoryType.Normal },
+    { row: 2, col: 3, type: TerritoryType.Normal },
+    { row: 2, col: 4, type: TerritoryType.Normal },
+    { row: 3, col: 3, type: TerritoryType.Black },
+  ],
+  graph: {
+    0: [1, 3, 4], 1: [2, 4], 2: [1, 5], 3: [0, 4, 6], 4: [0, 1, 3, 6, 7],
+    5: [2, 8, 9], 6: [3, 4, 7], 7: [4, 6, 8], 8: [7, 5, 9, 10], 9: [5, 8, 10], 10: [8, 9],
+  },
+};
+const T = BOARD.cells.length;
+
+function newGame(playerCount) {
+  const s = {
+    player_count: playerCount,
+    active_player: 0,
+    turn_count: 0,
+    negotiate_count: 0,
+    game_over: false,
+    bag: [],
+    territories: BOARD.cells.map(() => []),   // pieces only; static info lives in BOARD
+    hands: Array.from(Array(playerCount), () => []),
+    flag: [],
+    axe: [],
+  };
+  s.bag = Array(21).fill(FACTIONS).flat();
+  for (let i = 0; i < T; i++) {
+    const home = BOARD.cells[i].type;
+    for (let j = 0; j < 2; j++) {
+      if (home !== TerritoryType.Normal) {
+        s.territories[i].push(s.bag.splice(s.bag.indexOf(home), 1)[0]);
+      } else {
+        s.territories[i].push(drawRandom(s.bag));
+      }
+    }
+  }
+  for (const hand of s.hands)
+    for (let j = 0; j < 8; j++) hand.push(drawRandom(s.bag));
+  return s;
+}
+
+function drawRandom(arr) { return arr.splice(Math.floor(Math.random() * arr.length), 1)[0]; }
+function removeOne(arr, v) { const i = arr.indexOf(v); if (i >= 0) arr.splice(i, 1); }
+function countOf(arr, v) { let n = 0; for (const x of arr) if (x === v) n++; return n; }
+
+function cloneState(s) {
+  return {
+    player_count: s.player_count,
+    active_player: s.active_player,
+    turn_count: s.turn_count,
+    negotiate_count: s.negotiate_count,
+    game_over: s.game_over,
+    bag: s.bag.slice(),
+    territories: s.territories.map(t => t.slice()),
+    hands: s.hands.map(h => h.slice()),
+    flag: s.flag.slice(),
+    axe: s.axe.slice(),
+  };
+}
+
+/* ---- queries ---- */
+function uniqueFactions(arr) { return [...new Set(arr)]; }
+function territoriesWithFaction(s, f) {
+  const out = [];
+  for (let i = 0; i < T; i++) if (s.territories[i].includes(f)) out.push(i);
+  return out;
+}
+function territoriesWithFactionForBattle(s, f) {
+  const out = [];
+  for (let i = 0; i < T; i++) {
+    const p = s.territories[i];
+    if (p.includes(f) && p.some(x => x !== f)) out.push(i);
+  }
+  return out;
+}
+function enemyFactionsIn(s, ti, except) {
+  return uniqueFactions(s.territories[ti].filter(x => x !== except));
+}
+
+function winningColorFrom(arr) {
+  const count = {}; let maxCount = 0; let winner = "tie";
+  for (const piece of arr) {
+    count[piece] = (count[piece] || 0) + 1;
+    if (count[piece] > maxCount) { maxCount = count[piece]; winner = piece; }
+    else if (count[piece] === maxCount) { winner = "tie"; }
+  }
+  return winner;
+}
+function winningColor(s, ti) {
+  const pieces = s.territories[ti];
+  let winner = winningColorFrom(pieces);
+  const axeW = winningColorFrom(s.axe);
+  const flagW = winningColorFrom(s.flag);
+  if (winner === "tie" && pieces.includes(axeW)) winner = axeW;
+  if (winner === "tie" && pieces.includes(flagW)) winner = flagW;
+  if (winner === "tie") winner = "green";
+  return winner;
+}
+function winningFaction(s) {
+  return winningColorFrom(Array.from({ length: T }, (_, i) => winningColor(s, i)));
+}
+function winningPlayers(s) {
+  const f = winningFaction(s);
+  if (f === "tie" || f === "green") return [];
+  const counts = s.hands.map(h => countOf(h, f));
+  const max = Math.max(...counts);
+  return counts.map((c, i) => c === max ? i : -1).filter(i => i >= 0);
+}
+
+/* ---- move generation ----
+   Moves are complete flattened objects:
+   {type:'Recruit', faction, territory}
+   {type:'March',   faction, from, to, amount}
+   {type:'Battle',  faction, territory, target, amount}
+   {type:'Negotiate', sacrifice}            (drawn stone is a chance event at apply)
+   {type:'Pass'}                            (only when nothing else is legal)         */
+function legalMoves(s) {
+  if (s.game_over) return [];
+  const hand = s.hands[s.active_player];
+  const factions = uniqueFactions(hand);
+  const moves = [];
+  for (const f of factions) {
+    for (let t = 0; t < T; t++) moves.push({ type: "Recruit", faction: f, territory: t });
+    if (s.bag.length > 0) moves.push({ type: "Negotiate", sacrifice: f });
+    for (const from of territoriesWithFaction(s, f)) {
+      const max = countOf(s.territories[from], f);
+      for (const to of BOARD.graph[from])
+        for (let amt = 1; amt <= max; amt++)
+          moves.push({ type: "March", faction: f, from, to, amount: amt });
+    }
+    for (const ti of territoriesWithFactionForBattle(s, f)) {
+      const max = countOf(s.territories[ti], f);
+      for (const target of enemyFactionsIn(s, ti, f))
+        for (let amt = 1; amt <= max; amt++)
+          moves.push({ type: "Battle", faction: f, territory: ti, target, amount: amt });
+    }
+  }
+  if (moves.length === 0) moves.push({ type: "Pass" });
+  return moves;
+}
+
+function moveKey(m) {
+  switch (m.type) {
+    case "Recruit": return `R:${m.faction}:${m.territory}`;
+    case "March": return `M:${m.faction}:${m.from}:${m.to}:${m.amount}`;
+    case "Battle": return `B:${m.faction}:${m.territory}:${m.target}:${m.amount}`;
+    case "Negotiate": return `N:${m.sacrifice}`;
+    case "Pass": return "P";
+  }
+}
+
+/* ---- apply (mutates s, advances the turn, returns a description) ---- */
+function applyMove(s, m) {
+  const p = s.active_player;
+  const hand = s.hands[p];
+  let desc = "";
+  if (m.type === "Negotiate") {
+    // m.drawn may be supplied (human UI pre-draws so the player can see it);
+    // otherwise this is a chance event resolved now.
+    const drawn = m.drawn !== undefined ? m.drawn : drawRandom(s.bag);
+    s.bag.push(m.sacrifice);
+    removeOne(hand, m.sacrifice);
+    hand.push(drawn);
+    s.negotiate_count++;
+    desc = `Player ${p + 1} negotiates (swaps a hand stone with the bag)`;
+  } else if (m.type === "Pass") {
+    desc = `Player ${p + 1} has no legal moves and passes`;
+  } else {
+    s.negotiate_count = 0; // any other action breaks the consecutive-negotiation chain
+    if (m.type === "Recruit") {
+      removeOne(hand, m.faction);
+      s.territories[m.territory].push(m.faction);
+      desc = `Player ${p + 1} recruits ${FACTION_NAMES[m.faction]} to territory ${m.territory}`;
+    } else if (m.type === "March") {
+      removeOne(hand, m.faction);
+      s.flag.push(m.faction);
+      for (let i = 0; i < m.amount; i++) {
+        removeOne(s.territories[m.from], m.faction);
+        s.territories[m.to].push(m.faction);
+      }
+      desc = `Player ${p + 1} marches ${m.amount} ${FACTION_NAMES[m.faction]} ${m.from} → ${m.to} (flag fed)`;
+    } else if (m.type === "Battle") {
+      removeOne(hand, m.faction);
+      s.axe.push(m.faction);
+      let removed = 0;
+      for (let i = 0; i < m.amount; i++) {
+        if (s.territories[m.territory].includes(m.target)) {
+          removeOne(s.territories[m.territory], m.target);
+          s.bag.push(m.target);
+          removed++;
+        }
+      }
+      desc = `Player ${p + 1} battles in ${m.territory}: ${FACTION_NAMES[m.faction]} removes ${removed} ${FACTION_NAMES[m.target]} (axe fed)`;
+    }
+  }
+  // next_turn (same semantics as the original)
+  if (s.negotiate_count >= s.player_count) {
+    s.game_over = true;
+  } else {
+    s.turn_count++;
+    s.active_player = (s.active_player + 1) % s.player_count;
+  }
+  return desc;
+}
+
+/* ---- evaluation: per-player scores in [0,1], comparable to terminal payoffs.
+   Faction strength = number of territories it currently wins; a player's raw
+   score = how well their hand aligns with strong factions (the win condition). */
+function evaluate(s) {
+  const terrWins = {};
+  for (let i = 0; i < T; i++) {
+    const w = winningColor(s, i);
+    if (w !== "green") terrWins[w] = (terrWins[w] || 0) + 1;
+  }
+  const raw = s.hands.map(h => {
+    let v = 0.001 * h.length; // tiny tiebreaker: stones are options
+    for (const f of FACTIONS) v += countOf(h, f) * (terrWins[f] || 0);
+    return v;
+  });
+  const total = raw.reduce((a, b) => a + b, 0);
+  if (total <= 0) return raw.map(() => 1 / s.player_count);
+  return raw.map(v => v / total);
+}
+function scoreState(s) {
+  if (!s.game_over) return evaluate(s);
+  const winners = winningPlayers(s);
+  if (winners.length === 0) return s.hands.map(() => 0.25); // "no one wins" — bad for all
+  return s.hands.map((_, i) => winners.includes(i) ? 1 : 0);
+}
+
+/* ---- determinization (for ISMCTS): redeal everything `perspective` cannot
+   see — opponents' hands and the bag — consistent with all public info. ---- */
+function determinize(s, perspective) {
+  const d = cloneState(s);
+  const pool = d.bag.slice();
+  for (let i = 0; i < d.player_count; i++)
+    if (i !== perspective) pool.push(...d.hands[i]);
+  // shuffle pool (Fisher–Yates)
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  for (let i = 0; i < d.player_count; i++) {
+    if (i === perspective) continue;
+    d.hands[i] = pool.splice(0, d.hands[i].length);
+  }
+  d.bag = pool;
+  return d;
+}
+
+/* ============================================================================
+   PART 2 — BOTS
+   Every bot implements chooseMove(state, perspective, done) where done(move)
+   is called asynchronously. Search bots run in time slices to keep UI alive.
+   ========================================================================= */
+
+/* Bot 1 — Random: uniform over legal moves. Validates the move generator. */
+function randomBot(s, _p, done) {
+  const moves = legalMoves(s);
+  setTimeout(() => done(moves[Math.floor(Math.random() * moves.length)]), 0);
+}
+
+/* Bot 2 — Greedy: 1-ply lookahead on evaluate(); Negotiate is sampled since
+   the draw is random. Small noise breaks ties so it doesn't loop. */
+function greedyBot(s, p, done) {
+  const moves = legalMoves(s);
+  let best = null, bestV = -Infinity;
+  for (const m of moves) {
+    const samples = m.type === "Negotiate" ? 4 : 1;
+    let v = 0;
+    for (let k = 0; k < samples; k++) {
+      const c = cloneState(s);
+      applyMove(c, m);
+      v += scoreState(c)[p];
+    }
+    v = v / samples + Math.random() * 0.002;
+    if (v > bestV) { bestV = v; best = m; }
+  }
+  setTimeout(() => done(best), 0);
+}
+
+/* Bots 3 & 4 — open-loop max-n MCTS.
+   Bot 3 ("cheating") searches the true state. Bot 4 (ISMCTS) redeals hidden
+   information every iteration and only considers children legal in that
+   determinization (single-observer ISMCTS with availability-corrected UCB).
+   Open-loop = each iteration replays moves on a fresh clone, which absorbs
+   both chance (Negotiate draws) and determinization noise. */
+function mctsBot(opts) {
+  const { determinized, timeMs, ucbC = 1.0, rolloutDepth = 24, maxTreeDepth = 30, maxIters = 20000 } = opts;
+  return function (rootState, perspective, done, onProgress) {
+    const P = rootState.player_count;
+    const root = { N: 0, children: new Map() };
+    const start = performance.now();
+    let iters = 0;
+
+    function iterate() {
+      const sim = determinized ? determinize(rootState, perspective) : cloneState(rootState);
+      const path = [];
+      let node = root;
+      let depth = 0;
+      // --- selection / expansion ---
+      while (!sim.game_over && depth < maxTreeDepth) {
+        const moves = legalMoves(sim);
+        const player = sim.active_player;
+        const untried = moves.filter(m => !node.children.has(moveKey(m)));
+        if (untried.length > 0) {
+          const m = untried[Math.floor(Math.random() * untried.length)];
+          const child = { N: 0, avail: 1, W: new Array(P).fill(0), move: m, children: new Map() };
+          node.children.set(moveKey(m), child);
+          applyMove(sim, m);
+          path.push(child);
+          break;
+        }
+        // UCB over children legal *in this simulation* (ISMCTS subset rule)
+        let best = null, bestV = -Infinity;
+        for (const m of moves) {
+          const ch = node.children.get(moveKey(m));
+          ch.avail++;
+          const v = ch.W[player] / ch.N + ucbC * Math.sqrt(Math.log(ch.avail) / ch.N);
+          if (v > bestV) { bestV = v; best = ch; }
+        }
+        applyMove(sim, best.move);
+        path.push(best);
+        node = best;
+        depth++;
+      }
+      // --- rollout ---
+      let d = 0;
+      while (!sim.game_over && d < rolloutDepth) {
+        const ms = legalMoves(sim);
+        applyMove(sim, ms[Math.floor(Math.random() * ms.length)]);
+        d++;
+      }
+      // --- backprop (max-n: every node gets the full score vector) ---
+      const scores = scoreState(sim);
+      root.N++;
+      for (const n of path) {
+        n.N++;
+        for (let i = 0; i < P; i++) n.W[i] += scores[i];
+      }
+      iters++;
+    }
+
+    function slice() {
+      const sliceEnd = performance.now() + 28;
+      while (performance.now() < sliceEnd && performance.now() - start < timeMs && iters < maxIters) iterate();
+      if (onProgress) onProgress(iters);
+      if (performance.now() - start < timeMs && iters < maxIters) {
+        setTimeout(slice, 0);
+      } else {
+        // Root legality never depends on hidden info (own hand + public board),
+        // so most-visited root child is always a real legal move.
+        let best = null, bestN = -1;
+        for (const ch of root.children.values())
+          if (ch.N > bestN) { bestN = ch.N; best = ch.move; }
+        done(best || legalMoves(rootState)[0]);
+      }
+    }
+    setTimeout(slice, 0);
+  };
+}
+
+const BOTS = {
+  human:  { name: "Human", short: "Human", fn: null },
+  random: { name: "Bot 1 — Random", short: "Random", fn: randomBot },
+  greedy: { name: "Bot 2 — Greedy (1-ply)", short: "Greedy", fn: greedyBot },
+  mcts:   { name: "Bot 3 — MCTS (sees all hands)", short: "MCTS*", fn: mctsBot({ determinized: false, timeMs: 800 }) },
+  ismcts: { name: "Bot 4 — ISMCTS (fair)", short: "ISMCTS", fn: mctsBot({ determinized: true, timeMs: 1100 }) },
+};
+
+/* ============================================================================
+   PART 3 — UI / APP
+   ========================================================================= */
+
+const state = {
+  phase: "setup",          // setup | handoff | play | gameover
+  mode: "pass",            // pass | overview
+  playerCount: 2,
+  playerTypes: ["human", "ismcts", "greedy", "greedy", "greedy"],
+  action: null,            // human guided-action state machine
+  log: [],
+  botBusy: false,
+  botIters: 0,
+};
+let G = null; // current game state
+
+function isBot(i) { return state.playerTypes[i] !== "human"; }
+function humanCount() {
+  let n = 0;
+  for (let i = 0; i < state.playerCount; i++) if (!isBot(i)) n++;
+  return n;
+}
+
+function pushLog(desc) {
+  state.log.push(`T${G.turn_count}. ${desc}`);
+  if (state.log.length > 40) state.log.shift();
+}
+
+/* ----- human action step machine (UI only; resolution goes through applyMove) ----- */
+function startAction(type) {
+  if (type === "Negotiate") {
+    state.action = { type, step: "pick-sacrifice", drawn: drawRandom(G.bag), sacrifice: null };
+  } else if (type === "Recruit") {
+    state.action = { type, step: "pick-stone", faction: null, territory: null };
+  } else if (type === "March") {
+    state.action = { type, step: "pick-stone", faction: null, from: null, to: null, amount: 1 };
+  } else if (type === "Battle") {
+    state.action = { type, step: "pick-stone", faction: null, territory: null, target: null, amount: 1 };
+  }
+  render();
+}
+
+function cancelAction() {
+  const a = state.action;
+  if (a && a.type === "Negotiate") G.bag.push(a.drawn);
+  state.action = null;
+  render();
+}
+
+function actionToMove(a) {
+  if (a.type === "Negotiate") return { type: "Negotiate", sacrifice: a.sacrifice, drawn: a.drawn };
+  if (a.type === "Recruit") return { type: "Recruit", faction: a.faction, territory: a.territory };
+  if (a.type === "March") return { type: "March", faction: a.faction, from: a.from, to: a.to, amount: a.amount };
+  if (a.type === "Battle") return { type: "Battle", faction: a.faction, territory: a.territory, target: a.target, amount: a.amount };
+}
+
+function resolveHumanAction() {
+  const move = actionToMove(state.action);
+  state.action = null;
+  commitMove(move);
+}
+
+/* Single funnel for committing any move (human or bot) to the real game */
+function commitMove(move) {
+  const desc = applyMove(G, move);
+  pushLog(desc);
+  if (G.game_over) {
+    state.phase = "gameover";
+  } else if (state.mode === "pass" && !isBot(G.active_player) && humanCount() > 1) {
+    state.phase = "handoff"; // hide everything until next human accepts
+  } else {
+    state.phase = "play";
+  }
+  render();
+  maybeRunBot();
+}
+
+/* ----- bot driver ----- */
+function maybeRunBot() {
+  if (state.phase !== "play" || G.game_over || state.botBusy) return;
+  const p = G.active_player;
+  if (!isBot(p)) return;
+  state.botBusy = true;
+  state.botIters = 0;
+  render();
+  const fn = BOTS[state.playerTypes[p]].fn;
+  setTimeout(() => {
+    fn(G, p, move => {
+      state.botBusy = false;
+      commitMove(move);
+    }, iters => { state.botIters = iters; renderBotProgress(); });
+  }, 350);
+}
+
+/* ----- availability / selection helpers for the human UI ----- */
+function moveTypeAvailable(type) {
+  // cheap checks mirroring legalMoves
+  const hand = G.hands[G.active_player];
+  const fs = uniqueFactions(hand);
+  if (type === "Recruit") return hand.length > 0;
+  if (type === "Negotiate") return hand.length > 0 && G.bag.length > 0;
+  if (type === "March") return fs.some(f => territoriesWithFaction(G, f).length > 0);
+  if (type === "Battle") return fs.some(f => territoriesWithFactionForBattle(G, f).length > 0);
+  return false;
+}
+function pickableHandFactions() {
+  const a = state.action;
+  if (!a) return [];
+  const fs = uniqueFactions(G.hands[G.active_player]);
+  if (a.step === "pick-sacrifice") return fs;
+  if (a.step !== "pick-stone") return [];
+  if (a.type === "Recruit") return fs;
+  if (a.type === "March") return fs.filter(f => territoriesWithFaction(G, f).length > 0);
+  if (a.type === "Battle") return fs.filter(f => territoriesWithFactionForBattle(G, f).length > 0);
+  return [];
+}
+function selectableTerritories() {
+  const a = state.action;
+  if (!a) return [];
+  if (a.type === "Recruit" && a.step === "pick-territory") return Array.from({ length: T }, (_, i) => i);
+  if (a.type === "Battle" && a.step === "pick-territory") return territoriesWithFactionForBattle(G, a.faction);
+  if (a.type === "March" && a.step === "pick-from") return territoriesWithFaction(G, a.faction);
+  if (a.type === "March" && a.step === "pick-to") return BOARD.graph[a.from];
+  return [];
+}
+function onHandStoneClick(faction) {
+  const a = state.action;
+  if (!a) return;
+  if (a.step === "pick-sacrifice") { a.sacrifice = faction; a.step = "ready"; }
+  else if (a.step === "pick-stone") {
+    a.faction = faction;
+    if (a.type === "Recruit") a.step = "pick-territory";
+    else if (a.type === "March") a.step = "pick-from";
+    else if (a.type === "Battle") a.step = "pick-territory";
+  }
+  render();
+}
+function onTerritoryClick(i) {
+  const a = state.action;
+  if (!a || !selectableTerritories().includes(i)) return;
+  if (a.type === "Recruit") { a.territory = i; a.step = "ready"; }
+  else if (a.type === "Battle") { a.territory = i; a.step = "pick-target"; a.amount = 1; }
+  else if (a.type === "March") {
+    if (a.step === "pick-from") { a.from = i; a.step = "pick-to"; }
+    else if (a.step === "pick-to") { a.to = i; a.step = "amount"; a.amount = 1; }
+  }
+  render();
+}
+function onTargetClick(faction) {
+  const a = state.action;
+  if (a && a.type === "Battle" && a.step === "pick-target") {
+    a.target = faction; a.step = "amount"; a.amount = 1;
+    render();
+  }
+}
+function maxAmount() {
+  const a = state.action;
+  if (!a) return 1;
+  if (a.type === "Battle") return Math.max(1, countOf(G.territories[a.territory], a.faction));
+  if (a.type === "March") return Math.max(1, countOf(G.territories[a.from], a.faction));
+  return 1;
+}
+function actionReady(a) {
+  if (a.type === "Negotiate" || a.type === "Recruit") return a.step === "ready";
+  if (a.type === "March" || a.type === "Battle") return a.step === "amount";
+  return false;
+}
+
+/* ============================ rendering ============================ */
+
+const screen = document.getElementById("screen");
+
+function h(tag, attrs = {}, ...children) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "onclick") el.addEventListener("click", v);
+    else if (k === "onchange") el.addEventListener("change", v);
+    else if (k === "class") el.className = v;
+    else if (k === "disabled") el.disabled = !!v;
+    else el.setAttribute(k, v);
+  }
+  for (const c of children.flat()) {
+    if (c == null) continue;
+    el.append(c.nodeType ? c : document.createTextNode(c));
+  }
+  return el;
+}
+function stoneEl(faction, opts = {}) {
+  const cls = ["stone", opts.small ? "sm" : "", opts.selectable ? "selectable" : "",
+               opts.selected ? "selected" : "", opts.dimmed ? "dimmed" : ""].filter(Boolean).join(" ");
+  const el = h("div", { class: cls, title: FACTION_NAMES[faction] || faction });
+  el.style.background = FACTION_COLORS[faction] || faction;
+  if (opts.onclick) el.addEventListener("click", opts.onclick);
+  return el;
+}
+function stoneInline(faction) {
+  const s = h("span");
+  s.style.cssText = `display:inline-block;width:13px;height:13px;border-radius:50%;vertical-align:-2px;border:1.5px solid rgba(240,231,211,.6);background:${FACTION_COLORS[faction] || faction}`;
+  return s;
+}
+
+/* vertical hex map (original wide layout rotated 90°) */
+const HEX = 52, PAD = 10, SQ3 = Math.sqrt(3);
+function hexCX(c) { return 90 + (3 - c.row) * (HEX * 1.5 + PAD); }
+function hexCY(c) { return 95 + c.col * (HEX * SQ3 + PAD) + (c.row % 2) * (HEX * SQ3) / 2; }
+function flatHexPoints(x, y, s) {
+  return [
+    [x + s, y], [x + s / 2, y + (s * SQ3) / 2], [x - s / 2, y + (s * SQ3) / 2],
+    [x - s, y], [x - s / 2, y - (s * SQ3) / 2], [x + s / 2, y - (s * SQ3) / 2],
+  ].map(p => p.join(",")).join(" ");
+}
+const SVGNS = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs = {}, ...children) {
+  const el = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "onclick") el.addEventListener("click", v);
+    else el.setAttribute(k, v);
+  }
+  for (const c of children.flat()) if (c != null) el.append(c.nodeType ? c : document.createTextNode(c));
+  return el;
+}
+
+function renderMap() {
+  const a = state.action;
+  const selectable = selectableTerritories();
+  const selecting = selectable.length > 0;
+  const svg = svgEl("svg", { viewBox: "0 0 460 640", role: "img", "aria-label": "Turncoats map" });
+
+  BOARD.cells.forEach((cell, i) => {
+    const cx = hexCX(cell), cy = hexCY(cell);
+    const pieces = G.territories[i];
+    const isSel = a && ((a.territory === i && a.type !== "March") || a.from === i || a.to === i);
+    const cls = ["hex",
+      selectable.includes(i) ? "selectable" : "",
+      isSel ? "selected" : "",
+      selecting && !selectable.includes(i) && !isSel ? "dimmed" : ""
+    ].filter(Boolean).join(" ");
+    const g = svgEl("g", { class: cls, onclick: () => onTerritoryClick(i) });
+
+    g.append(svgEl("polygon", { class: "tile", points: flatHexPoints(cx, cy, HEX),
+      fill: "#f0e7d3", stroke: "#3d4f45", "stroke-width": "2" }));
+    if (cell.type !== TerritoryType.Normal) {
+      g.append(svgEl("polygon", { points: flatHexPoints(cx, cy, HEX - 1),
+        fill: "transparent", stroke: FACTION_COLORS[cell.type] || cell.type, "stroke-width": "5" }));
+    }
+    g.append(svgEl("polygon", { points: flatHexPoints(cx, cy, HEX - 9),
+      fill: "transparent", stroke: FACTION_COLORS[winningColor(G, i)] || "green", "stroke-width": "3" }));
+    g.append(svgEl("text", { class: "tnum", x: cx - HEX + 16, y: cy - HEX * SQ3 / 2 + 22 }, String(i)));
+
+    pieces.forEach((piece, j) => {
+      const perRow = 4, row = Math.floor(j / perRow), col = j % perRow;
+      const rowCount = Math.min(perRow, pieces.length - row * perRow);
+      const px = cx - ((rowCount - 1) * 20) / 2 + col * 20;
+      const py = cy - 8 + row * 20 - (Math.floor((pieces.length - 1) / perRow) * 10) + 8;
+      const isTarget = a && a.type === "Battle" && a.step === "pick-target" &&
+        a.territory === i && piece !== a.faction;
+      const c = svgEl("circle", {
+        cx: px, cy: py, r: 9,
+        fill: FACTION_COLORS[piece] || piece,
+        stroke: isTarget ? "#e8b54a" : "rgba(240,231,211,.8)",
+        "stroke-width": isTarget ? 3 : 1.5,
+      });
+      if (isTarget) {
+        c.style.cursor = "pointer";
+        c.addEventListener("click", ev => { ev.stopPropagation(); onTargetClick(piece); });
+      }
+      g.append(c);
+    });
+    svg.append(g);
+  });
+  return h("div", { class: "board-wrap" }, svg);
+}
+
+function promptFor(a) {
+  const name = f => FACTION_NAMES[f] || f;
+  switch (a.type) {
+    case "Negotiate":
+      if (a.step === "pick-sacrifice")
+        return ["Negotiate · step 1 of 1", ["You drew a ", stoneInline(a.drawn), " stone from the bag. Tap a stone in your hand to return to the bag in exchange."]];
+      return ["Negotiate · ready", ["Swap ", stoneInline(a.sacrifice), " for the drawn ", stoneInline(a.drawn), " stone. Confirm to resolve."]];
+    case "Recruit":
+      if (a.step === "pick-stone") return ["Recruit · step 1 of 2", "Tap a stone in your hand to deploy."];
+      if (a.step === "pick-territory") return ["Recruit · step 2 of 2", ["Tap a highlighted territory to place your ", stoneInline(a.faction), " stone."]];
+      return ["Recruit · ready", [stoneInline(a.faction), ` ${name(a.faction)} stone to territory ${a.territory}. Confirm to resolve.`]];
+    case "March":
+      if (a.step === "pick-stone") return ["March · step 1 of 4", "Tap a hand stone whose faction is on the board. It will be spent to the flag."];
+      if (a.step === "pick-from") return ["March · step 2 of 4", ["Tap a highlighted territory containing ", stoneInline(a.faction), " stones to march from."]];
+      if (a.step === "pick-to") return ["March · step 3 of 4", `Tap an adjacent highlighted territory to march into from territory ${a.from}.`];
+      return ["March · step 4 of 4", [`Choose how many ${name(a.faction)} stones move from ${a.from} to ${a.to}, then confirm.`]];
+    case "Battle":
+      if (a.step === "pick-stone") return ["Battle · step 1 of 4", "Tap a hand stone whose faction shares a territory with an enemy. It will be spent to the axe."];
+      if (a.step === "pick-territory") return ["Battle · step 2 of 4", ["Tap a highlighted contested territory where ", stoneInline(a.faction), " will fight."]];
+      if (a.step === "pick-target") return ["Battle · step 3 of 4", `Tap an enemy stone in territory ${a.territory} to target that faction.`];
+      return ["Battle · step 4 of 4", [`Choose how many ${name(a.target)} stones to remove (max = your ${name(a.faction)} stones there), then confirm.`]];
+  }
+}
+
+function renderBotProgress() {
+  const el = document.getElementById("bot-iters");
+  if (el) el.textContent = state.botIters > 0 ? `${state.botIters} simulations` : "";
+}
+
+function renderActionBar() {
+  const bar = h("div", { class: "action-bar" });
+  const p = G.active_player;
+
+  if (isBot(p)) {
+    bar.append(h("div", { class: "thinking" },
+      h("div", { class: "spinner" }),
+      h("div", {},
+        `Player ${p + 1} (${BOTS[state.playerTypes[p]].short}) is thinking… `,
+        h("span", { id: "bot-iters" }, ""))));
+    return bar;
+  }
+
+  const a = state.action;
+  if (!a) {
+    const noMoves = legalMoves(G).every(m => m.type === "Pass");
+    bar.append(h("div", { class: "prompt" },
+      h("span", { class: "step-tag" }, `Player ${p + 1} — choose an action`),
+      noMoves ? "No stones in hand and nothing to negotiate — you must pass."
+              : "Recruit, Battle, March, or Negotiate. The game ends when every player negotiates consecutively."));
+    if (noMoves) {
+      bar.append(h("div", { class: "btn-row" },
+        h("button", { class: "act confirm", onclick: () => commitMove({ type: "Pass" }) }, "Pass")));
+    } else {
+      bar.append(h("div", { class: "btn-row" },
+        h("button", { class: "act", disabled: !moveTypeAvailable("Recruit"), onclick: () => startAction("Recruit") }, "Recruit"),
+        h("button", { class: "act", disabled: !moveTypeAvailable("Battle"), onclick: () => startAction("Battle") }, "Battle"),
+        h("button", { class: "act", disabled: !moveTypeAvailable("March"), onclick: () => startAction("March") }, "March"),
+        h("button", { class: "act", disabled: !moveTypeAvailable("Negotiate"), onclick: () => startAction("Negotiate") }, "Negotiate"),
+      ));
+    }
+    return bar;
+  }
+  const [tag, text] = promptFor(a);
+  bar.append(h("div", { class: "prompt" }, h("span", { class: "step-tag" }, tag),
+    ...(Array.isArray(text) ? text : [text])));
+  if ((a.type === "March" || a.type === "Battle") && a.step === "amount") {
+    const max = maxAmount();
+    bar.append(h("div", { class: "amount-ctl" },
+      h("button", { disabled: a.amount <= 1, onclick: () => { a.amount--; render(); } }, "−"),
+      h("div", { class: "amt" }, String(a.amount)),
+      h("button", { disabled: a.amount >= max, onclick: () => { a.amount++; render(); } }, "+"),
+      h("span", { class: "empty-note" }, `of ${max}`),
+    ));
+  }
+  bar.append(h("div", { class: "btn-row" },
+    h("button", { class: "act cancel", onclick: cancelAction }, "Cancel"),
+    h("button", { class: "act confirm", disabled: !actionReady(a), onclick: resolveHumanAction }, a.type + "!"),
+  ));
+  return bar;
+}
+
+function renderPiles() {
+  const pile = (label, icon, arr) => h("div", { class: "panel" },
+    h("div", { class: "panel-title" }, `${icon} ${label}`),
+    h("div", { class: "stones" },
+      arr.length ? arr.map(p => stoneEl(p, { small: true })) : h("span", { class: "empty-note" }, "empty")));
+  return h("div", { class: "pile-row" },
+    pile("Flag (marches)", "🚩", G.flag),
+    pile("Axe (battles)", "🪓", G.axe));
+}
+
+function renderBag() {
+  const panel = h("div", { class: "panel" });
+  if (state.mode === "overview") {
+    panel.append(h("div", { class: "panel-title" }, "Bag", h("span", {}, `${G.bag.length} stones`)));
+    const order = { red: 0, skyblue: 1, black: 2 };
+    const sorted = [...G.bag].sort((x, y) => (order[x] ?? 9) - (order[y] ?? 9));
+    panel.append(h("div", { class: "stones" }, sorted.map(p => stoneEl(p, { small: true }))));
+  } else {
+    panel.append(h("div", { class: "panel-title" }, "Bag"));
+    panel.append(h("div", { class: "bag-count" }, `${G.bag.length} stones remain (contents hidden)`));
+  }
+  return panel;
+}
+
+function renderHands() {
+  const a = state.action;
+  const pickable = new Set(pickableHandFactions());
+  const picking = pickable.size > 0 && !isBot(G.active_player);
+  const wrap = h("div", { style: "display:flex;flex-direction:column;gap:10px" });
+
+  G.hands.forEach((hand, i) => {
+    const isActive = i === G.active_player;
+    const typeShort = BOTS[state.playerTypes[i]].short;
+    const label = `Player ${i + 1}${isBot(i) ? " · " + typeShort : ""}${isActive ? " — current turn" : ""}`;
+    // In Pass & Play, only a human's own hand is visible on their turn.
+    const showStones = state.mode === "overview" || (isActive && !isBot(i));
+    const panel = h("div", { class: "panel hand-panel" + (isActive ? " active-hand" : "") });
+    panel.append(h("div", { class: "panel-title" }, label, h("span", {}, `${hand.length} stones`)));
+    if (!showStones) {
+      panel.append(h("div", { class: "hidden-hand" }, "hand hidden"));
+      wrap.append(panel);
+      return;
+    }
+    const stones = h("div", { class: "stones" });
+    hand.forEach(p => {
+      const selectable = isActive && picking && pickable.has(p);
+      const selected = isActive && a && ((a.faction === p && a.step !== "pick-stone") ||
+        (a.type === "Negotiate" && a.sacrifice === p && a.step === "ready"));
+      stones.append(stoneEl(p, {
+        selectable, selected,
+        dimmed: isActive && picking && !pickable.has(p),
+        onclick: selectable ? () => onHandStoneClick(p) : null,
+      }));
+    });
+    if (!hand.length) stones.append(h("span", { class: "empty-note" }, "no stones"));
+    panel.append(stones);
+    wrap.append(panel);
+  });
+  return wrap;
+}
+
+function renderLog() {
+  const panel = h("div", { class: "panel" });
+  panel.append(h("div", { class: "panel-title" }, "Log"));
+  const items = state.log.slice(-6);
+  const list = h("div", { class: "log-list" });
+  items.forEach((line, i) => {
+    list.append(h("div", { class: i === items.length - 1 ? "latest" : "" }, line));
+  });
+  if (!items.length) list.append(h("span", { class: "empty-note" }, "no moves yet"));
+  panel.append(list);
+  return panel;
+}
+
+function renderHeader() {
+  return h("header", {},
+    h("h1", {}, "Turn", h("span", { class: "coat" }, "coats")),
+    h("div", { class: "turn-info" },
+      h("div", {}, h("b", {}, `Player ${G.active_player + 1}`), ` · turn ${G.turn_count + 1}`),
+      h("div", {}, h("span", { class: "mode-badge" },
+        state.mode === "pass" ? "Pass & Play" : "Overview"),
+        ` · negotiations ${G.negotiate_count}/${G.player_count}`)));
+}
+
+/* ----- screens ----- */
+
+function renderSetup() {
+  const playerRows = [];
+  for (let i = 0; i < state.playerCount; i++) {
+    const sel = h("select", { onchange: ev => { state.playerTypes[i] = ev.target.value; } },
+      ...Object.entries(BOTS).map(([key, b]) =>
+        h("option", { value: key, ...(state.playerTypes[i] === key ? { selected: "selected" } : {}) }, b.name)));
+    playerRows.push(h("div", { class: "player-row" },
+      h("label", {}, `Player ${i + 1}`), sel));
+  }
+  screen.replaceChildren(h("div", { class: "setup" },
+    h("h1", {}, "Turn", h("span", { class: "coat" }, "coats")),
+    h("div", { class: "tagline" }, "Loyalty is a stone you haven't spent yet."),
+    h("div", {},
+      h("div", { class: "setup-label" }, "Players"),
+      h("div", { class: "count-row" }, [2, 3, 4, 5].map(n =>
+        h("button", { class: state.playerCount === n ? "sel" : "",
+          onclick: () => { state.playerCount = n; render(); } }, String(n))))),
+    h("div", {},
+      h("div", { class: "setup-label" }, "Seats"),
+      h("div", { class: "player-rows" }, playerRows)),
+    h("div", {},
+      h("div", { class: "setup-label" }, "Mode"),
+      h("div", { class: "mode-cards" },
+        h("button", { class: "mode-card" + (state.mode === "pass" ? " sel" : ""),
+            onclick: () => { state.mode = "pass"; render(); } },
+          h("div", { class: "mc-title" }, "Pass & Play"),
+          h("div", { class: "mc-desc" }, "Hands and the bag stay hidden — only the current human's hand is shown. Bot hands are never revealed. The screen locks between human turns.")),
+        h("button", { class: "mode-card" + (state.mode === "overview" ? " sel" : ""),
+            onclick: () => { state.mode = "overview"; render(); } },
+          h("div", { class: "mc-title" }, "Overview"),
+          h("div", { class: "mc-desc" }, "Debug view: every hand and the full bag are visible — including bot hands while they think.")))),
+    h("button", { class: "start-btn", onclick: () => {
+        G = newGame(state.playerCount);
+        state.action = null;
+        state.log = [];
+        state.botBusy = false;
+        const firstIsHuman = !isBot(0);
+        state.phase = (state.mode === "pass" && firstIsHuman && humanCount() > 1) ? "handoff" : "play";
+        render();
+        maybeRunBot();
+      } }, "Start Game"),
+  ));
+}
+
+function renderHandoff() {
+  screen.replaceChildren(h("div", { class: "overlay" },
+    h("div", { class: "big" }, `Pass to Player ${G.active_player + 1}`),
+    h("div", { class: "sub" }, "Everything is hidden. Hand over the device — only the next player should tap below."),
+    h("button", { onclick: () => { state.phase = "play"; render(); } },
+      `I'm Player ${G.active_player + 1} — Begin Turn`),
+  ));
+}
+
+function renderGameOver() {
+  const faction = winningFaction(G);
+  const winners = winningPlayers(G);
+  const winnerText = (faction === "tie" || faction === "green") ? "No one wins!"
+    : winners.length === 1 ? `Player ${winners[0] + 1} wins!`
+    : `Tie between ${winners.map(i => "Player " + (i + 1)).join(" & ")}`;
+  const swatch = h("div", { class: "swatch" });
+  swatch.style.background = FACTION_COLORS[faction] || "#5d9b6c";
+  screen.replaceChildren(h("div", { class: "overlay" },
+    h("div", { class: "big" }, "Game Over"),
+    swatch,
+    h("div", { class: "sub" },
+      `Winning faction: ${FACTION_NAMES[faction] || faction}. ${winnerText} ` +
+      `(Backers are counted by stones of the winning faction left in hand.)`),
+    h("button", { onclick: () => { state.phase = "setup"; render(); } }, "New Game"),
+  ));
+}
+
+function renderPlay() {
+  screen.replaceChildren(
+    renderHeader(),
+    renderActionBar(),
+    renderMap(),
+    h("div", { class: "panels" }, renderPiles(), renderHands(), renderBag(), renderLog()),
+    h("footer", {}, h("button", { class: "reset-link", onclick: () => {
+      if (confirm("Abandon this game and return to setup?")) {
+        state.phase = "setup"; state.action = null; state.botBusy = false; render();
+      }
+    } }, "Reset / change players")),
+  );
+}
+
+function render() {
+  if (state.phase === "setup") renderSetup();
+  else if (state.phase === "handoff") renderHandoff();
+  else if (state.phase === "gameover") renderGameOver();
+  else renderPlay();
+}
+
+render();
+</script>
+</body>
+</html>
