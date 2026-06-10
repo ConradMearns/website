@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <title>Project Turncoats — Conrad's Website</title>
+    <link rel='stylesheet' href='../main.css'>
+    <style>
+        /* ─────────  timeline  ───────── */
+
+        .timeline {
+            position: relative;
+            margin: 2em 0;
+            padding-left: 2.4em;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--muted);
+            border-radius: 2px;
+        }
+
+        .tl-entry {
+            position: relative;
+            margin-bottom: 2.4em;
+            padding-bottom: 0;
+        }
+
+        .tl-entry:last-child {
+            margin-bottom: 0;
+        }
+
+        .tl-marker {
+            position: absolute;
+            left: -2.65em;
+            top: 0.25em;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 2px solid var(--bg);
+            z-index: 1;
+        }
+
+        .tl-date {
+            font-size: 0.8em;
+            color: var(--accent);
+            letter-spacing: 0.04em;
+            font-weight: 600;
+            margin: 0 0 0.15em 0;
+        }
+
+        .tl-body {
+            color: var(--muted);
+            font-size: 0.9em;
+            line-height: 1.55;
+        }
+
+        .tl-body p {
+            margin: 0.3em 0;
+        }
+
+        .tl-body a {
+            font-size: 0.9em;
+            letter-spacing: 0.03em;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.1em;
+            text-decoration: none;
+        }
+
+        .tl-body a:hover {
+            color: var(--accent);
+        }
+
+        /* ─────────  image placeholders  ───────── */
+
+        .img-placeholder {
+            display: block;
+            width: 100%;
+            max-width: 600px;
+            aspect-ratio: 16/9;
+            background: var(--surface);
+            border: 2px dashed var(--border);
+            border-radius: 6px;
+            /* margin: 1em 0; */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+            font-size: 0.85em;
+            letter-spacing: 0.03em;
+        }
+
+        .img-caption {
+            font-size: 0.8em;
+            color: var(--muted);
+            opacity: 0.7;
+            margin-top: 0.2em;
+        }
+
+        .img-row {
+            display: flex;
+            gap: 2em;
+            flex-wrap: wrap;
+            margin: 1.4em 0;
+        }
+
+        .img-row figure {
+            margin: 0;
+            flex: 1;
+            min-width: 260px;
+        }
+
+        /* ─────────  site card  ───────── */
+
+        .site-card {
+            border-left: 4px solid var(--accent);
+            background: var(--surface);
+            border-radius: 0 6px 6px 0;
+            padding: 1em 1.2em;
+            margin: 1.6em 0;
+            display: flex;
+            gap: 1.2em;
+            align-items: flex-start;
+        }
+
+        .site-card-thumb {
+            flex: 0 0 220px;
+            aspect-ratio: 16/9;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .site-card-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .site-card-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .site-card-domain {
+            font-size: 0.75em;
+            color: var(--muted);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin: 0 0 0.15em 0;
+            opacity: 0.7;
+        }
+
+        .site-card-title {
+            font-size: 1em;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0 0 0.3em 0;
+            letter-spacing: 0.02em;
+        }
+
+        .site-card-desc {
+            font-size: 0.85em;
+            color: var(--muted);
+            line-height: 1.5;
+            margin: 0 0 0.5em 0;
+        }
+
+        .site-card-link {
+            font-size: 0.8em;
+            letter-spacing: 0.03em;
+            color: var(--accent);
+            text-decoration: none;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.1em;
+        }
+
+        .site-card-link:hover {
+            color: var(--text);
+        }
+
+        .site-card-meta {
+            font-size: 0.75em;
+            color: var(--muted);
+            opacity: 0.6;
+            margin-top: 0.4em;
+        }
+    </style>
+</head>
+<body>
+
+    <header style="width: full;">
+        <h1 class="stretch grow"><a href="https://conrads.website">conrads.website</a></h1>
+    </header>
+
+    <hr />
+
+    <nav>
+        <a href="https://bsky.app/profile/conradmearns.bsky.social" target="_blank">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565C.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479c.815 2.736 3.713 3.66 6.383 3.364q.204-.03.415-.056q-.207.033-.415.056c-3.912.58-7.387 2.005-2.83 7.078c5.013 5.19 6.87-1.113 7.823-4.308c.953 3.195 2.05 9.271 7.733 4.308c4.267-4.308 1.172-6.498-2.74-7.078a9 9 0 0 1-.415-.056q.21.026.415.056c2.67.297 5.568-.628 6.383-3.364c.246-.828.624-5.79.624-6.478c0-.69-.139-1.861-.902-2.206c-.659-.298-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8"></path></svg>
+        </a>
+
+        <a href="https://github.com/ConradMearns" target="_blank">
+          <svg viewBox="0 0 16 16" aria-hidden="true" width="32" height="32"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>
+        </a>
+    </nav>
+
+    <hr />
+
+    <main>
+
+        <article>
+            <header>
+                <h1 class="stretch grow-1">Project Turncoats</h1>
+            </header>
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!--                 BLURB                      -->
+            <!-- ═══════════════════════════════════════════ -->
+
+            <p class="indent">
+                Turncoats is a board game about shifting alliances, hidden motives, and the
+                delicate art of knowing exactly when to switch sides. Originally designed as a
+                hand-crafted tabletop experience, it has since taken on a second life as a
+                digital implementation — part passion project, part technical playground.
+            </p>
+
+            <p>
+                The original tabletop game was created by <strong>Milda Matilda Games</strong> —
+                here's the source:
+            </p>
+
+            <a href="https://mildamatildagames.wordpress.com/turncoats-2/" target="_blank" rel="noopener" style="text-decoration: none;">
+            <div class="site-card">
+                <div class="site-card-thumb">
+                    <img src="https://mildamatildagames.wordpress.com/wp-content/uploads/2021/08/20210804_212239-1.jpg?w=640" alt="Turncoats board game" loading="lazy">
+                </div>
+                <div class="site-card-body">
+                    <p class="site-card-domain">Milda Matilda Games</p>
+                    <p class="site-card-title">Turncoats</p>
+                    <p class="site-card-desc">
+                        Turncoats is a competitive game for 2–5 players, where three factions are at war.
+                        The players take on the role of Aspirants and Interlopers, not obviously tied to
+                        any one group. Instead, they must manage their loyalties, represented by stones
+                        in their hand that they keep hidden from everyone else.
+                    </p>
+                    <span class="site-card-link">→ mildamatildagames.wordpress.com/turncoats-2</span>
+                    <p class="site-card-meta">Published: August 2021 · Updated: November 2023</p>
+                </div>
+            </div>
+            </a>
+
+            <p class="indent">
+                [Template: Write a paragraph here about the game's core mechanics. What makes it
+                tick? Is it a bluffing game, a strategy game, a negotiation game? Who is it for?
+                What does a typical session feel like? Describe the moment-to-moment experience
+                and the emotional arc of a match.]
+            </p>
+
+            <p class="indent">
+                [Template: Write a paragraph here about your personal connection to the project.
+                Why did you build it? What itch did it scratch — was it a technical challenge, a
+                design obsession, a tribute to the original? What did you learn along the way that
+                you didn't expect?]
+            </p>
+
+            <p class="indent">
+                [Template: Write a paragraph here about the future of Turncoats. Where is it
+                headed next? Are there features you still want to add, a community forming around
+                it, a physical edition in the works? What would the "done" state look like —
+                or is it the kind of project that's never really done?]
+            </p>
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!--              IMAGE GALLERY                 -->
+            <!-- ═══════════════════════════════════════════ -->
+
+            <div class="img-row">
+                <figure>
+                    <div class="site-card-thumb">
+                        <img src="2022.png" alt="Turncoats · 2022 version" loading="lazy">
+                    </div>
+                    <!-- <div class="img-placeholder">Turncoats · 2022 version</div> -->
+                    <figcaption class="img-caption">My original implementation (2022)</figcaption>
+                </figure>
+                <figure>
+                    <div class="site-card-thumb">
+                        <img src="fable.png" alt="Turncoats · Fable 5 version" loading="lazy">
+                    </div>
+                    <!-- <div class="img-placeholder">Turncoats · Fable 5 version</div> -->
+                    <figcaption class="img-caption">Fable 5 rebuild (2026)</figcaption>
+                </figure>
+            </div>
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!--               TIMELINE                    -->
+            <!-- ═══════════════════════════════════════════ -->
+
+            <header style="margin-top: 2em;">
+                <h1 class="stretch grow-1">Timeline</h1>
+            </header>
+
+            <div class="timeline">
+
+                <div class="tl-entry">
+                    <div class="tl-marker"></div>
+                    <div class="tl-date">[DATE]</div>
+                    <div class="tl-body">
+                        <p>[Template: Describe this milestone. What happened? Why was it significant?
+                        Add links, reflections, or technical notes as needed.]</p>
+                    </div>
+                </div>
+
+                <div class="tl-entry">
+                    <div class="tl-marker"></div>
+                    <div class="tl-date">[DATE]</div>
+                    <div class="tl-body">
+                        <p>[Template: Another milestone. Keep entries in reverse-chronological order
+                        if this is a changelog, or chronological if it tells a story.]</p>
+                    </div>
+                </div>
+
+                <div class="tl-entry">
+                    <div class="tl-marker"></div>
+                    <div class="tl-date">[DATE]</div>
+                    <div class="tl-body">
+                        <p>[Template: You can add as many entries as you like. The vertical line
+                        and accent markers will thread them together visually.]</p>
+                    </div>
+                </div>
+
+                <div class="tl-entry">
+                    <div class="tl-marker"></div>
+                    <div class="tl-date">[DATE]</div>
+                    <div class="tl-body">
+                        <p>[Template: Each entry can also include links — e.g.
+                        <a href="#">→ GitHub commit</a> or <a href="#">→ blog post</a>.]</p>
+                    </div>
+                </div>
+
+                <div class="tl-entry">
+                    <div class="tl-marker"></div>
+                    <div class="tl-date">[DATE]</div>
+                    <div class="tl-body">
+                        <p>[Template: Final entry. The timeline grows with the project.]</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </article>
+
+    </main>
+
+</body>
+</html>

@@ -4,7 +4,7 @@
     <meta charset='utf-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
     <title>Project Turncoats — Conrad's Website</title>
-    <link rel='stylesheet' href='main.css'>
+    <link rel='stylesheet' href='../main.css'>
     <style>
         /* ─────────  timeline  ───────── */
 
@@ -115,6 +115,84 @@
             flex: 1;
             min-width: 260px;
         }
+
+        /* ─────────  site card  ───────── */
+
+        .site-card {
+            border-left: 4px solid var(--accent);
+            background: var(--surface);
+            border-radius: 0 6px 6px 0;
+            padding: 1em 1.2em;
+            margin: 1.6em 0;
+            display: flex;
+            gap: 1.2em;
+            align-items: flex-start;
+        }
+
+        .site-card-thumb {
+            flex: 0 0 220px;
+            /* aspect-ratio: 1/1; */
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .site-card-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .site-card-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .site-card-domain {
+            font-size: 0.75em;
+            color: var(--muted);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin: 0 0 0.15em 0;
+            opacity: 0.7;
+        }
+
+        .site-card-title {
+            font-size: 1em;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0 0 0.3em 0;
+            letter-spacing: 0.02em;
+        }
+
+        .site-card-desc {
+            font-size: 0.85em;
+            color: var(--muted);
+            line-height: 1.5;
+            margin: 0 0 0.5em 0;
+        }
+
+        .site-card-link {
+            font-size: 0.8em;
+            letter-spacing: 0.03em;
+            color: var(--accent);
+            text-decoration: none;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.1em;
+        }
+
+        .site-card-link:hover {
+            color: var(--text);
+        }
+
+        .site-card-meta {
+            font-size: 0.75em;
+            color: var(--muted);
+            opacity: 0.6;
+            margin-top: 0.4em;
+        }
     </style>
 </head>
 <body>
@@ -155,6 +233,31 @@
                 hand-crafted tabletop experience, it has since taken on a second life as a
                 digital implementation — part passion project, part technical playground.
             </p>
+
+            <p>
+                The original tabletop game was created by <strong>Milda Matilda Games</strong> —
+                here's the source:
+            </p>
+
+            <a href="https://mildamatildagames.wordpress.com/turncoats-2/" target="_blank" rel="noopener" style="text-decoration: none;">
+            <div class="site-card">
+                <div class="site-card-thumb">
+                    <img src="https://mildamatildagames.wordpress.com/wp-content/uploads/2021/08/20210804_212239-1.jpg?w=640" alt="Turncoats board game" loading="lazy">
+                </div>
+                <div class="site-card-body">
+                    <p class="site-card-domain">Milda Matilda Games</p>
+                    <p class="site-card-title">Turncoats</p>
+                    <p class="site-card-desc">
+                        Turncoats is a competitive game for 2–5 players, where three factions are at war.
+                        The players take on the role of Aspirants and Interlopers, not obviously tied to
+                        any one group. Instead, they must manage their loyalties, represented by stones
+                        in their hand that they keep hidden from everyone else.
+                    </p>
+                    <span class="site-card-link">→ mildamatildagames.wordpress.com/turncoats-2</span>
+                    <p class="site-card-meta">Published: August 2021 · Updated: November 2023</p>
+                </div>
+            </div>
+            </a>
 
             <p class="indent">
                 [Template: Write a paragraph here about the game's core mechanics. What makes it
