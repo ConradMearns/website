@@ -198,7 +198,7 @@
 <body>
 
     <header style="width: full;">
-        <h1 class="stretch grow"><a href="https://conrads.website">conrads.website</a></h1>
+        <h1 class="stretch grow"><a href="../index.html">conrads.website</a></h1>
     </header>
 
     <hr />
@@ -227,18 +227,6 @@
             <!--                 BLURB                      -->
             <!-- ═══════════════════════════════════════════ -->
 
-            <p class="indent">
-                Turncoats is a board game about shifting alliances, hidden motives, and the
-                delicate art of knowing exactly when to switch sides. Originally designed as a
-                hand-crafted tabletop experience, it has since taken on a second life as a
-                digital implementation — part passion project, part technical playground.
-            </p>
-
-            <p>
-                The original tabletop game was created by <strong>Milda Matilda Games</strong> —
-                here's the source:
-            </p>
-
             <a href="https://mildamatildagames.wordpress.com/turncoats-2/" target="_blank" rel="noopener" style="text-decoration: none;">
             <div class="site-card">
                 <div class="site-card-thumb">
@@ -260,102 +248,71 @@
             </a>
 
             <p class="indent">
-                [Template: Write a paragraph here about the game's core mechanics. What makes it
-                tick? Is it a bluffing game, a strategy game, a negotiation game? Who is it for?
-                What does a typical session feel like? Describe the moment-to-moment experience
-                and the emotional arc of a match.]
+                Turncoats is one of my favorite simple strategy games. 
+                In 2022 I made a crude Svelte-based Functional implementation so that I could start building a Monte-Carlo based AI to play against.
             </p>
-
+            
             <p class="indent">
-                [Template: Write a paragraph here about your personal connection to the project.
-                Why did you build it? What itch did it scratch — was it a technical challenge, a
-                design obsession, a tribute to the original? What did you learn along the way that
-                you didn't expect?]
+                Time escaped me, and life and I moved on. 
+                So recently I asked Claude to finish it up for me.
+                The core logic was built by me - the Bots and better UI were made by Fable 5.
             </p>
 
-            <p class="indent">
-                [Template: Write a paragraph here about the future of Turncoats. Where is it
-                headed next? Are there features you still want to add, a community forming around
-                it, a physical edition in the works? What would the "done" state look like —
-                or is it the kind of project that's never really done?]
-            </p>
-
-            <!-- ═══════════════════════════════════════════ -->
-            <!--              IMAGE GALLERY                 -->
-            <!-- ═══════════════════════════════════════════ -->
-
-            <div class="img-row">
+                        <div class="img-row">
                 <figure>
-                    <div class="site-card-thumb">
-                        <img src="2022.png" alt="Turncoats · 2022 version" loading="lazy">
-                    </div>
-                    <!-- <div class="img-placeholder">Turncoats · 2022 version</div> -->
-                    <figcaption class="img-caption">My original implementation (2022)</figcaption>
+                    <a href="https://conradmearns.github.io/breadboard-turncoats/index.html">
+
+                        <div class="site-card-thumb">
+                            <img src="2022.png" alt="Turncoats · 2022 version" loading="lazy">
+                        </div>
+                        <!-- <div class="img-placeholder">Turncoats · 2022 version</div> -->
+                        <figcaption class="img-caption">My original implementation (2022)</figcaption>
+                    </a>
                 </figure>
+                
                 <figure>
-                    <div class="site-card-thumb">
-                        <img src="fable.png" alt="Turncoats · Fable 5 version" loading="lazy">
-                    </div>
-                    <!-- <div class="img-placeholder">Turncoats · Fable 5 version</div> -->
-                    <figcaption class="img-caption">Fable 5 rebuild (2026)</figcaption>
+                    <a href="https://conradmearns.github.io/breadboard-turncoats/fable.html">
+                        <div class="site-card-thumb">
+                            <img src="fable.png" alt="Turncoats · Fable 5 version" loading="lazy">
+                        </div>
+                        <!-- <div class="img-placeholder">Turncoats · Fable 5 version</div> -->
+                        <figcaption class="img-caption">Fable 5 rebuild (2026)</figcaption>
+                    </a>
                 </figure>
             </div>
 
-            <!-- ═══════════════════════════════════════════ -->
-            <!--               TIMELINE                    -->
-            <!-- ═══════════════════════════════════════════ -->
+            <p>
+                I love a Single-HTML-Application.
+            </p>
 
-            <header style="margin-top: 2em;">
-                <h1 class="stretch grow-1">Timeline</h1>
-            </header>
 
-            <div class="timeline">
+            <p class="indent">
+                The game is deceptively simple, so most people and myself struggle on the first play.
+                You use the limited stones in your hand to take actions - 
+                which allow you to shape the game state, but at the cost of your ability to win for a given color.
 
-                <div class="tl-entry">
-                    <div class="tl-marker"></div>
-                    <div class="tl-date">[DATE]</div>
-                    <div class="tl-body">
-                        <p>[Template: Describe this milestone. What happened? Why was it significant?
-                        Add links, reflections, or technical notes as needed.]</p>
-                    </div>
-                </div>
+                All the while, the stones you spend <em>typically</em> only benefit their respective colors unless you're creative.
+            </p>
 
-                <div class="tl-entry">
-                    <div class="tl-marker"></div>
-                    <div class="tl-date">[DATE]</div>
-                    <div class="tl-body">
-                        <p>[Template: Another milestone. Keep entries in reverse-chronological order
-                        if this is a changelog, or chronological if it tells a story.]</p>
-                    </div>
-                </div>
+            <p class="indent">
+                I've loved taking my bag of marbles to parks, to restaurants,
+                and everywhere else where a moment on phones can be interrupted by a simple and clever game.
 
-                <div class="tl-entry">
-                    <div class="tl-marker"></div>
-                    <div class="tl-date">[DATE]</div>
-                    <div class="tl-body">
-                        <p>[Template: You can add as many entries as you like. The vertical line
-                        and accent markers will thread them together visually.]</p>
-                    </div>
-                </div>
+                The Pass and Play version I made is not intended to be a viable alternative to play -
+                no no, the tactile nature of the original is much better than any software.
 
-                <div class="tl-entry">
-                    <div class="tl-marker"></div>
-                    <div class="tl-date">[DATE]</div>
-                    <div class="tl-body">
-                        <p>[Template: Each entry can also include links — e.g.
-                        <a href="#">→ GitHub commit</a> or <a href="#">→ blog post</a>.]</p>
-                    </div>
-                </div>
+                This version of the game is for me to study the game,
+                study the broader space of Monte-Carlo based search,
+                and make introductions to my favorite games more approachable :)
+            </p>
 
-                <div class="tl-entry">
-                    <div class="tl-marker"></div>
-                    <div class="tl-date">[DATE]</div>
-                    <div class="tl-body">
-                        <p>[Template: Final entry. The timeline grows with the project.]</p>
-                    </div>
-                </div>
+            <p>You should go buy or make a physical copy.</p>
 
-            </div>
+            <p class="indent">
+                I'm mostly curious about the game from the perspective of strategy, optimization, and Classical Automation.
+                So next, I will likely start building some simple dashboards so that game results can be saved, studied, and shared.
+            </p>
+
 
         </article>
 
