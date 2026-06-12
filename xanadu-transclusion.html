@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Origins — a Xanadu-style transclusion view</title>
+<style>
+  :root {
+    --gutter: 110px;
+    --toolbar-h: 52px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    color: #222;
+    background: #fdfdfb;
+    overflow: hidden;
+  }
+
+  /* ---------- Toolbar ---------- */
+  #toolbar {
+    height: var(--toolbar-h);
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0 1rem;
+    border-bottom: 1px solid #ccc;
+    background: #f4f4f0;
+    font-family: Consolas, Menlo, monospace;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+  #toolbar .title { font-family: Georgia, serif; font-size: 15px; font-weight: bold; margin-right: auto; }
+  #toolbar label { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; }
+  #toolbar input[type="range"] { width: 110px; accent-color: #3d5166; }
+  #toolbar .val { min-width: 3em; color: #666; }
+
+  /* ---------- Stage: two panes + ribbon overlay ---------- */
+  #stage {
+    position: relative;
+    height: calc(100vh - var(--toolbar-h));
+    display: flex;
+  }
+  .pane {
+    flex: 1 1 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 1.5rem 2rem 50vh 2rem;
+    line-height: 1.7;
+  }
+  #leftPane  { border-right: 1px dashed #ddd; }
+  #rightPane { border-left: 1px dashed #ddd; }
+  #paneGap { flex: 0 0 var(--gutter); }
+  #ribbons {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+  #ribbons path { transition: opacity .15s; }
+
+  .pane h2.pane-title {
+    font-family: Consolas, Menlo, monospace;
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #888;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 0.4rem;
+    margin-top: 0;
+  }
+
+  /* ---------- Left pane: conversation source ---------- */
+  .msg { margin-bottom: 2rem; }
+  .msg .speaker {
+    font-family: Consolas, Menlo, monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #777;
+    margin-bottom: 0.4rem;
+  }
+  .msg.from-claude .body {
+    background: #eef3f8;
+    border-left: 3px solid #b9c8d6;
+    padding: 0.6rem 0.9rem;
+    color: #3d5166;
+    font-size: 0.95rem;
+  }
+  .msg .body { white-space: normal; }
+
+  /* ---------- Right pane: the attributed essays ---------- */
+  article {
+    border-bottom: 3px double #888;
+    padding-bottom: 2rem;
+    margin-bottom: 2.5rem;
+  }
+  article h1 { font-size: 1.5rem; line-height: 1.25; }
+  article h2 { font-size: 1.15rem; margin-top: 1.8rem; }
+  aside {
+    border-left: 3px solid #999;
+    padding: 0.5rem 1rem;
+    margin: 1.5rem 0;
+    background: #f5f5f2;
+    font-style: italic;
+  }
+  aside::before { content: "Aside — "; font-weight: bold; font-style: normal; }
+  code { font-family: Consolas, Menlo, monospace; background: #f0f0f0; padding: 0.1em 0.3em; font-size: 0.95em; }
+  pre { background: #f0f0f0; padding: 1rem; overflow-x: auto; font-size: 0.85rem; }
+  .editor-notes { background: #fffbe6; border: 1px dashed #b8a000; padding: 1rem 1.5rem; font-size: 0.92rem; }
+  .editor-notes h1 { font-size: 1.2rem; }
+
+  .claude { color: #3d5166; background: #eef3f8; border-radius: 2px; padding: 0 2px;
+            box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  body.hide-claude #rightPane .claude { color: inherit; background: transparent; }
+
+  /* ---------- Linked spans (transcluded text) ---------- */
+  .linked {
+    --a: 0.10;
+    background: hsla(var(--h, 200), 65%, 45%, var(--a));
+    border-bottom: 1px solid hsla(var(--h, 200), 65%, 40%, 0.35);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+    box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  }
+  .linked.active {
+    --a: 0.42;
+    border-bottom: 2px solid hsla(var(--h, 200), 70%, 35%, 0.9);
+  }
+  .linked.flash { animation: flashAnim 1.2s ease-out; }
+  @keyframes flashAnim {
+    0%   { box-shadow: 0 0 0 6px hsla(var(--h,200), 80%, 50%, 0.55); }
+    100% { box-shadow: 0 0 0 0   hsla(var(--h,200), 80%, 50%, 0); }
+  }
+
+  /* ---------- Minimap ---------- */
+  #minimapPanel {
+    position: fixed;
+    top: calc(var(--toolbar-h) + 10px);
+    right: 10px;
+    max-width: 92vw;
+    max-height: calc(100vh - var(--toolbar-h) - 24px);
+    overflow: auto;
+    border: 1px solid #aaa;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    z-index: 20;
+    cursor: crosshair;
+  }
+  #minimapPanel.hidden { display: none; }
+  #mmSize { position: relative; }
+  #mmScale { transform-origin: top left; position: absolute; top: 0; left: 0; }
+  #mmInner { position: relative; pointer-events: none; }
+  #mmInner .mmCol { position: absolute; top: 0; background: #fdfdfb; }
+  #mmSvg { position: absolute; top: 0; left: 0; }
+  .mmView {
+    position: absolute;
+    border: 3px solid rgba(200, 60, 40, 0.85);
+    background: rgba(200, 60, 40, 0.07);
+  }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <span class="title">Origins <span style="font-weight:normal;color:#888;">— transclusion view</span></span>
+  <label>connections <input type="range" id="ribbonOpacity" min="0" max="60" value="12"> <span class="val" id="ribbonOpacityVal">12%</span></label>
+  <label><input type="checkbox" id="claudeInk" checked> claude ink</label>
+  <label><input type="checkbox" id="mmToggle" checked> minimap</label>
+  <label>size <input type="range" id="mmScaleSlider" min="2" max="100" value="7"> <span class="val" id="mmScaleVal">7%</span></label>
+  <span class="val" id="linkCount"></span>
+</div>
+
+<div id="stage">
+  <!-- ============================================================ -->
+  <!-- LEFT: the conversation, verbatim                              -->
+  <!-- ============================================================ -->
+  <div class="pane" id="leftPane">
+    <div id="leftContent">
+      <h2 class="pane-title">Source: the conversation, verbatim</h2>
+
+      <div class="msg from-you">
+        <div class="speaker">You — voice note 1</div>
+        <div class="body">Okay. Here's what I need to do. I have, uh, kind of a a workflow, a style of programming that I need to write two different, um, blog posts explaining. Um, I need to do this because there's a couple of people I work with and some interns that I think would benefit from this. So the first is kind of <span class="src" data-link="L01">a general style of programming, um, without large language models, which specifically takes advantage of the fact that we don't know what we're doing all of the time</span>. Um, <span class="src" data-link="L02">the approach is extremely simple</span>. Uh, I think in order to write this paper, I maybe just need to provide some context. What is the problem? Uh, what is my approach, and how my approach kinda solves the problem. And <span class="src" data-link="L03">the general approach is just, like, write write programs procedurally when you don't know what you're doing</span>. And <span class="src" data-link="L04">when something starts to get complicated, you can hand wave a lot by just writing a call to a function that doesn't exist yet</span>. And <span class="src" data-link="L05">your compiler, at that point, will basically act as a to do list for you</span>. Um, and <span class="src" data-link="L06">if you want code to run, like, if you wanna skip over one of these procedural functions you've written, you could have it return, you know, a canned response or or whatever</span>. Um, and <span class="src" data-link="L07">this is an approach that we used back in college, um, specifically to build compilers, shells, all sorts of complicated C code, um, that we also had to write by hand on paper for our exams</span>. Uh, and so <span class="src" data-link="L08">this was a very effective technique of breaking down work, um, as you needed so that you could accomplish your goals in a timely manner without having to know how to solve all of your problems upfront</span>. The second topic that I need to write about, uh, is <span class="src" data-link="L10">about using large language models to write and solve large problems</span>. So kind of in a a similar fashion, <span class="src" data-link="L11">the main idea here is that we want to avoid this false assumption that we can just come up with the perfect architecture or the perfect way to solve a problem on our own, because it's just not realistic</span>. Uh, so instead, um, <span class="src" data-link="L12">instead of looking towards solutions like lane graph or, uh, complicated harnesses or stacked loops or all of these other this, like, crazy automation bullshit</span>. Um, <span class="src" data-link="L13">the best place to start is just with a casual chat</span>. <span class="src" data-link="L14">Come up with a couple tools that you know you will absolutely need to have, such as, um, a connection to a database that has all of the access and authorization already provided</span>. <span class="src" data-link="L15">And then just work with your your agent, like Claude, in a conversational setting to try to solve one particular problem or example problem, that you that you are trying to automate</span>. <span class="src" data-link="L16">work through the problem, interrupt the agent as frequently as you need if you see it doing something you don't want it to do, interrupt it, and teach it what to do in this session</span>. <span class="src" data-link="L17">Don't worry about writing other files. Just worry about getting the one instance of the task complete.</span> Um, <span class="src" data-link="L18">ask Claude questions. Make sure that Claude asks you questions, and treat this as a collaborative pair programming exercise and exploration.</span> <span class="src" data-link="L19">Once you've completed that goal, you can summarize that session into, uh, a handful of, uh, like, pseudocode lines.</span> <span class="src" data-link="L20">The idea would be figure out what all of the kind of starting input variables were, all of the questions that were asked related to the problem, uh, all of the nitpicks, um, and and separate and organize these elements so that what you're left with is some ground rules, kind of like what you would put in a Claude MD, like use UV, uh, over conda.</span> Um, and then <span class="src" data-link="L21">you have, uh, like, a playbook. And this playbook or pseudocode is basically a program written in English. Step one, do this. Step two, do this. If this, then that.</span> Um, and then <span class="src" data-link="L22">take the pseudocode to a new session and try to solve the same problem. Again, follow Claude along the way, correct mistakes. And through this process, revise the program that you've been making in English.</span> <span class="src" data-link="L23">There are some concrete reasons why this is more effective than writing a program.</span> <span class="src" data-link="L24">For one, the interpreter is the large language model. The interpreter is the agent.</span> <span class="src" data-link="L25">Just as the... just as on paper, uh, you are the interpreter, now Claude is the interpreter.</span> <span class="src" data-link="L26">Claude can read in an instruction and assume what the correct intent is. And the nice thing is is that if Claude assumes the correct intention, then you don't need to overexplain yourself. You don't need to provide any more context. If Claude reads an intention and gets it wrong and you catch that, you have the opportunity to fix that assumption, fix that intent, and build the correct program live. You don't have to exit or reload anything.</span> And what's nice is that <span class="src" data-link="L27">you don't have to worry about, uh, type inferencing getting in your way. You don't have to worry about the compiler throwing errors that you maybe don't necessarily care about yet. you can work purely in the abstract</span> <span class="src" data-link="L28">even though it is probabilistic and nondeterministic and more expensive, you're able to do the work of exploration, uh, a lot more freely.</span> So finally, <span class="src" data-link="L29">once you've gone through this, uh, systematic approach of working out a pseudocode program with your agent, and you can start using that pseudocode program on more examples from your domain, more questions, for instance, then you can take that pseudocode, which is robust enough English, and you can treat that as specifications for a real program.</span> At that point, <span class="src" data-link="L30">you can have a new session, try to translate that pseudocode into a coding target of your choice, like Python or Rust. Once you have that code translated to Python or Rust, again, you wanna do the same tests. You wanna run through one, two, possibly a hundred example inputs and then verify them altogether. And you could have another coding agent, uh, walk through and evaluate, did the program execute to match the specifications of the pseudocode.</span> Um, <span class="src" data-link="L31">at this point, trying to figure out how you verify you've built the right thing is is and becomes the hardest part of this job. And I would I would add that this was always the hard part of the job. But now instead of getting to this hard part a month into development, you're working on it on day one.</span> If possible, for the purpose of these two writings, uh, it would be helpful if you could just take this exact text that is coming out of the voice transcribe and basically just fill out the outline of, like, <span class="src" data-link="L32">what's the what's the setup, what's the approach</span>, um, mark something as an aside if you can, because I know I have a couple of sides in there. Just write this as HTML. We don't need any super fancy formatting. It can be one document. Just make sure that the two posts are separated in different, like, article tags or something so that I can separate them out manually afterwards. And if you can think of any questions or concepts that I maybe should add, those would be helpful to include, um, as well at the end.</div>
+      </div>
+
+      <div class="msg from-claude">
+        <div class="speaker">Claude — reply 1</div>
+        <div class="body">Both posts are in one HTML file, each in its own <code>&lt;article&gt;</code> tag so you can split them apart later. Your tangents (<span class="src" data-link="L07">the college/paper-exams story</span>, the <span class="src" data-link="L25">"you were the interpreter on paper"</span> point) are marked with <code>&lt;aside&gt;</code> tags, and there's a highlighted editor-notes section at the end with suggestions — the two I'd push hardest on are adding a real example playbook to post 2 and expanding the verification ending, since that's your strongest idea and it currently gets two sentences.<br><br>I kept your phrasing close to the transcript, just cleaned of speech disfluencies. One liberty: I softened <span class="src" data-link="L12">"crazy automation bullshit"</span> to "crazy automation machinery" since interns will read it — easy to swap back if you want the edge.</div>
+      </div>
+
+      <div class="msg from-you">
+        <div class="speaker">You — voice note 2</div>
+        <div class="body">This looks absolutely great. Uh, I love how simplistic the styling is too. That's exactly what I wanted. Thank you. Um, I am curious if you could help me with something maybe a little more complicated next. Everything that is verbatim from my voice note should be wrapped in a span or something, like a span, uh, to indicate that it came from me. Everything that you wrote should be wrapped in a span to indicate that it came from you. If there's something where, you know, you just kind of took the liberty to rewrite something that I said, just a... even a little bit, I would I would urge you to try to use my exact words even though they might be clunkier and might not flow as well together.</div>
+      </div>
+
+      <div class="msg from-claude">
+        <div class="speaker">Claude — reply 2</div>
+        <div class="body">Done — this is a new file so your original draft stays intact. Every phrase is now wrapped: <code>&lt;span class="you"&gt;</code> renders as plain text (your words are the default register of the page), and <code>&lt;span class="claude"&gt;</code> gets a light blue highlight so my contributions are visible at a glance. There's a legend at the top explaining the key.<br><br>Per your instruction, I went back to the transcript and reverted my paraphrases to your exact words throughout — including restoring <span class="src" data-link="L12">"crazy automation bullshit,"</span> your repeated <span class="src" data-link="L24">"the interpreter is the large language model; the interpreter is the agent,"</span> and the full run of <span class="src" data-link="L26">"you don't need to overexplain yourself; you don't need to provide any more context."</span> The result is that the body of post 2 is now almost entirely yours, which honestly suits it.<br><br>Three small honesty notes on what still counts as edited: I stripped pure fillers ("uh," "um," stutter repeats like "is is") but nothing else; I rendered "lane graph" as "LangGraph" and <span class="src" data-link="L20">"Claude MD" as "CLAUDE.md,"</span> assuming those were transcription artifacts; and punctuation/paragraph breaks are mine, since speech doesn't carry them. If you'd rather keep even the fillers, say the word and I'll restore them.</div>
+      </div>
+
+      <div class="msg from-you">
+        <div class="speaker">You — message 3</div>
+        <div class="body">AWESOME! Yes this is great. For an even harder challenge - I want you to try and create a replica of the Xanadu transclusion demo (https://xanadu.com/xanademos/MoeJusteOrigins.html). On the left should be my original input - ums and all, unedited, copied verbatim. On the right is our Attribution+Editted mini essays. We want to use vanilla js and html. we want to connect spans from my words into the new document - they should be transparent so that the page isn't overwhelming - and the backlink highlight should have a decent hover effect. We may want a toolbar at the top to edit some settings too - like, I like the mini-map view - but we should have a slider to change it's respective size to 1:1 down to very small. Any questions before you give this a shot ?</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="paneGap"></div>
+
+  <!-- ============================================================ -->
+  <!-- RIGHT: the attributed essays                                  -->
+  <!-- ============================================================ -->
+  <div class="pane" id="rightPane">
+    <div id="rightContent">
+      <h2 class="pane-title">Result: two posts, attributed</h2>
+
+      <article>
+        <h1><span class="claude">Let the Compiler Be Your To-Do List: Programming</span> <span class="dst" data-link="L03">When You Don't Know What You're Doing</span></h1>
+
+        <h2><span class="dst" data-link="L32">The setup</span></h2>
+        <p><span class="claude">This is</span> <span class="dst" data-link="L01">a general style of programming, without large language models, which specifically takes advantage of the fact that we don't know what we're doing all of the time.</span> <span class="claude">Most programming advice quietly assumes the opposite: that you can design first, decompose the system, and then implement the pieces. But on hard or unfamiliar problems, not knowing is the normal condition of writing software. The question is whether your workflow takes advantage of that fact or pretends it isn't true.</span></p>
+
+        <p><span class="claude">The failure mode of pretending is familiar: you stall at the top of a file trying to figure out the "right" structure, or you go down a rabbit hole solving a sub-problem you didn't need to solve yet, and the actual goal slips further away.</span></p>
+
+        <h2><span class="dst" data-link="L32">The approach</span></h2>
+        <p><span class="dst" data-link="L02">The approach is extremely simple.</span> <span class="dst" data-link="L03">The general approach is just: write programs procedurally when you don't know what you're doing.</span> <span class="claude">Start at the top and describe the steps of the solution in the order they happen, as if you were narrating it.</span></p>
+
+        <p><span class="dst" data-link="L04">When something starts to get complicated, you can hand-wave a lot by just writing a call to a function that doesn't exist yet</span><span class="claude">:</span></p>
+
+        <pre class="claude"><code>result = parse_declaration(tokens);   // no idea how yet
+emit_code(result);                    // also no idea</code></pre>
+
+        <p><span class="dst" data-link="L05">Your compiler, at that point, will basically act as a to-do list for you.</span> <span class="claude">Every "undefined function" error is an item of work you've deferred — explicitly, visibly, and in whatever priority order you feel ready to tackle next. You never lose track of what's left, because the build won't let you.</span></p>
+
+        <p><span class="claude">And</span> <span class="dst" data-link="L06">if you want code to run — if you want to skip over one of these procedural functions you've written — you could have it return a canned response or whatever.</span> <span class="claude">Now you can test the parts you <em>do</em> understand while the parts you don't are safely fenced off behind a name.</span></p>
+
+        <h2><span class="claude">Why it works</span></h2>
+        <p><span class="dst" data-link="L08">This was a very effective technique of breaking down work as you needed, so that you could accomplish your goals in a timely manner without having to know how to solve all of your problems upfront.</span> <span class="claude">Naming a function you can't write yet is itself a design act — you're defining an interface and deferring the implementation, which is most of what "good architecture" actually is, just done lazily and honestly.</span></p>
+
+        <aside><span class="dst" data-link="L07">This is an approach that we used back in college, specifically to build compilers, shells, all sorts of complicated C code that we also had to write by hand on paper for our exams.</span> <span class="claude">When your "IDE" is a pencil, you learn very quickly that the only way through a big problem is to hand-wave the hard parts into named functions and come back to them. The compiler-as-to-do-list workflow is the same discipline, with better tooling.</span></aside>
+      </article>
+
+      <article>
+        <h1><span class="claude">Programs Written in English: Solving Big Problems with an LLM, One Conversation at a Time</span></h1>
+
+        <h2><span class="dst" data-link="L32">The setup</span></h2>
+        <p><span class="claude">This post is</span> <span class="dst" data-link="L10">about using large language models to write and solve large problems.</span> <span class="dst" data-link="L11">The main idea here is that we want to avoid this false assumption that we can just come up with the perfect architecture or the perfect way to solve a problem on our own, because it's just not realistic.</span></p>
+
+        <p><span class="claude">So,</span> <span class="dst" data-link="L12">instead of looking towards solutions like LangGraph, or complicated harnesses, or stacked loops, or all of this other crazy automation bullshit —</span> <span class="claude">start somewhere much smaller.</span></p>
+
+        <h2><span class="claude">Step 1: Start with</span> <span class="dst" data-link="L13">a casual chat</span></h2>
+        <p><span class="dst" data-link="L13">The best place to start is just with a casual chat.</span> <span class="dst" data-link="L14">Come up with a couple tools that you know you will absolutely need to have, such as a connection to a database that has all of the access and authorization already provided.</span> <span class="dst" data-link="L15">And then just work with your agent, like Claude, in a conversational setting to try to solve one particular problem, or example problem, that you are trying to automate.</span></p>
+        <p><span class="claude">Some ground rules for this session:</span></p>
+        <ul>
+          <li><span class="dst" data-link="L16">Work through the problem. Interrupt the agent as frequently as you need — if you see it doing something you don't want it to do, interrupt it, and teach it what to do in this session.</span></li>
+          <li><span class="dst" data-link="L17">Don't worry about writing other files. Just worry about getting the one instance of the task complete.</span></li>
+          <li><span class="dst" data-link="L18">Ask Claude questions. Make sure that Claude asks you questions, and treat this as a collaborative pair programming exercise and exploration.</span></li>
+        </ul>
+
+        <h2><span class="claude">Step 2:</span> <span class="dst" data-link="L19">Summarize that session</span> <span class="claude">into pseudocode</span></h2>
+        <p><span class="dst" data-link="L19">Once you've completed that goal, you can summarize that session into a handful of pseudocode lines.</span> <span class="dst" data-link="L20">The idea would be: figure out what all of the starting input variables were, all of the questions that were asked related to the problem, all of the nitpicks — and separate and organize these elements so that what you're left with is some ground rules, kind of like what you would put in a CLAUDE.md, like "use uv over conda."</span></p>
+        <p><span class="dst" data-link="L21">And then you have a playbook. And this playbook, or pseudocode, is basically a program written in English. Step one, do this. Step two, do this. If this, then that.</span></p>
+
+        <h2><span class="claude">Step 3: Run the English program, and</span> <span class="dst" data-link="L22">revise</span> <span class="claude">it</span></h2>
+        <p><span class="dst" data-link="L22">Take the pseudocode to a new session and try to solve the same problem. Again, follow Claude along the way, correct mistakes. And through this process, revise the program that you've been making in English.</span> <span class="claude">You are iterating on a program; the source code just happens to be prose.</span></p>
+
+        <h2><span class="claude">Why an English program beats a real one (at this stage)</span></h2>
+        <p><span class="dst" data-link="L23">There are some concrete reasons why this is more effective than writing a program.</span></p>
+        <ul>
+          <li><span class="dst" data-link="L24">For one, the interpreter is the large language model. The interpreter is the agent.</span> <span class="dst" data-link="L26">Claude can read in an instruction and assume what the correct intent is. And the nice thing is that if Claude assumes the correct intention, then you don't need to overexplain yourself. You don't need to provide any more context. If Claude reads an intention and gets it wrong, and you catch that, you have the opportunity to fix that assumption, fix that intent, and build the correct program live. You don't have to exit or reload anything.</span></li>
+          <li><span class="dst" data-link="L27">You don't have to worry about type inferencing getting in your way. You don't have to worry about the compiler throwing errors that you maybe don't necessarily care about yet. You can work purely in the abstract.</span></li>
+          <li><span class="dst" data-link="L28">Even though it is probabilistic and nondeterministic and more expensive, you're able to do the work of exploration a lot more freely.</span></li>
+        </ul>
+
+        <aside><span class="dst" data-link="L25">Just as on paper, <em>you</em> are the interpreter — now Claude is the interpreter.</span> <span class="claude">The skill transfers directly: write for a reader who fills in reasonable intent, and only specify the parts where intent could plausibly go wrong.</span></aside>
+
+        <h2><span class="claude">Step 4: From playbook to</span> <span class="dst" data-link="L29">specifications for a real program</span></h2>
+        <p><span class="dst" data-link="L29">Once you've gone through this systematic approach of working out a pseudocode program with your agent, you can start using that pseudocode program on more examples from your domain — more questions, for instance. Then you can take that pseudocode, which is robust enough English, and you can treat that as specifications for a real program.</span></p>
+        <p><span class="dst" data-link="L30">At that point, you can have a new session and try to translate that pseudocode into a coding target of your choice, like Python or Rust. Once you have that code translated to Python or Rust, again, you want to do the same tests. You want to run through one, two, possibly a hundred example inputs, and then verify them altogether. And you could have another coding agent walk through and evaluate: did the program execute to match the specifications of the pseudocode?</span></p>
+
+        <h2><span class="claude">The hard part, moved to day one</span></h2>
+        <p><span class="dst" data-link="L31">At this point, trying to figure out how you verify you've built the right thing becomes the hardest part of this job. And I would add that this was always the hard part of the job. But now, instead of getting to this hard part a month into development, you're working on it on day one.</span></p>
+      </article>
+
+      <section class="editor-notes claude">
+        <h1>Notes: things you might want to add <small>(this whole section is Claude's)</small></h1>
+        <h2>For Post 1 (procedural hand-waving)</h2>
+        <ul>
+          <li><strong>Name the lineage.</strong> Closely related to "top-down design with stepwise refinement" (Wirth) and TDD's "fake it till you make it" stubs.</li>
+          <li><strong>When NOT to use it.</strong> Works less well when the hard part is a data structure or an invariant rather than a procedure.</li>
+          <li><strong>A worked micro-example.</strong> A tiny shell main loop with three undefined functions, then the compiler output acting as the to-do list.</li>
+          <li><strong>Stubs vs. TODOs.</strong> Comments are ignorable; link errors aren't.</li>
+        </ul>
+        <h2>For Post 2 (programs in English)</h2>
+        <ul>
+          <li><strong>An example playbook.</strong> Even 6–8 lines of real pseudocode from one of your sessions would make this concrete.</li>
+          <li><strong>How you "interrupt and teach."</strong> One short before/after exchange would help interns.</li>
+          <li><strong>Version control for the English program.</strong> Git? A markdown file? Worth a sentence.</li>
+          <li><strong>When to stop iterating in English.</strong> What signals "robust enough"?</li>
+          <li><strong>Cost framing.</strong> Exploration in English is still cheaper than a month of building the wrong harness.</li>
+          <li><strong>The verification story deserves more.</strong> Your strongest idea currently gets two sentences.</li>
+          <li><strong>Tie the two posts together.</strong> Shared thesis: defer what you don't understand behind a name, and let an interpreter tell you what's left.</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+
+  <svg id="ribbons"></svg>
+</div>
+
+<!-- ---------- Minimap ---------- -->
+<div id="minimapPanel">
+  <div id="mmSize">
+    <div id="mmScale">
+      <div id="mmInner"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var stage      = document.getElementById('stage');
+  var leftPane   = document.getElementById('leftPane');
+  var rightPane  = document.getElementById('rightPane');
+  var leftBody   = document.getElementById('leftContent');
+  var rightBody  = document.getElementById('rightContent');
+  var svg        = document.getElementById('ribbons');
+  var NS         = 'http://www.w3.org/2000/svg';
+
+  /* ============ 1. Collect links and assign hues ============ */
+  var links = {};   // id -> { srcs:[], dsts:[], hue }
+  var order = [];
+  document.querySelectorAll('.src, .dst').forEach(function (el) {
+    var id = el.dataset.link;
+    if (!links[id]) { links[id] = { srcs: [], dsts: [], hue: 0 }; order.push(id); }
+    links[id][el.classList.contains('src') ? 'srcs' : 'dsts'].push(el);
+  });
+  order.sort();
+  order.forEach(function (id, i) {
+    var hue = (i * 137.508) % 360;   // golden-angle spacing keeps neighbors distinct
+    links[id].hue = hue;
+    links[id].srcs.concat(links[id].dsts).forEach(function (el) {
+      el.classList.add('linked');
+      el.style.setProperty('--h', hue.toFixed(1));
+    });
+  });
+  document.getElementById('linkCount').textContent = order.length + ' links';
+
+  /* ============ 2. Ribbon drawing ============ */
+  var ribbonOpacity = 0.12;
+  var activeId = null;
+
+  function clampSpan(rect, paneRect) {
+    var top = Math.max(rect.top, paneRect.top);
+    var bot = Math.min(rect.bottom, paneRect.bottom);
+    if (bot < top) { // fully outside: collapse to nearest edge as a sliver
+      if (rect.bottom < paneRect.top) { top = paneRect.top; bot = paneRect.top + 2; }
+      else { top = paneRect.bottom - 2; bot = paneRect.bottom; }
+    }
+    return { top: top, bottom: bot };
+  }
+
+  function draw() {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var stageRect = stage.getBoundingClientRect();
+    svg.setAttribute('width', stageRect.width);
+    svg.setAttribute('height', stageRect.height);
+    var lp = leftPane.getBoundingClientRect();
+    var rp = rightPane.getBoundingClientRect();
+    var x1 = lp.right - stageRect.left;
+    var x2 = rp.left  - stageRect.left;
+    var midX = (x1 + x2) / 2;
+    var activePaths = [];
+
+    order.forEach(function (id) {
+      var L = links[id];
+      L.srcs.forEach(function (srcEl) {
+        L.dsts.forEach(function (dstEl) {
+          var s = clampSpan(srcEl.getBoundingClientRect(), lp);
+          var d = clampSpan(dstEl.getBoundingClientRect(), rp);
+          var sT = s.top - stageRect.top, sB = s.bottom - stageRect.top;
+          var dT = d.top - stageRect.top, dB = d.bottom - stageRect.top;
+          var p = document.createElementNS(NS, 'path');
+          p.setAttribute('d',
+            'M ' + x1 + ' ' + sT +
+            ' C ' + midX + ' ' + sT + ', ' + midX + ' ' + dT + ', ' + x2 + ' ' + dT +
+            ' L ' + x2 + ' ' + dB +
+            ' C ' + midX + ' ' + dB + ', ' + midX + ' ' + sB + ', ' + x1 + ' ' + sB + ' Z');
+          p.setAttribute('fill', 'hsl(' + L.hue + ', 65%, 45%)');
+          var isActive = (id === activeId);
+          p.style.opacity = isActive ? Math.max(0.55, ribbonOpacity) : ribbonOpacity;
+          if (isActive) activePaths.push(p); else svg.appendChild(p);
+        });
+      });
+    });
+    activePaths.forEach(function (p) { svg.appendChild(p); }); // active on top
+  }
+
+  var rafPending = false;
+  function scheduleDraw() {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(function () { rafPending = false; draw(); updateMinimapViewports(); });
+  }
+
+  /* ============ 3. Hover + click behavior ============ */
+  function setActive(id, on) {
+    activeId = on ? id : null;
+    links[id].srcs.concat(links[id].dsts).forEach(function (el) {
+      el.classList.toggle('active', on);
+    });
+    draw();
+  }
+
+  function counterpartsOf(el) {
+    var L = links[el.dataset.link];
+    return el.classList.contains('src') ? L.dsts : L.srcs;
+  }
+
+  function scrollToCounterpart(el) {
+    var targets = counterpartsOf(el);
+    if (!targets.length) return;
+    var target = targets[0];
+    var pane = rightPane.contains(target) ? rightPane : leftPane;
+    var paneRect = pane.getBoundingClientRect();
+    var tRect = target.getBoundingClientRect();
+    var delta = (tRect.top - paneRect.top) - (pane.clientHeight / 2) + (tRect.height / 2);
+    pane.scrollTo({ top: pane.scrollTop + delta, behavior: 'smooth' });
+    target.classList.remove('flash');
+    void target.offsetWidth; // restart animation
+    target.classList.add('flash');
+  }
+
+  document.querySelectorAll('.linked').forEach(function (el) {
+    el.addEventListener('mouseenter', function () { setActive(el.dataset.link, true);  });
+    el.addEventListener('mouseleave', function () { setActive(el.dataset.link, false); });
+    el.addEventListener('click',      function () { scrollToCounterpart(el); });
+  });
+
+  /* ============ 4. Toolbar controls ============ */
+  var opacitySlider = document.getElementById('ribbonOpacity');
+  var opacityVal    = document.getElementById('ribbonOpacityVal');
+  opacitySlider.addEventListener('input', function () {
+    ribbonOpacity = opacitySlider.value / 100;
+    opacityVal.textContent = opacitySlider.value + '%';
+    draw();
+  });
+
+  document.getElementById('claudeInk').addEventListener('change', function (e) {
+    document.body.classList.toggle('hide-claude', !e.target.checked);
+    rebuildMinimap();
+  });
+
+  /* ============ 5. Minimap ============ */
+  var mmPanel  = document.getElementById('minimapPanel');
+  var mmSizeEl = document.getElementById('mmSize');
+  var mmScale  = document.getElementById('mmScale');
+  var mmInner  = document.getElementById('mmInner');
+  var mmScaleSlider = document.getElementById('mmScaleSlider');
+  var mmScaleVal    = document.getElementById('mmScaleVal');
+  var mm = { s: 0.07, leftW: 0, rightW: 0, gutter: 0, fullW: 0, fullH: 0, viewL: null, viewR: null };
+
+  function rebuildMinimap() {
+    mmInner.innerHTML = '';
+    mm.leftW  = leftPane.clientWidth;
+    mm.rightW = rightPane.clientWidth;
+    mm.gutter = document.getElementById('paneGap').clientWidth;
+    mm.fullW  = mm.leftW + mm.gutter + mm.rightW;
+    var leftH  = leftPane.scrollHeight;
+    var rightH = rightPane.scrollHeight;
+    mm.fullH = Math.max(leftH, rightH);
+
+    function makeCol(pane, body, x, w) {
+      var col = document.createElement('div');
+      col.className = 'mmCol';
+      col.style.left = x + 'px';
+      col.style.width = w + 'px';
+      var clone = body.cloneNode(true);
+      // mirror the pane's padding so line wrapping matches the real layout
+      var cs = getComputedStyle(pane);
+      col.style.padding = cs.paddingTop + ' ' + cs.paddingRight + ' ' + cs.paddingBottom + ' ' + cs.paddingLeft;
+      col.appendChild(clone);
+      mmInner.appendChild(col);
+    }
+    makeCol(leftPane,  leftBody,  0, mm.leftW);
+    makeCol(rightPane, rightBody, mm.leftW + mm.gutter, mm.rightW);
+
+    mmInner.style.width  = mm.fullW + 'px';
+    mmInner.style.height = mm.fullH + 'px';
+
+    // document-coordinate ribbons for the minimap
+    var mmSvg = document.createElementNS(NS, 'svg');
+    mmSvg.setAttribute('id', 'mmSvg');
+    mmSvg.setAttribute('width', mm.fullW);
+    mmSvg.setAttribute('height', mm.fullH);
+    var lRect = leftBody.getBoundingClientRect();
+    var rRect = rightBody.getBoundingClientRect();
+    var lPad = parseFloat(getComputedStyle(leftPane).paddingTop);
+    var rPad = parseFloat(getComputedStyle(rightPane).paddingTop);
+    order.forEach(function (id) {
+      var L = links[id];
+      L.srcs.forEach(function (srcEl) {
+        L.dsts.forEach(function (dstEl) {
+          var sR = srcEl.getBoundingClientRect(), dR = dstEl.getBoundingClientRect();
+          var sT = sR.top - lRect.top + lPad, sB = sR.bottom - lRect.top + lPad;
+          var dT = dR.top - rRect.top + rPad, dB = dR.bottom - rRect.top + rPad;
+          var x1 = mm.leftW, x2 = mm.leftW + mm.gutter, midX = (x1 + x2) / 2;
+          var p = document.createElementNS(NS, 'path');
+          p.setAttribute('d',
+            'M ' + x1 + ' ' + sT +
+            ' C ' + midX + ' ' + sT + ', ' + midX + ' ' + dT + ', ' + x2 + ' ' + dT +
+            ' L ' + x2 + ' ' + dB +
+            ' C ' + midX + ' ' + dB + ', ' + midX + ' ' + sB + ', ' + x1 + ' ' + sB + ' Z');
+          p.setAttribute('fill', 'hsl(' + L.hue + ', 65%, 45%)');
+          p.style.opacity = 0.35;
+          mmSvg.appendChild(p);
+        });
+      });
+    });
+    mmInner.appendChild(mmSvg);
+
+    mm.viewL = document.createElement('div');
+    mm.viewL.className = 'mmView';
+    mm.viewL.style.left = '0px';
+    mm.viewL.style.width = mm.leftW + 'px';
+    mm.viewR = document.createElement('div');
+    mm.viewR.className = 'mmView';
+    mm.viewR.style.left = (mm.leftW + mm.gutter) + 'px';
+    mm.viewR.style.width = mm.rightW + 'px';
+    mmInner.appendChild(mm.viewL);
+    mmInner.appendChild(mm.viewR);
+
+    applyMinimapScale();
+    updateMinimapViewports();
+  }
+
+  function applyMinimapScale() {
+    mmScale.style.transform = 'scale(' + mm.s + ')';
+    mmSizeEl.style.width  = (mm.fullW * mm.s) + 'px';
+    mmSizeEl.style.height = (mm.fullH * mm.s) + 'px';
+  }
+
+  function updateMinimapViewports() {
+    if (!mm.viewL) return;
+    mm.viewL.style.top    = leftPane.scrollTop + 'px';
+    mm.viewL.style.height = leftPane.clientHeight + 'px';
+    mm.viewR.style.top    = rightPane.scrollTop + 'px';
+    mm.viewR.style.height = rightPane.clientHeight + 'px';
+  }
+
+  mmScaleSlider.addEventListener('input', function () {
+    mm.s = mmScaleSlider.value / 100;
+    mmScaleVal.textContent = mmScaleSlider.value + '%';
+    applyMinimapScale();
+  });
+
+  document.getElementById('mmToggle').addEventListener('change', function (e) {
+    mmPanel.classList.toggle('hidden', !e.target.checked);
+  });
+
+  mmPanel.addEventListener('click', function (e) {
+    var rect = mmScale.getBoundingClientRect(); // already scaled
+    var docX = (e.clientX - rect.left) / mm.s;
+    var docY = (e.clientY - rect.top)  / mm.s;
+    var pane = (docX < mm.leftW + mm.gutter / 2) ? leftPane : rightPane;
+    pane.scrollTo({ top: docY - pane.clientHeight / 2, behavior: 'smooth' });
+  });
+
+  /* ============ 6. Wire up redraw triggers ============ */
+  leftPane.addEventListener('scroll', scheduleDraw);
+  rightPane.addEventListener('scroll', scheduleDraw);
+  var resizeTimer = null;
+  window.addEventListener('resize', function () {
+    scheduleDraw();
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(rebuildMinimap, 250);
+  });
+
+  draw();
+  rebuildMinimap();
+  // re-layout once fonts have finished loading (text metrics shift)
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () { draw(); rebuildMinimap(); });
+  }
+})();
+</script>
+</body>
+</html>

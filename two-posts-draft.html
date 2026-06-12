@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Two Posts: Procedural Hand-Waving &amp; Programs Written in English</title>
+<style>
+  body {
+    max-width: 720px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    font-family: Georgia, 'Times New Roman', serif;
+    line-height: 1.6;
+    color: #222;
+  }
+  article {
+    border-bottom: 3px double #888;
+    padding-bottom: 2rem;
+    margin-bottom: 3rem;
+  }
+  h1 { font-size: 1.8rem; line-height: 1.25; }
+  h2 { font-size: 1.25rem; margin-top: 2rem; }
+  aside {
+    border-left: 3px solid #999;
+    padding: 0.5rem 1rem;
+    margin: 1.5rem 0;
+    background: #f5f5f2;
+    font-style: italic;
+  }
+  aside::before {
+    content: "Aside — ";
+    font-weight: bold;
+    font-style: normal;
+  }
+  code {
+    font-family: Consolas, Menlo, monospace;
+    background: #f0f0f0;
+    padding: 0.1em 0.3em;
+    font-size: 0.95em;
+  }
+  pre {
+    background: #f0f0f0;
+    padding: 1rem;
+    overflow-x: auto;
+    font-size: 0.9rem;
+  }
+  .editor-notes {
+    background: #fffbe6;
+    border: 1px dashed #b8a000;
+    padding: 1rem 1.5rem;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- POST 1                                                        -->
+<!-- ============================================================ -->
+<article>
+  <h1>Let the Compiler Be Your To-Do List: Programming When You Don't Know What You're Doing</h1>
+
+  <h2>The setup</h2>
+  <p>Most programming advice quietly assumes you already understand the problem you're solving. You're supposed to design first, decompose the system, and then implement the pieces. But in practice — especially on hard or unfamiliar problems — you don't know what you're doing all of the time. That's not a personal failing; it's the normal condition of writing software. The question is whether your workflow takes advantage of that fact or pretends it isn't true.</p>
+
+  <p>The failure mode of pretending is familiar: you stall at the top of a file trying to figure out the "right" structure, or you go down a rabbit hole solving a sub-problem you didn't need to solve yet, and the actual goal slips further away.</p>
+
+  <h2>The approach</h2>
+  <p>The approach is extremely simple: <strong>write your programs procedurally when you don't know what you're doing.</strong> Start at the top and describe the steps of the solution in the order they happen, as if you were narrating it.</p>
+
+  <p>Then, when something starts to get complicated, hand-wave. Don't solve it. Just write a call to a function that doesn't exist yet:</p>
+
+  <pre><code>result = parse_declaration(tokens);   // no idea how yet
+emit_code(result);                    // also no idea
+</code></pre>
+
+  <p>At that point, your compiler becomes a to-do list. Every "undefined function" error is an item of work you've deferred — explicitly, visibly, and in priority order of whatever you feel ready to tackle next. You never lose track of what's left, because the build won't let you.</p>
+
+  <p>And if you want the code to actually <em>run</em> before you've filled everything in, stub the function out: have it return a canned response, a hardcoded value, whatever lets the rest of the program keep moving. Now you can test the parts you <em>do</em> understand while the parts you don't are safely fenced off behind a name.</p>
+
+  <h2>Why it works</h2>
+  <p>This technique breaks down work <em>as you need it broken down</em>, rather than forcing you to decompose the whole problem upfront. You make progress in a timely manner without having to know how to solve all of your problems before you start. Naming a function you can't write yet is itself a design act — you're defining an interface and deferring the implementation, which is most of what "good architecture" actually is, just done lazily and honestly.</p>
+
+  <aside>We used this approach back in college to build compilers, shells, and all sorts of complicated C code — code we also had to write by hand, on paper, for our exams. When your "IDE" is a pencil, you learn very quickly that the only way through a big problem is to hand-wave the hard parts into named functions and come back to them. The compiler-as-to-do-list workflow is the same discipline, with better tooling.</aside>
+</article>
+
+<!-- ============================================================ -->
+<!-- POST 2                                                        -->
+<!-- ============================================================ -->
+<article>
+  <h1>Programs Written in English: Solving Big Problems with an LLM, One Conversation at a Time</h1>
+
+  <h2>The setup</h2>
+  <p>There's a false assumption baked into a lot of LLM automation work: that we can come up with the perfect architecture, or the perfect way to solve a problem, on our own and upfront. It's just not realistic — it wasn't realistic before LLMs, and it isn't now.</p>
+
+  <p>The symptom of this assumption is reaching, on day one, for LangGraph, complicated harnesses, stacked loops, and the rest of the crazy automation machinery. You end up building infrastructure for a solution you don't understand yet.</p>
+
+  <h2>The approach</h2>
+
+  <h2>Step 1: Start with a casual chat</h2>
+  <p>The best place to start is a conversation. Set up only the couple of tools you know you will absolutely need — for example, a connection to a database with all of the access and authorization already provided. Then work with your agent (Claude, in my case) in a conversational setting on <strong>one</strong> particular example of the problem you're trying to automate.</p>
+  <p>Some ground rules for this session:</p>
+  <ul>
+    <li>Interrupt the agent as frequently as you need. If you see it doing something you don't want, stop it and teach it what to do, right there in the session.</li>
+    <li>Don't worry about writing other files or building anything reusable. Just worry about getting this one instance of the task complete.</li>
+    <li>Ask the agent questions. Make sure the agent asks <em>you</em> questions. Treat this as collaborative pair programming and exploration, not delegation.</li>
+  </ul>
+
+  <h2>Step 2: Summarize the session into pseudocode</h2>
+  <p>Once you've completed the goal, distill the session down into a handful of pseudocode lines. Go back through the conversation and pull out:</p>
+  <ul>
+    <li>All of the starting input variables,</li>
+    <li>All of the questions that were asked about the problem,</li>
+    <li>All of the nitpicks and corrections you made along the way.</li>
+  </ul>
+  <p>Separate and organize these elements. What you're left with is two things. First, some <strong>ground rules</strong> — the kind of thing you'd put in a <code>CLAUDE.md</code>, like "use <code>uv</code> over <code>conda</code>." Second, a <strong>playbook</strong>: a program written in English. Step one, do this. Step two, do this. If this, then that.</p>
+
+  <h2>Step 3: Run the English program, and revise it</h2>
+  <p>Take the pseudocode to a fresh session and try to solve the same problem again, this time following the playbook. Follow the agent along the way, correct mistakes as before — but now, every correction becomes a revision to the program you're writing in English. You are iterating on a program; the source code just happens to be prose.</p>
+
+  <h2>Why an English program beats a real one (at this stage)</h2>
+  <p>There are concrete reasons this is more effective than writing actual code first:</p>
+  <ul>
+    <li><strong>The interpreter is the LLM.</strong> The agent reads an instruction and infers the intent behind it. When it infers the correct intent, you don't need to over-explain yourself or provide more context — the line of pseudocode just works. When it infers the wrong intent and you catch it, you fix the assumption on the spot and build the correct program live. No exiting, no reloading.</li>
+    <li><strong>Nothing mechanical gets in your way.</strong> No type inference fighting you, no compiler throwing errors about things you don't care about yet. You work purely in the abstract.</li>
+    <li><strong>Exploration gets cheap — in the way that matters.</strong> Yes, it's probabilistic, nondeterministic, and more expensive per run. But the work of <em>exploration</em> — figuring out what the program should even be — becomes far freer.</li>
+  </ul>
+
+  <aside>Just as, back when we wrote programs on paper, <em>you</em> were the interpreter — reading your own handwritten code and executing it in your head — now the agent is the interpreter. The skill transfers directly: write for a reader who fills in reasonable intent, and only specify the parts where intent could plausibly go wrong.</aside>
+
+  <h2>Step 4: From playbook to specification</h2>
+  <p>Keep running the pseudocode program against more examples from your domain — more questions, more inputs. Each run hardens the English. Eventually the pseudocode is robust enough that you can treat it as the <strong>specification for a real program</strong>.</p>
+  <p>At that point, open a new session and translate the pseudocode into the coding target of your choice — Python, Rust, whatever fits. Then run the same tests: one example, two, possibly a hundred, and verify them all together. You can even have another coding agent walk through the results and evaluate: did the program's execution match the specification laid out in the pseudocode?</p>
+
+  <h2>The hard part, moved to day one</h2>
+  <p>By this stage, figuring out how to verify that you've built the right thing becomes the hardest part of the job. And here's the thing: <strong>that was always the hardest part of the job.</strong> The difference is that instead of arriving at it a month into development — after the architecture is locked in and the sunk costs have piled up — you're working on it from day one.</p>
+</article>
+
+<!-- ============================================================ -->
+<!-- EDITOR NOTES — questions and concepts to consider adding      -->
+<!-- ============================================================ -->
+<section class="editor-notes">
+  <h1>Notes: things you might want to add</h1>
+
+  <h2>For Post 1 (procedural hand-waving)</h2>
+  <ul>
+    <li><strong>Name the lineage.</strong> This is closely related to "top-down design with stepwise refinement" (Wirth) and to TDD's "fake it till you make it" stubs. Citing the lineage could add credibility for interns — or you may prefer to keep it folksy and skip it.</li>
+    <li><strong>When NOT to use it.</strong> A short paragraph on limits: e.g., it works less well when the hard part is a data structure or an invariant rather than a procedure, since you can't hand-wave a representation as easily as a function.</li>
+    <li><strong>A worked micro-example.</strong> Ten lines of C or Python showing the main loop of a tiny shell with three undefined functions, then the compiler output acting as the to-do list. Showing the actual error list makes the metaphor land.</li>
+    <li><strong>Stubs vs. TODOs.</strong> Why is a missing function better than a <code>// TODO</code> comment? Worth one sentence: comments are ignorable; link errors aren't.</li>
+  </ul>
+
+  <h2>For Post 2 (programs in English)</h2>
+  <ul>
+    <li><strong>An example playbook.</strong> Even 6–8 lines of real pseudocode from one of your sessions (sanitized) would make this concrete. Right now the reader has to imagine what the artifact looks like.</li>
+    <li><strong>How you "interrupt and teach."</strong> Interns may not know what correcting an agent mid-task actually looks like. One short before/after exchange would help.</li>
+    <li><strong>Version control for the English program.</strong> Do you keep the playbook in git? How do you track revisions across sessions? Worth a sentence even if the answer is "a markdown file."</li>
+    <li><strong>When to stop iterating in English.</strong> What's the signal that the pseudocode is "robust enough" to become a spec? Number of clean runs? No new nitpicks for N examples? Right now that judgment call is implicit.</li>
+    <li><strong>Cost framing.</strong> You concede LLM runs are more expensive — you could flip this into the argument that exploration in English is still cheaper than a month of building the wrong harness.</li>
+    <li><strong>The verification story deserves more.</strong> Your closing point (verification moved to day one) is the strongest idea in the piece, and it lands in two sentences. Consider expanding: what does the verifying agent actually check? Spec line by spec line? Do you keep a table of example inputs and expected outcomes?</li>
+    <li><strong>Tie the two posts together.</strong> They share a thesis: defer what you don't understand behind a name (a function, a line of pseudocode) and let an interpreter (compiler, you on paper, the agent) tell you what's left. A closing paragraph in Post 2 referencing Post 1 would make them feel like a pair — useful since the same audience reads both.</li>
+  </ul>
+</section>
+
+</body>
+</html>
