@@ -1,0 +1,1335 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DIZZY Robot Arm Event Flow Visualizer</title>
+  <!--
+    Colors are NOT eyeballed. Every component/processor hue is a documented value from the
+    dataviz skill's validated dark categorical palette (references/palette.md), assigned in
+    the skill's fixed slot order. Verified with the skill's own validator:
+      node scripts/validate_palette.js \
+        "#3987e5,#199e70,#c98500,#9085e9,#e66767,#d55181,#d95926" --mode dark --surface "#101d2e"
+      -> ALL CHECKS PASS: Lightness band PASS · Chroma floor PASS · Contrast vs surface PASS ·
+         CVD separation PASS (worst adjacent ΔE 23.7, well clear of the >=12 target).
+         Each node also carries a letter symbol + text label, so identity is never color-alone.
+         Re-check in-browser: drop the skill's validate_palette.js beside this file and load it
+         as <script type="module">; it reads the data-palette attribute off <body>.
+    Component -> skill slot: command=blue procedure=violet event=orange policy=red
+    projection=aqua model=yellow query/querier=magenta; status=good/warning/critical (fixed).
+  -->
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #071019;
+      --panel: rgba(14, 25, 39, 0.88);
+      --panel-strong: #111f31;
+      --text: #e9f5ff;
+      --muted: #90a4b8;
+      --line: rgba(148, 180, 210, 0.25);
+      --command: #3987e5;
+      --procedure: #9085e9;
+      --event: #d95926;
+      --policy: #e66767;
+      --projection: #199e70;
+      --model: #c98500;
+      --query: #d55181;
+      --good: #0ca30c;
+      --warn: #fab219;
+      --danger: #d03b3b;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      --radius: 22px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 15% 5%, rgba(57,135,229,0.18), transparent 32rem),
+        radial-gradient(circle at 85% 15%, rgba(230,103,103,0.15), transparent 34rem),
+        radial-gradient(circle at 50% 100%, rgba(25,158,112,0.1), transparent 38rem),
+        var(--bg);
+      overflow-x: hidden;
+    }
+
+    .app {
+      width: min(1500px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 20px 0 28px;
+    }
+
+    header.hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 4.2rem);
+      line-height: 0.95;
+      letter-spacing: -0.06em;
+    }
+
+    .subtitle {
+      max-width: 980px;
+      color: var(--muted);
+      margin: 10px 0 0;
+      font-size: 1rem;
+      line-height: 1.55;
+    }
+
+    .legend-strip {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+      max-width: 520px;
+    }
+
+    .legend-pill, .chip, .queue-badge {
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+    }
+
+    .legend-pill {
+      padding: 7px 10px;
+      font-size: 0.78rem;
+      color: #cfe0ed;
+      white-space: nowrap;
+    }
+
+    .legend-pill.command { box-shadow: inset 0 0 0 1px rgba(57,135,229,0.25); }
+    .legend-pill.event { box-shadow: inset 0 0 0 1px rgba(217,89,38,0.25); }
+    .legend-pill.policy { box-shadow: inset 0 0 0 1px rgba(230,103,103,0.25); }
+    .legend-pill.projection { box-shadow: inset 0 0 0 1px rgba(25,158,112,0.25); }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(620px, 1.2fr) minmax(430px, 0.8fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .panel {
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(18, 33, 50, 0.92), rgba(10, 18, 29, 0.9));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent 34%, transparent 65%, rgba(255,255,255,0.04));
+      pointer-events: none;
+    }
+
+    .panel > * { position: relative; }
+
+    .lab-panel {
+      min-height: 800px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .right-rail {
+      display: grid;
+      grid-template-rows: minmax(160px, 0.72fr) minmax(360px, 1.28fr) minmax(170px, 0.65fr);
+      gap: 16px;
+      min-height: 800px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 17px 18px 10px;
+    }
+
+    .section-title h2 {
+      margin: 0;
+      font-size: 0.98rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #c9d9e7;
+    }
+
+    .tiny {
+      color: var(--muted);
+      font-size: 0.76rem;
+    }
+
+    .controls {
+      padding: 16px 18px 12px;
+      display: grid;
+      gap: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(4, 9, 16, 0.22);
+    }
+
+    .control-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr;
+      gap: 14px;
+    }
+
+    .control-group h3 {
+      margin: 0 0 8px;
+      color: #c9d9e7;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.13em;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.07);
+      color: var(--text);
+      padding: 9px 12px;
+      font: inherit;
+      cursor: pointer;
+      transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: rgba(57,135,229,0.45);
+      background: rgba(57,135,229,0.12);
+      box-shadow: 0 10px 28px rgba(57,135,229,0.12);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, rgba(57,135,229,0.26), rgba(144,133,233,0.22));
+      border-color: rgba(57,135,229,0.45);
+      font-weight: 700;
+    }
+
+    button.sample-btn.selected {
+      border-color: rgba(25,158,112,0.65);
+      background: rgba(25,158,112,0.15);
+      box-shadow: 0 0 0 2px rgba(25,158,112,0.1);
+    }
+
+    button.processor-btn {
+      min-width: 112px;
+    }
+
+    .transport {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .speed-control {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    input[type="range"] { accent-color: var(--command); }
+
+    .protocol {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      min-height: 37px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 9px;
+      font-size: 0.8rem;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .chip button {
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: #dcecf7;
+      line-height: 1;
+      border-radius: 50%;
+    }
+
+    .lab-scene-wrap {
+      flex: 1;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      min-height: 0;
+    }
+
+    #labSvg {
+      width: 100%;
+      height: 100%;
+      min-height: 505px;
+      display: block;
+      background:
+        radial-gradient(circle at 50% 52%, rgba(57,135,229,0.08), transparent 18rem),
+        linear-gradient(180deg, rgba(8, 16, 27, 0.14), rgba(0,0,0,0.1));
+    }
+
+    .sample-pad, .processor-node { cursor: pointer; }
+    .sample-pad .pad-ring, .processor-node .processor-body { transition: filter 180ms ease, stroke 180ms ease, opacity 180ms ease; }
+    .sample-pad.selected .pad-ring { stroke: var(--good); filter: drop-shadow(0 0 9px rgba(25,158,112,0.8)); }
+    .processor-node.active .processor-body { filter: drop-shadow(0 0 18px currentColor); stroke-width: 3; }
+    .processor-node:hover .processor-body, .sample-pad:hover .pad-ring { filter: drop-shadow(0 0 10px rgba(57,135,229,0.5)); }
+
+    .floor-grid { opacity: 0.3; }
+    .robot-link { stroke-linecap: round; filter: drop-shadow(0 8px 14px rgba(0,0,0,0.32)); }
+    .robot-link.back { stroke: rgba(23, 44, 65, 0.92); stroke-width: 25; }
+    .robot-link.front { stroke: url(#armGradient); stroke-width: 13; }
+    .joint { fill: #d7efff; stroke: #18324d; stroke-width: 5; filter: drop-shadow(0 0 10px rgba(57,135,229,0.32)); }
+    .gripper { stroke: #e8f8ff; stroke-width: 6; stroke-linecap: round; fill: none; }
+    #heldSample { filter: drop-shadow(0 0 14px rgba(255,255,255,0.34)); }
+    .travel-line { stroke: rgba(57,135,229,0.42); stroke-width: 2; stroke-dasharray: 6 8; opacity: 0; }
+    .travel-line.show { animation: fadeTrail 900ms ease both; }
+
+    @keyframes fadeTrail {
+      0% { opacity: 0; }
+      15% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    .state-bar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+      padding: 14px 18px 18px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      background: rgba(3, 7, 13, 0.18);
+    }
+
+    .state-main strong { display: block; margin-bottom: 4px; }
+    .state-main span { color: var(--muted); font-size: 0.9rem; }
+    .state-tags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+
+    .queue-panel { min-height: 0; }
+    .queue-list, .log-list {
+      list-style: none;
+      margin: 0;
+      padding: 0 14px 14px;
+      display: grid;
+      gap: 8px;
+      max-height: 100%;
+      overflow: auto;
+    }
+
+    .queue-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 9px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.055);
+      animation: slideIn 240ms ease both;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .queue-item.command { border-color: rgba(57,135,229,0.26); }
+    .queue-item.event { border-color: rgba(217,89,38,0.28); }
+    .queue-item.processing { background: rgba(57,135,229,0.11); box-shadow: inset 0 0 0 1px rgba(57,135,229,0.14); }
+    .queue-item.done { opacity: 0.62; }
+
+    .queue-badge {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .queue-badge.command { color: var(--command); }
+    .queue-badge.event { color: var(--event); }
+
+    .queue-name {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+      color: #f1f8ff;
+    }
+
+    .queue-detail {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.75rem;
+      line-height: 1.25;
+    }
+
+    .queue-status {
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .network-panel {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+
+    #networkSvg {
+      width: 100%;
+      height: 100%;
+      min-height: 350px;
+      display: block;
+      overflow: visible;
+    }
+
+    .network-edge {
+      fill: none;
+      stroke: rgba(198, 222, 240, 0.24);
+      stroke-width: 2.2;
+      marker-end: url(#arrow);
+    }
+
+    .network-edge.loop { stroke-dasharray: 8 7; }
+    .network-edge.data { stroke: rgba(213,81,129,0.22); }
+
+    .node .node-bg {
+      fill: rgba(11, 20, 32, 0.92);
+      stroke: rgba(255,255,255,0.18);
+      stroke-width: 1.5;
+    }
+
+    .node text { pointer-events: none; }
+    .node .symbol { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 17px; font-weight: 900; }
+    .node .label { font-size: 11px; fill: #d7e6f2; letter-spacing: 0.03em; }
+    .node.command .symbol { fill: var(--command); }
+    .node.procedure .symbol { fill: var(--procedure); }
+    .node.event .symbol { fill: var(--event); }
+    .node.policy .symbol { fill: var(--policy); }
+    .node.projection .symbol { fill: var(--projection); }
+    .node.model .symbol { fill: var(--model); }
+    .node.query .symbol, .node.querier .symbol { fill: var(--query); }
+    .node.queue .symbol { fill: #ffffff; }
+
+    .node.pulse .node-bg {
+      animation: nodePulse 620ms ease both;
+    }
+
+    @keyframes nodePulse {
+      0% { stroke-width: 1.5; filter: none; }
+      45% { stroke-width: 4; filter: drop-shadow(0 0 14px rgba(57,135,229,0.55)); }
+      100% { stroke-width: 1.5; filter: none; }
+    }
+
+    .particle.command { fill: var(--command); filter: drop-shadow(0 0 8px rgba(57,135,229,0.9)); }
+    .particle.event { fill: var(--event); filter: drop-shadow(0 0 8px rgba(217,89,38,0.9)); }
+    .particle.policy { fill: var(--policy); filter: drop-shadow(0 0 8px rgba(230,103,103,0.9)); }
+    .particle.query { fill: var(--query); filter: drop-shadow(0 0 8px rgba(213,81,129,0.9)); }
+    .particle.projection { fill: var(--projection); filter: drop-shadow(0 0 8px rgba(25,158,112,0.9)); }
+
+    .model-readout {
+      margin: 0 14px 14px;
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 16px;
+      background: rgba(0,0,0,0.2);
+      padding: 10px 12px;
+    }
+
+    .model-readout h3 {
+      margin: 0 0 8px;
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    pre {
+      margin: 0;
+      color: #d8f7e7;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.76rem;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+
+    .log-panel { min-height: 0; }
+    .log-list { max-height: calc(100% - 50px); }
+    .log-item {
+      padding: 8px 10px;
+      border-left: 3px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.045);
+      border-radius: 10px;
+      color: #cfddea;
+      font-size: 0.78rem;
+      line-height: 1.35;
+      animation: slideIn 180ms ease both;
+    }
+    .log-item.command { border-color: var(--command); }
+    .log-item.event { border-color: var(--event); }
+    .log-item.policy { border-color: var(--policy); }
+    .log-item.query { border-color: var(--query); }
+    .log-item.projection { border-color: var(--projection); }
+    .log-item.system { border-color: #ffffff; }
+
+    @media (max-width: 1120px) {
+      header.hero, .workspace, .control-grid { grid-template-columns: 1fr; }
+      .legend-strip { justify-content: flex-start; }
+      .right-rail { grid-template-rows: auto auto auto; min-height: unset; }
+      .lab-panel { min-height: unset; }
+      #labSvg { min-height: 470px; }
+    }
+  </style>
+</head>
+<body
+  data-palette="#3987e5,#199e70,#c98500,#9085e9,#e66767,#d55181,#d95926"
+  data-mode="dark"
+  data-surface="#101d2e">
+  <div class="app">
+    <header class="hero">
+      <div>
+        <h1>DIZZY Robot Arm Lab</h1>
+        <p class="subtitle">
+          A standalone vanilla HTML/JS visualization of a DIZZY-shaped system: commands queue into procedures,
+          procedures emit immutable events, events update projections/models, and policies dispatch the next command.
+          Pick a sample, build a processor route, then watch the robot and event graph move together.
+        </p>
+      </div>
+      <div class="legend-strip" aria-label="DIZZY component legend">
+        <span class="legend-pill command">c command: intent</span>
+        <span class="legend-pill event">e event: fact</span>
+        <span class="legend-pill policy">y policy: reaction</span>
+        <span class="legend-pill projection">j projection: read model</span>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="panel lab-panel" aria-label="Robot arm laboratory">
+        <div class="controls">
+          <div class="control-grid">
+            <div class="control-group">
+              <h3>1. Choose sample location</h3>
+              <div id="sampleButtons" class="button-row"></div>
+            </div>
+            <div class="control-group">
+              <h3>2. Add processors to protocol</h3>
+              <div id="processorButtons" class="button-row"></div>
+            </div>
+          </div>
+          <div class="protocol" id="protocolList" aria-live="polite"></div>
+          <div class="transport">
+            <button id="runBtn" class="primary">Run DIZZY flow</button>
+            <button id="demoBtn">Load demo route</button>
+            <button id="clearBtn">Clear route</button>
+            <button id="resetBtn">Reset lab</button>
+            <label class="speed-control">speed
+              <input id="speedRange" type="range" min="0.55" max="2.2" value="1" step="0.05" />
+              <span id="speedLabel">1.00×</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="lab-scene-wrap">
+          <svg id="labSvg" viewBox="0 0 740 430" role="img" aria-label="Mock robot arm moving samples between processors">
+            <defs>
+              <linearGradient id="armGradient" x1="0" x2="1">
+                <stop offset="0" stop-color="#3987e5" />
+                <stop offset="0.55" stop-color="#d7efff" />
+                <stop offset="1" stop-color="#9085e9" />
+              </linearGradient>
+              <radialGradient id="benchGlow" cx="50%" cy="50%" r="60%">
+                <stop offset="0" stop-color="rgba(57,135,229,0.22)" />
+                <stop offset="1" stop-color="rgba(57,135,229,0)" />
+              </radialGradient>
+              <filter id="softGlow">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            <rect x="18" y="24" width="704" height="374" rx="28" fill="rgba(255,255,255,0.035)" stroke="rgba(255,255,255,0.11)" />
+            <ellipse cx="370" cy="250" rx="300" ry="145" fill="url(#benchGlow)" />
+            <g class="floor-grid" stroke="rgba(193,222,240,0.26)" stroke-width="1">
+              <path d="M35 355 H705" />
+              <path d="M35 305 H705" />
+              <path d="M35 255 H705" />
+              <path d="M35 205 H705" />
+              <path d="M35 155 H705" />
+              <path d="M80 60 V390" />
+              <path d="M170 60 V390" />
+              <path d="M260 60 V390" />
+              <path d="M350 60 V390" />
+              <path d="M440 60 V390" />
+              <path d="M530 60 V390" />
+              <path d="M620 60 V390" />
+            </g>
+
+            <g id="sampleLayer"></g>
+            <g id="processorLayer"></g>
+
+            <g id="outputDock">
+              <rect x="584" y="292" width="96" height="70" rx="18" fill="rgba(255,255,255,0.06)" stroke="rgba(201,133,0,0.55)" />
+              <text x="632" y="318" text-anchor="middle" fill="#c98500" font-size="13" font-weight="800">OUTPUT</text>
+              <circle id="finalSample" cx="632" cy="340" r="15" fill="transparent" stroke="rgba(255,255,255,0.25)" stroke-dasharray="4 5" />
+            </g>
+
+            <line id="travelLine" class="travel-line" x1="0" y1="0" x2="0" y2="0" />
+
+            <g id="robot">
+              <ellipse cx="342" cy="362" rx="77" ry="20" fill="rgba(0,0,0,0.28)" />
+              <rect x="292" y="316" width="100" height="52" rx="18" fill="#132a40" stroke="rgba(255,255,255,0.16)" />
+              <circle cx="342" cy="326" r="27" fill="#1e3d59" stroke="#3987e5" stroke-width="3" />
+              <line id="armBack1" class="robot-link back" x1="342" y1="326" x2="342" y2="180" />
+              <line id="armBack2" class="robot-link back" x1="342" y1="180" x2="342" y2="130" />
+              <line id="armFront1" class="robot-link front" x1="342" y1="326" x2="342" y2="180" />
+              <line id="armFront2" class="robot-link front" x1="342" y1="180" x2="342" y2="130" />
+              <circle id="elbow" class="joint" cx="342" cy="180" r="13" />
+              <circle id="wrist" class="joint" cx="342" cy="130" r="10" />
+              <g id="gripper" transform="translate(342 130)">
+                <path class="gripper" d="M-17 0 L-5 18" />
+                <path class="gripper" d="M17 0 L5 18" />
+              </g>
+              <circle id="heldSample" cx="342" cy="130" r="13" fill="#7c8a98" stroke="#fff" stroke-width="2" opacity="0" />
+            </g>
+          </svg>
+
+          <div class="state-bar">
+            <div class="state-main">
+              <strong id="stateTitle">Ready: choose a sample and a route</strong>
+              <span id="stateSubtitle">The robot arm will be driven by command envelopes; sample truth is recorded as events.</span>
+            </div>
+            <div class="state-tags" id="stateTags"></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="right-rail">
+        <section class="panel queue-panel" aria-label="Command and event queue">
+          <div class="section-title">
+            <h2>Queue: commands + critical events</h2>
+            <span class="tiny" id="queueCount">0 envelopes</span>
+          </div>
+          <ol id="queueList" class="queue-list"></ol>
+        </section>
+
+        <section class="panel network-panel" aria-label="DIZZY network graph">
+          <div class="section-title">
+            <h2>Stylized DIZZY network</h2>
+            <span class="tiny">particles show envelopes flowing through components</span>
+          </div>
+          <svg id="networkSvg" viewBox="0 0 700 390" role="img" aria-label="DIZZY component flow graph">
+            <defs>
+              <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(198,222,240,0.48)"></path>
+              </marker>
+            </defs>
+
+            <path id="path-command-queue" class="network-edge" d="M135 72 L204 72" />
+            <path id="path-queue-procedure" class="network-edge" d="M296 72 L374 72" />
+            <path id="path-procedure-event" class="network-edge" d="M478 72 L557 72" />
+            <path id="path-event-queue" class="network-edge loop" d="M610 102 C615 155 405 173 274 112" />
+            <path id="path-queue-policy" class="network-edge loop" d="M236 112 L236 182" />
+            <path id="path-queue-projection" class="network-edge" d="M278 102 C330 130 360 161 405 185" />
+            <path id="path-policy-command" class="network-edge loop" d="M195 213 C90 202 55 128 78 103" />
+            <path id="path-projection-model" class="network-edge" d="M478 220 L557 220" />
+            <path id="path-procedure-query" class="network-edge data" d="M425 105 C418 170 315 248 248 304" />
+            <path id="path-query-querier" class="network-edge data" d="M296 338 L374 338" />
+            <path id="path-querier-model" class="network-edge data" d="M472 325 C510 282 553 255 593 245" />
+            <path id="path-model-querier" class="network-edge data" d="M594 232 C548 264 504 291 470 322" />
+            <path id="path-querier-procedure" class="network-edge data" d="M425 304 C493 230 498 139 458 104" />
+
+            <g id="node-command" class="node command" transform="translate(82 72)">
+              <rect class="node-bg" x="-54" y="-27" width="108" height="54" rx="16" />
+              <text class="symbol" y="-4" text-anchor="middle">c</text>
+              <text class="label" y="16" text-anchor="middle">Command</text>
+            </g>
+            <g id="node-queue" class="node queue" transform="translate(250 72)">
+              <rect class="node-bg" x="-47" y="-40" width="94" height="80" rx="18" />
+              <text class="symbol" y="-7" text-anchor="middle">⇄</text>
+              <text class="label" y="13" text-anchor="middle">Queue</text>
+              <text class="label" y="28" text-anchor="middle">stream</text>
+            </g>
+            <g id="node-procedure" class="node procedure" transform="translate(426 72)">
+              <rect class="node-bg" x="-54" y="-27" width="108" height="54" rx="16" />
+              <text class="symbol" y="-4" text-anchor="middle">d</text>
+              <text class="label" y="16" text-anchor="middle">Procedure</text>
+            </g>
+            <g id="node-event" class="node event" transform="translate(610 72)">
+              <rect class="node-bg" x="-54" y="-27" width="108" height="54" rx="16" />
+              <text class="symbol" y="-4" text-anchor="middle">e</text>
+              <text class="label" y="16" text-anchor="middle">Event</text>
+            </g>
+            <g id="node-policy" class="node policy" transform="translate(236 220)">
+              <rect class="node-bg" x="-54" y="-27" width="108" height="54" rx="16" />
+              <text class="symbol" y="-4" text-anchor="middle">y</text>
+              <text class="label" y="16" text-anchor="middle">Policy</text>
+            </g>
+            <g id="node-projection" class="node projection" transform="translate(426 220)">
+              <rect class="node-bg" x="-54" y="-27" width="108" height="54" rx="16" />
+              <text class="symbol" y="-4" text-anchor="middle">j</text>
+              <text class="label" y="16" text-anchor="middle">Projection</text>
+            </g>
+            <g id="node-model" class="node model" transform="translate(610 220)">
+              <rect class="node-bg" x="-54" y="-27" width="108" height="54" rx="16" />
+              <text class="symbol" y="-4" text-anchor="middle">m</text>
+              <text class="label" y="16" text-anchor="middle">Model</text>
+            </g>
+            <g id="node-query" class="node query" transform="translate(250 338)">
+              <rect class="node-bg" x="-54" y="-27" width="108" height="54" rx="16" />
+              <text class="symbol" y="-4" text-anchor="middle">q</text>
+              <text class="label" y="16" text-anchor="middle">Query</text>
+            </g>
+            <g id="node-querier" class="node querier" transform="translate(426 338)">
+              <rect class="node-bg" x="-54" y="-27" width="108" height="54" rx="16" />
+              <text class="symbol" y="-4" text-anchor="middle">Q</text>
+              <text class="label" y="16" text-anchor="middle">Querier</text>
+            </g>
+          </svg>
+          <div class="model-readout">
+            <h3>Read model rebuilt by projection</h3>
+            <pre id="modelState"></pre>
+          </div>
+        </section>
+
+        <section class="panel log-panel" aria-label="Event log">
+          <div class="section-title">
+            <h2>Trace log</h2>
+            <span class="tiny">DIZZY-ish lifecycle narrative</span>
+          </div>
+          <ol id="logList" class="log-list"></ol>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const NS = "http://www.w3.org/2000/svg";
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+    const samples = {
+      basalt: { label: "Basalt core", short: "B", color: "#8793a1", x: 92, y: 287, detail: "dense field core" },
+      algae: { label: "Algae vial", short: "A", color: "#66e08a", x: 92, y: 190, detail: "living green vial" },
+      crystal: { label: "Crystal shard", short: "C", color: "#9085e9", x: 164, y: 240, detail: "fragile prism shard" }
+    };
+
+    const processors = {
+      scan: { label: "Spectro scan", short: "SCAN", color: "#3987e5", x: 548, y: 86, event: "scanned", outcome: "composition mapped", fill: "#3987e5" },
+      heat: { label: "Thermal oven", short: "HEAT", color: "#d95926", x: 642, y: 166, event: "heated", outcome: "annealed + warm", fill: "#d95926" },
+      mix: { label: "Reagent mixer", short: "MIX", color: "#199e70", x: 522, y: 276, event: "reagent_tagged", outcome: "reagent tagged", fill: "#199e70" },
+      polish: { label: "Ion polisher", short: "POLISH", color: "#c98500", x: 650, y: 250, event: "polished", outcome: "surface polished", fill: "#c98500" }
+    };
+
+    const outputPoint = { x: 632, y: 340 };
+    const homePoint = { x: 342, y: 135 };
+    const arm = { base: { x: 342, y: 326 }, l1: 190, l2: 170 };
+
+    let selectedSample = "basalt";
+    let protocol = ["scan", "heat", "mix"];
+    let running = false;
+    let queueSeq = 0;
+    let currentTarget = { ...homePoint };
+    let held = false;
+    let currentFill = samples[selectedSample].color;
+    let runToken = 0;
+
+    let model = makeEmptyModel();
+
+    function makeEmptyModel() {
+      return {
+        revision: 0,
+        sample_id: null,
+        location: "bench",
+        treatments: [],
+        last_event: null,
+        status: "idle"
+      };
+    }
+
+    function svgEl(tag, attrs = {}) {
+      const el = document.createElementNS(NS, tag);
+      Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
+      return el;
+    }
+
+    function speed() {
+      return Number($("#speedRange").value || 1);
+    }
+
+    function scaled(ms) {
+      return ms / speed();
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, scaled(ms)));
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function ease(t) {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    function renderControls() {
+      const sampleButtons = $("#sampleButtons");
+      sampleButtons.innerHTML = "";
+      Object.entries(samples).forEach(([id, sample]) => {
+        const button = document.createElement("button");
+        button.className = "sample-btn";
+        button.dataset.sample = id;
+        button.innerHTML = `${sample.short} · ${sample.label}`;
+        button.addEventListener("click", () => selectSample(id));
+        sampleButtons.appendChild(button);
+      });
+
+      const processorButtons = $("#processorButtons");
+      processorButtons.innerHTML = "";
+      Object.entries(processors).forEach(([id, proc]) => {
+        const button = document.createElement("button");
+        button.className = "processor-btn";
+        button.dataset.processor = id;
+        button.style.borderColor = proc.color + "66";
+        button.innerHTML = `+ ${proc.short}`;
+        button.title = proc.label;
+        button.addEventListener("click", () => addProcessor(id));
+        processorButtons.appendChild(button);
+      });
+    }
+
+    function buildLabScene() {
+      const sampleLayer = $("#sampleLayer");
+      sampleLayer.innerHTML = "";
+      Object.entries(samples).forEach(([id, sample]) => {
+        const g = svgEl("g", { id: `pad-${id}`, class: "sample-pad", "data-sample": id, tabindex: "0" });
+        g.innerHTML = `
+          <circle class="pad-ring" cx="${sample.x}" cy="${sample.y}" r="32" fill="rgba(255,255,255,0.045)" stroke="rgba(255,255,255,0.22)" stroke-width="2" />
+          <circle id="sample-${id}" cx="${sample.x}" cy="${sample.y}" r="14" fill="${sample.color}" stroke="white" stroke-opacity="0.8" stroke-width="2" />
+          <text x="${sample.x}" y="${sample.y + 52}" text-anchor="middle" fill="#cfe0ed" font-size="12" font-weight="700">${sample.label}</text>
+        `;
+        g.addEventListener("click", () => selectSample(id));
+        g.addEventListener("keydown", event => {
+          if (event.key === "Enter" || event.key === " ") selectSample(id);
+        });
+        sampleLayer.appendChild(g);
+      });
+
+      const processorLayer = $("#processorLayer");
+      processorLayer.innerHTML = "";
+      Object.entries(processors).forEach(([id, proc]) => {
+        const g = svgEl("g", { id: `processor-${id}`, class: "processor-node", "data-processor": id, style: `color: ${proc.color}` });
+        g.innerHTML = `
+          <rect class="processor-body" x="${proc.x - 48}" y="${proc.y - 28}" width="96" height="56" rx="17" fill="rgba(255,255,255,0.055)" stroke="${proc.color}" stroke-opacity="0.58" stroke-width="2" />
+          <circle cx="${proc.x - 30}" cy="${proc.y}" r="7" fill="${proc.color}" opacity="0.88" />
+          <text x="${proc.x + 7}" y="${proc.y - 4}" text-anchor="middle" fill="#f3fbff" font-size="13" font-weight="900">${proc.short}</text>
+          <text x="${proc.x + 7}" y="${proc.y + 14}" text-anchor="middle" fill="#93a8bb" font-size="10">${proc.outcome}</text>
+        `;
+        g.addEventListener("click", () => addProcessor(id));
+        processorLayer.appendChild(g);
+      });
+    }
+
+    function selectSample(id) {
+      if (running) return;
+      selectedSample = id;
+      currentFill = samples[id].color;
+      renderSelections();
+      setState(`Selected: ${samples[id].label}`, samples[id].detail);
+      addLog("system", `Selected sample location ${id}.`);
+    }
+
+    function addProcessor(id) {
+      if (running) return;
+      protocol.push(id);
+      renderProtocol();
+      setState(`Added processor: ${processors[id].label}`, "Policies will chain this step after the previous event.");
+    }
+
+    function renderSelections() {
+      $$(".sample-btn").forEach(btn => btn.classList.toggle("selected", btn.dataset.sample === selectedSample));
+      $$(".sample-pad").forEach(pad => pad.classList.toggle("selected", pad.dataset.sample === selectedSample));
+    }
+
+    function renderProtocol() {
+      const list = $("#protocolList");
+      list.innerHTML = "";
+      if (!protocol.length) {
+        const empty = document.createElement("span");
+        empty.textContent = "No processors yet — add one or load the demo route.";
+        list.appendChild(empty);
+        return;
+      }
+      const label = document.createElement("span");
+      label.textContent = "Protocol:";
+      list.appendChild(label);
+      protocol.forEach((id, index) => {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.style.boxShadow = `inset 0 0 0 1px ${processors[id].color}55`;
+        chip.innerHTML = `<strong>${index + 1}. ${processors[id].short}</strong>`;
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.textContent = "×";
+        remove.title = "Remove step";
+        remove.addEventListener("click", () => {
+          if (running) return;
+          protocol.splice(index, 1);
+          renderProtocol();
+        });
+        chip.appendChild(remove);
+        list.appendChild(chip);
+      });
+    }
+
+    function setState(title, subtitle) {
+      $("#stateTitle").textContent = title;
+      $("#stateSubtitle").textContent = subtitle;
+      renderStateTags();
+    }
+
+    function renderStateTags() {
+      const tags = $("#stateTags");
+      tags.innerHTML = "";
+      const values = [
+        model.sample_id ? `sample:${model.sample_id}` : "sample:none",
+        `location:${model.location}`,
+        `rev:${model.revision}`,
+        model.status
+      ];
+      if (model.treatments.length) values.push(...model.treatments.map(t => `+${t}`));
+      values.forEach(value => {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.textContent = value;
+        tags.appendChild(chip);
+      });
+    }
+
+    function setControlsDisabled(disabled) {
+      $$("button").forEach(button => {
+        if (button.id !== "resetBtn") button.disabled = disabled;
+      });
+    }
+
+    function updateArm(target) {
+      const dx = target.x - arm.base.x;
+      const dy = target.y - arm.base.y;
+      const distance = clamp(Math.hypot(dx, dy), Math.abs(arm.l1 - arm.l2) + 0.1, arm.l1 + arm.l2 - 0.1);
+      const angleToTarget = Math.atan2(dy, dx);
+      const cosElbow = clamp((distance * distance - arm.l1 * arm.l1 - arm.l2 * arm.l2) / (2 * arm.l1 * arm.l2), -1, 1);
+      const elbowAngle = -Math.acos(cosElbow);
+      const shoulderAngle = angleToTarget - Math.atan2(arm.l2 * Math.sin(elbowAngle), arm.l1 + arm.l2 * Math.cos(elbowAngle));
+      const elbow = {
+        x: arm.base.x + arm.l1 * Math.cos(shoulderAngle),
+        y: arm.base.y + arm.l1 * Math.sin(shoulderAngle)
+      };
+      const wrist = {
+        x: elbow.x + arm.l2 * Math.cos(shoulderAngle + elbowAngle),
+        y: elbow.y + arm.l2 * Math.sin(shoulderAngle + elbowAngle)
+      };
+
+      [["armBack1", arm.base, elbow], ["armBack2", elbow, wrist], ["armFront1", arm.base, elbow], ["armFront2", elbow, wrist]].forEach(([id, a, b]) => {
+        const line = document.getElementById(id);
+        line.setAttribute("x1", a.x);
+        line.setAttribute("y1", a.y);
+        line.setAttribute("x2", b.x);
+        line.setAttribute("y2", b.y);
+      });
+      $("#elbow").setAttribute("cx", elbow.x);
+      $("#elbow").setAttribute("cy", elbow.y);
+      $("#wrist").setAttribute("cx", wrist.x);
+      $("#wrist").setAttribute("cy", wrist.y);
+      $("#gripper").setAttribute("transform", `translate(${wrist.x} ${wrist.y}) rotate(${(shoulderAngle + elbowAngle) * 180 / Math.PI + 90})`);
+      const heldSample = $("#heldSample");
+      heldSample.setAttribute("cx", wrist.x);
+      heldSample.setAttribute("cy", wrist.y + 17);
+      currentTarget = { x: wrist.x, y: wrist.y };
+    }
+
+    function animateArmTo(x, y) {
+      const from = { ...currentTarget };
+      const to = { x, y };
+      const line = $("#travelLine");
+      line.setAttribute("x1", from.x);
+      line.setAttribute("y1", from.y);
+      line.setAttribute("x2", x);
+      line.setAttribute("y2", y);
+      line.classList.remove("show");
+      void line.getBoundingClientRect();
+      line.classList.add("show");
+      const duration = scaled(860);
+      const started = performance.now();
+      return new Promise(resolve => {
+        function frame(now) {
+          const t = clamp((now - started) / duration, 0, 1);
+          const k = ease(t);
+          updateArm({ x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k });
+          if (t < 1) requestAnimationFrame(frame);
+          else resolve();
+        }
+        requestAnimationFrame(frame);
+      });
+    }
+
+    function pulseNode(id) {
+      const node = document.getElementById(`node-${id}`);
+      if (!node) return;
+      node.classList.remove("pulse");
+      void node.getBoundingClientRect();
+      node.classList.add("pulse");
+      setTimeout(() => node.classList.remove("pulse"), scaled(650));
+    }
+
+    function flow(pathId, kind = "command") {
+      const path = document.getElementById(pathId);
+      const svg = $("#networkSvg");
+      if (!path || !svg) return Promise.resolve();
+      const particle = svgEl("circle", { r: kind === "event" ? 6 : 5, class: `particle ${kind}` });
+      svg.appendChild(particle);
+      const length = path.getTotalLength();
+      const duration = scaled(kind === "query" ? 480 : 620);
+      const started = performance.now();
+      return new Promise(resolve => {
+        function frame(now) {
+          const t = clamp((now - started) / duration, 0, 1);
+          const point = path.getPointAtLength(length * ease(t));
+          particle.setAttribute("cx", point.x);
+          particle.setAttribute("cy", point.y);
+          particle.setAttribute("opacity", String(1 - Math.max(0, t - 0.82) / 0.18));
+          if (t < 1) requestAnimationFrame(frame);
+          else {
+            particle.remove();
+            resolve();
+          }
+        }
+        requestAnimationFrame(frame);
+      });
+    }
+
+    function addQueueItem(kind, name, detail, status = "incoming") {
+      queueSeq += 1;
+      const item = document.createElement("li");
+      item.className = `queue-item ${kind}`;
+      item.innerHTML = `
+        <span class="queue-badge ${kind}">${kind === "command" ? "c" : "e"}</span>
+        <span>
+          <span class="queue-name">${name}</span>
+          <span class="queue-detail">${detail}</span>
+        </span>
+        <span class="queue-status">${status}</span>
+      `;
+      $("#queueList").appendChild(item);
+      while ($$(".queue-item").length > 12) $("#queueList").firstElementChild.remove();
+      updateQueueCount();
+      return { el: item, kind, name };
+    }
+
+    function markQueue(item, status) {
+      item.el.classList.toggle("processing", status === "executing" || status === "projecting" || status === "routing");
+      item.el.classList.toggle("done", status === "done");
+      $(".queue-status", item.el).textContent = status;
+    }
+
+    function updateQueueCount() {
+      const count = $$(".queue-item").length;
+      $("#queueCount").textContent = `${count} envelope${count === 1 ? "" : "s"}`;
+    }
+
+    function addLog(kind, text) {
+      const item = document.createElement("li");
+      item.className = `log-item ${kind}`;
+      const time = new Date().toLocaleTimeString([], { minute: "2-digit", second: "2-digit" });
+      item.textContent = `${time} · ${text}`;
+      $("#logList").appendChild(item);
+      while ($$(".log-item").length > 20) $("#logList").firstElementChild.remove();
+      item.scrollIntoView({ block: "nearest" });
+    }
+
+    function renderModel() {
+      $("#modelState").textContent = JSON.stringify(model, null, 2);
+      renderStateTags();
+    }
+
+    function projectEvent(name, detail = {}) {
+      model.revision += 1;
+      model.last_event = name;
+      if (detail.sample_id) model.sample_id = detail.sample_id;
+      if (detail.location) model.location = detail.location;
+      if (detail.status) model.status = detail.status;
+      if (detail.treatment && !model.treatments.includes(detail.treatment)) model.treatments.push(detail.treatment);
+      renderModel();
+      addLog("projection", `j:sample_status folded e:${name} into m:samples.`);
+    }
+
+    async function procedureQuery(reason) {
+      addLog("query", `q:current_sample_state requested by procedure — ${reason}.`);
+      pulseNode("procedure");
+      await flow("path-procedure-query", "query");
+      pulseNode("query");
+      await flow("path-query-querier", "query");
+      pulseNode("querier");
+      await flow("path-querier-model", "query");
+      pulseNode("model");
+      await flow("path-model-querier", "query");
+      await flow("path-querier-procedure", "query");
+      pulseNode("procedure");
+    }
+
+    async function dispatchCommand(name, detail, action) {
+      const item = addQueueItem("command", name, detail, "incoming");
+      addLog("command", `c:${name} entered the queue.`);
+      pulseNode("command");
+      await flow("path-command-queue", "command");
+      pulseNode("queue");
+      markQueue(item, "queued");
+      await sleep(120);
+      await flow("path-queue-procedure", "command");
+      pulseNode("procedure");
+      markQueue(item, "executing");
+      await procedureQuery(`validate scope for c:${name}`);
+      await action();
+      markQueue(item, "done");
+      return item;
+    }
+
+    async function emitEvent(name, detail, projectionDetail) {
+      const item = addQueueItem("event", name, detail, "emitting");
+      addLog("event", `e:${name} recorded as an immutable critical fact.`);
+      pulseNode("procedure");
+      await flow("path-procedure-event", "event");
+      pulseNode("event");
+      await flow("path-event-queue", "event");
+      pulseNode("queue");
+      markQueue(item, "routing");
+      await Promise.all([
+        flow("path-queue-projection", "projection").then(() => pulseNode("projection")),
+        flow("path-queue-policy", "policy").then(() => pulseNode("policy"))
+      ]);
+      markQueue(item, "projecting");
+      projectEvent(name, projectionDetail);
+      await flow("path-projection-model", "projection");
+      pulseNode("model");
+      markQueue(item, "done");
+    }
+
+    async function policyDispatch(commandName, detail) {
+      addLog("policy", `y:protocol_policy reacted and dispatched c:${commandName}.`);
+      pulseNode("policy");
+      await flow("path-policy-command", "policy");
+      pulseNode("command");
+      await sleep(90);
+      setState(`Policy dispatched ${commandName}`, detail);
+    }
+
+    async function pickSample() {
+      const sample = samples[selectedSample];
+      await dispatchCommand("pick_sample", `Move gripper to ${sample.label} pad.`, async () => {
+        setState(`Picking up ${sample.label}`, "Procedure d:pick_sample owns the arm movement and may emit e:sample_picked.");
+        await animateArmTo(sample.x, sample.y - 8);
+        await sleep(130);
+        held = true;
+        currentFill = sample.color;
+        const heldSample = $("#heldSample");
+        heldSample.setAttribute("fill", currentFill);
+        heldSample.setAttribute("opacity", "1");
+        $(`#sample-${selectedSample}`).setAttribute("opacity", "0.18");
+        await sleep(180);
+      });
+      await emitEvent("sample_picked", `${sample.label} left source pad.`, {
+        sample_id: selectedSample,
+        location: "gripper",
+        status: "in_motion"
+      });
+    }
+
+    async function runProcessor(id, index) {
+      const proc = processors[id];
+      await dispatchCommand(`run_${id}_processor`, `Step ${index + 1}: ${proc.label}.`, async () => {
+        setState(`Moving to ${proc.label}`, `Robot carries sample to processor; d:run_${id}_processor will emit e:sample_${proc.event}.`);
+        await animateArmTo(proc.x, proc.y - 10);
+        const node = $(`#processor-${id}`);
+        node.classList.add("active");
+        await sleep(420);
+        currentFill = proc.fill;
+        $("#heldSample").setAttribute("fill", currentFill);
+        await sleep(420);
+        node.classList.remove("active");
+      });
+      await emitEvent(`sample_${proc.event}`, `${proc.outcome} at ${proc.label}.`, {
+        sample_id: selectedSample,
+        location: id,
+        treatment: proc.outcome,
+        status: "processing"
+      });
+    }
+
+    async function placeOutput() {
+      await dispatchCommand("place_finished_sample", "Move processed sample to output dock.", async () => {
+        setState("Placing finished sample", "Final command closes the route; the event stream remains the source of truth.");
+        await animateArmTo(outputPoint.x, outputPoint.y - 16);
+        await sleep(180);
+        held = false;
+        $("#heldSample").setAttribute("opacity", "0");
+        const final = $("#finalSample");
+        final.setAttribute("fill", currentFill);
+        final.setAttribute("stroke", "white");
+        final.setAttribute("stroke-dasharray", "0");
+        final.setAttribute("filter", "url(#softGlow)");
+        await sleep(160);
+        await animateArmTo(homePoint.x, homePoint.y);
+      });
+      await emitEvent("sample_archived", "Processed sample arrived at output dock.", {
+        sample_id: selectedSample,
+        location: "output_dock",
+        status: "complete"
+      });
+      setState("Run complete", "Replay the event stream through the projection and the sample model can be rebuilt.");
+    }
+
+    async function runFlow() {
+      if (running) return;
+      if (!protocol.length) {
+        setState("Add at least one processor", "A DIZZY route needs a command to do useful work.");
+        return;
+      }
+      running = true;
+      const token = ++runToken;
+      setControlsDisabled(true);
+      resetForRun(false);
+      addLog("system", "Starting visualization run. Commands → Procedures → Events → Policies → Commands; Events → Projections → Models → Queries → Procedures.");
+      try {
+        await pickSample();
+        if (token !== runToken) return;
+        for (let index = 0; index < protocol.length; index += 1) {
+          const id = protocol[index];
+          await policyDispatch(`run_${id}_processor`, `Next route step is ${processors[id].label}.`);
+          if (token !== runToken) return;
+          await runProcessor(id, index);
+          if (token !== runToken) return;
+        }
+        await policyDispatch("place_finished_sample", "All planned processors have emitted their events.");
+        if (token !== runToken) return;
+        await placeOutput();
+      } finally {
+        if (token === runToken) {
+          running = false;
+          setControlsDisabled(false);
+        }
+      }
+    }
+
+    function resetForRun(clearLogs = true) {
+      model = makeEmptyModel();
+      model.sample_id = selectedSample;
+      model.status = "ready";
+      model.location = "source_pad";
+      currentFill = samples[selectedSample].color;
+      held = false;
+      $("#heldSample").setAttribute("opacity", "0");
+      $("#heldSample").setAttribute("fill", currentFill);
+      Object.keys(samples).forEach(id => {
+        $(`#sample-${id}`).setAttribute("opacity", id === selectedSample ? "1" : "0.72");
+      });
+      const final = $("#finalSample");
+      final.setAttribute("fill", "transparent");
+      final.setAttribute("stroke", "rgba(255,255,255,0.25)");
+      final.setAttribute("stroke-dasharray", "4 5");
+      final.removeAttribute("filter");
+      $$(".processor-node").forEach(node => node.classList.remove("active"));
+      $$(".particle", $("#networkSvg")).forEach(particle => particle.remove());
+      $("#queueList").innerHTML = "";
+      updateQueueCount();
+      if (clearLogs) $("#logList").innerHTML = "";
+      updateArm(homePoint);
+      renderModel();
+      setState("Ready: choose a sample and a route", "The robot arm will be driven by command envelopes; sample truth is recorded as events.");
+      renderSelections();
+    }
+
+    function fullReset() {
+      runToken += 1;
+      running = false;
+      setControlsDisabled(false);
+      selectedSample = "basalt";
+      protocol = ["scan", "heat", "mix"];
+      renderProtocol();
+      resetForRun(true);
+      addLog("system", "Lab reset to a default route.");
+    }
+
+    function loadDemoRoute() {
+      if (running) return;
+      selectedSample = "crystal";
+      protocol = ["scan", "heat", "mix", "polish"];
+      renderProtocol();
+      resetForRun(true);
+      addLog("system", "Loaded demo route: crystal → scan → heat → mix → polish.");
+    }
+
+    function clearRoute() {
+      if (running) return;
+      protocol = [];
+      renderProtocol();
+      setState("Route cleared", "Add processors in any order to create a new policy-driven route.");
+    }
+
+    function init() {
+      renderControls();
+      buildLabScene();
+      renderProtocol();
+      renderSelections();
+      updateArm(homePoint);
+      renderModel();
+      resetForRun(true);
+      addLog("system", "Loaded standalone DIZZY robot-arm visualization.");
+
+      $("#runBtn").addEventListener("click", runFlow);
+      $("#demoBtn").addEventListener("click", loadDemoRoute);
+      $("#clearBtn").addEventListener("click", clearRoute);
+      $("#resetBtn").addEventListener("click", fullReset);
+      $("#speedRange").addEventListener("input", event => {
+        $("#speedLabel").textContent = `${Number(event.target.value).toFixed(2)}×`;
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>
