@@ -1,0 +1,225 @@
+description: |
+  DIZZY Lab Arm Visualizer
+
+  A deliberately small, event-driven feature model for the standalone browser
+  visualization in index.html. The visualizer is not a generated DIZZY runtime;
+  this file sketches what the same robot-arm sample workflow would look like as
+  a DIZZY feature contract.
+
+  Reactivity loop:
+    Commands -> Procedures -> Events -> Policies -> Commands
+
+  Data loop:
+    Events -> Projections -> samples model -> Queries -> Procedures/Policies
+
+commands:
+  pick_sample: |
+    Ask the robot arm to pick a raw sample from a named source location.
+  move_sample: |
+    Ask the robot arm to move a held sample to a processor or destination.
+  process_sample: |
+    Ask a processor to transform the sample currently located there.
+  stabilize_sample: |
+    Policy-dispatched command requesting a hot sample be routed through the cooler.
+  archive_sample: |
+    Policy-dispatched command requesting a scanned sample be moved into archive storage.
+
+events:
+  sample_picked: |
+    The robot arm successfully picked a sample from a source location.
+  sample_moved: |
+    The robot arm successfully moved a sample to a destination.
+  sample_processed: |
+    A processor transformed a sample and recorded its new state.
+  temperature_threshold_crossed: |
+    A heater run crossed a critical temperature threshold for the sample.
+  spectrum_captured: |
+    The scanner captured a spectrum for the sample.
+  sample_stabilized: |
+    The cooler stabilized a sample after a heat-related policy decision.
+  sample_archived: |
+    A scanned sample was stored in the archive.
+
+models:
+  samples:
+    description: |
+      Rebuildable read model containing current sample location, state,
+      processor history, critical flags, and archival status.
+    adapters:
+      - sqla
+
+queries:
+  get_sample:
+    description: |
+      Retrieve the current read-model row for a single sample so a procedure or
+      policy can decide whether the requested operation is valid.
+    model: samples
+    adapter: sqla
+  list_samples:
+    description: |
+      Return all known samples for dashboards and operator displays.
+    model: samples
+    adapter: sqla
+  get_recommended_next_processor:
+    description: |
+      Given the current sample state and latest critical event, answer which
+      processor or destination should be used next, if any.
+    model: samples
+    adapter: sqla
+
+procedures:
+  pick_sample_with_arm:
+    description: |
+      Handle pick_sample.
+
+      Validate via get_sample that the requested source still contains the
+      sample and that the arm is not already holding something. Move the arm to
+      the source, close the gripper, and emit sample_picked with the sample id,
+      source location, and timestamp.
+    command: pick_sample
+    queries:
+      - get_sample
+    emits:
+      - sample_picked
+
+  move_sample_with_arm:
+    description: |
+      Handle move_sample.
+
+      Validate the sample's current location via get_sample. Move the arm from
+      its current pose to the requested destination and emit sample_moved with
+      the sample id, origin, destination, and timestamp.
+    command: move_sample
+    queries:
+      - get_sample
+    emits:
+      - sample_moved
+
+  process_sample_at_station:
+    description: |
+      Handle process_sample.
+
+      Validate that the sample is at the requested processor. Run the processor
+      transformation and emit sample_processed with the processor id and new
+      state. If the processor is heater and measured heat is critical, also emit
+      temperature_threshold_crossed. If the processor is scanner, also emit
+      spectrum_captured with the captured spectrum reference.
+    command: process_sample
+    queries:
+      - get_sample
+    emits:
+      - sample_processed
+      - temperature_threshold_crossed
+      - spectrum_captured
+
+  stabilize_hot_sample:
+    description: |
+      Handle stabilize_sample.
+
+      Route a sample flagged by temperature_threshold_crossed through the cooler.
+      Emit sample_moved for the physical transfer and sample_stabilized once the
+      cooler reports the sample is safe to continue.
+    command: stabilize_sample
+    queries:
+      - get_sample
+    emits:
+      - sample_moved
+      - sample_stabilized
+
+  archive_scanned_sample:
+    description: |
+      Handle archive_sample.
+
+      Move a scanned sample to the archive destination and record that the
+      sample has left the active processing workflow.
+    command: archive_sample
+    queries:
+      - get_sample
+    emits:
+      - sample_moved
+      - sample_archived
+
+policies:
+  route_hot_sample_to_cooler:
+    description: |
+      React to temperature_threshold_crossed.
+
+      Consult the samples model for the affected sample. If it has not already
+      been stabilized, dispatch stabilize_sample so the normal command ->
+      procedure -> event chain performs the cooling work.
+    event: temperature_threshold_crossed
+    queries:
+      - get_sample
+      - get_recommended_next_processor
+    emits:
+      - stabilize_sample
+
+  route_scanned_sample_to_archive:
+    description: |
+      React to spectrum_captured.
+
+      Consult the samples model and dispatch archive_sample when a scanned
+      sample is ready to leave the active processor area.
+    event: spectrum_captured
+    queries:
+      - get_sample
+      - get_recommended_next_processor
+    emits:
+      - archive_sample
+
+projections:
+  samples_on_sample_picked:
+    description: |
+      Fold sample_picked into the samples model by marking the source as empty
+      and the sample location as the robot gripper.
+    event: sample_picked
+    model: samples
+    adapter: sqla
+
+  samples_on_sample_moved:
+    description: |
+      Fold sample_moved into the samples model by updating the sample's current
+      location and appending a movement-history entry.
+    event: sample_moved
+    model: samples
+    adapter: sqla
+
+  samples_on_sample_processed:
+    description: |
+      Fold sample_processed into the samples model by updating processor history,
+      current state, and processed count.
+    event: sample_processed
+    model: samples
+    adapter: sqla
+
+  samples_on_temperature_threshold_crossed:
+    description: |
+      Fold temperature_threshold_crossed into the samples model by marking the
+      sample as requiring stabilization.
+    event: temperature_threshold_crossed
+    model: samples
+    adapter: sqla
+
+  samples_on_spectrum_captured:
+    description: |
+      Fold spectrum_captured into the samples model by attaching the spectrum
+      reference and marking the sample as ready for archival routing.
+    event: spectrum_captured
+    model: samples
+    adapter: sqla
+
+  samples_on_sample_stabilized:
+    description: |
+      Fold sample_stabilized into the samples model by clearing the critical
+      heat flag and recording that cooler stabilization completed.
+    event: sample_stabilized
+    model: samples
+    adapter: sqla
+
+  samples_on_sample_archived:
+    description: |
+      Fold sample_archived into the samples model by marking the sample archived
+      and no longer active in the robot-arm workcell.
+    event: sample_archived
+    model: samples
+    adapter: sqla
