@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DIZZY / Material Flow Lab</title>
+<style>
+  :root {
+    --ink: #08131d;
+    --panel: #0d1c27;
+    --panel-2: #102633;
+    --line: rgba(174, 220, 232, .15);
+    --muted: #8ca8b5;
+    --text: #eaf6f6;
+    --cyan: #55e5e0;
+    --lime: #c5ed75;
+    --coral: #ff7e78;
+    --violet: #b99cff;
+    --gold: #ffc96b;
+    --shadow: 0 18px 60px rgba(0,0,0,.28);
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--ink); }
+  body { margin:0; min-width: 320px; color:var(--text); background:
+      radial-gradient(circle at 22% -10%, #174155 0, transparent 34rem),
+      radial-gradient(circle at 86% 16%, #1b2a4c 0, transparent 32rem), var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  button, select { font: inherit; }
+  .shell { max-width: 1600px; margin:auto; padding: 22px clamp(16px, 3vw, 46px) 34px; }
+  header { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:0 2px 20px; }
+  .brand { display:flex; align-items:center; gap:12px; letter-spacing:.04em; }
+  .brand-mark { width:34px; height:34px; display:grid; place-items:center; border:1px solid var(--cyan); color:var(--cyan); border-radius:9px; font-size:18px; box-shadow:inset 0 0 18px rgba(85,229,224,.15); }
+  .brand strong { font-size:14px; letter-spacing:.16em; }
+  .brand small { display:block; color:var(--muted); font-size:10px; letter-spacing:.13em; margin-top:2px; }
+  .status { display:flex; gap:9px; align-items:center; color:#bcd2d9; font:600 11px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing:.09em; }
+  .status i { width:8px; height:8px; border-radius:50%; background:var(--lime); box-shadow:0 0 0 4px rgba(197,237,117,.12), 0 0 16px var(--lime); }
+  .intro { display:flex; align-items:end; justify-content:space-between; gap:25px; margin-bottom:20px; }
+  h1 { max-width:720px; margin:0; font-weight:520; font-size:clamp(27px, 3.1vw, 48px); line-height:1.05; letter-spacing:-.045em; }
+  h1 em { color:var(--cyan); font-style:normal; }
+  .intro p { max-width:365px; margin:0 0 3px; color:var(--muted); font-size:13px; line-height:1.55; }
+  .dashboard { display:grid; grid-template-columns:minmax(560px, 1.2fr) minmax(400px, .8fr); gap:16px; }
+  .card { position:relative; overflow:hidden; border:1px solid var(--line); border-radius:18px; background:linear-gradient(140deg, rgba(19,43,56,.92), rgba(9,23,33,.94)); box-shadow:var(--shadow); }
+  .card-label { color:var(--muted); font:700 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing:.14em; text-transform:uppercase; }
+
+  /* lab */
+  .lab { min-height:658px; display:flex; flex-direction:column; }
+  .lab-top { display:flex; justify-content:space-between; align-items:center; padding:19px 21px 12px; }
+  .mode { color:var(--cyan); border:1px solid rgba(85,229,224,.25); background:rgba(85,229,224,.07); border-radius:50px; padding:5px 9px; font:700 9px/1 ui-monospace, monospace; letter-spacing:.1em; }
+  #lab-svg { width:100%; height:422px; display:block; overflow:visible; }
+  .grid-lines { stroke:rgba(148,205,220,.075); stroke-width:1; }
+  .bench { fill:rgba(6,15,23,.38); stroke:rgba(161,211,221,.13); stroke-width:1; }
+  .zone-title { fill:#9bb4be; font:700 10px ui-monospace, monospace; letter-spacing:1.5px; }
+  .zone-caption { fill:#617d89; font:10px ui-monospace, monospace; }
+  .source-plate { fill:#112d3a; stroke:#2a5664; stroke-width:1; }
+  .source-ring { fill:none; stroke:#315f6e; stroke-width:1; stroke-dasharray:3 4; }
+  .source-name { fill:#d9ebed; font:600 11px ui-monospace, monospace; letter-spacing:.7px; }
+  .source-state { fill:#7798a5; font:9px ui-monospace, monospace; }
+  .sample-dot { stroke:#eaffff; stroke-width:1; filter:url(#glow); }
+  .processor { fill:#102936; stroke:#366877; stroke-width:1.2; }
+  .processor.active { stroke:var(--cyan); filter:url(#glow); }
+  .processor-name { fill:#e9f5f5; font:700 11px ui-monospace, monospace; letter-spacing:1px; }
+  .processor-sub { fill:#75939f; font:9px ui-monospace, monospace; }
+  .processor-light { fill:#2a5361; }
+  .processor-light.lit { fill:var(--lime); filter:url(#glow); }
+  .arm-shadow { stroke:rgba(0,0,0,.35); stroke-width:22; stroke-linecap:round; }
+  .arm-link { stroke:#86aeb9; stroke-width:15; stroke-linecap:round; }
+  .arm-inner { stroke:#d5edf0; stroke-width:4; stroke-linecap:round; opacity:.85; }
+  .joint { fill:#132b37; stroke:#a3d6dc; stroke-width:3; }
+  .joint-core { fill:var(--cyan); filter:url(#glow); }
+  .grip { stroke:#d2edf0; stroke-width:5; stroke-linecap:round; fill:none; }
+  .base { fill:#102a36; stroke:#52808c; stroke-width:1.5; }
+  .base-top { fill:#1a3c49; stroke:#9ccbd0; stroke-width:1; }
+  .held { filter:url(#glow); }
+  .lab-footer { margin-top:auto; padding:14px 18px 18px; border-top:1px solid var(--line); display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end; }
+  .field label { display:block; color:#7593a0; font:700 9px/1 ui-monospace,monospace; letter-spacing:.12em; margin:0 0 7px 2px; }
+  select { appearance:none; width:100%; color:#dceff0; background:#0a1821; border:1px solid #284957; border-radius:8px; padding:10px 28px 10px 10px; outline:none; font-size:12px; background-image:linear-gradient(45deg, transparent 50%, #75a4ad 50%),linear-gradient(135deg, #75a4ad 50%, transparent 50%); background-position:calc(100% - 14px) 14px,calc(100% - 10px) 14px; background-size:4px 4px,4px 4px; background-repeat:no-repeat; }
+  .run { cursor:pointer; min-height:36px; border:0; border-radius:8px; padding:0 15px; color:#06202a; font-weight:800; font-size:11px; letter-spacing:.07em; background:var(--cyan); box-shadow:0 8px 22px rgba(85,229,224,.2); transition:transform .15s, opacity .15s; }
+  .run:hover { transform:translateY(-1px); }
+  .run:disabled { cursor:wait; opacity:.55; transform:none; }
+
+  /* event side */
+  .system { min-height:658px; display:grid; grid-template-rows:auto 300px 1fr; }
+  .system-head { padding:19px 21px 10px; display:flex; align-items:center; justify-content:space-between; }
+  .legend { display:flex; gap:10px; align-items:center; color:#829da7; font:9px ui-monospace,monospace; }
+  .legend b { width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:4px; }
+  .graph-wrap { margin:0 9px; border-bottom:1px solid var(--line); }
+  #graph { width:100%; height:290px; display:block; overflow:visible; }
+  .edge { fill:none; stroke:#315565; stroke-width:1.2; stroke-dasharray:4 5; opacity:.85; }
+  .edge.hot-command { stroke:var(--gold); }
+  .edge.hot-event { stroke:var(--coral); }
+  .g-node rect { fill:#102633; stroke:#365b68; stroke-width:1; rx:8; }
+  .g-node text:first-of-type { fill:#e5f3f4; font:700 9px ui-monospace,monospace; letter-spacing:.7px; }
+  .g-node text:last-of-type { fill:#7795a0; font:8px ui-monospace,monospace; }
+  .g-node.command rect { stroke:#7c6640; } .g-node.command .node-dot { fill:var(--gold); }
+  .g-node.procedure rect { stroke:#39737d; } .g-node.procedure .node-dot { fill:var(--cyan); }
+  .g-node.event rect { stroke:#925557; } .g-node.event .node-dot { fill:var(--coral); }
+  .g-node.policy rect { stroke:#7963a9; } .g-node.policy .node-dot { fill:var(--violet); }
+  .g-node.projection rect { stroke:#527e62; } .g-node.projection .node-dot { fill:var(--lime); }
+  .g-node.model rect { stroke:#427486; } .g-node.model .node-dot { fill:#75b9d5; }
+  .node-dot { r:3; }
+  .node-active rect { stroke:white !important; filter:url(#graphGlow); }
+  .node-active .node-dot { fill:white !important; }
+  .flow-pulse { filter:url(#pulseGlow); }
+  .feed { min-height:0; padding:14px 17px 16px; display:flex; flex-direction:column; }
+  .feed-title { display:flex; justify-content:space-between; align-items:center; margin-bottom:9px; }
+  .feed-title span:last-child { color:#5f7d88; font:9px ui-monospace,monospace; }
+  #feed { overflow:auto; scrollbar-width:thin; padding-right:3px; display:flex; flex-direction:column; gap:7px; }
+  .feed-row { display:grid; grid-template-columns:7px 1fr auto; align-items:center; gap:8px; min-height:31px; padding:6px 8px; border-radius:7px; background:rgba(5,14,20,.33); border:1px solid rgba(121,166,177,.08); animation:slide-in .38s ease both; }
+  .feed-row .kind { width:7px; height:7px; border-radius:50%; }
+  .feed-row.command .kind { background:var(--gold); box-shadow:0 0 8px var(--gold); } .feed-row.event .kind { background:var(--coral); box-shadow:0 0 8px var(--coral); } .feed-row.projection .kind { background:var(--lime); }
+  .feed-main { min-width:0; } .feed-name { color:#dbeff0; font:700 10px/1.2 ui-monospace,monospace; } .feed-detail { color:#728e99; font:9px/1.3 ui-monospace,monospace; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .feed-time { color:#5c7781; font:9px ui-monospace,monospace; }
+  @keyframes slide-in { from { opacity:0; transform:translateX(13px); } to { opacity:1; transform:none; } }
+  .hint { position:fixed; left:50%; bottom:16px; transform:translate(-50%, 14px); opacity:0; pointer-events:none; color:#d7f1f0; background:#143440; border:1px solid #376674; box-shadow:var(--shadow); padding:9px 13px; border-radius:8px; font:11px ui-monospace,monospace; transition:opacity .2s, transform .2s; z-index:8; }
+  .hint.show { opacity:1; transform:translate(-50%, 0); }
+  @media (max-width: 1030px) { .dashboard { grid-template-columns:1fr; } .lab, .system { min-height:0; } .system { grid-template-rows:auto 300px 280px; } }
+  @media (max-width: 600px) { .shell { padding:15px 11px 25px; } .intro { display:block; } .intro p { margin-top:12px; } .status { display:none; } .lab { min-height:595px; } #lab-svg { height:370px; } .lab-footer { grid-template-columns:1fr 1fr; } .run { grid-column:span 2; } .system { grid-template-rows:auto 285px 270px; } .legend { display:none; } }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="brand"><div class="brand-mark">↻</div><div><strong>DIZZY</strong><small>EVENT-DRIVEN MATERIALS LAB</small></div></div>
+    <div class="status"><i></i> SYSTEM LISTENING <span id="clock">09:41:04</span></div>
+  </header>
+  <section class="intro">
+    <h1>Move matter. <em>Make facts.</em><br>Watch the system react.</h1>
+    <p>A tiny, live sketch of an event-driven DIZZY feature: commands express intent, procedures do the work, and events become the durable truth.</p>
+  </section>
+
+  <main class="dashboard">
+    <section class="card lab" aria-label="Robot workcell">
+      <div class="lab-top"><span class="card-label">Physical workcell / procedure runner</span><span class="mode" id="mode">IDLE · READY</span></div>
+      <svg id="lab-svg" viewBox="0 0 800 430" role="img" aria-label="Mock robot arm, sample stores, and processors">
+        <defs>
+          <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          <pattern id="microGrid" width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="rgba(151,204,217,.05)" stroke-width="1" /></pattern>
+        </defs>
+        <rect x="16" y="15" width="768" height="392" rx="14" class="bench"/><rect x="16" y="15" width="768" height="392" rx="14" fill="url(#microGrid)"/>
+        <path class="grid-lines" d="M45 108H755M45 214H755M45 320H755"/><path class="grid-lines" d="M210 45V375M400 45V375M590 45V375"/>
+        <text x="57" y="55" class="zone-title">SAMPLE VAULT</text><text x="57" y="71" class="zone-caption">PICK LOCATION / IDENTITY PRESERVED</text>
+        <text x="584" y="55" class="zone-title">PROCESSORS</text><text x="584" y="71" class="zone-caption">TRANSFORM / OBSERVE</text>
+        <!-- sources -->
+        <g id="source-quartz" class="source" data-name="quartz shard"><circle cx="135" cy="135" r="44" class="source-ring"/><rect x="92" y="119" width="86" height="33" rx="8" class="source-plate"/><circle id="dot-quartz" cx="110" cy="135" r="8" fill="#79e7ee" class="sample-dot"/><text x="124" y="132" class="source-name">QUARTZ</text><text x="124" y="144" class="source-state" id="state-quartz">ready</text></g>
+        <g id="source-polymer" class="source" data-name="polymer gel"><circle cx="135" cy="246" r="44" class="source-ring"/><rect x="92" y="230" width="86" height="33" rx="8" class="source-plate"/><circle id="dot-polymer" cx="110" cy="246" r="8" fill="#c5ed75" class="sample-dot"/><text x="124" y="243" class="source-name">POLYMER</text><text x="124" y="255" class="source-state" id="state-polymer">ready</text></g>
+        <g id="source-alloy" class="source" data-name="alloy pellet"><circle cx="268" cy="154" r="44" class="source-ring"/><rect x="225" y="138" width="86" height="33" rx="8" class="source-plate"/><circle id="dot-alloy" cx="243" cy="154" r="8" fill="#ffc96b" class="sample-dot"/><text x="257" y="151" class="source-name">ALLOY</text><text x="257" y="163" class="source-state" id="state-alloy">ready</text></g>
+        <!-- processors -->
+        <g id="proc-scanner" class="proc"><rect x="607" y="113" width="120" height="65" rx="11" class="processor"/><path d="M619 154H715" stroke="#315d6a"/><circle cx="624" cy="130" r="4" class="processor-light"/><text x="638" y="134" class="processor-name">SCANNER</text><text x="620" y="166" class="processor-sub">spectral readout</text><circle id="result-scanner" cx="704" cy="145" r="5" fill="#274957"/></g>
+        <g id="proc-centrifuge" class="proc"><rect x="607" y="220" width="120" height="65" rx="11" class="processor"/><path d="M619 261H715" stroke="#315d6a"/><circle cx="624" cy="237" r="4" class="processor-light"/><text x="638" y="241" class="processor-name">SPINNER</text><text x="620" y="273" class="processor-sub">separation pass</text><circle id="result-centrifuge" cx="704" cy="252" r="5" fill="#274957"/></g>
+        <g id="proc-infuser" class="proc"><rect x="607" y="327" width="120" height="65" rx="11" class="processor"/><path d="M619 368H715" stroke="#315d6a"/><circle cx="624" cy="344" r="4" class="processor-light"/><text x="638" y="348" class="processor-name">INFUSER</text><text x="620" y="380" class="processor-sub">thermal treatment</text><circle id="result-infuser" cx="704" cy="359" r="5" fill="#274957"/></g>
+        <!-- arm -->
+        <g id="robot">
+          <ellipse cx="401" cy="373" rx="83" ry="15" fill="rgba(0,0,0,.25)"/>
+          <path id="arm-shadow1" class="arm-shadow" d="M401 349 L401 240"/><path id="arm-shadow2" class="arm-shadow" d="M401 240 L470 180"/>
+          <path id="arm1" class="arm-link" d="M401 349 L401 240"/><path id="arm2" class="arm-link" d="M401 240 L470 180"/>
+          <path id="armInner1" class="arm-inner" d="M401 349 L401 240"/><path id="armInner2" class="arm-inner" d="M401 240 L470 180"/>
+          <circle id="joint1" cx="401" cy="240" r="15" class="joint"/><circle id="jointcore" cx="401" cy="240" r="5" class="joint-core"/>
+          <g id="gripper"><circle id="joint2" cx="470" cy="180" r="10" class="joint"/><path id="grip1" class="grip" d="M463 177 L454 177 L451 185"/><path id="grip2" class="grip" d="M477 183 L486 183 L489 175"/></g>
+          <g id="held-sample" class="held" visibility="hidden"><circle id="held-dot" cx="470" cy="200" r="8" fill="#79e7ee" class="sample-dot"/></g>
+          <path d="M352 350H450L462 374H340Z" class="base"/><ellipse cx="401" cy="350" rx="51" ry="13" class="base-top"/><circle cx="401" cy="350" r="8" class="joint-core"/>
+        </g>
+        <text x="369" y="399" class="zone-caption">R-07 / PROCEDURE ACTUATOR</text>
+      </svg>
+      <div class="lab-footer">
+        <div class="field"><label for="sampleSelect">1 — COMMAND SUBJECT</label><select id="sampleSelect"><option value="quartz">Quartz shard</option><option value="polymer">Polymer gel</option><option value="alloy">Alloy pellet</option></select></div>
+        <div class="field"><label for="processorSelect">2 — REQUESTED WORK</label><select id="processorSelect"><option value="scanner">Scan composition</option><option value="centrifuge">Separate sample</option><option value="infuser">Apply thermal infusion</option></select></div>
+        <button class="run" id="runButton">RUN COMMAND →</button>
+      </div>
+    </section>
+
+    <aside class="card system" aria-label="Dizzy event flow">
+      <div class="system-head"><span class="card-label">Dizzy topology / live wiring</span><div class="legend"><span><b style="background:var(--gold)"></b>command</span><span><b style="background:var(--coral)"></b>event</span></div></div>
+      <div class="graph-wrap">
+        <svg id="graph" viewBox="0 0 530 300" role="img" aria-label="Command, procedure, event, policy, projection, model and query graph">
+          <defs>
+            <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6Z" fill="#416673"/></marker>
+            <filter id="graphGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            <filter id="pulseGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+          </defs>
+          <path id="path-command-procedure" class="edge" marker-end="url(#arrow)" d="M130 76 C160 76 155 76 180 76"/>
+          <path id="path-procedure-event" class="edge" marker-end="url(#arrow)" d="M275 88 C275 107 275 107 275 125"/>
+          <path id="path-event-policy" class="edge" marker-end="url(#arrow)" d="M330 151 C380 151 370 75 409 75"/>
+          <path id="path-policy-command" class="edge" marker-end="url(#arrow)" d="M454 104 C454 140 80 143 80 104"/>
+          <path id="path-event-projection" class="edge" marker-end="url(#arrow)" d="M275 178 L275 205"/>
+          <path id="path-projection-model" class="edge" marker-end="url(#arrow)" d="M330 231 L367 231"/>
+          <path id="path-model-query" class="edge" marker-end="url(#arrow)" d="M412 246 L412 265"/>
+          <path id="path-query-procedure" class="edge" marker-end="url(#arrow)" d="M365 278 C170 278 165 95 180 95"/>
+          <g id="node-command" class="g-node command"><rect x="30" y="57" width="100" height="38"/><circle class="node-dot" cx="42" cy="70"/><text x="51" y="72">COMMANDS</text><text x="42" y="86">intent queue</text></g>
+          <g id="node-procedure" class="g-node procedure"><rect x="180" y="57" width="96" height="38"/><circle class="node-dot" cx="192" cy="70"/><text x="201" y="72">PROCEDURE</text><text x="192" y="86">does one thing</text></g>
+          <g id="node-event" class="g-node event"><rect x="220" y="125" width="110" height="53"/><circle class="node-dot" cx="232" cy="140"/><text x="241" y="142">EVENT STREAM</text><text x="232" y="158">immutable facts</text><text x="232" y="170">source of truth</text></g>
+          <g id="node-policy" class="g-node policy"><rect x="409" y="57" width="94" height="47"/><circle class="node-dot" cx="421" cy="70"/><text x="430" y="72">POLICIES</text><text x="421" y="87">react &amp; dispatch</text></g>
+          <g id="node-projection" class="g-node projection"><rect x="220" y="205" width="110" height="38"/><circle class="node-dot" cx="232" cy="218"/><text x="241" y="220">PROJECTION</text><text x="232" y="234">fold event → state</text></g>
+          <g id="node-model" class="g-node model"><rect x="367" y="212" width="91" height="38"/><circle class="node-dot" cx="379" cy="225"/><text x="388" y="227">MODEL</text><text x="379" y="241">sample ledger</text></g>
+          <g id="node-query" class="g-node procedure"><rect x="365" y="264" width="96" height="30"/><circle class="node-dot" cx="377" cy="275"/><text x="386" y="278">QUERY / READ</text></g>
+        </svg>
+      </div>
+      <div class="feed">
+        <div class="feed-title"><span class="card-label">Queue &amp; critical events</span><span id="eventCount">03 RECORDS</span></div>
+        <div id="feed" aria-live="polite"></div>
+      </div>
+    </aside>
+  </main>
+</div>
+<div class="hint" id="hint"></div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const info = {
+    quartz: { label: 'quartz shard', color: '#79e7ee', target: {x:135,y:135} },
+    polymer: { label: 'polymer gel', color: '#c5ed75', target: {x:135,y:246} },
+    alloy: { label: 'alloy pellet', color: '#ffc96b', target: {x:268,y:154} }
+  };
+  const jobs = {
+    scanner: { label: 'scan_composition', target:{x:666,y:145}, event:'composition_scanned', note:'spectrum attached', result:'#79e7ee' },
+    centrifuge: { label: 'separate_sample', target:{x:666,y:252}, event:'sample_separated', note:'fractions recorded', result:'#c5ed75' },
+    infuser: { label: 'apply_thermal_infusion', target:{x:666,y:359}, event:'sample_infused', note:'thermal profile recorded', result:'#ffc96b' }
+  };
+  // Long-reach articulated arm: every station is physically reachable in this mock cell.
+  const root = {x:401,y:349}, L1=175, L2=170;
+  let arm = {x:468,y:181}, running=false, records=0;
+  const armEls = ['arm1','arm2','armInner1','armInner2','arm-shadow1','arm-shadow2'].map($);
+
+  function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
+  function setArm(target) {
+    const dx=target.x-root.x, dy=target.y-root.y;
+    const d=clamp(Math.hypot(dx,dy), 18, L1+L2-4);
+    const base=Math.atan2(dy,dx);
+    const a=Math.acos(clamp((L1*L1+d*d-L2*L2)/(2*L1*d),-1,1));
+    const elbow={x:root.x+L1*Math.cos(base-a), y:root.y+L1*Math.sin(base-a)};
+    const end={x:root.x+L1*Math.cos(base-a)+L2*Math.cos(base-a+Math.PI-Math.acos(clamp((L1*L1+L2*L2-d*d)/(2*L1*L2),-1,1))), y:root.y+L1*Math.sin(base-a)+L2*Math.sin(base-a+Math.PI-Math.acos(clamp((L1*L1+L2*L2-d*d)/(2*L1*L2),-1,1)))};
+    // pin the hand to target; elbow is solved geometrically above
+    const actual=target;
+    ['arm1','armInner1','arm-shadow1'].forEach(id => $(id).setAttribute('d',`M ${root.x} ${root.y} L ${elbow.x} ${elbow.y}`));
+    ['arm2','armInner2','arm-shadow2'].forEach(id => $(id).setAttribute('d',`M ${elbow.x} ${elbow.y} L ${actual.x} ${actual.y}`));
+    $('joint1').setAttribute('cx',elbow.x); $('joint1').setAttribute('cy',elbow.y);
+    $('jointcore').setAttribute('cx',elbow.x); $('jointcore').setAttribute('cy',elbow.y);
+    $('joint2').setAttribute('cx',actual.x); $('joint2').setAttribute('cy',actual.y);
+    const ux=(actual.x-elbow.x)/Math.hypot(actual.x-elbow.x,actual.y-elbow.y), uy=(actual.y-elbow.y)/Math.hypot(actual.x-elbow.x,actual.y-elbow.y);
+    const px=-uy, py=ux;
+    $('grip1').setAttribute('d',`M ${actual.x+px*7} ${actual.y+py*7} L ${actual.x+px*13-ux*8} ${actual.y+py*13-uy*8} L ${actual.x+px*16-ux*12} ${actual.y+py*16-uy*12}`);
+    $('grip2').setAttribute('d',`M ${actual.x-px*7} ${actual.y-py*7} L ${actual.x-px*13-ux*8} ${actual.y-py*13-uy*8} L ${actual.x-px*16-ux*12} ${actual.y-py*16-uy*12}`);
+    $('held-sample').setAttribute('transform',`translate(${actual.x-470},${actual.y-180})`);
+    arm=actual;
+  }
+  async function moveTo(target, duration=700) {
+    const from={...arm}, start=performance.now();
+    return new Promise(resolve => {
+      const tick=now => { const t=clamp((now-start)/duration,0,1), e=1-Math.pow(1-t,3); setArm({x:from.x+(target.x-from.x)*e,y:from.y+(target.y-from.y)*e}); if(t<1) requestAnimationFrame(tick); else resolve(); };
+      requestAnimationFrame(tick);
+    });
+  }
+  function hot(node, time=720) { const el=$('node-'+node); el.classList.add('node-active'); setTimeout(()=>el.classList.remove('node-active'),time); }
+  function pulse(pathId, type='event', duration=760) {
+    const path=$(pathId), length=path.getTotalLength(), circle=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('r','4'); circle.setAttribute('fill', type==='command' ? '#ffc96b' : type==='projection' ? '#c5ed75' : '#ff7e78'); circle.setAttribute('class','flow-pulse'); $('graph').appendChild(circle);
+    const start=performance.now();
+    (function step(now){ const t=clamp((now-start)/duration,0,1), p=path.getPointAtLength(length*t); circle.setAttribute('cx',p.x);circle.setAttribute('cy',p.y); if(t<1) requestAnimationFrame(step); else circle.remove(); })(start);
+  }
+  function addRecord(kind, name, detail) {
+    records++; $('eventCount').textContent=String(records).padStart(2,'0')+' RECORDS';
+    const row=document.createElement('div'); row.className='feed-row '+kind;
+    const time=new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false});
+    row.innerHTML=`<span class="kind"></span><div class="feed-main"><div class="feed-name">${name}</div><div class="feed-detail">${detail}</div></div><time class="feed-time">${time}</time>`;
+    $('feed').prepend(row); while($('feed').children.length>7) $('feed').lastElementChild.remove();
+  }
+  function toast(message) { const h=$('hint'); h.textContent=message; h.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>h.classList.remove('show'),2300); }
+  function setMode(text) { $('mode').textContent=text; }
+  function setProcessor(proc, on) { const el=$('proc-'+proc); el.querySelector('.processor').classList.toggle('active',on); el.querySelector('.processor-light').classList.toggle('lit',on); }
+
+  async function execute() {
+    if(running) return; running=true; $('runButton').disabled=true;
+    const sampleKey=$('sampleSelect').value, procKey=$('processorSelect').value, sample=info[sampleKey], job=jobs[procKey];
+    // The requested action enters as a command, rather than a fact.
+    setMode('COMMAND ACCEPTED'); addRecord('command', job.label, `intent: ${sample.label} → ${procKey}`); hot('command'); pulse('path-command-procedure','command');
+    await sleep(520); hot('procedure'); setMode('PROCEDURE / PICK SAMPLE');
+    await moveTo(sample.target,780);
+    $('dot-'+sampleKey).setAttribute('visibility','hidden'); $('state-'+sampleKey).textContent='in transit';
+    $('held-dot').setAttribute('fill',sample.color); $('held-sample').setAttribute('visibility','visible');
+    await sleep(230);
+    // A fact is emitted after the physical pick succeeds.
+    addRecord('event','sample_collected',`${sample.label} / R-07 confirmed`); hot('event'); pulse('path-procedure-event','event');
+    pulse('path-event-projection','projection',850); hot('projection',850);
+    await sleep(580); setMode('PROCEDURE / '+procKey.toUpperCase()); setProcessor(procKey,true); await moveTo(job.target,950);
+    await sleep(500);
+    $('held-sample').setAttribute('visibility','hidden'); $('result-'+procKey).setAttribute('fill',job.result); $('state-'+sampleKey).textContent='processed';
+    addRecord('event',job.event,`${sample.label} / ${job.note}`); hot('event',950); pulse('path-procedure-event','event'); pulse('path-event-policy','event',1000); pulse('path-event-projection','projection',850); hot('policy',950); hot('projection',950);
+    await sleep(560); addRecord('command','record_material_insight',`policy dispatched from ${job.event}`); hot('command',850); pulse('path-policy-command','command',1050);
+    pulse('path-projection-model','projection',800); hot('model',800);
+    await moveTo({x:468,y:181},780); setProcessor(procKey,false);
+    await sleep(220); setMode('IDLE · READY'); running=false; $('runButton').disabled=false;
+    toast(`Fact committed: ${job.event}`);
+  }
+  $('runButton').addEventListener('click',execute);
+  $('sampleSelect').addEventListener('change',()=>toast('Command subject updated — no fact has been written.'));
+  $('processorSelect').addEventListener('change',()=>toast('Requested work updated — ready to dispatch.'));
+  // Seed an understandable stream without pretending the robot did it just now.
+  addRecord('projection','sample_ledger_rebuilt','model is replayable from events');
+  addRecord('event','workcell_initialized','R-07 actuator online');
+  addRecord('command','await_material_command','queue listening');
+  setArm(arm);
+  setInterval(()=> { $('clock').textContent=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}); },1000);
+})();
+</script>
+</body>
+</html>

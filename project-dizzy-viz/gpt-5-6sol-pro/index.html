@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DIZZY // Sample Cell</title>
+<style>
+  :root{
+    --bg:#07100f; --panel:#0b1715; --panel2:#0e1d1a; --line:#243632;
+    --text:#eaf5ec; --muted:#7d9790; --lime:#b9f45f; --cyan:#5eead4;
+    --orange:#ffb454; --pink:#ff6b9c; --purple:#b596ff; --blue:#66a6ff;
+    --red:#ff665e; --shadow:0 24px 60px rgba(0,0,0,.36);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
+  button{font:inherit}
+  .app{height:100%;display:grid;grid-template-rows:68px minmax(0,1fr);background:
+    radial-gradient(circle at 24% -15%,rgba(94,234,212,.08),transparent 32%),
+    radial-gradient(circle at 95% 80%,rgba(185,244,95,.045),transparent 30%),var(--bg)}
+  header{display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--line);background:rgba(7,16,15,.84);backdrop-filter:blur(16px);z-index:20}
+  .brand{display:flex;align-items:center;gap:13px}
+  .mark{width:34px;height:34px;border:1px solid rgba(185,244,95,.55);display:grid;place-items:center;position:relative;transform:rotate(45deg);background:rgba(185,244,95,.06)}
+  .mark::before,.mark::after{content:"";position:absolute;background:var(--lime)}
+  .mark::before{width:14px;height:2px}.mark::after{height:14px;width:2px}
+  .mark i{width:5px;height:5px;background:var(--lime);border-radius:50%;box-shadow:0 0 14px var(--lime)}
+  .brand-copy{display:flex;align-items:baseline;gap:10px}.brand strong{font-size:15px;letter-spacing:.16em}.brand span{font:11px ui-monospace,SFMono-Regular,monospace;color:var(--muted);letter-spacing:.09em}
+  .top-status{display:flex;align-items:center;gap:20px;font:10px ui-monospace,SFMono-Regular,monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+  .live{color:var(--lime);display:flex;align-items:center;gap:7px}.live::before{content:"";width:6px;height:6px;background:currentColor;border-radius:50%;box-shadow:0 0 9px currentColor;animation:blink 1.8s infinite}
+  @keyframes blink{50%{opacity:.35}}
+
+  main{min-height:0;display:grid;grid-template-columns:minmax(560px,1.5fr) minmax(410px,.9fr);gap:12px;padding:12px}
+  .panel{min-height:0;background:linear-gradient(145deg,rgba(15,30,27,.95),rgba(8,19,17,.98));border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);overflow:hidden}
+  .lab{display:grid;grid-template-rows:auto auto minmax(0,1fr) 58px}
+  .panel-head{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--line)}
+  .eyebrow{font:9px ui-monospace,SFMono-Regular,monospace;color:var(--lime);letter-spacing:.17em;text-transform:uppercase;margin-bottom:4px}
+  .panel-head h1,.panel-head h2{font-size:15px;line-height:1;margin:0;font-weight:650;letter-spacing:.02em}
+  .cell-id{font:10px ui-monospace,SFMono-Regular,monospace;color:var(--muted);padding:6px 8px;border:1px solid var(--line);border-radius:3px}
+
+  .plan{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:15px;padding:10px 14px;border-bottom:1px solid var(--line);background:rgba(0,0,0,.13)}
+  .plan-group{min-width:0}.plan-label{display:block;font:8px ui-monospace,SFMono-Regular,monospace;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:5px}
+  .segmented,.route-picks{display:flex;gap:5px}
+  .pick{height:28px;border:1px solid var(--line);color:var(--muted);background:#0a1513;border-radius:3px;padding:0 10px;cursor:pointer;font:10px ui-monospace,SFMono-Regular,monospace;transition:.2s}
+  .pick:hover{color:var(--text);border-color:#47615b}.pick.active{color:var(--lime);border-color:rgba(185,244,95,.6);background:rgba(185,244,95,.08);box-shadow:inset 0 -2px var(--lime)}
+  .route-picks .pick.active{color:var(--cyan);border-color:rgba(94,234,212,.55);background:rgba(94,234,212,.07);box-shadow:none}
+  .route-picks .pick::before{content:attr(data-order);display:inline-grid;place-items:center;width:14px;height:14px;margin-right:5px;border:1px solid currentColor;border-radius:50%;font-size:8px}
+  .route-picks .pick:not(.active)::before{content:"+"}
+  .run{align-self:end;height:35px;padding:0 17px;border:0;border-radius:3px;background:var(--lime);color:#10200e;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 0 24px rgba(185,244,95,.13);transition:.2s}
+  .run:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(185,244,95,.24)}.run:disabled{background:#33413b;color:#83908a;cursor:not-allowed;transform:none;box-shadow:none}
+
+  .lab-view{position:relative;min-height:0;background:#091411;overflow:hidden}
+  #labSvg{width:100%;height:100%;display:block}
+  .scanline{pointer-events:none;position:absolute;inset:0;background:linear-gradient(transparent 50%,rgba(0,0,0,.045) 50%);background-size:100% 4px;mix-blend-mode:multiply;opacity:.7}
+  .hint{position:absolute;left:14px;bottom:12px;font:9px ui-monospace,SFMono-Regular,monospace;color:#668078;background:rgba(5,13,11,.72);padding:6px 8px;border-left:2px solid var(--lime);transition:.2s}
+  .station-hit{cursor:pointer}.station-hit:hover .station-ring{stroke:var(--lime);opacity:.85}.station.active .station-ring{stroke:var(--cyan);filter:url(#glow);opacity:1;stroke-dasharray:5 5;animation:dash 1s linear infinite}.station.active .machine-light{fill:var(--lime);filter:url(#glow)}
+  @keyframes dash{to{stroke-dashoffset:-20}}
+  .source-sample.used{opacity:.18}
+  #heldSample{transition:fill .35s,filter .35s}
+  .robot-piece{filter:drop-shadow(0 5px 4px rgba(0,0,0,.35))}
+  .lab-foot{display:grid;grid-template-columns:1.45fr 1fr 1fr;align-items:center;border-top:1px solid var(--line);background:#0a1513}
+  .readout{padding:0 15px;border-right:1px solid var(--line);min-width:0}.readout:last-child{border:0}
+  .readout span{display:block;font:8px ui-monospace,SFMono-Regular,monospace;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:5px}.readout strong{display:block;font:11px ui-monospace,SFMono-Regular,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}.readout strong.accent{color:var(--lime)}
+
+  .logic{display:grid;grid-template-rows:54px 102px minmax(290px,1fr) 174px;min-height:0}
+  .logic-top-actions{display:flex;gap:6px}.tiny-btn{height:27px;padding:0 9px;border:1px solid var(--line);border-radius:3px;background:#0a1513;color:var(--muted);font:9px ui-monospace,SFMono-Regular,monospace;cursor:pointer;text-transform:uppercase}.tiny-btn:hover{color:var(--text)}.tiny-btn.on{color:var(--lime);border-color:rgba(185,244,95,.4)}
+  .queue-section{padding:10px 12px;border-bottom:1px solid var(--line);min-height:0}
+  .section-title{display:flex;align-items:center;justify-content:space-between;font:8px ui-monospace,SFMono-Regular,monospace;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px}.count{color:var(--text)}
+  #queue{display:flex;gap:6px;height:56px;overflow:hidden}
+  .queue-empty{height:100%;width:100%;border:1px dashed #273a35;border-radius:4px;display:grid;place-items:center;color:#536962;font:9px ui-monospace,SFMono-Regular,monospace}
+  .q-card{min-width:112px;max-width:145px;flex:1;padding:8px;border:1px solid var(--line);border-radius:4px;background:#0a1513;animation:qIn .25s ease both;position:relative;overflow:hidden}
+  @keyframes qIn{from{opacity:0;transform:translateY(6px)}}
+  .q-card::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%;background:currentColor;transform-origin:left;animation:drain 2.2s linear both}.q-card.done{opacity:.45}.q-card.command{color:var(--cyan)}.q-card.event{color:var(--pink)}
+  @keyframes drain{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+  .q-type{font:8px ui-monospace,SFMono-Regular,monospace;text-transform:uppercase;opacity:.8}.q-name{font:9px ui-monospace,SFMono-Regular,monospace;color:var(--text);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .network-wrap{min-height:0;padding:10px 12px 7px;display:flex;flex-direction:column}
+  .network{position:relative;min-height:260px;flex:1;border:1px solid #1e302c;border-radius:5px;overflow:hidden;background:
+    linear-gradient(rgba(95,130,120,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(95,130,120,.035) 1px,transparent 1px),#081310;background-size:22px 22px}
+  #wires{position:absolute;inset:0;width:100%;height:100%;overflow:visible;z-index:1}.wire{fill:none;stroke:#2b403b;stroke-width:1.2;stroke-dasharray:3 4}.wire.hot{stroke:var(--lime)}
+  .node{position:absolute;z-index:3;border:1px solid #2a403a;border-radius:4px;background:rgba(10,23,20,.96);padding:7px 8px;min-width:88px;box-shadow:0 6px 13px rgba(0,0,0,.18);transition:.2s}
+  .node:hover{border-color:#58736b;transform:translateY(-1px)}.node.pulse{border-color:currentColor;box-shadow:0 0 18px color-mix(in srgb,currentColor 24%,transparent)}
+  .node-head{display:flex;align-items:center;gap:6px}.sigil{width:16px;height:16px;border:1px solid currentColor;border-radius:50%;display:grid;place-items:center;font:bold 9px ui-monospace,SFMono-Regular,monospace}.kind{font:7px ui-monospace,SFMono-Regular,monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+  .node-name{font:9px ui-monospace,SFMono-Regular,monospace;color:var(--text);margin-top:6px;white-space:nowrap}
+  .node.command{left:4%;top:9%;color:var(--cyan)}.node.arm{left:35%;top:6%;color:var(--orange)}.node.machine{right:4%;top:9%;color:var(--orange)}
+  .node.eventbus{left:4%;top:55%;color:var(--pink)}.node.policy{left:34%;top:46%;color:var(--lime)}.node.projection{right:5%;top:48%;color:var(--purple)}
+  .node.querier{left:35%;bottom:5%;color:var(--blue)}.node.model{right:5%;bottom:4%;color:var(--blue)}
+  .flow-token{position:absolute;z-index:8;width:10px;height:10px;border:2px solid currentColor;background:#07100f;transform:rotate(45deg);box-shadow:0 0 10px currentColor;pointer-events:none}.flow-token.event{border-radius:50%;transform:none}.flow-tag{position:absolute;z-index:9;font:7px ui-monospace,SFMono-Regular,monospace;background:#07100f;border:1px solid currentColor;color:inherit;padding:2px 4px;white-space:nowrap;pointer-events:none}
+
+  .stream{min-height:0;border-top:1px solid var(--line);padding:10px 12px;background:rgba(5,13,11,.42);display:flex;flex-direction:column}
+  #feed{overflow:auto;min-height:0;scrollbar-width:thin;scrollbar-color:#31463f transparent}
+  .feed-row{display:grid;grid-template-columns:43px 16px minmax(0,1fr);gap:7px;padding:4px 0;border-bottom:1px solid rgba(37,55,50,.42);font:8px ui-monospace,SFMono-Regular,monospace;animation:qIn .2s ease both}.feed-time{color:#60776f}.feed-symbol{font-weight:800}.feed-row.command .feed-symbol{color:var(--cyan)}.feed-row.event .feed-symbol{color:var(--pink)}.feed-row.system .feed-symbol{color:var(--lime)}.feed-name{color:#b7c9c3}.feed-detail{color:#627a72;margin-left:5px}
+  .legend{display:flex;gap:10px;align-items:center}.legend i{width:5px;height:5px;border-radius:50%;display:inline-block;margin-right:4px}.legend span{font:7px ui-monospace,SFMono-Regular,monospace;color:var(--muted)}
+
+  @media(max-width:980px){body{overflow:auto}.app{height:auto;min-height:100%;grid-template-rows:60px auto}main{grid-template-columns:1fr;padding:8px}.lab{height:720px}.logic{height:690px}.top-status span:not(.live){display:none}}
+  @media(max-width:600px){header{padding:0 12px}.brand span{display:none}.lab{height:670px}.plan{grid-template-columns:1fr auto;gap:8px}.plan-group:nth-child(2){grid-row:2;grid-column:1/3}.logic{grid-template-rows:54px 102px 370px 174px}.node{transform:scale(.88);transform-origin:top left}.route-picks{flex-wrap:wrap}.top-status{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><div class="mark"><i></i></div><div class="brand-copy"><strong>DIZZY</strong><span>EVENT-DRIVEN SAMPLE CELL</span></div></div>
+    <div class="top-status"><span>runtime / simulation</span><span>feature / sample_cell.feat.yaml</span><span class="live">connected</span></div>
+  </header>
+
+  <main>
+    <section class="panel lab">
+      <div class="panel-head">
+        <div><div class="eyebrow">Physical plane</div><h1>Autonomous sample handling</h1></div>
+        <div class="cell-id">CELL / R-04</div>
+      </div>
+      <div class="plan">
+        <div class="plan-group">
+          <span class="plan-label">01 / Sample source</span>
+          <div class="segmented" id="sources">
+            <button class="pick active" data-source="alpha">A · 04</button><button class="pick" data-source="beta">B · 11</button><button class="pick" data-source="gamma">C · 07</button>
+          </div>
+        </div>
+        <div class="plan-group">
+          <span class="plan-label">02 / Processor route · click to order</span>
+          <div class="route-picks" id="routes">
+            <button class="pick active" data-processor="thermal" data-order="1">Thermal</button><button class="pick active" data-processor="centrifuge" data-order="2">Spin</button><button class="pick" data-processor="spectrometer" data-order="+">Scan</button>
+          </div>
+        </div>
+        <button class="run" id="runBtn">Run route&nbsp; ↗</button>
+      </div>
+
+      <div class="lab-view">
+        <svg id="labSvg" viewBox="0 0 900 540" role="img" aria-label="Interactive robot sample cell">
+          <defs>
+            <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse"><path d="M28 0H0V28" fill="none" stroke="#18302a" stroke-width="1"/></pattern>
+            <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            <linearGradient id="floorGlow" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10221e"/><stop offset="1" stop-color="#08120f"/></linearGradient>
+          </defs>
+          <rect width="900" height="540" fill="#081310"/><path d="M40 480L200 80H700L865 480Z" fill="url(#floorGlow)" stroke="#213a33"/><path d="M40 480L200 80H700L865 480Z" fill="url(#grid)" opacity=".8"/>
+          <path d="M210 468H690" stroke="#31453f" stroke-dasharray="2 8"/><text x="46" y="505" fill="#4c6960" font-size="9" font-family="monospace">RESTRICTED AUTOMATION ENVELOPE · CELL R-04</text>
+
+          <!-- Sample racks -->
+          <g class="station-hit" data-source-hit="alpha" transform="translate(130 385)">
+            <ellipse class="station-ring" rx="62" ry="23" fill="#0b1815" stroke="#355047"/><path d="M-46-3v22c0 13 92 13 92 0V-3" fill="#10241f" stroke="#304b43"/><ellipse rx="46" ry="15" fill="#152d27" stroke="#48635b"/>
+            <g class="source-sample" id="sample-alpha"><rect x="-7" y="-30" width="14" height="32" rx="4" fill="#d8f2ea"/><path d="M-5-9H5V0H-5Z" fill="#5eead4"/><rect x="-8" y="-34" width="16" height="7" rx="2" fill="#819991"/></g>
+            <text y="44" text-anchor="middle" fill="#91aaa2" font-size="9" font-family="monospace">RACK A / VIAL 04</text>
+          </g>
+          <g class="station-hit" data-source-hit="beta" transform="translate(145 236)">
+            <ellipse class="station-ring" rx="57" ry="21" fill="#0b1815" stroke="#355047"/><path d="M-43-3v19c0 12 86 12 86 0V-3" fill="#10241f" stroke="#304b43"/><ellipse rx="43" ry="14" fill="#152d27" stroke="#48635b"/>
+            <g class="source-sample" id="sample-beta"><rect x="-7" y="-30" width="14" height="32" rx="4" fill="#d8f2ea"/><path d="M-5-9H5V0H-5Z" fill="#b596ff"/><rect x="-8" y="-34" width="16" height="7" rx="2" fill="#819991"/></g>
+            <text y="40" text-anchor="middle" fill="#91aaa2" font-size="9" font-family="monospace">RACK B / VIAL 11</text>
+          </g>
+          <g class="station-hit" data-source-hit="gamma" transform="translate(292 130)">
+            <ellipse class="station-ring" rx="53" ry="19" fill="#0b1815" stroke="#355047"/><path d="M-40-3v18c0 11 80 11 80 0V-3" fill="#10241f" stroke="#304b43"/><ellipse rx="40" ry="13" fill="#152d27" stroke="#48635b"/>
+            <g class="source-sample" id="sample-gamma"><rect x="-7" y="-30" width="14" height="32" rx="4" fill="#d8f2ea"/><path d="M-5-9H5V0H-5Z" fill="#ffb454"/><rect x="-8" y="-34" width="16" height="7" rx="2" fill="#819991"/></g>
+            <text y="38" text-anchor="middle" fill="#91aaa2" font-size="9" font-family="monospace">RACK C / VIAL 07</text>
+          </g>
+
+          <!-- Processors -->
+          <g class="station station-hit" id="thermal" data-processor-hit="thermal" transform="translate(735 365)">
+            <ellipse class="station-ring" rx="72" ry="28" fill="#0b1815" stroke="#355047"/><path d="M-51-27h102l12 42c3 17-129 17-126 0Z" fill="#132a24" stroke="#3a564d"/><ellipse cy="-27" rx="51" ry="17" fill="#1a332d" stroke="#536e65"/><ellipse cy="-27" rx="24" ry="8" fill="#081310" stroke="#ffb454" opacity=".8"/><circle class="machine-light" cx="38" cy="5" r="3" fill="#456158"/><text y="48" text-anchor="middle" fill="#91aaa2" font-size="9" font-family="monospace">THERMAL BLOCK · 65°C</text>
+          </g>
+          <g class="station station-hit" id="centrifuge" data-processor-hit="centrifuge" transform="translate(654 151)">
+            <ellipse class="station-ring" rx="69" ry="26" fill="#0b1815" stroke="#355047"/><path d="M-48-27h96l12 39c3 16-123 16-120 0Z" fill="#132a24" stroke="#3a564d"/><ellipse cy="-27" rx="48" ry="16" fill="#1a332d" stroke="#536e65"/><circle cy="-27" r="18" fill="#081310" stroke="#5eead4" opacity=".8"/><path d="M0-42V-12M-15-35L15-19M-15-19L15-35" stroke="#406b61"/><circle class="machine-light" cx="35" cy="3" r="3" fill="#456158"/><text y="44" text-anchor="middle" fill="#91aaa2" font-size="9" font-family="monospace">CENTRIFUGE · 8K RPM</text>
+          </g>
+          <g class="station station-hit" id="spectrometer" data-processor-hit="spectrometer" transform="translate(455 82)">
+            <ellipse class="station-ring" rx="65" ry="24" fill="#0b1815" stroke="#355047"/><path d="M-46-23h92l10 36c3 15-115 15-112 0Z" fill="#132a24" stroke="#3a564d"/><ellipse cy="-23" rx="46" ry="15" fill="#1a332d" stroke="#536e65"/><path d="M-20-23H20" stroke="#b596ff" stroke-width="3" opacity=".7"/><circle class="machine-light" cx="33" cy="3" r="3" fill="#456158"/><text y="42" text-anchor="middle" fill="#91aaa2" font-size="9" font-family="monospace">SPECTROMETER · λ</text>
+          </g>
+
+          <!-- Output bay -->
+          <g transform="translate(797 460)"><path d="M-44-13H44V18H-44Z" fill="#101f1c" stroke="#3b514a"/><path d="M-35-6H35" stroke="#b9f45f" stroke-dasharray="4 5"/><text y="34" text-anchor="middle" fill="#789188" font-size="8" font-family="monospace">OUTPUT / VERIFIED</text><g id="outputSample" opacity="0"><rect x="-6" y="-32" width="12" height="27" rx="3" fill="#d8f2ea"/><path d="M-4-13H4V-5H-4Z" fill="#b9f45f"/></g></g>
+
+          <!-- Robot arm -->
+          <g class="robot-piece">
+            <ellipse cx="455" cy="457" rx="62" ry="20" fill="#050b0a" opacity=".6"/>
+            <path d="M412 447L425 405H485L499 447Z" fill="#172d28" stroke="#577067" stroke-width="2"/><ellipse cx="455" cy="447" rx="43" ry="14" fill="#1c3630" stroke="#607a71"/><ellipse cx="455" cy="411" rx="31" ry="13" fill="#243e38" stroke="#789086"/>
+            <line id="arm1shadow" x1="455" y1="411" x2="510" y2="280" stroke="#020706" stroke-width="31" stroke-linecap="round" opacity=".45"/>
+            <line id="arm1" x1="455" y1="411" x2="510" y2="280" stroke="#d5e3de" stroke-width="25" stroke-linecap="round"/>
+            <line id="arm1hi" x1="455" y1="411" x2="510" y2="280" stroke="#f3faf7" stroke-width="5" stroke-linecap="round" opacity=".65"/>
+            <line id="arm2shadow" x1="510" y1="280" x2="530" y2="340" stroke="#020706" stroke-width="27" stroke-linecap="round" opacity=".45"/>
+            <line id="arm2" x1="510" y1="280" x2="530" y2="340" stroke="#aabdb6" stroke-width="22" stroke-linecap="round"/>
+            <line id="arm2hi" x1="510" y1="280" x2="530" y2="340" stroke="#e3eee9" stroke-width="4" stroke-linecap="round" opacity=".5"/>
+            <circle id="elbow" cx="510" cy="280" r="18" fill="#223b35" stroke="#a9bdb5" stroke-width="4"/><circle id="elbowDot" cx="510" cy="280" r="5" fill="#b9f45f"/>
+            <g id="hand" transform="translate(530 340)"><rect x="-17" y="-10" width="34" height="20" rx="7" fill="#253e38" stroke="#a8bab4"/><path id="gripL" d="M-11 8v16h6" fill="none" stroke="#d9e6e1" stroke-width="4" stroke-linecap="round"/><path id="gripR" d="M11 8v16H5" fill="none" stroke="#d9e6e1" stroke-width="4" stroke-linecap="round"/><g id="heldSample" opacity="0"><rect x="-6" y="18" width="12" height="29" rx="4" fill="#d8f2ea"/><path d="M-4 35H4V44H-4Z" fill="#5eead4"/><rect x="-7" y="16" width="14" height="6" rx="2" fill="#819991"/></g></g>
+          </g>
+          <g transform="translate(473 445)"><circle r="4" fill="#b9f45f" filter="url(#glow)"/><text x="10" y="3" fill="#9cb3ab" font-size="8" font-family="monospace">R-04 / READY</text></g>
+        </svg>
+        <div class="scanline"></div><div class="hint" id="hint">Select a vial and processor route, then run.</div>
+      </div>
+      <div class="lab-foot">
+        <div class="readout"><span>Active procedure</span><strong id="activeProcedure">— / awaiting command</strong></div>
+        <div class="readout"><span>Sample state</span><strong class="accent" id="sampleState">unclaimed</strong></div>
+        <div class="readout"><span>Route progress</span><strong id="progress">0 / 0</strong></div>
+      </div>
+    </section>
+
+    <aside class="panel logic">
+      <div class="panel-head">
+        <div><div class="eyebrow">Logical plane</div><h2>Feature topology / live trace</h2></div>
+        <div class="logic-top-actions"><button class="tiny-btn on" id="speedBtn">1× speed</button><button class="tiny-btn" id="clearBtn">clear log</button></div>
+      </div>
+      <section class="queue-section">
+        <div class="section-title"><span>Command + event queue</span><span class="count" id="queueCount">0 pending</span></div>
+        <div id="queue"><div class="queue-empty">QUEUE IS QUIET</div></div>
+      </section>
+      <section class="network-wrap">
+        <div class="section-title"><span>Runtime routing graph</span><div class="legend"><span><i style="background:var(--cyan)"></i>command</span><span><i style="background:var(--pink)"></i>event</span></div></div>
+        <div class="network" id="network">
+          <svg id="wires" aria-hidden="true"></svg>
+          <div class="node command" data-node="command"><div class="node-head"><b class="sigil">c</b><span class="kind">Command bus</span></div><div class="node-name">dispatch_queue</div></div>
+          <div class="node arm" data-node="arm"><div class="node-head"><b class="sigil">d</b><span class="kind">Procedure</span></div><div class="node-name">position_arm</div></div>
+          <div class="node machine" data-node="machine"><div class="node-head"><b class="sigil">d</b><span class="kind">Procedure</span></div><div class="node-name">run_processor</div></div>
+          <div class="node eventbus" data-node="event"><div class="node-head"><b class="sigil">e</b><span class="kind">Event stream</span></div><div class="node-name">critical_events</div></div>
+          <div class="node policy" data-node="policy"><div class="node-head"><b class="sigil">y</b><span class="kind">Policy</span></div><div class="node-name">continue_route</div></div>
+          <div class="node projection" data-node="projection"><div class="node-head"><b class="sigil">j</b><span class="kind">Projection</span></div><div class="node-name">fold_sample_events</div></div>
+          <div class="node querier" data-node="querier"><div class="node-head"><b class="sigil">Q</b><span class="kind">Querier</span></div><div class="node-name">find_sample</div></div>
+          <div class="node model" data-node="model"><div class="node-head"><b class="sigil">m</b><span class="kind">Model</span></div><div class="node-name">sample_runs</div></div>
+        </div>
+      </section>
+      <section class="stream">
+        <div class="section-title"><span>Immutable activity stream</span><span id="eventCount">0 facts</span></div>
+        <div id="feed"></div>
+      </section>
+    </aside>
+  </main>
+</div>
+<script>
+(() => {
+  'use strict';
+  const $ = (s, p=document) => p.querySelector(s);
+  const $$ = (s, p=document) => [...p.querySelectorAll(s)];
+  const sourcePoints = {alpha:[130,350], beta:[145,201], gamma:[292,95]};
+  const processorPoints = {thermal:[735,330], centrifuge:[654,116], spectrometer:[455,47]};
+  const processorMeta = {
+    thermal:{label:'thermal block', command:'heat_sample', event:'sample_heated', state:'heat conditioned', color:'#ffb454', ms:1450},
+    centrifuge:{label:'centrifuge', command:'centrifuge_sample', event:'sample_centrifuged', state:'fractions separated', color:'#5eead4', ms:1600},
+    spectrometer:{label:'spectrometer', command:'scan_sample', event:'spectrum_captured', state:'spectrum attached', color:'#b596ff', ms:1500}
+  };
+  const sourceMeta = {alpha:'rack_a / vial_04',beta:'rack_b / vial_11',gamma:'rack_c / vial_07'};
+  let selectedSource='alpha', route=['thermal','centrifuge'], running=false, speed=.85, runId=0, eventFacts=0, started=performance.now();
+  let handPos={x:530,y:340}, carrying=false, sampleColor='#5eead4';
+  const base={x:455,y:411}, L1=190, L2=175;
+
+  function wait(ms){ return new Promise(r=>setTimeout(r,ms*speed)); }
+  function setHint(text){ $('#hint').textContent=text; }
+  function setProcedure(text){ $('#activeProcedure').textContent=text; }
+  function setState(text){ $('#sampleState').textContent=text; }
+  function timestamp(){ const s=Math.floor((performance.now()-started)/1000); return `T+${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`; }
+
+  function drawArm(x,y){
+    const dx=x-base.x, dy=y-base.y, raw=Math.hypot(dx,dy), d=Math.max(16,Math.min(raw,L1+L2-1));
+    const ux=dx/(raw||1), uy=dy/(raw||1), a=(L1*L1-L2*L2+d*d)/(2*d), h=Math.sqrt(Math.max(0,L1*L1-a*a));
+    const ex=base.x+ux*a-uy*h, ey=base.y+uy*a+ux*h;
+    ['#arm1','#arm1hi','#arm1shadow'].forEach(s=>{const e=$(s);e.setAttribute('x2',ex);e.setAttribute('y2',ey)});
+    ['#arm2','#arm2hi','#arm2shadow'].forEach(s=>{const e=$(s);e.setAttribute('x1',ex);e.setAttribute('y1',ey);e.setAttribute('x2',x);e.setAttribute('y2',y)});
+    $('#elbow').setAttribute('cx',ex); $('#elbow').setAttribute('cy',ey); $('#elbowDot').setAttribute('cx',ex); $('#elbowDot').setAttribute('cy',ey);
+    $('#hand').setAttribute('transform',`translate(${x} ${y})`); handPos={x,y};
+  }
+  function ease(t){ return t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
+  function moveArm(x,y,duration=850){
+    const from={...handPos}, actual=duration*speed;
+    return new Promise(resolve=>{
+      const t0=performance.now();
+      function frame(now){ const p=Math.min(1,(now-t0)/actual), e=ease(p); drawArm(from.x+(x-from.x)*e,from.y+(y-from.y)*e); if(p<1)requestAnimationFrame(frame);else resolve(); }
+      requestAnimationFrame(frame);
+    });
+  }
+  async function travelTo(point){
+    const liftY=Math.min(handPos.y,point[1])-42;
+    await moveArm(handPos.x,liftY,420); await moveArm(point[0],Math.min(liftY,point[1]-35),680); await moveArm(point[0],point[1],360);
+  }
+  function setGrip(closed){ $('#gripL').setAttribute('d',closed?'M-8 8v16h5':'M-13 8v16h7'); $('#gripR').setAttribute('d',closed?'M8 8v16H3':'M13 8v16H6'); }
+  function showHeld(show){ carrying=show; $('#heldSample').setAttribute('opacity',show?'1':'0'); setGrip(show); }
+  function colorHeld(color){ sampleColor=color; $('#heldSample path').setAttribute('fill',color); }
+
+  function addFeed(type,name,detail=''){
+    const row=document.createElement('div'); row.className=`feed-row ${type}`;
+    const symbol=type==='command'?'c':type==='event'?'e':'·';
+    row.innerHTML=`<span class="feed-time">${timestamp()}</span><span class="feed-symbol">${symbol}</span><span class="feed-name">${name}<span class="feed-detail">${detail}</span></span>`;
+    $('#feed').prepend(row); while($('#feed').children.length>24) $('#feed').lastElementChild.remove();
+    if(type==='event'){ eventFacts++; $('#eventCount').textContent=`${eventFacts} fact${eventFacts===1?'':'s'}`; }
+  }
+  function addQueue(type,name){
+    const q=$('#queue'); $('.queue-empty',q)?.remove(); const card=document.createElement('div'); card.className=`q-card ${type}`;
+    card.innerHTML=`<div class="q-type">${type==='command'?'c / command':'e / critical event'}</div><div class="q-name">${name}</div>`; q.append(card);
+    while(q.children.length>3)q.firstElementChild.remove(); updateQueueCount();
+    setTimeout(()=>{card.classList.add('done');setTimeout(()=>{card.remove();if(!q.children.length)q.innerHTML='<div class="queue-empty">QUEUE IS QUIET</div>';updateQueueCount()},700*speed)},1700*speed);
+  }
+  function updateQueueCount(){ const n=$$('.q-card', $('#queue')).length; $('#queueCount').textContent=`${n} pending`; }
+  function node(name){return $(`[data-node="${name}"]`)}
+  function center(el,root){const a=el.getBoundingClientRect(),b=root.getBoundingClientRect();return{x:a.left-b.left+a.width/2,y:a.top-b.top+a.height/2}}
+  function pulse(name){const el=node(name);el.classList.add('pulse');setTimeout(()=>el.classList.remove('pulse'),650*speed)}
+  function fly(type,from,to,label=''){
+    const root=$('#network'), a=center(node(from),root), b=center(node(to),root), token=document.createElement('div'); token.className=`flow-token ${type}`; token.style.color=type==='event'?'var(--pink)':'var(--cyan)'; root.append(token);
+    let tag=null;if(label){tag=document.createElement('div');tag.className='flow-tag';tag.style.color=token.style.color;tag.textContent=label;root.append(tag)}
+    const mx=(a.x+b.x)/2, my=(a.y+b.y)/2-22;
+    const frames=[{transform:`translate(${a.x-5}px,${a.y-5}px)`},{transform:`translate(${mx-5}px,${my-5}px)`},{transform:`translate(${b.x-5}px,${b.y-5}px)`}];
+    token.animate(frames,{duration:620*speed,easing:'ease-in-out'}); if(tag)tag.animate(frames.map(f=>({transform:f.transform,opacity:.9})),{duration:620*speed,easing:'ease-in-out'});
+    pulse(from); setTimeout(()=>pulse(to),500*speed); setTimeout(()=>{token.remove();tag?.remove()},650*speed);
+    return wait(650);
+  }
+  function wirePath(a,b){const dx=Math.abs(b.x-a.x)*.45;return `M${a.x},${a.y} C${a.x+(b.x>a.x?dx:-dx)},${a.y} ${b.x+(b.x>a.x?-dx:dx)},${b.y} ${b.x},${b.y}`}
+  function drawWires(){
+    const svg=$('#wires'),root=$('#network'); if(!root.clientWidth)return;
+    const links=[['command','arm'],['command','machine'],['arm','event'],['machine','event'],['event','policy'],['event','projection'],['projection','model'],['policy','command'],['model','querier'],['querier','arm']];
+    svg.setAttribute('viewBox',`0 0 ${root.clientWidth} ${root.clientHeight}`); svg.innerHTML=links.map(([a,b])=>`<path class="wire" d="${wirePath(center(node(a),root),center(node(b),root))}"/>`).join('');
+  }
+
+  async function routeEvent(origin,eventName,detail,withPolicy=true){
+    addQueue('event',eventName); addFeed('event',eventName,detail); await fly('event',origin,'event',eventName);
+    await Promise.all([fly('event','event','projection'),withPolicy?fly('event','event','policy'):Promise.resolve()]);
+    await fly('event','projection','model');
+  }
+  async function dispatchCommand(name,detail,target,work,eventName,eventDetail,withPolicy=true){
+    addQueue('command',name); addFeed('command',name,detail); await fly('command','command',target,name); setProcedure(`${target==='arm'?'position_arm':'run_processor'} / ${name}`);
+    await work(); await routeEvent(target,eventName,eventDetail,withPolicy);
+  }
+  async function policyDispatch(name,detail,target,work,eventName,eventDetail,withPolicy=true){
+    await fly('command','policy','command',name); return dispatchCommand(name,detail,target,work,eventName,eventDetail,withPolicy);
+  }
+  async function runWorkflow(){
+    if(running||!route.length)return; running=true; runId++; const mine=runId; $('#runBtn').disabled=true; $$('.pick').forEach(b=>b.disabled=true); $('#outputSample').setAttribute('opacity','0');
+    const sampleEl=$(`#sample-${selectedSource}`); sampleEl.classList.remove('used'); colorHeld(selectedSource==='alpha'?'#5eead4':selectedSource==='beta'?'#b596ff':'#ffb454');
+    eventFacts=0; $('#eventCount').textContent='0 facts'; started=performance.now(); $('#progress').textContent=`0 / ${route.length+2}`; setState('reserved'); setHint('Command accepted. Querying sample location…'); addFeed('system','workflow_started',sourceMeta[selectedSource]);
+    await fly('command','model','querier','find_sample'); await fly('command','querier','arm','location');
+    await dispatchCommand('pick_sample',sourceMeta[selectedSource],'arm',async()=>{
+      setHint(`R-04 moving to ${sourceMeta[selectedSource].replace('_',' ')}.`); await travelTo(sourcePoints[selectedSource]); await wait(220); sampleEl.classList.add('used');showHeld(true);setState('in custody');await moveArm(handPos.x,handPos.y-44,350);
+    },'sample_picked',`{ sample: ${sourceMeta[selectedSource]} }`,true);
+    $('#progress').textContent=`1 / ${route.length+2}`;
+    for(let i=0;i<route.length;i++){
+      if(mine!==runId)return; const p=route[i],meta=processorMeta[p],point=processorPoints[p];
+      setHint(`Policy continue_route dispatched move to ${meta.label}.`);
+      await policyDispatch(`position_at_${p}`,`step ${i+1} / ${route.length}`,'arm',async()=>{await travelTo(point);},'sample_positioned',`{ processor: ${p} }`,true);
+      setHint(`${meta.label} is processing the sample.`); $(`#${p}`).classList.add('active');
+      await policyDispatch(meta.command,`processor: ${p}`,'machine',async()=>{
+        setState('processing'); for(let j=0;j<3;j++){colorHeld(j%2?meta.color:'#d8f2ea');await wait(meta.ms/6)} colorHeld(meta.color);await wait(meta.ms/2);
+      },meta.event,`{ state: ${meta.state} }`,true);
+      $(`#${p}`).classList.remove('active');setState(meta.state);$('#progress').textContent=`${i+2} / ${route.length+2}`;
+    }
+    if(mine!==runId)return;
+    setHint('Route complete. Policy dispatched sample to output bay.');
+    await policyDispatch('store_verified_sample','output_bay / slot_01','arm',async()=>{
+      await travelTo([797,425]);await wait(250);showHeld(false);$('#outputSample').setAttribute('opacity','1');await moveArm(735,375,500);
+    },'sample_stored',`{ output: verified, processors: ${route.length} }`,false);
+    $('#progress').textContent=`${route.length+2} / ${route.length+2}`;setState('verified / stored');setProcedure('— / route complete');setHint('All facts committed. The read model is current.');addFeed('system','workflow_complete',`${eventFacts} immutable facts`);
+    running=false;$('#runBtn').disabled=false;$$('.pick').forEach(b=>b.disabled=false);
+  }
+
+  function updateRouteButtons(){
+    $$('#routes .pick').forEach(b=>{const i=route.indexOf(b.dataset.processor);b.classList.toggle('active',i>=0);b.dataset.order=i>=0?i+1:'+'});
+  }
+  $$('#sources .pick').forEach(b=>b.addEventListener('click',()=>{selectedSource=b.dataset.source;$$('#sources .pick').forEach(x=>x.classList.toggle('active',x===b));setHint(`Selected ${sourceMeta[selectedSource].replaceAll('_',' ')}.`)}));
+  $$('#routes .pick').forEach(b=>b.addEventListener('click',()=>{const p=b.dataset.processor,i=route.indexOf(p);if(i>=0){if(route.length>1)route.splice(i,1)}else route.push(p);updateRouteButtons();setHint(`Route: ${route.map(x=>processorMeta[x].label).join(' → ')}.`)}));
+  $$('[data-source-hit]').forEach(g=>g.addEventListener('click',()=>$('#sources [data-source="'+g.dataset.sourceHit+'"]').click()));
+  $$('[data-processor-hit]').forEach(g=>g.addEventListener('click',()=>$('#routes [data-processor="'+g.dataset.processorHit+'"]').click()));
+  $('#runBtn').addEventListener('click',runWorkflow);
+  $('#speedBtn').addEventListener('click',e=>{speed=speed===.85?.45:.85;e.currentTarget.textContent=speed===.85?'1× speed':'2× speed';e.currentTarget.classList.toggle('on',speed===.85)});
+  $('#clearBtn').addEventListener('click',()=>{$('#feed').innerHTML='';eventFacts=0;$('#eventCount').textContent='0 facts'});
+  window.addEventListener('resize',drawWires); new ResizeObserver(drawWires).observe($('#network'));
+  drawArm(handPos.x,handPos.y); drawWires(); addFeed('system','runtime_ready','feature topology loaded');
+})();
+</script>
+</body>
+</html>
