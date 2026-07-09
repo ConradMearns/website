@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DIZZY LAB — anatomy of an event-driven robot arm</title>
+<style>
+  :root{
+    --bg:#0d0d0d; --surface:#1a1a19; --surface2:#222220; --surface3:#26262a;
+    --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781; --line:#2c2c2a; --hairline:rgba(255,255,255,.10);
+    --c-cmd:#3987e5; --c-proc:#199e70; --c-event:#c98500; --c-policy:#9085e9;
+    --c-proj:#d55181; --c-model:#d95926; --fail:#d03b3b; --good:#0ca30c;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box; margin:0}
+  body{
+    background:var(--bg); color:var(--ink2);
+    font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;
+    min-height:100vh; padding:18px 22px 28px;
+  }
+  header{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:6px}
+  header h1{color:var(--ink); font-size:19px; letter-spacing:.04em; font-weight:650}
+  header h1 .dz{color:var(--c-event); font-family:var(--mono)}
+  header .sub{color:var(--muted); font-size:12.5px}
+  .loops{font-family:var(--mono); font-size:11px; color:var(--muted); margin-bottom:14px}
+  .loops b{font-weight:600}
+  .loops .lc{color:var(--c-cmd)} .loops .ld{color:var(--c-proc)} .loops .le{color:var(--c-event)}
+  .loops .ly{color:var(--c-policy)} .loops .lj{color:var(--c-proj)} .loops .lm{color:var(--c-model)}
+
+  main{display:grid; grid-template-columns:minmax(540px,1.12fr) 216px minmax(500px,1fr); gap:14px; align-items:start; min-width:1280px}
+
+  .panel{background:var(--surface); border:1px solid var(--hairline); border-radius:10px; overflow:hidden}
+  .panel h2{
+    font-size:10.5px; letter-spacing:.14em; color:var(--muted); font-weight:600;
+    padding:9px 12px 8px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:8px;
+  }
+  .panel h2 .badge{
+    margin-left:auto; font-family:var(--mono); font-size:10px; color:var(--ink2);
+    background:var(--surface2); border:1px solid var(--line); border-radius:99px; padding:1px 8px;
+  }
+
+  /* ---------- scene ---------- */
+  #scene{display:block; width:100%; height:auto}
+  .slabel{font:600 9px var(--mono); fill:var(--muted); letter-spacing:.12em; text-anchor:middle}
+  .machine .shell{fill:var(--surface2); stroke:#3a3a36; stroke-width:1.2}
+  .machine.fail .shell{stroke:var(--fail); stroke-width:2}
+  .lamp{fill:#3a3a36}
+  .machine.working .lamp{fill:var(--good); animation:blink 1s infinite}
+  @keyframes blink{50%{opacity:.25}}
+  #coil path{stroke:#4a4a46; stroke-width:2.5; fill:none; stroke-linecap:round}
+  .machine.working #coil path{stroke:#ff8c42; filter:drop-shadow(0 0 4px #e07a3f)}
+  #drum-ring{fill:none; stroke:#4a4a46; stroke-width:3}
+  #drum-spin{fill:none; stroke:#9085e9; stroke-width:2.5; stroke-dasharray:10 14; opacity:0}
+  .machine.working #drum-spin{opacity:.9; animation:spin 0.7s linear infinite}
+  @keyframes spin{to{stroke-dashoffset:-48}}
+  #laser{stroke:#3fdc97; stroke-width:1.6; opacity:0; filter:drop-shadow(0 0 3px #3fdc97)}
+  .machine.working #laser{opacity:1; animation:scanline 1.1s ease-in-out infinite alternate}
+  @keyframes scanline{from{transform:translateY(0)} to{transform:translateY(30px)}}
+  .vial .glass{fill:rgba(255,255,255,.05); stroke:#8b8b84; stroke-width:1.1}
+  .vial .cap{fill:#5a5a54}
+  .vial text{font:600 8px var(--mono); fill:var(--ink2); text-anchor:middle}
+  .vial.wobble .vbody{animation:wob .12s linear infinite}
+  @keyframes wob{25%{transform:translateX(-1.3px)}75%{transform:translateX(1.3px)}}
+  .vial .zap{opacity:0}
+  .vial.flash .zap{opacity:1; animation:zapfade 1s forwards}
+  @keyframes zapfade{to{opacity:0}}
+  #armlayer .seg{stroke:#4c4c48; stroke-linecap:round}
+  #armlayer .seg.hi{stroke:#6b6b64}
+  #armlayer .joint{fill:#26262a; stroke:#77776e; stroke-width:2}
+  #gripper path{stroke:#8a8a80; stroke-width:3.4; fill:none; stroke-linecap:round}
+
+  /* ---------- controls ---------- */
+  #controls{display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:10px 12px; border-top:1px solid var(--line)}
+  #controls .lbl{font-size:11.5px; color:var(--muted)}
+  button{
+    background:var(--surface2); border:1px solid #3a3a36; color:var(--ink2); border-radius:7px;
+    font:600 12px system-ui,sans-serif; padding:6px 11px; cursor:pointer; transition:border-color .15s, color .15s;
+  }
+  button:hover:not(:disabled){border-color:var(--c-cmd); color:var(--ink)}
+  button:disabled{opacity:.38; cursor:not-allowed}
+  button.toggled{border-color:var(--good); color:var(--ink)}
+  button.toggled::before{content:"● "; color:var(--good)}
+  #speedwrap{display:flex; align-items:center; gap:6px; margin-left:auto; font-size:11.5px; color:var(--muted)}
+  #speed{width:90px; accent-color:var(--c-cmd)}
+  #speedval{font-family:var(--mono); color:var(--ink2); width:30px}
+
+  /* ---------- models ---------- */
+  #models{display:grid; grid-template-columns:1.25fr 1fr; gap:12px; padding:12px}
+  #models h3{font-size:10px; letter-spacing:.13em; color:var(--muted); font-weight:600; margin-bottom:7px;
+    display:flex; gap:6px; align-items:center}
+  #models h3 .dot{width:8px;height:8px;border-radius:2px;background:var(--c-model)}
+  table{width:100%; border-collapse:collapse; font:11.5px var(--mono)}
+  th{color:var(--muted); font-weight:500; text-align:left; padding:3px 8px 5px; border-bottom:1px solid var(--line); font-size:10px; letter-spacing:.06em}
+  td{padding:4px 8px; border-bottom:1px solid var(--line); color:var(--ink2)}
+  td.sid{color:var(--ink); font-weight:600}
+  tr.updated td{animation:rowflash 1.2s}
+  @keyframes rowflash{from{background:rgba(217,89,38,.22)}}
+  .empty-model{color:var(--muted); font-size:11px; font-style:italic; padding:6px 8px}
+  #tiles{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .tile{background:var(--surface2); border:1px solid var(--line); border-radius:8px; padding:8px 10px 7px}
+  .tile .v{font-size:22px; font-weight:650; color:var(--ink); line-height:1.1}
+  .tile .v.bump{animation:pop .4s}
+  @keyframes pop{30%{transform:scale(1.18)}}
+  .tile .k{font-size:10px; letter-spacing:.1em; color:var(--muted)}
+  .tile.failt .v{color:var(--fail)}
+
+  /* ---------- queue ---------- */
+  #queuecol{display:flex; flex-direction:column; max-height:820px}
+  #chips{overflow:hidden; padding:8px; display:flex; flex-direction:column; gap:6px; flex:1}
+  .chip{
+    background:var(--surface2); border:1px solid var(--line); border-left:3px solid var(--c-cmd);
+    border-radius:6px; padding:5px 8px; font:10.5px var(--mono); animation:chipin .3s;
+    flex-shrink:0;
+  }
+  @keyframes chipin{from{opacity:0; transform:translateY(-10px)}}
+  .chip.ev{border-left-color:var(--c-event)}
+  .chip.evfail{border-left-color:var(--fail)}
+  .chip .cn{color:var(--ink); font-weight:600}
+  .chip .cp{color:var(--muted); display:block; margin-top:1px}
+  .chip .st{float:right; color:var(--muted)}
+  .chip.ev .st{color:var(--c-event)}
+  .chip.evfail .st{color:var(--fail)}
+  .chip.done .st{color:var(--good)}
+  .chip.stale{opacity:.45}
+
+  /* ---------- graph ---------- */
+  #graph{display:block; width:100%; height:auto}
+  .gcolhead{font:600 9.5px var(--mono); fill:var(--muted); letter-spacing:.16em; text-anchor:middle}
+  .gedge{fill:none; stroke:#31312d; stroke-width:1.3}
+  .gedge.feedback{stroke-dasharray:4 4; stroke:#3a3550}
+  .gnode rect{fill:var(--surface2); stroke-width:1.4; rx:7; transition:filter .2s}
+  .gnode text.nlabel{font:10px var(--mono); fill:var(--ink2)}
+  .gnode text.nsym{font:700 9px var(--mono); fill:#111; text-anchor:middle}
+  .gnode.active rect{filter:drop-shadow(0 0 7px currentColor); stroke-width:2.4}
+  .gnode.active text.nlabel{fill:var(--ink)}
+  .gnode{cursor:default}
+  #gInfo{padding:9px 12px; border-top:1px solid var(--line); font-size:11.5px; color:var(--muted); min-height:38px}
+  #gInfo b{color:var(--ink2); font-family:var(--mono); font-weight:600}
+  #legend{display:flex; flex-wrap:wrap; gap:5px 14px; padding:8px 12px 10px; border-top:1px solid var(--line)}
+  #legend span{font:10px var(--mono); color:var(--muted); display:flex; align-items:center; gap:5px}
+  #legend i{width:13px; height:13px; border-radius:4px; font:700 8.5px var(--mono); color:#111;
+    display:inline-flex; align-items:center; justify-content:center; font-style:normal}
+
+  footer{margin-top:12px; font-size:11.5px; color:var(--muted); max-width:960px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1><span class="dz">DIZZY</span> LAB</h1>
+  <span class="sub">anatomy of an event-driven robot arm — a stylized visualization, not a real dizzy runtime</span>
+</header>
+<div class="loops">
+  <b>reactivity loop</b>&nbsp; <span class="lc">commands</span> → <span class="ld">procedures</span> → <span class="le">events</span> → <span class="ly">policies</span> → <span class="lc">commands</span>
+  &nbsp;&nbsp;·&nbsp;&nbsp;
+  <b>data loop</b>&nbsp; <span class="le">events</span> → <span class="lj">projections</span> → <span class="lm">models</span>
+</div>
+
+<main>
+  <!-- ============ LEFT: physical world ============ -->
+  <div style="display:flex; flex-direction:column; gap:14px">
+    <div class="panel">
+      <h2>PHYSICAL WORLD <span class="badge" id="armstate">arm: idle</span></h2>
+      <svg id="scene" viewBox="0 0 640 470" role="img" aria-label="Robot arm lab scene">
+        <defs>
+          <pattern id="wall" width="34" height="34" patternUnits="userSpaceOnUse">
+            <path d="M34 0H0V34" fill="none" stroke="#222220" stroke-width="1"/>
+          </pattern>
+          <linearGradient id="floorg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#232321"/><stop offset="1" stop-color="#1c1c1a"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="640" height="440" fill="url(#wall)"/>
+        <rect x="0" y="440" width="640" height="30" fill="url(#floorg)"/>
+        <line x1="0" y1="440" x2="640" y2="440" stroke="#383835" stroke-width="1.5"/>
+
+        <!-- rack -->
+        <g id="rack">
+          <rect x="104" y="436" width="150" height="7" rx="2" fill="#33332f"/>
+          <rect x="110" y="443" width="8" height="14" fill="#2a2a27"/>
+          <rect x="240" y="443" width="8" height="14" fill="#2a2a27"/>
+          <text class="slabel" x="179" y="461">SAMPLE RACK</text>
+        </g>
+
+        <!-- tray -->
+        <g id="tray">
+          <rect x="406" y="436" width="168" height="7" rx="2" fill="#33332f"/>
+          <rect x="412" y="443" width="8" height="14" fill="#2a2a27"/>
+          <rect x="560" y="443" width="8" height="14" fill="#2a2a27"/>
+          <text class="slabel" x="490" y="461">OUTPUT TRAY</text>
+        </g>
+
+        <!-- heater -->
+        <g id="m-heater" class="machine">
+          <rect class="shell" x="118" y="258" width="72" height="32" rx="6"/>
+          <g id="coil">
+            <path d="M126 276 q6 -9 12 0 q6 9 12 0 q6 -9 12 0 q6 9 12 0 q6 -9 12 0"/>
+          </g>
+          <circle class="lamp" cx="182" cy="266" r="3"/>
+          <text class="slabel" x="154" y="305">HEATER</text>
+        </g>
+
+        <!-- centrifuge -->
+        <g id="m-centrifuge" class="machine">
+          <circle id="drum-ring" cx="320" cy="183" r="27"/>
+          <circle id="drum-spin" cx="320" cy="183" r="27"/>
+          <rect class="shell" x="296" y="212" width="48" height="12" rx="4"/>
+          <circle class="lamp" cx="336" cy="218" r="3"/>
+          <text class="slabel" x="320" y="240">CENTRIFUGE</text>
+        </g>
+
+        <!-- scanner -->
+        <g id="m-scanner" class="machine">
+          <rect class="shell" x="460" y="205" width="7" height="63" rx="2"/>
+          <rect class="shell" x="509" y="205" width="7" height="63" rx="2"/>
+          <rect class="shell" x="456" y="197" width="64" height="10" rx="4"/>
+          <line id="laser" x1="470" y1="228" x2="506" y2="228"/>
+          <circle class="lamp" cx="514" cy="202" r="3"/>
+          <text class="slabel" x="488" y="284">SCANNER</text>
+        </g>
+
+        <!-- vials get inserted here (under the arm) -->
+        <g id="viallayer"></g>
+
+        <!-- arm -->
+        <g id="armlayer">
+          <rect x="303" y="394" width="34" height="46" rx="4" fill="#33332f" stroke="#44443f" stroke-width="1"/>
+          <rect x="288" y="434" width="64" height="8" rx="3" fill="#3a3a36"/>
+          <line id="seg1" class="seg" stroke-width="13"/>
+          <line id="seg1h" class="seg hi" stroke-width="4"/>
+          <line id="seg2" class="seg" stroke-width="9.5"/>
+          <line id="seg2h" class="seg hi" stroke-width="3"/>
+          <circle id="jShoulder" class="joint" r="9"/>
+          <circle id="jElbow" class="joint" r="7"/>
+          <g id="gripper"><path d="M-9,-2 v8 M9,-2 v8 M-9,-2 h18"/></g>
+        </g>
+      </svg>
+
+      <div id="controls">
+        <span class="lbl">send next sample to →</span>
+        <button data-proc="heater">🔥 Heater</button>
+        <button data-proc="centrifuge">🌀 Centrifuge</button>
+        <button data-proc="scanner">📡 Scanner</button>
+        <button id="refill">＋ restock rack</button>
+        <button id="auto">AUTO</button>
+        <div id="speedwrap">speed <input id="speed" type="range" min="0.5" max="3" step="0.25" value="1"><span id="speedval">1×</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>READ MODELS <span class="badge">rebuilt from events only — never from the scene</span></h2>
+      <div id="models">
+        <div>
+          <h3><span class="dot"></span>samples <span style="color:var(--muted);font-weight:400">&nbsp;m · via sample_tracker</span></h3>
+          <table id="samplesTbl">
+            <thead><tr><th>SAMPLE</th><th>LOCATION</th><th>STATE</th></tr></thead>
+            <tbody><tr><td colspan="3" class="empty-model">empty — no events folded yet</td></tr></tbody>
+          </table>
+        </div>
+        <div>
+          <h3><span class="dot"></span>throughput <span style="color:var(--muted);font-weight:400">&nbsp;m · via lab_metrics</span></h3>
+          <div id="tiles">
+            <div class="tile"><div class="v" id="t-picked">0</div><div class="k">PICKED</div></div>
+            <div class="tile"><div class="v" id="t-processed">0</div><div class="k">PROCESSED</div></div>
+            <div class="tile failt"><div class="v" id="t-failed">0</div><div class="k">FAILED</div></div>
+            <div class="tile"><div class="v" id="t-stored">0</div><div class="k">STORED</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MIDDLE: queue ============ -->
+  <div class="panel" id="queuecol">
+    <h2>QUEUE <span class="badge" id="qdepth">0 pending</span></h2>
+    <div id="chips"></div>
+  </div>
+
+  <!-- ============ RIGHT: network ============ -->
+  <div class="panel">
+    <h2>COMPONENT NETWORK <span class="badge">the .feat.yaml, drawn</span></h2>
+    <svg id="graph" viewBox="0 0 690 650" role="img" aria-label="Dizzy component network graph"></svg>
+    <div id="gInfo">hover a node — pulses show messages flowing between components</div>
+    <div id="legend"></div>
+  </div>
+</main>
+
+<footer>
+  Click a processor button (or let AUTO run) and watch one user intent become a chain: a
+  <b style="color:var(--c-cmd)">command</b> is queued, its <b style="color:var(--c-proc)">procedure</b> drives the arm and emits
+  <b style="color:var(--c-event)">events</b> — immutable facts. <b style="color:var(--c-policy)">Policies</b> react to facts by dispatching
+  new commands (the dashed feedback arcs), while <b style="color:var(--c-proj)">projections</b> fold the same facts into
+  <b style="color:var(--c-model)">models</b>. Note the read models lag the scene slightly: they know only what the events have told them.
+  Processing fails ~20% of the time — failures are facts too, and the <span style="font-family:var(--mono)">retry_processing</span> policy handles them.
+</footer>
+
+<script>
+"use strict";
+/* ================================================================
+   DIZZY LAB — a stylized visualization of an event-driven system.
+   Mock components mirror dizzy's eight-part vocabulary:
+   commands (c) → procedures (d) → events (e) → policies (y) → commands
+   events (e) → projections (j) → models (m)
+   ================================================================ */
+
+const $ = s => document.querySelector(s);
+const SVGNS = "http://www.w3.org/2000/svg";
+const COL = {c:"#3987e5", d:"#199e70", e:"#c98500", y:"#9085e9", j:"#d55181", m:"#d95926"};
+const TYPENAME = {c:"command", d:"procedure", e:"event", y:"policy", j:"projection", m:"model"};
+
+let speed = 1;
+$("#speed").addEventListener("input", e => {
+  speed = +e.target.value;
+  $("#speedval").textContent = speed + "×";
+});
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const ease = k => k < .5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2) / 2;
+function tween(dur, fn){
+  return new Promise(res => {
+    let t0 = null;
+    const step = t => {
+      if (t0 === null) t0 = t;
+      const k = Math.min(1, (t - t0) / dur);
+      fn(ease(k));
+      if (k < 1) requestAnimationFrame(step); else res();
+    };
+    requestAnimationFrame(step);
+  });
+}
+
+/* ================= network graph ================= */
+
+const W = 150, H = 26;
+const NODES = [
+  // commands
+  {id:"c:pick_sample",    x:88,  y:110, desc:"Write intent: lift a specific vial out of the rack, bound for a processor."},
+  {id:"c:place_sample",   x:88,  y:195, desc:"Write intent: set the held vial down at its destination processor."},
+  {id:"c:process_sample", x:88,  y:280, desc:"Write intent: run the processor on the vial sitting in it."},
+  {id:"c:store_sample",   x:88,  y:365, desc:"Write intent: move the finished vial from the processor to the output tray."},
+  // procedures
+  {id:"d:grip_and_lift",        x:250, y:110, desc:"Handles pick_sample. Drives the arm to the rack, grips, lifts. Emits sample_picked."},
+  {id:"d:position_and_release", x:250, y:195, desc:"Handles place_sample. Carries the vial to the processor port. Emits sample_placed."},
+  {id:"d:run_processor",        x:250, y:280, desc:"Handles process_sample. Runs the machine. Emits sample_processed — or processing_failed."},
+  {id:"d:stow_sample",          x:250, y:365, desc:"Handles store_sample. Retrieves the vial and stows it in the tray. Emits sample_stored."},
+  // events
+  {id:"e:sample_picked",     x:412, y:90,  desc:"Fact: a vial left the rack and is held by the arm. Past-tense, immutable, the source of truth."},
+  {id:"e:sample_placed",     x:412, y:175, desc:"Fact: a vial arrived at a processor port."},
+  {id:"e:sample_processed",  x:412, y:260, desc:"Fact: the processor finished and changed the sample. Carries the result with provenance."},
+  {id:"e:processing_failed", x:412, y:330, desc:"Fact: a run failed. Failures are facts too — recording them keeps the stream honest."},
+  {id:"e:sample_stored",     x:412, y:415, desc:"Fact: a vial reached the output tray. End of this sample's journey."},
+  // policies
+  {id:"y:route_to_processor", x:585, y:90,  desc:"Reacts to sample_picked → dispatches place_sample toward the job's destination."},
+  {id:"y:begin_processing",   x:585, y:175, desc:"Reacts to sample_placed → dispatches process_sample. Nobody calls the processor directly."},
+  {id:"y:store_when_done",    x:585, y:260, desc:"Reacts to sample_processed → dispatches store_sample to clear the machine."},
+  {id:"y:retry_processing",   x:585, y:330, desc:"Reacts to processing_failed → dispatches process_sample again with attempt+1."},
+  // projections + models
+  {id:"j:sample_tracker", x:300, y:508, desc:"Folds every sample event into the samples model: where each vial is, and what state it's in."},
+  {id:"j:lab_metrics",    x:498, y:508, desc:"Folds outcome events into throughput counters."},
+  {id:"m:samples",        x:300, y:588, desc:"Read model. Rebuildable at any time by replaying the event stream through sample_tracker."},
+  {id:"m:throughput",     x:498, y:588, desc:"Read model of counters. Cheap to change — models are rebuildable, events are irreducible."},
+];
+const EDGES = [
+  ["c:pick_sample","d:grip_and_lift"], ["c:place_sample","d:position_and_release"],
+  ["c:process_sample","d:run_processor"], ["c:store_sample","d:stow_sample"],
+  ["d:grip_and_lift","e:sample_picked"], ["d:position_and_release","e:sample_placed"],
+  ["d:run_processor","e:sample_processed"], ["d:run_processor","e:processing_failed"],
+  ["d:stow_sample","e:sample_stored"],
+  ["e:sample_picked","y:route_to_processor"], ["e:sample_placed","y:begin_processing"],
+  ["e:sample_processed","y:store_when_done"], ["e:processing_failed","y:retry_processing"],
+  ["y:route_to_processor","c:place_sample","fb",30], ["y:begin_processing","c:process_sample","fb",22],
+  ["y:store_when_done","c:store_sample","fb",40], ["y:retry_processing","c:process_sample","fb",14],
+  ["e:sample_picked","j:sample_tracker","down"], ["e:sample_placed","j:sample_tracker","down"],
+  ["e:sample_processed","j:sample_tracker","down"], ["e:processing_failed","j:sample_tracker","down"],
+  ["e:sample_stored","j:sample_tracker","down"],
+  ["e:sample_picked","j:lab_metrics","down"], ["e:sample_processed","j:lab_metrics","down"],
+  ["e:processing_failed","j:lab_metrics","down"], ["e:sample_stored","j:lab_metrics","down"],
+  ["j:sample_tracker","m:samples","down"], ["j:lab_metrics","m:throughput","down"],
+];
+
+const graph = $("#graph");
+const nodeMap = {}, edgeMap = {};
+
+function el(tag, attrs, parent){
+  const n = document.createElementNS(SVGNS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(n);
+  return n;
+}
+
+function buildGraph(){
+  // column headers
+  const heads = [["COMMANDS",88],["PROCEDURES",250],["EVENTS",412],["POLICIES",585]];
+  for (const [t,x] of heads){
+    const h = el("text", {class:"gcolhead", x, y:64}, graph); h.textContent = t;
+  }
+  const ph = el("text", {class:"gcolhead", x:399, y:474}, graph); ph.textContent = "PROJECTIONS → MODELS";
+  NODES.forEach(n => nodeMap[n.id] = n);
+
+  const edgeLayer = el("g", {}, graph);
+  for (const [a,b,kind,cy] of EDGES){
+    const s = nodeMap[a], t = nodeMap[b];
+    let dPath;
+    if (kind === "fb"){
+      dPath = `M ${s.x} ${s.y - H/2} C ${s.x} ${cy}, ${t.x} ${cy}, ${t.x} ${t.y - H/2}`;
+    } else if (kind === "down"){
+      if (b[0] === "m"){
+        dPath = `M ${s.x} ${s.y + H/2} L ${t.x} ${t.y - H/2}`;
+      } else {
+        const side = t.x < s.x ? -1 : 1;          // tracker exits left, metrics exits right
+        const corridorX = side < 0 ? 331 : 498;   // gaps between the graph columns
+        dPath = `M ${s.x + side*W/2} ${s.y} C ${corridorX} ${s.y}, ` +
+                `${t.x + side*14} ${t.y - 95}, ${t.x + side*5} ${t.y - H/2}`;
+      }
+    } else {
+      const x1 = s.x + W/2, x2 = t.x - W/2, mid = (x1 + x2) / 2;
+      dPath = `M ${x1} ${s.y} C ${mid} ${s.y}, ${mid} ${t.y}, ${x2} ${t.y}`;
+    }
+    const p = el("path", {class:"gedge" + (kind === "fb" ? " feedback" : ""), d:dPath}, edgeLayer);
+    edgeMap[a + ">" + b] = p;
+  }
+
+  const pulseLayer = el("g", {id:"pulses"}, graph);
+
+  for (const n of NODES){
+    const type = n.id[0];
+    const g = el("g", {class:"gnode", id:"n-" + n.id.replace(":","_"), style:`color:${COL[type]}`}, graph);
+    el("rect", {x:n.x - W/2, y:n.y - H/2, width:W, height:H, rx:7, stroke:COL[type]}, g);
+    el("rect", {x:n.x - W/2 + 6, y:n.y - 7.5, width:15, height:15, rx:4, fill:COL[type]}, g);
+    const sym = el("text", {class:"nsym", x:n.x - W/2 + 13.5, y:n.y + 3.4}, g);
+    sym.textContent = type;
+    const lb = el("text", {class:"nlabel", x:n.x - W/2 + 26, y:n.y + 3.6}, g);
+    lb.textContent = n.id.slice(2);
+    g.addEventListener("mouseenter", () => {
+      $("#gInfo").innerHTML = `<b>${n.id.slice(2)}</b> · ${TYPENAME[type]} — ${n.desc}`;
+    });
+    g.addEventListener("mouseleave", () => {
+      $("#gInfo").textContent = "hover a node — pulses show messages flowing between components";
+    });
+  }
+
+  // legend
+  for (const t of ["c","d","e","y","j","m"]){
+    const s = document.createElement("span");
+    s.innerHTML = `<i style="background:${COL[t]}">${t}</i>${TYPENAME[t]}`;
+    $("#legend").appendChild(s);
+  }
+  return pulseLayer;
+}
+const pulseLayer = buildGraph();
+
+function flash(id, ms = 900){
+  const g = $("#n-" + id.replace(":","_"));
+  if (!g) return;
+  g.classList.add("active");
+  clearTimeout(g._t);
+  g._t = setTimeout(() => g.classList.remove("active"), ms / speed);
+}
+
+function pulse(src, dst, color){
+  const path = edgeMap[src + ">" + dst];
+  if (!path) return Promise.resolve();
+  const len = path.getTotalLength();
+  const dot = el("circle", {r:4.2, fill:color, style:`filter:drop-shadow(0 0 4px ${color})`}, pulseLayer);
+  return tween(430 / speed, k => {
+    const pt = path.getPointAtLength(len * k);
+    dot.setAttribute("cx", pt.x); dot.setAttribute("cy", pt.y);
+  }).then(() => dot.remove());
+}
+
+/* ================= queue strip ================= */
+
+const chipsBox = $("#chips");
+function chip(kind, name, payloadStr, pending){
+  const c = document.createElement("div");
+  c.className = "chip" + (kind === "e" ? (name === "processing_failed" ? " ev evfail" : " ev") : "");
+  c.innerHTML = `<span class="st">${kind === "e" ? "fact" : (pending ? "queued" : "")}</span>` +
+                `<span class="cn">${name}</span><span class="cp">${payloadStr}</span>`;
+  chipsBox.prepend(c);
+  while (chipsBox.children.length > 26) chipsBox.lastChild.remove();
+  [...chipsBox.children].forEach((n,i) => n.classList.toggle("stale", i > 14));
+  return c;
+}
+function chipConsumed(c){
+  c.classList.add("done");
+  c.querySelector(".st").textContent = "✓ handled";
+}
+function qdepth(){ $("#qdepth").textContent = QUEUE.length + " pending"; }
+
+/* ================= physical scene ================= */
+
+const scene = $("#scene");
+const SH = {x:320, y:392};           // shoulder (screen coords)
+const L1 = 150, L2 = 118;
+
+const rackSlots = [{x:130, vial:null}, {x:178, vial:null}, {x:226, vial:null}];
+const traySlots = [{x:424, vial:null}, {x:462, vial:null}, {x:500, vial:null}, {x:538, vial:null}];
+const RACK_SURF = 436, TRAY_SURF = 436;
+// port = anchor point of a vial sitting in the machine (top-center of vial)
+const procs = {
+  heater:     {port:{x:152, y:232}, vial:null, busy:false, el:"#m-heater",     result:"heated"},
+  centrifuge: {port:{x:320, y:168}, vial:null, busy:false, el:"#m-centrifuge", result:"separated"},
+  scanner:    {port:{x:488, y:232}, vial:null, busy:false, el:"#m-scanner",    result:"scanned"},
+};
+const reservations = {heater:false, centrifuge:false, scanner:false};
+
+const STATE_LIQ = {raw:"#7f95ad", heated:"#e0763a", separated:null, scanned:"#7f95ad"};
+
+let sampleSeq = 1;
+const samples = new Map();   // id -> {id, state, el, loc}
+
+function makeVial(id){
+  const g = el("g", {class:"vial"}, $("#viallayer"));
+  const body = el("g", {class:"vbody"}, g);
+  el("rect", {class:"liq", x:-6.5, y:12, width:13, height:16, fill:STATE_LIQ.raw}, body);
+  el("rect", {class:"liq2", x:-6.5, y:12, width:13, height:8, fill:"#cdd4dc", opacity:0}, body);
+  el("rect", {class:"glass", x:-8, y:3, width:16, height:27, rx:3.5}, body);
+  el("rect", {class:"cap", x:-6.5, y:0, width:13, height:5, rx:1.5}, body);
+  el("rect", {class:"zap", x:-11, y:-1, width:22, height:33, rx:5, fill:"none",
+              stroke:"#3fdc97", "stroke-width":2}, body);
+  const t = el("text", {x:0, y:24}, body); t.textContent = id;
+  return g;
+}
+function setVialPos(s, x, y){ s.el.setAttribute("transform", `translate(${x},${y})`); s.pos = {x,y}; }
+function setVialState(s, state){
+  s.state = state;
+  const liq = s.el.querySelector(".liq"), liq2 = s.el.querySelector(".liq2");
+  if (state === "separated"){
+    liq.setAttribute("fill", "#8b5fd0"); liq.setAttribute("y", 19); liq.setAttribute("height", 9);
+    liq2.setAttribute("opacity", 1); liq2.setAttribute("y", 12); liq2.setAttribute("height", 7);
+  } else {
+    liq.setAttribute("fill", STATE_LIQ[state]); liq.setAttribute("y", 12); liq.setAttribute("height", 16);
+    liq2.setAttribute("opacity", 0);
+  }
+  s.el.classList.remove("flash"); void s.el.getBoundingClientRect(); s.el.classList.add("flash");
+}
+function newSample(slotIdx){
+  const id = "S" + sampleSeq++;
+  const s = {id, state:"raw", el:makeVial(id), loc:{type:"rack", slot:slotIdx}};
+  samples.set(id, s);
+  rackSlots[slotIdx].vial = id;
+  setVialPos(s, rackSlots[slotIdx].x, RACK_SURF - 30);
+  s.el.style.opacity = 0;
+  requestAnimationFrame(() => { s.el.style.transition = "opacity .5s"; s.el.style.opacity = 1; });
+  return s;
+}
+
+/* -------- arm kinematics -------- */
+const arm = {busy:false, holding:null};
+let tip = {x:320, y:250};
+
+function toPolar(p){
+  const vx = p.x - SH.x, vy = SH.y - p.y;
+  let th = Math.atan2(vy, vx);
+  if (th < -Math.PI/2) th += 2*Math.PI;   // keep sweeps going over the top, not through the floor
+  return {th, r:Math.hypot(vx, vy)};
+}
+const fromPolar = (th, r) => ({x: SH.x + Math.cos(th)*r, y: SH.y - Math.sin(th)*r});
+
+function renderArm(){
+  const vx = tip.x - SH.x, vy = SH.y - tip.y;
+  let d = Math.hypot(vx, vy);
+  const dMax = L1 + L2 - 2, dMin = Math.abs(L1 - L2) + 6;
+  const dc = Math.max(dMin, Math.min(dMax, d)) || dMin;
+  const phi = Math.atan2(vy, vx);
+  const a = Math.acos(Math.max(-1, Math.min(1, (L1*L1 + dc*dc - L2*L2) / (2*L1*dc))));
+  const shAng = phi + (vx >= 0 ? a : -a); // elbow-up on either side of the base
+  const ex = SH.x + Math.cos(shAng)*L1, ey = SH.y - Math.sin(shAng)*L1;
+  const scale = d ? dc / d : 1;
+  const tx = SH.x + vx*scale, ty = SH.y - vy*scale;
+
+  for (const [id, x1, y1, x2, y2] of [["#seg1", SH.x, SH.y, ex, ey], ["#seg2", ex, ey, tx, ty]]){
+    for (const suf of ["", "h"]){
+      const ln = $(id + suf);
+      ln.setAttribute("x1", x1); ln.setAttribute("y1", y1);
+      ln.setAttribute("x2", x2); ln.setAttribute("y2", y2);
+    }
+  }
+  $("#jShoulder").setAttribute("cx", SH.x); $("#jShoulder").setAttribute("cy", SH.y);
+  $("#jElbow").setAttribute("cx", ex); $("#jElbow").setAttribute("cy", ey);
+  $("#gripper").setAttribute("transform", `translate(${tx},${ty})`);
+  if (arm.holding) setVialPos(samples.get(arm.holding), tx, ty + 7);
+}
+renderArm();
+
+async function sweepTo(target){
+  const a = toPolar(tip), b = toPolar(target);
+  const dth = b.th - a.th;
+  const dur = (380 + Math.abs(dth)*400 + Math.abs(b.r - a.r)*0.9) / speed;
+  await tween(dur, k => {
+    const th = a.th + dth*k;
+    // bulge outward mid-sweep: the arm extends nearly straight, so the
+    // elbow-side handoff at the top of the arc is invisible
+    let r = a.r + (b.r - a.r)*k;
+    r += Math.sin(Math.PI*k) * Math.max(0, Math.min(60, (L1 + L2 - 8) - r));
+    tip = fromPolar(th, Math.max(58, r));
+    renderArm();
+  });
+}
+async function lineTo(target, ms = 300){
+  const p0 = {...tip};
+  await tween(ms / speed, k => {
+    tip = {x: p0.x + (target.x - p0.x)*k, y: p0.y + (target.y - p0.y)*k};
+    renderArm();
+  });
+}
+const grabPt  = anchor => ({x: anchor.x, y: anchor.y - 7});
+const hoverPt = anchor => ({x: anchor.x, y: anchor.y - 34});
+const HOME = {x:320, y:252};
+
+function armStatus(txt){ $("#armstate").textContent = "arm: " + txt; }
+async function parkIfIdle(){
+  await sleep(600 / speed);
+  if (!arm.busy && !arm.holding && !QUEUE.some(c => c.name !== "process_sample")){
+    arm.busy = true; armStatus("parking");
+    await sweepTo(HOME);
+    arm.busy = false; armStatus("idle"); pump();
+  }
+}
+
+/* ================= command queue & engine ================= */
+
+const QUEUE = [];
+let cmdSeq = 1;
+
+const PROC_OF = {
+  pick_sample:"grip_and_lift", place_sample:"position_and_release",
+  process_sample:"run_processor", store_sample:"stow_sample",
+};
+
+function fmtPayload(name, p){
+  switch (name){
+    case "pick_sample":       return `{${p.sample} → ${p.target}}`;
+    case "place_sample":      return `{${p.sample} @ ${p.target}}`;
+    case "process_sample":    return `{${p.sample} @ ${p.processor}, attempt ${p.attempt}}`;
+    case "store_sample":      return `{${p.sample} ← ${p.processor}}`;
+    case "sample_picked":     return `{${p.sample}, from rack}`;
+    case "sample_placed":     return `{${p.sample}, at ${p.at}}`;
+    case "sample_processed":  return `{${p.sample}, result: ${p.result}}`;
+    case "processing_failed": return `{${p.sample}, ${p.reason}, attempt ${p.attempt}}`;
+    case "sample_stored":     return `{${p.sample}, tray slot ${p.slot}}`;
+  }
+  return "";
+}
+
+async function dispatch(name, payload, fromPolicy){
+  if (fromPolicy) await pulse(fromPolicy, "c:" + name, COL.c);
+  flash("c:" + name);
+  const cmd = {id:cmdSeq++, name, payload, chip:chip("c", name, fmtPayload(name, payload), true)};
+  QUEUE.push(cmd); qdepth();
+  pump();
+}
+
+const freeTraySlot = () => traySlots.findIndex(t => !t.vial);
+
+function canRun(c){
+  const p = c.payload;
+  switch (c.name){
+    case "pick_sample":    return !arm.busy && !arm.holding;
+    case "place_sample":   return !arm.busy && arm.holding === p.sample && !procs[p.target].vial;
+    case "process_sample": return procs[p.processor].vial === p.sample && !procs[p.processor].busy;
+    case "store_sample":   return !arm.busy && !arm.holding && freeTraySlot() !== -1;
+  }
+}
+
+function pump(){
+  for (let i = 0; i < QUEUE.length; i++){
+    if (canRun(QUEUE[i])){
+      const cmd = QUEUE.splice(i, 1)[0];
+      qdepth();
+      exec(cmd);
+      i = -1;  // rescan: exec set busy flags synchronously
+    }
+  }
+}
+setInterval(pump, 400);
+
+async function exec(cmd){
+  // claim resources synchronously so pump can't double-book
+  if (cmd.name !== "process_sample") arm.busy = true;
+  else procs[cmd.payload.processor].busy = true;
+
+  chipConsumed(cmd.chip);
+  const dId = "d:" + PROC_OF[cmd.name];
+  pulse("c:" + cmd.name, dId, COL.c);
+  const g = $("#n-" + dId.replace(":","_"));
+  g.classList.add("active");
+  try { await ACTIONS[cmd.name](cmd.payload); }
+  finally {
+    g.classList.remove("active");
+    pump();
+  }
+}
+
+function emitEvent(name, payload, fromProc){
+  chip("e", name, fmtPayload(name, payload));
+  pulse(fromProc, "e:" + name, COL.e).then(() => {
+    flash("e:" + name);
+    for (const pol of POLICIES[name] || []) (async () => {
+      await pulse("e:" + name, pol.id, COL.e);
+      flash(pol.id);
+      await sleep(140 / speed);
+      pol.run(payload);
+    })();
+    for (const pr of PROJECTIONS[name] || []) (async () => {
+      await pulse("e:" + name, pr.id, COL.e);
+      flash(pr.id);
+      pr.fold(name, payload);
+      await pulse(pr.id, pr.model, COL.m);
+      flash(pr.model);
+      pr.render(payload);
+    })();
+  });
+}
+
+/* -------- procedures (the physical effects) -------- */
+
+const ACTIONS = {
+  async pick_sample(p){
+    armStatus("picking " + p.sample);
+    const s = samples.get(p.sample);
+    const slot = rackSlots[s.loc.slot];
+    const anchor = {x:slot.x, y:RACK_SURF - 30};
+    await sweepTo(hoverPt(anchor));
+    await lineTo(grabPt(anchor));
+    slot.vial = null; arm.holding = p.sample; s.loc = {type:"arm"};
+    await lineTo(hoverPt(anchor));
+    arm.busy = false; armStatus("holding " + p.sample);
+    updateButtons();
+    emitEvent("sample_picked", {sample:p.sample, dest:p.target}, "d:grip_and_lift");
+  },
+
+  async place_sample(p){
+    armStatus("placing " + p.sample);
+    const proc = procs[p.target];
+    const s = samples.get(p.sample);
+    await sweepTo(hoverPt(proc.port));
+    await lineTo(grabPt(proc.port));
+    arm.holding = null; proc.vial = p.sample; s.loc = {type:"proc", proc:p.target};
+    setVialPos(s, proc.port.x, proc.port.y);
+    await lineTo(hoverPt(proc.port));
+    arm.busy = false; armStatus("idle");
+    emitEvent("sample_placed", {sample:p.sample, at:p.target}, "d:position_and_release");
+    parkIfIdle();
+  },
+
+  async process_sample(p){
+    const proc = procs[p.processor];
+    const machine = $(proc.el);
+    const s = samples.get(p.sample);
+    machine.classList.add("working");
+    if (p.processor === "centrifuge") s.el.classList.add("wobble");
+    await sleep(2600 / speed);
+    machine.classList.remove("working");
+    s.el.classList.remove("wobble");
+    proc.busy = false;
+    const failed = p.attempt === 1 && Math.random() < 0.22;
+    if (failed){
+      machine.classList.add("fail");
+      setTimeout(() => machine.classList.remove("fail"), 900 / speed);
+      emitEvent("processing_failed",
+        {sample:p.sample, processor:p.processor, attempt:p.attempt, reason:"sensor_jitter"},
+        "d:run_processor");
+    } else {
+      setVialState(s, proc.result);
+      emitEvent("sample_processed",
+        {sample:p.sample, processor:p.processor, result:proc.result}, "d:run_processor");
+    }
+  },
+
+  async store_sample(p){
+    armStatus("stowing " + p.sample);
+    const proc = procs[p.processor];
+    const s = samples.get(p.sample);
+    await sweepTo(hoverPt(proc.port));
+    await lineTo(grabPt(proc.port));
+    proc.vial = null; arm.holding = p.sample; s.loc = {type:"arm"};
+    reservations[p.processor] = false; updateButtons();
+    await lineTo(hoverPt(proc.port));
+    const slotIdx = freeTraySlot();
+    const slot = traySlots[slotIdx]; slot.vial = p.sample;
+    const anchor = {x:slot.x, y:TRAY_SURF - 30};
+    await sweepTo(hoverPt(anchor));
+    await lineTo(grabPt(anchor));
+    arm.holding = null; s.loc = {type:"tray", slot:slotIdx};
+    setVialPos(s, anchor.x, anchor.y);
+    await lineTo(hoverPt(anchor));
+    arm.busy = false; armStatus("idle");
+    emitEvent("sample_stored", {sample:p.sample, slot:slotIdx}, "d:stow_sample");
+    if (freeTraySlot() === -1) shipTray();
+    parkIfIdle();
+  },
+};
+
+function shipTray(){
+  setTimeout(() => {
+    for (const t of traySlots){
+      if (!t.vial) continue;
+      const s = samples.get(t.vial);
+      t.vial = null;
+      s.el.style.transition = "opacity .8s";
+      s.el.style.opacity = 0;
+      setTimeout(() => s.el.remove(), 900);
+    }
+  }, 1600 / speed);
+}
+
+/* -------- policies: events → new commands -------- */
+
+const POLICIES = {
+  sample_picked: [{
+    id:"y:route_to_processor",
+    run: p => dispatch("place_sample", {sample:p.sample, target:p.dest}, "y:route_to_processor"),
+  }],
+  sample_placed: [{
+    id:"y:begin_processing",
+    run: p => dispatch("process_sample", {sample:p.sample, processor:p.at, attempt:1}, "y:begin_processing"),
+  }],
+  sample_processed: [{
+    id:"y:store_when_done",
+    run: p => dispatch("store_sample", {sample:p.sample, processor:p.processor}, "y:store_when_done"),
+  }],
+  processing_failed: [{
+    id:"y:retry_processing",
+    run: p => dispatch("process_sample",
+      {sample:p.sample, processor:p.processor, attempt:p.attempt + 1}, "y:retry_processing"),
+  }],
+};
+
+/* -------- projections: events → models -------- */
+
+const samplesModel = new Map();   // built ONLY from folded events
+const metrics = {picked:0, processed:0, failed:0, stored:0};
+
+const trackerProj = {
+  id:"j:sample_tracker", model:"m:samples",
+  fold(name, p){
+    const row = samplesModel.get(p.sample) || {state:"raw", location:"?"};
+    if (name === "sample_picked")      row.location = "robot_arm";
+    if (name === "sample_placed")      row.location = p.at;
+    if (name === "sample_processed")   row.state = p.result;
+    if (name === "processing_failed")  row.state = "raw · retrying";
+    if (name === "sample_stored")    { row.location = "tray[" + p.slot + "]"; }
+    samplesModel.set(p.sample, row);
+  },
+  render(p){
+    const tb = $("#samplesTbl tbody");
+    tb.innerHTML = "";
+    const rows = [...samplesModel.entries()].sort((a,b) => b[0].localeCompare(a[0], undefined, {numeric:true}));
+    for (const [id, r] of rows.slice(0, 7)){
+      const tr = document.createElement("tr");
+      if (id === p.sample) tr.className = "updated";
+      tr.innerHTML = `<td class="sid">${id}</td><td>${r.location}</td><td>${r.state}</td>`;
+      tb.appendChild(tr);
+    }
+  },
+};
+const metricsProj = {
+  id:"j:lab_metrics", model:"m:throughput",
+  fold(name){
+    if (name === "sample_picked")     metrics.picked++;
+    if (name === "sample_processed")  metrics.processed++;
+    if (name === "processing_failed") metrics.failed++;
+    if (name === "sample_stored")     metrics.stored++;
+  },
+  render(){
+    for (const k in metrics){
+      const n = $("#t-" + k);
+      if (n.textContent != metrics[k]){
+        n.textContent = metrics[k];
+        n.classList.remove("bump"); void n.offsetWidth; n.classList.add("bump");
+      }
+    }
+  },
+};
+const PROJECTIONS = {
+  sample_picked:     [trackerProj, metricsProj],
+  sample_placed:     [trackerProj],
+  sample_processed:  [trackerProj, metricsProj],
+  processing_failed: [trackerProj, metricsProj],
+  sample_stored:     [trackerProj, metricsProj],
+};
+
+/* ================= controls / jobs ================= */
+
+const nextRackSample = () => {
+  const sl = rackSlots.find(r => r.vial && !samples.get(r.vial).job);
+  return sl && sl.vial;
+};
+
+function startJob(sampleId, target){
+  samples.get(sampleId).job = true;
+  reservations[target] = true;
+  updateButtons();
+  dispatch("pick_sample", {sample:sampleId, target}, null);
+}
+function updateButtons(){
+  document.querySelectorAll("[data-proc]").forEach(b => {
+    b.disabled = reservations[b.dataset.proc];
+  });
+}
+document.querySelectorAll("[data-proc]").forEach(b => b.addEventListener("click", () => {
+  const sid = nextRackSample();
+  if (!sid){ refillRack(); return; }
+  startJob(sid, b.dataset.proc);
+}));
+
+function refillRack(){
+  rackSlots.forEach((r, i) => { if (!r.vial) newSample(i); });
+}
+$("#refill").addEventListener("click", refillRack);
+
+let auto = true;
+const autoBtn = $("#auto");
+autoBtn.classList.add("toggled");
+autoBtn.addEventListener("click", () => {
+  auto = !auto;
+  autoBtn.classList.toggle("toggled", auto);
+});
+setInterval(() => {
+  if (!auto || QUEUE.length > 4) return;
+  const sid = nextRackSample();
+  if (!sid){ refillRack(); return; }
+  const free = Object.keys(procs).filter(k => !reservations[k] && !procs[k].vial);
+  if (free.length) startJob(sid, free[Math.floor(Math.random() * free.length)]);
+}, 1900);
+
+/* ================= boot ================= */
+refillRack();
+setTimeout(() => { const sid = nextRackSample(); if (sid) startJob(sid, "centrifuge"); }, 700);
+</script>
+</body>
+</html>
