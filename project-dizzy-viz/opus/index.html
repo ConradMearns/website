@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIZZY LAB — Event-Driven Robot Arm</title>
+<style>
+  :root{
+    --bg:#0a0e17;
+    --panel:#111826;
+    --panel-2:#0d1421;
+    --line:#1e2a3d;
+    --ink:#e7edf6;
+    --muted:#8394ac;
+    --faint:#54627a;
+    /* component colors */
+    --c-command:#38bdf8;   /* cyan  */
+    --c-procedure:#4ade80; /* green */
+    --c-event:#fbbf24;     /* amber */
+    --c-policy:#c084fc;    /* purple*/
+    --c-projection:#2dd4bf;/* teal  */
+    --c-model:#818cf8;     /* indigo*/
+    --c-query:#fb923c;     /* orange*/
+    --crit:#f43f5e;        /* rose  */
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;background:radial-gradient(1200px 800px at 20% -10%, #131c2e 0%, var(--bg) 55%);
+    color:var(--ink);font:14px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial;
+    overflow:hidden;
+  }
+  header{
+    display:flex;align-items:center;gap:18px;padding:12px 20px;
+    border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0e1522,#0b111c);
+    position:relative;z-index:5;
+  }
+  .brand{display:flex;align-items:center;gap:12px;min-width:220px}
+  .logo{
+    width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:20px;
+    background:conic-gradient(from 140deg,#38bdf8,#c084fc,#4ade80,#fbbf24,#38bdf8);
+    box-shadow:0 0 22px rgba(96,165,250,.45);
+  }
+  .brand h1{font-size:16px;margin:0;letter-spacing:.14em;font-weight:700}
+  .brand small{color:var(--muted);letter-spacing:.18em;font-size:10px;text-transform:uppercase}
+  .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ctl-group{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);
+    padding:5px 8px;border-radius:9px}
+  .ctl-group label{color:var(--muted);font-size:11px;letter-spacing:.05em}
+  select,button{
+    font:inherit;color:var(--ink);background:#16203200;border:1px solid var(--line);
+    border-radius:7px;padding:6px 10px;cursor:pointer;transition:.15s;
+  }
+  select{background:#0e1726}
+  button:hover{border-color:#33455f;background:#182338}
+  button.primary{background:linear-gradient(180deg,#1d84c9,#166aa5);border-color:#2b91d6;color:#eaf6ff;
+    box-shadow:0 4px 14px rgba(29,132,201,.35)}
+  button.primary:hover{filter:brightness(1.08)}
+  button.toggle.on{background:linear-gradient(180deg,#3aa76a,#2f8a58);border-color:#49c07f;color:#eafff2}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  input[type=range]{accent-color:var(--c-command);width:96px}
+  .spacer{flex:1}
+  .legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  .legend .lg{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:11px}
+  .dot{width:9px;height:9px;border-radius:3px}
+
+  main{
+    display:grid;grid-template-columns:1.35fr 300px 1.25fr;gap:0;
+    height:calc(100vh - 60px);
+  }
+  .col{position:relative;min-width:0;display:flex;flex-direction:column}
+  .col + .col{border-left:1px solid var(--line)}
+  .col-title{
+    display:flex;align-items:center;gap:8px;padding:10px 16px;color:var(--muted);
+    font-size:11px;letter-spacing:.16em;text-transform:uppercase;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#0e1522aa,#0b111c00);
+  }
+  .col-title b{color:var(--ink);font-weight:600;letter-spacing:.16em}
+  .col-title .hint{margin-left:auto;color:var(--faint);letter-spacing:.04em;text-transform:none;font-size:11px}
+
+  /* ---------- Lab scene ---------- */
+  #lab{flex:1;width:100%}
+  .scene-wrap{flex:1;position:relative;overflow:hidden}
+  .statline{
+    position:absolute;left:16px;bottom:14px;display:flex;gap:18px;color:var(--muted);font-size:12px;
+    background:#0b111ccc;border:1px solid var(--line);padding:8px 14px;border-radius:10px;backdrop-filter:blur(4px)}
+  .statline b{color:var(--ink)}
+  .statline .k{color:var(--faint);font-size:10px;letter-spacing:.1em;text-transform:uppercase;display:block}
+
+  /* ---------- Queue ---------- */
+  #queue{flex:1;overflow:hidden;position:relative;padding:8px 10px}
+  .msg{
+    position:relative;border:1px solid var(--line);border-radius:9px;padding:8px 10px 8px 12px;margin-bottom:8px;
+    background:linear-gradient(180deg,#101a2b,#0d1524);
+    animation:slidein .35s cubic-bezier(.2,.8,.2,1);overflow:hidden;
+  }
+  @keyframes slidein{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:none}}
+  .msg::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,#888)}
+  .msg .row1{display:flex;align-items:center;gap:8px}
+  .msg .kind{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+  .msg .sym{width:16px;height:16px;border-radius:5px;display:grid;place-items:center;font-size:10px;font-weight:700;
+    color:#0a0e17;background:var(--accent)}
+  .msg .name{font-weight:600;font-size:13px}
+  .msg .payload{color:var(--muted);font-size:11px;margin-top:3px;font-family:ui-monospace,Menlo,monospace}
+  .msg .t{margin-left:auto;color:var(--faint);font-size:10px;font-variant-numeric:tabular-nums}
+  .msg.crit{border-color:#5a2233;box-shadow:0 0 0 1px #7a2a3f inset, 0 0 20px rgba(244,63,94,.15)}
+  .msg.crit .critbadge{display:inline-flex;align-items:center;gap:4px;color:var(--crit);font-size:9.5px;
+    letter-spacing:.1em;text-transform:uppercase;font-weight:700;margin-left:8px}
+  .msg.fade{opacity:.35;filter:saturate(.6)}
+
+  /* ---------- Graph ---------- */
+  #graph{flex:1;width:100%}
+  .gnode-label{font-size:10.5px;font-weight:600;fill:var(--ink);pointer-events:none}
+  .gnode-sym{font-size:11px;font-weight:800;pointer-events:none}
+  .gnode-count{font-size:9px;fill:var(--faint);font-family:ui-monospace,monospace;pointer-events:none}
+  .grouplabel{font-size:9px;letter-spacing:.22em;text-transform:uppercase;fill:var(--faint);font-weight:700}
+
+  .footnote{padding:7px 16px;border-top:1px solid var(--line);color:var(--faint);font-size:11px;
+    display:flex;gap:8px;align-items:center;background:#0b111c}
+  .footnote code{color:var(--muted);background:#0e1726;border:1px solid var(--line);padding:1px 6px;border-radius:5px}
+  .pill{color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:2px 9px;font-size:10px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">🦾</div>
+    <div>
+      <h1>DIZZY&nbsp;LAB</h1>
+      <small>event-driven robot arm · live viz</small>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="ctl-group">
+      <label>Sample</label>
+      <select id="selRack"></select>
+    </div>
+    <div class="ctl-group">
+      <label>Processor</label>
+      <select id="selProc"></select>
+    </div>
+    <button id="btnRun" class="primary">▶ Dispatch cycle</button>
+    <button id="btnAuto" class="toggle">⟳ Auto</button>
+    <div class="ctl-group">
+      <label>Speed</label>
+      <input id="speed" type="range" min="0.5" max="2.4" step="0.1" value="1.1">
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="legend" id="legend"></div>
+</header>
+
+<main>
+  <!-- LAB -->
+  <section class="col">
+    <div class="col-title"><b>Robot Lab</b> — physical process <span class="hint">procedures drive the arm</span></div>
+    <div class="scene-wrap">
+      <svg id="lab" viewBox="0 0 540 500" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="statline">
+        <div><span class="k">Status</span><b id="stStatus">idle</b></div>
+        <div><span class="k">Holding</span><b id="stHold">—</b></div>
+        <div><span class="k">Processed</span><b id="stProc">0</b></div>
+        <div><span class="k">Cycles</span><b id="stCycle">0</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUEUE -->
+  <section class="col">
+    <div class="col-title"><b>Message Queue</b> <span class="hint" id="qcount">0 total</span></div>
+    <div id="queue"></div>
+  </section>
+
+  <!-- GRAPH -->
+  <section class="col">
+    <div class="col-title"><b>Component Graph</b> — commands &amp; events flowing <span class="hint">the .feat.yaml wiring</span></div>
+    <svg id="graph" viewBox="0 0 600 640" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="footnote">
+      <span class="pill">reactivity loop</span> c → d → e → y → c
+      <span class="pill">data loop</span> e → j → m → q → d
+      <span class="spacer" style="flex:1"></span>
+      <span>mock of a <code>dizzy</code> feature-file</span>
+    </div>
+  </section>
+</main>
+
+<script>
+/* =========================================================================
+   DIZZY LAB — an interactive visualization of a dizzy event-driven system.
+   Not a real dizzy runtime; a faithful *mock* of how one looks & behaves.
+
+   Reactivity loop:  Command -> Procedure -> Event -> Policy -> Command
+   Data loop:        Event -> Projection -> Model -> Query -> Procedure
+   ========================================================================= */
+const SVGNS="http://www.w3.org/2000/svg";
+const svg=(t,a={})=>{const e=document.createElementNS(SVGNS,t);for(const k in a)e.setAttribute(k,a[k]);return e;};
+const el=(id)=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+
+/* ---- component palette ---- */
+const TYPE={
+  command   :{sym:'c',color:'var(--c-command)',    css:'#38bdf8', label:'Command'},
+  procedure :{sym:'d',color:'var(--c-procedure)',  css:'#4ade80', label:'Procedure'},
+  event     :{sym:'e',color:'var(--c-event)',      css:'#fbbf24', label:'Event'},
+  policy    :{sym:'y',color:'var(--c-policy)',      css:'#c084fc', label:'Policy'},
+  projection:{sym:'j',color:'var(--c-projection)',  css:'#2dd4bf', label:'Projection'},
+  model     :{sym:'m',color:'var(--c-model)',       css:'#818cf8', label:'Model'},
+  query     :{sym:'q',color:'var(--c-query)',       css:'#fb923c', label:'Query'},
+};
+
+/* =========================================================================
+   1. DOMAIN  (racks, processors, samples)
+   ========================================================================= */
+const BASE={x:270, y:462};
+const L1=158, L2=150;               // arm segment lengths
+const HOME={x:270, y:250};          // resting end-effector position
+
+const RACKS=[
+  {id:'rack_a', name:'Rack A', x:78,  y:238},
+  {id:'rack_b', name:'Rack B', x:74,  y:322},
+  {id:'rack_c', name:'Rack C', x:86,  y:404},
+];
+const PROCS=[
+  {id:'centrifuge',  name:'Centrifuge',  icon:'🌀', x:452, y:214, tint:'#38bdf8', spin:true },
+  {id:'incubator',   name:'Incubator',   icon:'🔥', x:470, y:300, tint:'#fb7185', glow:true },
+  {id:'spectrometer',name:'Spectrometer',icon:'🔬', x:456, y:386, tint:'#4ade80', scan:true },
+];
+// one sample resting in each rack
+const SAMPLES=RACKS.map((r,i)=>({
+  id:'S'+(i+1), rack:r.id, x:r.x, y:r.y-2, home:{x:r.x,y:r.y-2},
+  color:'#9fb0c9', gen:0, glyph:'●'
+}));
+
+/* =========================================================================
+   2. LAB RENDER  (SVG scene + IK arm)
+   ========================================================================= */
+const lab=el('lab');
+function buildLab(){
+  // defs: glow filters + gradients
+  const defs=svg('defs');
+  defs.innerHTML=`
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4" result="b"/><feMerge>
+      <feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <filter id="softglow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="7"/></filter>
+    <radialGradient id="floor" cx="50%" cy="0%" r="90%">
+      <stop offset="0%" stop-color="#16233a"/><stop offset="100%" stop-color="#0b1120"/></radialGradient>
+    <linearGradient id="armgrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#63788f"/><stop offset="100%" stop-color="#39485c"/></linearGradient>`;
+  lab.appendChild(defs);
+
+  // floor / bench
+  lab.appendChild(svg('rect',{x:0,y:0,width:540,height:500,fill:'url(#floor)'}));
+  // grid
+  const grid=svg('g',{opacity:'.5'});
+  for(let x=0;x<=540;x+=36) grid.appendChild(svg('line',{x1:x,y1:0,x2:x,y2:500,stroke:'#132033','stroke-width':1}));
+  for(let y=0;y<=500;y+=36) grid.appendChild(svg('line',{x1:0,y1:y,x2:540,y2:y,stroke:'#132033','stroke-width':1}));
+  lab.appendChild(grid);
+  // bench surface line
+  lab.appendChild(svg('rect',{x:0,y:452,width:540,height:48,fill:'#0a1120',stroke:'#1b2740','stroke-width':1}));
+
+  // reach envelope (subtle)
+  lab.appendChild(svg('circle',{cx:BASE.x,cy:BASE.y,r:L1+L2,fill:'none',stroke:'#1b2b45',
+    'stroke-width':1,'stroke-dasharray':'3 7',opacity:.6}));
+
+  // racks
+  RACKS.forEach(r=>{
+    const g=svg('g');
+    g.appendChild(svg('rect',{x:r.x-26,y:r.y-6,width:52,height:30,rx:6,fill:'#0e1a2c',stroke:'#243550','stroke-width':1.2}));
+    g.appendChild(svg('rect',{x:r.x-26,y:r.y+18,width:52,height:6,rx:3,fill:'#1a2740'}));
+    const t=svg('text',{x:r.x,y:r.y+40,'text-anchor':'middle',fill:'#7c8ba6','font-size':10,'letter-spacing':'.08em'});
+    t.textContent=r.name.toUpperCase(); g.appendChild(t);
+    lab.appendChild(g);
+  });
+
+  // processors
+  PROCS.forEach(p=>{
+    const g=svg('g'); p.g=g;
+    const halo=svg('circle',{cx:p.x,cy:p.y,r:34,fill:p.tint,opacity:0,filter:'url(#softglow)'}); p.halo=halo;
+    g.appendChild(halo);
+    g.appendChild(svg('rect',{x:p.x-30,y:p.y-30,width:60,height:60,rx:12,fill:'#0f1c30',stroke:'#26385a','stroke-width':1.4}));
+    const ring=svg('circle',{cx:p.x,cy:p.y-4,r:17,fill:'none',stroke:p.tint,'stroke-width':2.4,opacity:.35}); p.ring=ring;
+    g.appendChild(ring);
+    const ic=svg('text',{x:p.x,y:p.y+2,'text-anchor':'middle','font-size':20}); ic.textContent=p.icon; g.appendChild(ic);
+    const t=svg('text',{x:p.x,y:p.y+46,'text-anchor':'middle',fill:'#8fa0bd','font-size':10,'letter-spacing':'.06em','font-weight':600});
+    t.textContent=p.name; g.appendChild(t);
+    lab.appendChild(g);
+  });
+
+  // arm segments (drawn on top, updated each frame)
+  armG=svg('g');
+  seg1=svg('line',{stroke:'url(#armgrad)','stroke-width':13,'stroke-linecap':'round'});
+  seg2=svg('line',{stroke:'url(#armgrad)','stroke-width':10,'stroke-linecap':'round'});
+  jBase=svg('circle',{r:15,fill:'#22304a',stroke:'#4b6079','stroke-width':3});
+  jElbow=svg('circle',{r:7,fill:'#33485f',stroke:'#5b7391','stroke-width':2});
+  // gripper
+  gripG=svg('g');
+  gClawL=svg('line',{stroke:'#8fa4bd','stroke-width':4,'stroke-linecap':'round'});
+  gClawR=svg('line',{stroke:'#8fa4bd','stroke-width':4,'stroke-linecap':'round'});
+  gWrist=svg('circle',{r:5,fill:'#43607d'});
+  gripG.appendChild(gClawL);gripG.appendChild(gClawR);gripG.appendChild(gWrist);
+  armG.appendChild(seg1);armG.appendChild(seg2);armG.appendChild(jElbow);armG.appendChild(gripG);armG.appendChild(jBase);
+  // base mount
+  lab.appendChild(svg('rect',{x:BASE.x-22,y:BASE.y-4,width:44,height:34,rx:6,fill:'#141f34',stroke:'#2b3d5c','stroke-width':1.5}));
+  lab.appendChild(armG);
+
+  // sample tokens (top layer)
+  sampleLayer=svg('g'); lab.appendChild(sampleLayer);
+  SAMPLES.forEach(s=>{
+    const g=svg('g'); s.g=g;
+    s.halo=svg('circle',{r:13,fill:s.color,opacity:0,filter:'url(#softglow)'});
+    s.body=svg('circle',{r:8.5,fill:s.color,stroke:'#0a0e17','stroke-width':1.5});
+    s.tag=svg('text',{'text-anchor':'middle','font-size':8.5,'font-weight':700,fill:'#0a0e17',dy:3});
+    s.tag.textContent=s.id;
+    g.appendChild(s.halo);g.appendChild(s.body);g.appendChild(s.tag);
+    sampleLayer.appendChild(g);
+  });
+}
+let armG,seg1,seg2,jBase,jElbow,gripG,gClawL,gClawR,gWrist,sampleLayer;
+
+/* ---- arm state + IK ---- */
+const arm={x:HOME.x,y:HOME.y, tx:HOME.x,ty:HOME.y, grip:1 /*1 open..0 closed*/, tgrip:1, onArrive:null};
+function solveIK(tx,ty){
+  let dx=tx-BASE.x, dy=ty-BASE.y;
+  let d=Math.hypot(dx,dy);
+  d=clamp(d, Math.abs(L1-L2)+1, L1+L2-1);
+  const ang=Math.atan2(dy,dx);
+  const a2=Math.acos(clamp((d*d-L1*L1-L2*L2)/(2*L1*L2),-1,1));
+  const a1=ang - Math.atan2(L2*Math.sin(a2), L1+L2*Math.cos(a2));
+  const ex=BASE.x+L1*Math.cos(a1), ey=BASE.y+L1*Math.sin(a1);
+  // recompute actual end from clamped d along ang
+  const hx=BASE.x+Math.cos(ang)*d, hy=BASE.y+Math.sin(ang)*d;
+  return {ex,ey,hx,hy,ang};
+}
+function drawArm(){
+  const {ex,ey,hx,hy,ang}=solveIK(arm.x,arm.y);
+  seg1.setAttribute('x1',BASE.x);seg1.setAttribute('y1',BASE.y);seg1.setAttribute('x2',ex);seg1.setAttribute('y2',ey);
+  seg2.setAttribute('x1',ex);seg2.setAttribute('y1',ey);seg2.setAttribute('x2',hx);seg2.setAttribute('y2',hy);
+  jBase.setAttribute('cx',BASE.x);jBase.setAttribute('cy',BASE.y);
+  jElbow.setAttribute('cx',ex);jElbow.setAttribute('cy',ey);
+  // gripper claws oriented along forearm
+  const wa=Math.atan2(hy-ey,hx-ex);
+  const spread=(4+arm.grip*7);
+  const nx=Math.cos(wa+Math.PI/2), ny=Math.sin(wa+Math.PI/2);
+  const tipx=hx+Math.cos(wa)*9, tipy=hy+Math.sin(wa)*9;
+  gWrist.setAttribute('cx',hx);gWrist.setAttribute('cy',hy);
+  gClawL.setAttribute('x1',hx+nx*3);gClawL.setAttribute('y1',hy+ny*3);
+  gClawL.setAttribute('x2',tipx+nx*spread);gClawL.setAttribute('y2',tipy+ny*spread);
+  gClawR.setAttribute('x1',hx-nx*3);gClawR.setAttribute('y1',hy-ny*3);
+  gClawR.setAttribute('x2',tipx-nx*spread);gClawR.setAttribute('y2',tipy-ny*spread);
+  arm.hx=hx;arm.hy=hy;
+}
+
+/* =========================================================================
+   3. ANIMATION LOOP
+   ========================================================================= */
+let held=null, spinPhase=0;
+function tick(){
+  const sp=parseFloat(el('speed').value);
+  // arm easing toward target
+  arm.x=lerp(arm.x,arm.tx, clamp(0.09*sp,0,.5));
+  arm.y=lerp(arm.y,arm.ty, clamp(0.09*sp,0,.5));
+  arm.grip=lerp(arm.grip,arm.tgrip,0.18*sp);
+  drawArm();
+
+  // held sample tracks the gripper
+  if(held){ held.x=arm.hx; held.y=arm.hy+ (arm.grip<0.5?11:0); }
+  SAMPLES.forEach(s=>{ s.g.setAttribute('transform',`translate(${s.x},${s.y})`); });
+
+  // arrival check
+  if(arm.onArrive){
+    const near=Math.hypot(arm.x-arm.tx,arm.y-arm.ty)<3.2 && Math.abs(arm.grip-arm.tgrip)<0.06;
+    if(near){ const f=arm.onArrive; arm.onArrive=null; f(); }
+  }
+
+  // processor effects
+  spinPhase+=0.14*sp;
+  PROCS.forEach(p=>{
+    const a=p._active||0;
+    p.halo.setAttribute('opacity', (0.28*a).toFixed(3));
+    p.ring.setAttribute('opacity',(0.35+0.5*a).toFixed(2));
+    if(a>0.02){
+      const r=17+Math.sin(spinPhase*(p.spin?2:1))*(p.spin?4:2)*a;
+      p.ring.setAttribute('r', r.toFixed(2));
+      p.ring.setAttribute('transform', p.spin?`rotate(${spinPhase*60} ${p.x} ${p.y-4})`:'');
+    } else { p.ring.setAttribute('r',17); p.ring.setAttribute('transform',''); }
+  });
+
+  // sample pulse when recently changed
+  SAMPLES.forEach(s=>{
+    if(s._pulse>0){ s._pulse-=0.02*sp; s.halo.setAttribute('opacity',clamp(s._pulse,0,1)*0.9); }
+    else s.halo.setAttribute('opacity',0);
+  });
+
+  drawGraphParticles(sp);
+  requestAnimationFrame(tick);
+}
+
+/* motion promises */
+const wait=(ms)=>new Promise(r=>setTimeout(r, ms/motionScale()));
+function motionScale(){return clamp(parseFloat(el('speed').value),0.5,2.4);}
+function armTo(x,y){return new Promise(res=>{arm.tx=x;arm.ty=y;arm.onArrive=res;});}
+function setGrip(open){return new Promise(res=>{arm.tgrip=open?1:0;arm.onArrive=res;});}
+
+/* =========================================================================
+   4. DIZZY MOCK RUNTIME  (topology + message bus)
+   ========================================================================= */
+// Graph node definitions: id -> {type,label,x,y}
+const NODES={
+  // commands (top row)
+  pick_up_sample:{type:'command',label:'pick_up_sample',x:80,y:46},
+  move_arm:{type:'command',label:'move_arm',x:236,y:46},
+  process_sample:{type:'command',label:'process_sample',x:392,y:46},
+  deposit_sample:{type:'command',label:'deposit_sample',x:534,y:46},
+  // procedures
+  grip_sample:{type:'procedure',label:'grip_sample',x:80,y:150},
+  move_arm_to:{type:'procedure',label:'move_arm_to',x:236,y:150},
+  run_processor:{type:'procedure',label:'run_processor',x:392,y:150},
+  release_sample:{type:'procedure',label:'release_sample',x:534,y:150},
+  // events
+  sample_gripped:{type:'event',label:'sample_gripped',x:80,y:262},
+  arm_repositioned:{type:'event',label:'arm_repositioned',x:236,y:262},
+  sample_transformed:{type:'event',label:'sample_transformed',x:392,y:262},
+  sample_deposited:{type:'event',label:'sample_deposited',x:534,y:262},
+  // policies (loop back to a command)
+  route_after_grip:{type:'policy',label:'route_after_grip',x:158,y:360},
+  process_on_arrival:{type:'policy',label:'process_on_arrival',x:314,y:360},
+  return_after_process:{type:'policy',label:'return_after_process',x:463,y:360},
+  // projections
+  arm_tracker:{type:'projection',label:'arm_tracker',x:236,y:452},
+  sample_ledger:{type:'projection',label:'sample_ledger',x:392,y:452},
+  throughput:{type:'projection',label:'throughput',x:534,y:452},
+  // models
+  arm_state:{type:'model',label:'arm_state',x:236,y:560, count:0},
+  samples:{type:'model',label:'samples',x:392,y:560, count:0},
+  stats:{type:'model',label:'stats',x:534,y:560, count:0},
+  // query
+  get_recipe:{type:'query',label:'get_recipe',x:110,y:470},
+};
+
+// Edges: {from,to,kind}  kind: flow (solid reactivity), data (dashed data loop), read (query call)
+const EDGES=[
+  // command -> procedure
+  ['pick_up_sample','grip_sample','flow'],
+  ['move_arm','move_arm_to','flow'],
+  ['process_sample','run_processor','flow'],
+  ['deposit_sample','release_sample','flow'],
+  // procedure -> event (emits)
+  ['grip_sample','sample_gripped','flow'],
+  ['move_arm_to','arm_repositioned','flow'],
+  ['run_processor','sample_transformed','flow'],
+  ['release_sample','sample_deposited','flow'],
+  // event -> policy
+  ['sample_gripped','route_after_grip','flow'],
+  ['arm_repositioned','process_on_arrival','flow'],
+  ['sample_transformed','return_after_process','flow'],
+  // policy -> command (dispatch, closes reactivity loop)
+  ['route_after_grip','move_arm','flow'],
+  ['process_on_arrival','process_sample','flow'],
+  ['return_after_process','deposit_sample','flow'],
+  // event -> projection (data loop)
+  ['arm_repositioned','arm_tracker','data'],
+  ['sample_transformed','sample_ledger','data'],
+  ['sample_deposited','throughput','data'],
+  // projection -> model
+  ['arm_tracker','arm_state','data'],
+  ['sample_ledger','samples','data'],
+  ['throughput','stats','data'],
+  // query -> model (reads) and query -> procedure (available to)
+  ['samples','get_recipe','data'],
+  ['get_recipe','run_processor','read'],
+];
+
+/* map a message name to its node id (command & event names ARE node ids) */
+function nodeForMessage(name){ return NODES[name]?name:null; }
+
+/* =========================================================================
+   5. GRAPH RENDER
+   ========================================================================= */
+const graph=el('graph');
+const gEls={};   // node id -> {g, ring}
+const particles=[];
+function edgePath(a,b){
+  // quadratic bezier with perpendicular bow for legibility
+  const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+  const dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy)||1;
+  const bow=clamp(len*0.12,6,42) * (a.x<b.x?1:-1) * (Math.abs(dx)>Math.abs(dy)?0.4:1);
+  const cx=mx - dy/len*bow, cy=my + dx/len*bow;
+  return {d:`M${a.x},${a.y} Q${cx},${cy} ${b.x},${b.y}`, cx,cy};
+}
+function bez(a,c,b,t){
+  const u=1-t;
+  return {x:u*u*a.x+2*u*t*c.x+t*t*b.x, y:u*u*a.y+2*u*t*c.y+t*t*b.y};
+}
+function buildGraph(){
+  const defs=svg('defs');
+  defs.innerHTML=`<filter id="nglow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="4"/></filter>`;
+  graph.appendChild(defs);
+
+  // group band labels
+  const bands=[['Commands',46],['Procedures',150],['Events',262],['Policies',360],['Projections',452],['Models',560]];
+  bands.forEach(([txt,y])=>{
+    const t=svg('text',{x:11,y:y,class:'grouplabel','text-anchor':'middle'});
+    t.textContent=txt; t.setAttribute('transform',`rotate(-90 11 ${y})`); graph.appendChild(t);
+  });
+
+  // edges layer
+  const eLayer=svg('g'); graph.appendChild(eLayer);
+  EDGES.forEach(([f,t,kind])=>{
+    const a=NODES[f], b=NODES[t]; const {d,cx,cy}=edgePath(a,b);
+    const col = kind==='data'?'#274b54' : kind==='read'?'#5a4327' : '#293b57';
+    const p=svg('path',{d,fill:'none',stroke:col,'stroke-width':1.4,opacity:.8});
+    if(kind!=='flow') p.setAttribute('stroke-dasharray','4 5');
+    eLayer.appendChild(p);
+    // store control point for particle animation
+    (NODES[f]._out||(NODES[f]._out=[])).push({to:t,kind,c:{x:cx,y:cy}});
+  });
+
+  // particles layer (above edges, below nodes)
+  pLayer=svg('g'); graph.appendChild(pLayer);
+
+  // nodes layer
+  const nLayer=svg('g'); graph.appendChild(nLayer);
+  for(const id in NODES){
+    const n=NODES[id]; const ty=TYPE[n.type];
+    const g=svg('g',{transform:`translate(${n.x},${n.y})`});
+    const w = Math.max(72, n.label.length*6.3+22), h=26;
+    const ring=svg('rect',{x:-w/2-3,y:-h/2-3,width:w+6,height:h+6,rx:9,fill:'none',
+      stroke:ty.css,'stroke-width':2,opacity:0,filter:'url(#nglow)'});
+    g.appendChild(ring);
+    g.appendChild(svg('rect',{x:-w/2,y:-h/2,width:w,height:h,rx:7,fill:'#0e1728',
+      stroke:ty.css,'stroke-width':1.3,'stroke-opacity':.55}));
+    // symbol chip
+    g.appendChild(svg('rect',{x:-w/2+5,y:-8,width:16,height:16,rx:4,fill:ty.css}));
+    const sym=svg('text',{x:-w/2+13,y:3.5,'text-anchor':'middle',class:'gnode-sym',fill:'#0a0e17'});
+    sym.textContent=ty.sym; g.appendChild(sym);
+    const lab=svg('text',{x:-w/2+27,y:1,class:'gnode-label','dominant-baseline':'middle'});
+    lab.textContent=n.label; g.appendChild(lab);
+    if(n.type==='model'){
+      const c=svg('text',{x:w/2-8,y:1,'text-anchor':'end',class:'gnode-count','dominant-baseline':'middle'});
+      c.textContent='0'; g.appendChild(c); n._countEl=c;
+    }
+    nLayer.appendChild(g);
+    gEls[id]={g,ring,ty};
+  }
+}
+let pLayer;
+
+/* pulse a node ring */
+function pulseNode(id){
+  const e=gEls[id]; if(!e)return;
+  e.ring.setAttribute('opacity','1'); e._decay=1;
+}
+function emitParticles(fromId, filterKinds){
+  const from=NODES[fromId]; if(!from||!from._out)return;
+  from._out.forEach(o=>{
+    if(filterKinds && !filterKinds.includes(o.kind))return;
+    const a=NODES[fromId], b=NODES[o.to];
+    particles.push({a,c:o.c,b,t:0, kind:o.kind, to:o.to, arrived:false});
+  });
+}
+function drawGraphParticles(sp){
+  // decay node rings
+  for(const id in gEls){const e=gEls[id]; if(e._decay>0){e._decay-=0.03*sp; e.ring.setAttribute('opacity',clamp(e._decay,0,1));}}
+  // move particles
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.t+=0.02*sp*(p.kind==='flow'?1:0.85);
+    if(!p.el){
+      const col=p.kind==='data'?'#2dd4bf':p.kind==='read'?'#fb923c':'#7dd3fc';
+      p.el=svg('circle',{r:p.kind==='flow'?4:3, fill:col, filter:'url(#nglow)'});
+      p.trail=svg('circle',{r:p.kind==='flow'?7:5, fill:col, opacity:.18});
+      pLayer.appendChild(p.trail);pLayer.appendChild(p.el);
+    }
+    const pos=bez(p.a,p.c,p.b,clamp(p.t,0,1));
+    p.el.setAttribute('cx',pos.x);p.el.setAttribute('cy',pos.y);
+    p.trail.setAttribute('cx',pos.x);p.trail.setAttribute('cy',pos.y);
+    if(p.t>=1){ p.el.remove();p.trail.remove(); particles.splice(i,1); }
+  }
+}
+
+/* =========================================================================
+   6. MESSAGE BUS  -> queue panel + graph animation + models
+   ========================================================================= */
+let seq=0, cycleCount=0, processedCount=0;
+const startT=Date.now();
+function stamp(){const s=((Date.now()-startT)/1000).toFixed(1);return s+'s';}
+
+function emit(kind, name, payload, opts={}){
+  seq++;
+  addQueueCard(kind,name,payload,opts.critical);
+  const nid=nodeForMessage(name);
+  if(nid){
+    pulseNode(nid);
+    // animate flow to downstream nodes (reactivity + emits)
+    setTimeout(()=>emitParticles(nid, ['flow']), 60);
+    // for events, also fan out to projections (data loop) slightly later
+    if(kind==='event'){ setTimeout(()=>emitParticles(nid, ['data']), 260); }
+  }
+  el('qcount').textContent=seq+' total';
+}
+/* projection application: bump model + pulse chain */
+function project(projId){
+  const proj=NODES[projId]; if(!proj)return;
+  pulseNode(projId);
+  emitParticles(projId,['data']);
+  const target=proj._out&&proj._out[0]&&proj._out[0].to;
+  if(target){
+    setTimeout(()=>{
+      pulseNode(target);
+      const m=NODES[target]; m.count=(m.count||0)+1; if(m._countEl)m._countEl.textContent=m.count;
+    },520);
+  }
+}
+/* query read animation (procedure consulting a model) */
+function queryRead(qId){
+  pulseNode(qId);
+  emitParticles(qId,['read']);
+}
+
+/* ---- queue panel ---- */
+const queueEl=el('queue');
+const MAXCARDS=11;
+function addQueueCard(kind,name,payload,critical){
+  const ty=TYPE[kind==='command'?'command':'event'];
+  const card=document.createElement('div');
+  card.className='msg'+(critical?' crit':'');
+  card.style.setProperty('--accent', ty.css);
+  const pl = payload? `{ ${Object.entries(payload).map(([k,v])=>`${k}: ${v}`).join(', ')} }` : '';
+  card.innerHTML=`
+    <div class="row1">
+      <span class="sym">${ty.sym}</span>
+      <span class="kind">${kind}</span>
+      <span class="name">${name}</span>
+      ${critical?'<span class="critbadge">◆ critical</span>':''}
+      <span class="t">${stamp()}</span>
+    </div>
+    ${pl?`<div class="payload">${pl}</div>`:''}`;
+  queueEl.prepend(card);
+  // fade + trim
+  const cards=[...queueEl.children];
+  cards.forEach((c,i)=>{ c.classList.toggle('fade', i>=6); });
+  while(queueEl.children.length>MAXCARDS) queueEl.lastChild.remove();
+}
+
+/* =========================================================================
+   7. CONDUCTOR  — runs one physical cycle, emitting dizzy messages in step
+   ========================================================================= */
+let running=false, auto=false;
+function setStatus(s){el('stStatus').textContent=s;}
+function rackById(id){return RACKS.find(r=>r.id===id);}
+function procById(id){return PROCS.find(p=>p.id===id);}
+
+async function runCycle(rackId, procId){
+  if(running)return; running=true;
+  el('btnRun').disabled=true;
+  const rack=rackById(rackId), proc=procById(procId);
+  const sample=SAMPLES.find(s=>s.rack===rackId);
+  cycleCount++; el('stCycle').textContent=cycleCount;
+
+  /* --- 1. pick_up_sample -> grip_sample -> sample_gripped --- */
+  setStatus('dispatching pick_up_sample');
+  emit('command','pick_up_sample',{location:rack.name.replace(' ','_').toLowerCase(), sample:sample.id});
+  await wait(340);
+  setStatus('grip_sample · reaching sample');
+  await setGrip(true);
+  await armTo(sample.x, sample.y);
+  await setGrip(false);            // close claws
+  held=sample; el('stHold').textContent=sample.id;
+  await wait(180);
+  emit('event','sample_gripped',{sample:sample.id, from:rack.name});
+
+  /* --- 2. route_after_grip (policy) -> move_arm -> arm_repositioned --- */
+  await wait(230);
+  policyDispatch('route_after_grip','move_arm',{target:proc.name});
+  await wait(120);
+  setStatus('move_arm_to · '+proc.name);
+  await armTo(proc.x, proc.y-6);
+  emit('event','arm_repositioned',{to:proc.name});
+  project('arm_tracker');           // data loop: arm position recorded
+
+  /* --- 3. process_on_arrival (policy) -> process_sample -> run_processor --- */
+  await wait(220);
+  policyDispatch('process_on_arrival','process_sample',{processor:proc.name});
+  await wait(120);
+  setStatus('run_processor · '+proc.name);
+  queryRead('get_recipe');           // procedure consults a query (data loop)
+  await wait(260);
+  await processAnim(proc, sample);   // the transformation
+  emit('event','sample_transformed',{sample:sample.id, by:proc.name, gen:sample.gen}, {critical:true});
+  processedCount++; el('stProc').textContent=processedCount;
+  project('sample_ledger');          // data loop: new sample state stored
+
+  /* --- 4. return_after_process (policy) -> deposit_sample -> release_sample --- */
+  await wait(240);
+  policyDispatch('return_after_process','deposit_sample',{location:rack.name});
+  await wait(120);
+  setStatus('release_sample · returning to '+rack.name);
+  await armTo(rack.x, rack.y-2);
+  await setGrip(true);               // open claws
+  held=null; el('stHold').textContent='—';
+  sample.x=sample.home.x; sample.y=sample.home.y;
+  await wait(160);
+  emit('event','sample_deposited',{sample:sample.id, at:rack.name}, {critical:true});
+  project('throughput');             // data loop: throughput stats
+
+  /* --- retract to home --- */
+  setStatus('idle');
+  await armTo(HOME.x,HOME.y);
+  await setGrip(true);
+  running=false; el('btnRun').disabled=false;
+  if(auto){ await wait(500); autoNext(); }
+}
+
+/* policy dispatch: pulse policy node, flow to the command it dispatches, then emit command */
+function policyDispatch(policyId, cmdName, payload){
+  pulseNode(policyId);
+  emitParticles(policyId,['flow']);   // policy -> command edge
+  setTimeout(()=> emit('command',cmdName,payload), 320);
+}
+
+/* the physical transformation at a processor */
+async function processAnim(proc, sample){
+  proc._active=1;
+  // pulse sample partway through
+  for(let i=0;i<3;i++){ await wait(230); }
+  sample.gen++;
+  sample.color=proc.tint;
+  sample.body.setAttribute('fill',proc.tint);
+  sample.halo.setAttribute('fill',proc.tint);
+  sample._pulse=1.0;
+  await wait(260);
+  proc._active=0;
+}
+
+/* =========================================================================
+   8. UI wiring
+   ========================================================================= */
+function initUI(){
+  const sr=el('selRack'); RACKS.forEach(r=>{const o=document.createElement('option');o.value=r.id;o.textContent=r.name+' ('+SAMPLES.find(s=>s.rack===r.id).id+')';sr.appendChild(o);});
+  const sp=el('selProc'); PROCS.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.icon+'  '+p.name;sp.appendChild(o);});
+
+  el('btnRun').onclick=()=>runCycle(sr.value, sp.value);
+  el('btnAuto').onclick=(e)=>{
+    auto=!auto; e.target.classList.toggle('on',auto);
+    e.target.textContent=auto?'⟳ Auto · on':'⟳ Auto';
+    if(auto && !running) autoNext();
+  };
+
+  // legend
+  const lg=el('legend');
+  Object.values(TYPE).forEach(t=>{
+    const d=document.createElement('div');d.className='lg';
+    d.innerHTML=`<span class="dot" style="background:${t.css}"></span>${t.label}`;
+    lg.appendChild(d);
+  });
+}
+function autoNext(){
+  if(!auto)return;
+  const r=RACKS[Math.floor(Math.random()*RACKS.length)];
+  const p=PROCS[Math.floor(Math.random()*PROCS.length)];
+  el('selRack').value=r.id; el('selProc').value=p.id;
+  runCycle(r.id,p.id);
+}
+
+/* =========================================================================
+   boot
+   ========================================================================= */
+buildLab();
+buildGraph();
+initUI();
+// place samples & arm initial
+SAMPLES.forEach(s=>s.g.setAttribute('transform',`translate(${s.x},${s.y})`));
+drawArm();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
