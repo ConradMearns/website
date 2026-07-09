@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <title>DIZZY LAB: 8 Models, One Prompt</title>
+    <link rel='stylesheet' href='../main.css'>
+    <style>
+        :root {
+            --m-fable:   #f07c5a;
+            --m-opus:    #a78bfa;
+            --m-sonnet5: #5b9bd5;
+            --m-fugu:    #6ad9c5;
+            --m-fuguviz: #4ade80;
+            --m-luna:    #f0c040;
+            --m-sol:     #f472b6;
+            --m-terra:   #9aa0b4;
+        }
+
+        .lede {
+            color: var(--muted);
+            font-size: 0.95em;
+        }
+
+        .harness-tag {
+            display: inline-block;
+            font-size: 0.7em;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            padding: 0.1em 0.5em;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            color: var(--muted);
+            margin-left: 0.5em;
+        }
+
+        /* ── bar chart ── */
+        .chart {
+            margin: 1.4em 0 2em 0;
+        }
+        .chart h4 {
+            color: var(--text);
+            font-weight: 400;
+            font-size: 0.95em;
+            letter-spacing: 0.02em;
+            margin: 0 0 0.8em 0;
+            text-transform: uppercase;
+            opacity: 0.75;
+        }
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 0.8em;
+            margin: 0.35em 0;
+            font-size: 0.82em;
+        }
+        .bar-label {
+            width: 9.5em;
+            flex-shrink: 0;
+            text-align: right;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .bar-track {
+            flex-grow: 1;
+            background: var(--hover);
+            border-radius: 2px;
+            height: 1.15em;
+            position: relative;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            transition: width 0.3s ease;
+        }
+        .bar-value {
+            flex-shrink: 0;
+            width: 6.5em;
+            font-size: 0.9em;
+            color: var(--text);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ── model card ── */
+        .model-card {
+            border-left: 4px solid var(--muted);
+            padding: 1em 0 1em 1.2em;
+            margin: 1.4em 0;
+        }
+        .model-card:hover { border-left-color: var(--accent); }
+        .model-card h3 {
+            margin: 0 0 0.2em 0;
+            font-size: 1.05em;
+            color: var(--accent);
+        }
+        .model-meta {
+            font-size: 0.78em;
+            color: var(--muted);
+            opacity: 0.8;
+            margin-bottom: 0.7em;
+        }
+        .model-card dl {
+            display: grid;
+            grid-template-columns: 8em 1fr;
+            gap: 0.3em 1em;
+            margin: 0;
+            font-size: 0.88em;
+        }
+        .model-card dt {
+            color: var(--muted);
+            font-weight: 600;
+        }
+        .model-card dd {
+            margin: 0;
+            color: var(--text);
+            opacity: 0.9;
+        }
+        .model-card .verdict {
+            margin-top: 0.6em;
+            font-size: 0.9em;
+            font-style: italic;
+            color: var(--muted);
+        }
+
+        /* ── comparison table ── */
+        .cmp-table-wrap {
+            overflow-x: auto;
+            margin: 1.4em 0;
+        }
+        table.cmp {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.82em;
+        }
+        table.cmp th, table.cmp td {
+            border-bottom: 1px solid var(--border);
+            padding: 0.5em 0.7em;
+            text-align: left;
+            white-space: nowrap;
+        }
+        table.cmp th {
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.03em;
+        }
+        table.cmp td.yes { color: #4ade80; }
+        table.cmp td.no { color: var(--muted); opacity: 0.6; }
+
+        .callout {
+            border-left: 4px solid var(--accent);
+            padding: 0.8em 1.2em;
+            margin: 1.4em 0;
+            background: var(--surface);
+            font-size: 0.9em;
+            color: var(--muted);
+        }
+        .callout strong { color: var(--text); }
+
+        .links-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6em;
+            margin-top: 0.5em;
+        }
+        .links-row a {
+            font-size: 0.82em;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.1em;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <header style="width: full;">
+        <h1 class="stretch grow"><a href="https://conrads.website">conrads.website</a></h1>
+    </header>
+
+    <hr />
+
+    <main>
+
+      <article>
+        <header>
+          <h1 class="stretch grow-1">DIZZY LAB: 8 Models, One Prompt</h1>
+        </header>
+        <p class="lede">
+          I gave the same prompt — build a standalone HTML/JS visualization of a mock robot arm
+          driven by a <a href="https://github.com/PNNL/dizzy">DIZZY</a>-style event-sourced system —
+          to 8 different model/agent combinations, with zero other context or coaching.
+          Three ran in <strong>Claude Code</strong> (Fable 5, Opus 4.8, Sonnet 5), and five ran through
+          <strong>pi</strong>, a lighter-weight agent CLI (Sakana Fugu Ultra twice — once bare, once with
+          a design-system "viz skill" loaded — and OpenAI's GPT-5.6 in three effort tiers: luna, sol, terra).
+          Below is what came out, what it cost, and how the approaches differ.
+        </p>
+      </article>
+
+      <!-- ═══════════════════════════════════════════ -->
+      <!--               METRICS                       -->
+      <!-- ═══════════════════════════════════════════ -->
+
+      <article>
+        <header>
+          <h1 class="stretch grow-1">Metrics</h1>
+        </header>
+
+        <section>
+          <p>
+            "Turns" below counts agent (LLM) responses within the session — how many times the model
+            spoke or acted before finishing. All 8 got the identical single-shot prompt from
+            <code>PROMPT.md</code>; the pi/CLI runs stayed genuinely single-shot (one prompt in, done),
+            while all three Claude Code runs got a courtesy <code>/model</code>/<code>/export</code>/
+            "commit and push" nudge afterward — and Fable 5 specifically ran out of room mid-task and needed
+            a manual <em>"Continue from where you left off"</em> to finish, which is reflected in its outsized
+            turn count and cost below.
+          </p>
+
+          <div class="chart">
+            <h4>Agent turns</h4>
+            <div class="bar-row"><div class="bar-label">Fable 5</div><div class="bar-track"><div class="bar-fill" style="width:53.1%;background:var(--m-fable)"></div></div><div class="bar-value">60</div></div>
+            <div class="bar-row"><div class="bar-label">Opus 4.8</div><div class="bar-track"><div class="bar-fill" style="width:50.4%;background:var(--m-opus)"></div></div><div class="bar-value">57</div></div>
+            <div class="bar-row"><div class="bar-label">Sonnet 5</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--m-sonnet5)"></div></div><div class="bar-value">113</div></div>
+            <div class="bar-row"><div class="bar-label">Fugu Ultra</div><div class="bar-track"><div class="bar-fill" style="width:27.4%;background:var(--m-fugu)"></div></div><div class="bar-value">31</div></div>
+            <div class="bar-row"><div class="bar-label">Fugu + skill</div><div class="bar-track"><div class="bar-fill" style="width:38.9%;background:var(--m-fuguviz)"></div></div><div class="bar-value">44</div></div>
+            <div class="bar-row"><div class="bar-label">GPT-5.6-luna</div><div class="bar-track"><div class="bar-fill" style="width:6.2%;background:var(--m-luna)"></div></div><div class="bar-value">7</div></div>
+            <div class="bar-row"><div class="bar-label">GPT-5.6-sol</div><div class="bar-track"><div class="bar-fill" style="width:8.8%;background:var(--m-sol)"></div></div><div class="bar-value">10</div></div>
+            <div class="bar-row"><div class="bar-label">GPT-5.6-terra</div><div class="bar-track"><div class="bar-fill" style="width:3.5%;background:var(--m-terra)"></div></div><div class="bar-value">4</div></div>
+          </div>
+
+          <div class="chart">
+            <h4>Tool calls (bash / read / edit / write)</h4>
+            <div class="bar-row"><div class="bar-label">Fable 5</div><div class="bar-track"><div class="bar-fill" style="width:49.1%;background:var(--m-fable)"></div></div><div class="bar-value">28</div></div>
+            <div class="bar-row"><div class="bar-label">Opus 4.8</div><div class="bar-track"><div class="bar-fill" style="width:45.6%;background:var(--m-opus)"></div></div><div class="bar-value">26</div></div>
+            <div class="bar-row"><div class="bar-label">Sonnet 5</div><div class="bar-track"><div class="bar-fill" style="width:98.2%;background:var(--m-sonnet5)"></div></div><div class="bar-value">56</div></div>
+            <div class="bar-row"><div class="bar-label">Fugu Ultra</div><div class="bar-track"><div class="bar-fill" style="width:63.2%;background:var(--m-fugu)"></div></div><div class="bar-value">36</div></div>
+            <div class="bar-row"><div class="bar-label">Fugu + skill</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--m-fuguviz)"></div></div><div class="bar-value">57</div></div>
+            <div class="bar-row"><div class="bar-label">GPT-5.6-luna</div><div class="bar-track"><div class="bar-fill" style="width:10.5%;background:var(--m-luna)"></div></div><div class="bar-value">6</div></div>
+            <div class="bar-row"><div class="bar-label">GPT-5.6-sol</div><div class="bar-track"><div class="bar-fill" style="width:21.1%;background:var(--m-sol)"></div></div><div class="bar-value">12</div></div>
+            <div class="bar-row"><div class="bar-label">GPT-5.6-terra</div><div class="bar-track"><div class="bar-fill" style="width:5.3%;background:var(--m-terra)"></div></div><div class="bar-value">3</div></div>
+          </div>
+
+          <div class="chart">
+            <h4>Total tokens (input + output + cache read/write)</h4>
+            <div class="bar-row"><div class="bar-label">Fable 5</div><div class="bar-track"><div class="bar-fill" style="width:42.7%;background:var(--m-fable)"></div></div><div class="bar-value">4.76M</div></div>
+            <div class="bar-row"><div class="bar-label">Opus 4.8</div><div class="bar-track"><div class="bar-fill" style="width:29.0%;background:var(--m-opus)"></div></div><div class="bar-value">3.23M</div></div>
+            <div class="bar-row"><div class="bar-label">Sonnet 5</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--m-sonnet5)"></div></div><div class="bar-value">11.14M</div></div>
+            <div class="bar-row"><div class="bar-label">Fugu Ultra</div><div class="bar-track"><div class="bar-fill" style="width:12.4%;background:var(--m-fugu)"></div></div><div class="bar-value">1.38M</div></div>
+            <div class="bar-row"><div class="bar-label">Fugu + skill</div><div class="bar-track"><div class="bar-fill" style="width:24.9%;background:var(--m-fuguviz)"></div></div><div class="bar-value">2.78M</div></div>
+            <div class="bar-row"><div class="bar-label">GPT-5.6-luna</div><div class="bar-track"><div class="bar-fill" style="width:0.6%;background:var(--m-luna)"></div></div><div class="bar-value">0.07M</div></div>
+            <div class="bar-row"><div class="bar-label">GPT-5.6-sol</div><div class="bar-track"><div class="bar-fill" style="width:1.5%;background:var(--m-sol)"></div></div><div class="bar-value">0.16M</div></div>
+            <div class="bar-row"><div class="bar-label">GPT-5.6-terra</div><div class="bar-track"><div class="bar-fill" style="width:0.3%;background:var(--m-terra)"></div></div><div class="bar-value">0.03M</div></div>
+          </div>
+
+          <div class="chart">
+            <h4>Cost (USD, list price)</h4>
+            <div class="bar-row"><div class="bar-label">Fable 5</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--m-fable)"></div></div><div class="bar-value">$19.11</div></div>
+            <div class="bar-row"><div class="bar-label">Opus 4.8</div><div class="bar-track"><div class="bar-fill" style="width:25.9%;background:var(--m-opus)"></div></div><div class="bar-value">$4.94</div></div>
+            <div class="bar-row"><div class="bar-label">Sonnet 5</div><div class="bar-track"><div class="bar-fill" style="width:24.2%;background:var(--m-sonnet5)"></div></div><div class="bar-value">$4.62</div></div>
+            <div class="bar-row"><div class="bar-label">Fugu Ultra</div><div class="bar-track"><div class="bar-fill" style="width:15.8%;background:var(--m-fugu)"></div></div><div class="bar-value">$3.01</div></div>
+            <div class="bar-row"><div class="bar-label">Fugu + skill</div><div class="bar-track"><div class="bar-fill" style="width:23.9%;background:var(--m-fuguviz)"></div></div><div class="bar-value">$4.56</div></div>
+            <div class="bar-row"><div class="bar-label">GPT-5.6-luna</div><div class="bar-track"><div class="bar-fill" style="width:0.4%;background:var(--m-luna)"></div></div><div class="bar-value">$0.08</div></div>
+            <div class="bar-row"><div class="bar-label">GPT-5.6-sol</div><div class="bar-track"><div class="bar-fill" style="width:4.1%;background:var(--m-sol)"></div></div><div class="bar-value">$0.79</div></div>
+            <div class="bar-row"><div class="bar-label">GPT-5.6-terra</div><div class="bar-track"><div class="bar-fill" style="width:0.8%;background:var(--m-terra)"></div></div><div class="bar-value">$0.15</div></div>
+          </div>
+
+          <div class="chart">
+            <h4>Lines of output HTML/JS/CSS</h4>
+            <div class="bar-row"><div class="bar-label">Fable 5</div><div class="bar-track"><div class="bar-fill" style="width:69.9%;background:var(--m-fable)"></div></div><div class="bar-value">933</div></div>
+            <div class="bar-row"><div class="bar-label">Opus 4.8</div><div class="bar-track"><div class="bar-fill" style="width:58.4%;background:var(--m-opus)"></div></div><div class="bar-value">780</div></div>
+            <div class="bar-row"><div class="bar-label">Sonnet 5</div><div class="bar-track"><div class="bar-fill" style="width:55.4%;background:var(--m-sonnet5)"></div></div><div class="bar-value">740</div></div>
+            <div class="bar-row"><div class="bar-label">Fugu Ultra</div><div class="bar-track"><div class="bar-fill" style="width:71.8%;background:var(--m-fugu)"></div></div><div class="bar-value">958</div></div>
+            <div class="bar-row"><div class="bar-label">Fugu + skill</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--m-fuguviz)"></div></div><div class="bar-value">1335</div></div>
+            <div class="bar-row"><div class="bar-label">GPT-5.6-luna</div><div class="bar-track"><div class="bar-fill" style="width:22.7%;background:var(--m-luna)"></div></div><div class="bar-value">303</div></div>
+            <div class="bar-row"><div class="bar-label">GPT-5.6-sol</div><div class="bar-track"><div class="bar-fill" style="width:47.7%;background:var(--m-sol)"></div></div><div class="bar-value">637</div></div>
+            <div class="bar-row"><div class="bar-label">GPT-5.6-terra</div><div class="bar-track"><div class="bar-fill" style="width:5.7%;background:var(--m-terra)"></div></div><div class="bar-value">76</div></div>
+          </div>
+
+          <p class="meta">
+            Costs are computed from raw token usage at published list pricing per model
+            (Claude models: Anthropic API rates as of 2026-07; pi/OpenRouter models: per-session
+            <code>usage.cost</code> reported by the provider). Cache-read/write tokens are priced at their
+            usual discount/premium multipliers, not 1:1 with fresh input tokens — "total tokens" above is a raw
+            sum across all four buckets and is a proxy for context volume, not a linear cost driver.
+          </p>
+        </section>
+      </article>
+
+      <!-- ═══════════════════════════════════════════ -->
+      <!--          CROSS-MODEL SUMMARY TABLE          -->
+      <!-- ═══════════════════════════════════════════ -->
+
+      <article>
+        <header>
+          <h1 class="stretch grow-1">Who did what</h1>
+        </header>
+
+        <section>
+          <div class="cmp-table-wrap">
+            <table class="cmp">
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Harness</th>
+                  <th>Real IK?</th>
+                  <th>Queue engine</th>
+                  <th>Visual</th>
+                  <th>Unique touch</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Fable 5</td><td>Claude Code</td><td class="yes">✓ 2-link, law of cosines</td><td>Full — capacity, backpressure, retry-on-failure</td><td>SVG, dark</td><td>Only one with a modeled failure/retry policy</td></tr>
+                <tr><td>Opus 4.8</td><td>Claude Code</td><td class="yes">✓ 2-link, law of cosines</td><td>Message-bus, single-cycle</td><td>SVG, dark</td><td>Explicit query/querier read-loop wired separately from reactivity</td></tr>
+                <tr><td>Sonnet 5</td><td>Claude Code</td><td class="yes">✓ angle-lerped 2-link</td><td>Full — concurrent samples, serialized arm access</td><td>SVG, dark</td><td>Only one with continuous multi-sample throughput (play/pause/speed)</td></tr>
+                <tr><td>Fugu Ultra</td><td>pi</td><td class="yes">✓ 2-link, law of cosines</td><td>Single dispatch/demo</td><td>HTML+CSS+SVG, dark, glassmorphism</td><td>Guided-tour "run 3 recipes" demo mode</td></tr>
+                <tr><td>Fugu + viz skill</td><td>pi</td><td class="yes">✓ 2-link, law of cosines</td><td>Single dispatch, multi-step "protocol" builder</td><td>SVG, dark, most elaborate</td><td>Palette-validator provenance comment + live JSON model readout</td></tr>
+                <tr><td>GPT-5.6-luna</td><td>pi</td><td class="no">✗ hardcoded CSS rotations</td><td>None — linear scripted <code>run()</code></td><td>Pure CSS/HTML, no SVG/canvas</td><td>Smallest real logic footprint (~40 lines JS)</td></tr>
+                <tr><td>GPT-5.6-sol</td><td>pi</td><td class="yes">✓ 2-link, law of cosines</td><td>Single dispatch, modular helper functions</td><td>SVG, light/paper — the one non-dark theme</td><td>Queue-card "aging" progress bars, live trace-ID readout</td></tr>
+                <tr><td>GPT-5.6-terra</td><td>pi</td><td class="no">✗ hardcoded CSS rotations</td><td>None — linear scripted <code>run()</code></td><td>Pure CSS/HTML, isometric floor grid</td><td>76 lines total — most information-dense per line of any entry</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="meta">
+            6 of 8 implemented genuine inverse kinematics (atan2/acos law-of-cosines solve for a
+            2-link arm) despite the prompt never mentioning IK, physics, or joint math — it just asked
+            for an arm that "can pick up a sample ... and move it." The two that skipped IK
+            (GPT-5.6-luna, GPT-5.6-terra) were also the two smallest and fastest/cheapest runs —
+            consistent with a model choosing to keyframe pose-to-pose in CSS rather than derive geometry.
+          </p>
+        </section>
+      </article>
+
+      <!-- ═══════════════════════════════════════════ -->
+      <!--            PER-MODEL NOTES                  -->
+      <!-- ═══════════════════════════════════════════ -->
+
+      <article>
+        <header>
+          <h1 class="stretch grow-1">Notes per run</h1>
+        </header>
+
+        <div class="model-card">
+          <h3>Claude Fable 5 <span class="harness-tag">Claude Code</span></h3>
+          <div class="model-meta">933 lines · 60 turns · 28 tool calls · $19.11 · needed a manual "continue"</div>
+          <dl>
+            <dt>Kinematics</dt><dd>Real 2-link IK (<code>toPolar</code>/<code>fromPolar</code>, law of cosines), with a <code>sweepTo()</code> outward "bulge" so the arm never clips through the floor mid-swing.</dd>
+            <dt>Queue/events</dt><dd>The most systems-accurate of the eight: a real <code>QUEUE</code> array with a <code>pump()</code> scheduler that only runs commands whose preconditions hold — arm busy, processor busy, tray full — plus a genuine ~20% random failure rate feeding a <code>retry_processing</code> policy.</dd>
+            <dt>Notable</dt><dd>Read models are explicitly rebuilt from events only, never touched directly from the physical scene — the only entry that enforces that separation in code, not just naming.</dd>
+          </dl>
+          <p class="verdict">Most architecturally faithful simulation of an actual event-sourced system — but it's also the most expensive run by a wide margin, largely because it ran out of room and had to be told to keep going.</p>
+        </div>
+
+        <div class="model-card">
+          <h3>Claude Opus 4.8 <span class="harness-tag">Claude Code</span></h3>
+          <div class="model-meta">780 lines · 57 turns · 26 tool calls · $4.94</div>
+          <dl>
+            <dt>Kinematics</dt><dd>Real 2-link IK via <code>solveIK(tx,ty)</code>, decoupled per-frame easing (<code>lerp</code>) toward IK targets in a separate <code>tick()</code> loop from rendering.</dd>
+            <dt>Queue/events</dt><dd>A message-bus (<code>emit</code>/<code>project</code>/<code>queryRead</code>) drives the queue panel and graph together; quadratic-bezier particles are colored differently for reactivity, projection, and query-read edges.</dd>
+            <dt>Notable</dt><dd>Explicitly wires in a full <code>query</code>/<code>querier</code> read pair (<code>get_recipe</code>) — DIZZY's full 8-part vocabulary, not just the 6 core types most others used.</dd>
+          </dl>
+          <p class="verdict">The cleanest, most legibly-sectioned code of the eight, correct IK, strong graph choreography — least "systemically complex" of the three Claude runs (no concurrent job queue) but very readable.</p>
+        </div>
+
+        <div class="model-card">
+          <h3>Claude Sonnet 5 <span class="harness-tag">Claude Code</span></h3>
+          <div class="model-meta">740 lines · 113 turns · 56 tool calls · $4.62</div>
+          <dl>
+            <dt>Kinematics</dt><dd>Real 2-link IK (<code>ik(tx,ty)</code>), animated by interpolating joint <em>angles</em> rather than raw positions — avoids the pop/gimbal artifacts a naive Cartesian lerp would produce.</dd>
+            <dt>Queue/events</dt><dd>The only implementation with true continuous multi-sample throughput: <code>spawnSample()</code> auto-creates work, a single-consumer <code>commandLoop()</code> serializes handlers, and <code>armSerial()</code> queues physical arm moves so up to 4 concurrent samples don't fight over the one arm.</dd>
+            <dt>Notable</dt><dd>Play/pause, speed slider, live "completed"/"in-flight" counters — feels like watching a running production system rather than a scripted trace.</dd>
+          </dl>
+          <p class="verdict">Highest turn count of all eight by far (113) but the second-cheapest of the three Claude runs — it did a lot of small, cheap iterations rather than a few expensive ones. Technically the most "systems" feeling.</p>
+        </div>
+
+        <div class="model-card">
+          <h3>Sakana Fugu Ultra <span class="harness-tag">pi</span></h3>
+          <div class="model-meta">958 lines · 31 turns · 36 tool calls · $3.01</div>
+          <dl>
+            <dt>Kinematics</dt><dd>Real 2-link IK (<code>updateArmGeometry</code>), recomputed fresh each frame from the target rather than carrying separate joint-angle state.</dd>
+            <dt>Queue/events</dt><dd>Percentage-space SVG network graph with a floaty sinusoidal-wobble particle animation; five distinct processors (mixer/heater/scanner/cooler/archive) vs. the more common three.</dd>
+            <dt>Notable</dt><dd>A surviving code comment documents a mid-session bug fix ("old fixed px*4.3 mapping ... drifted") — visible evidence of iterative self-correction. Leans into a guided-tour UX with recipe shortcut buttons and an auto-chaining demo button.</dd>
+          </dl>
+          <p class="verdict">Competent and correct, with a more consumer/product-demo feel — emoji icons, guided tour — than the "engineering mock" tone of the Claude runs.</p>
+        </div>
+
+        <div class="model-card">
+          <h3>Sakana Fugu Ultra + viz skill <span class="harness-tag">pi</span></h3>
+          <div class="model-meta">1335 lines (largest) · 44 turns · 57 tool calls · $4.56</div>
+          <dl>
+            <dt>Kinematics</dt><dd>Same real 2-link IK formula as the bare Fugu run, plus a dashed "travel line" that previews the gripper's straight-line path before it moves.</dd>
+            <dt>Queue/events</dt><dd>Full query/querier round-trip edges in the graph and a live raw-JSON model readout (<code>&lt;pre&gt;JSON.stringify(model)&lt;/pre&gt;</code>) alongside a scrolling system log — the only entry with a live model dump.</dd>
+            <dt>Notable</dt><dd>Opens with an explicit palette-validation provenance comment citing a design-system skill run (<code>node scripts/validate_palette.js ... ALL CHECKS PASS</code>) and <code>data-palette</code>/<code>data-mode</code> attributes — direct evidence the loaded skill changed behavior. Also the only one with a multi-step "protocol" builder chaining several processors in one route.</dd>
+          </dl>
+          <p class="verdict">The skill's fingerprints are visible mainly in color-system rigor and accessibility bookkeeping, not kinematics — most visually/documentation-polished of the pi runs, at nearly 1.5x the bare Fugu's line count.</p>
+        </div>
+
+        <div class="model-card">
+          <h3>GPT-5.6-luna <span class="harness-tag">pi</span></h3>
+          <div class="model-meta">303 lines · 7 turns · 6 tool calls · $0.08 — cheapest run</div>
+          <dl>
+            <dt>Kinematics</dt><dd>None. The arm is a <code>.arm</code> div with hardcoded per-station CSS <code>transform: rotate(...)</code> values and fixed-angle pseudo-element segments — no geometry computed at runtime.</dd>
+            <dt>Queue/events</dt><dd>No real queue — a single linear <code>async function run()</code> walks a fixed script with hardcoded <code>await pause(ms)</code> delays. One JS-driven particle animates along a straight line from graph-center to target node.</dd>
+            <dt>Notable</dt><dd>Despite skipping IK and a queue engine entirely, still auto-runs a full command→event→policy→projection narration once on load, with explanatory footer prose.</dd>
+          </dl>
+          <p class="verdict">The simplest and least "real" of the eight, but by far the cheapest — 7 turns and 8 cents for a functional, well-styled illustration.</p>
+        </div>
+
+        <div class="model-card">
+          <h3>GPT-5.6-sol <span class="harness-tag">pi</span></h3>
+          <div class="model-meta">637 lines · 10 turns · 12 tool calls · $0.79</div>
+          <dl>
+            <dt>Kinematics</dt><dd>Real 2-link IK (<code>renderArm(x,y)</code>, <code>Math.hypot</code>/<code>atan2</code>/<code>acos</code>), wrapped in an eased cubic tween.</dd>
+            <dt>Queue/events</dt><dd>Genuine SVG-path particle flow plus a distinctive touch: queue cards show an animated CSS progress underline representing message "aging" through queued→routed→handled states, and an embedded "current trace" narration panel.</dd>
+            <dt>Notable</dt><dd>The only implementation with a light/paper theme (cream/orange/teal) instead of the dark "control room" look every other entry converged on — a genuinely different visual take on the identical brief.</dd>
+          </dl>
+          <p class="verdict">Technically solid — real IK, real path-based flow — with the strongest visual-design differentiation of the eight, for well under a dollar.</p>
+        </div>
+
+        <div class="model-card">
+          <h3>GPT-5.6-terra <span class="harness-tag">pi</span></h3>
+          <div class="model-meta">76 lines (smallest by far) · 4 turns · 3 tool calls · $0.15</div>
+          <dl>
+            <dt>Kinematics</dt><dd>None. Fixed <code>rotate()</code> angles baked directly into CSS for each joint; the one JS animation applies a single whole-arm-group transform at a few scripted keyframes.</dd>
+            <dt>Queue/events</dt><dd>No queue engine — <code>activate(node, link, color)</code> toggles CSS classes and moves a single particle div from a fixed center point to the target node, 9 hardcoded steps total.</dd>
+            <dt>Notable</dt><dd>An isometric floor grid via <code>perspective()</code>/<code>rotateX()</code> CSS gives real depth for zero extra JS — the whole interactive document is under 30 lines of actual script.</dd>
+          </dl>
+          <p class="verdict">The least technically ambitious entry — no IK, no queue, no concurrency — but remarkably polished-looking for 76 lines. Reads as staged rather than simulated, and it's honest about that trade.</p>
+        </div>
+
+      </article>
+
+      <!-- ═══════════════════════════════════════════ -->
+      <!--                LINKS                        -->
+      <!-- ═══════════════════════════════════════════ -->
+
+      <article>
+        <header>
+          <h1 class="stretch grow-1">See it yourself</h1>
+        </header>
+        <section>
+          <p>Live visualizations:</p>
+          <nav class="card-links links-row">
+            <a href="fable/index.html">Fable 5</a>
+            <a href="opus/index.html">Opus 4.8</a>
+            <a href="sonnet5/index.html">Sonnet 5</a>
+            <a href="fugu/index.html">Fugu Ultra</a>
+            <a href="fugu-viz-skill/index.html">Fugu + viz skill</a>
+            <a href="gpt-5-6luna/index.html">GPT-5.6-luna</a>
+            <a href="gpt-5-6sol/index.html">GPT-5.6-sol</a>
+            <a href="gpt-5-6terra/index.html">GPT-5.6-terra</a>
+          </nav>
+          <p style="margin-top:1em;">Full agent session transcripts:</p>
+          <nav class="card-links links-row">
+            <a href="sessions/fable.html">Fable 5</a>
+            <a href="sessions/opus.html">Opus 4.8</a>
+            <a href="sessions/sonnet5.html">Sonnet 5</a>
+            <a href="sessions/fugu.html">Fugu Ultra</a>
+            <a href="sessions/fugu-viz-skill.html">Fugu + viz skill</a>
+            <a href="sessions/gpt-5-6luna.html">GPT-5.6-luna</a>
+            <a href="sessions/gpt-5-6sol.html">GPT-5.6-sol</a>
+            <a href="sessions/gpt-5-6terra.html">GPT-5.6-terra</a>
+          </nav>
+          <p class="meta" style="margin-top:1em;">
+            Shared prompt: <a href="PROMPT.md">PROMPT.md</a> — identical text handed to every model, no other context, no follow-up coaching beyond housekeeping commands.
+          </p>
+        </section>
+      </article>
+
+    </main>
+</body>
+</html>
