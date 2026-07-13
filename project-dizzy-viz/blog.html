@@ -3,7 +3,7 @@
 <head>
     <meta charset='utf-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <title>DIZZY LAB: 11 Models, One Prompt</title>
+    <title>DIZZY LAB: 12 Models, One Prompt</title>
     <link rel='stylesheet' href='../main.css'>
     <style>
         :root {
@@ -18,6 +18,7 @@
             --m-lunapro: #f7e29b;
             --m-solpro:  #f9a8d4;
             --m-terrapro:#c2c6d6;
+            --m-glm:    #fb923c;
         }
 
         .lede {
@@ -192,17 +193,18 @@
 
       <article>
         <header>
-          <h1 class="stretch grow-1">DIZZY LAB: 11 Models, One Prompt</h1>
+          <h1 class="stretch grow-1">DIZZY LAB: 12 Models, One Prompt</h1>
         </header>
         <p class="lede">
           I gave the same prompt — build a standalone HTML/JS visualization of a mock robot arm
           driven by a <a href="https://github.com/PNNL/dizzy">DIZZY</a>-style event-sourced system —
-          to 11 different model/agent combinations, with zero other context or coaching.
-          Three ran in <strong>Claude Code</strong> (Fable 5, Opus 4.8, Sonnet 5), and eight ran through
+          to 12 different model/agent combinations, with zero other context or coaching.
+          Three ran in <strong>Claude Code</strong> (Fable 5, Opus 4.8, Sonnet 5), and nine ran through
           <strong>pi</strong>, a lighter-weight agent CLI (Sakana Fugu Ultra twice — once bare, once with
           a design-system "viz skill" loaded — and OpenAI's GPT-5.6 across six variants: the
           <code>luna</code>/<code>sol</code>/<code>terra</code> effort tiers, and their <code>-pro</code>
-          counterparts). Below is what came out, what it cost, and how the approaches differ.
+          counterparts, plus a single bare run of Zhipu's GLM 5.2). Below is what came out, what it cost,
+          and how the approaches differ.
         </p>
       </article>
 
@@ -212,6 +214,14 @@
         fresh empty directories. GPT-5.6-sol-pro failed with a provider-side <code>Internal Server Error</code>
         on the first attempt (no output, no cost billed) and succeeded on retry; that's reflected in its
         session but not in the metrics below.
+      </div>
+
+      <div class="callout">
+        <strong>Update:</strong> added a twelfth run — Zhipu's <strong>GLM 5.2</strong> (<code>z-ai/glm-5.2</code>
+        via OpenRouter) through the same pi harness and identical single-shot prompt, from a fresh empty
+        directory. Like the GPT-5.6 entries it ran genuinely single-shot (one prompt in, done); its metrics
+        below are measured at the point its visualization was committed and pushed, before the blog entry
+        you're reading was authored in the same session.
       </div>
 
       <!-- ═══════════════════════════════════════════ -->
@@ -226,7 +236,7 @@
         <section>
           <p>
             "Turns" below counts agent (LLM) responses within the session — how many times the model
-            spoke or acted before finishing. All 8 got the identical single-shot prompt from
+            spoke or acted before finishing. All 12 got the identical single-shot prompt from
             <code>PROMPT.md</code>; the pi/CLI runs stayed genuinely single-shot (one prompt in, done),
             while all three Claude Code runs got a courtesy <code>/model</code>/<code>/export</code>/
             "commit and push" nudge afterward — and Fable 5 specifically ran out of room mid-task and needed
@@ -247,6 +257,7 @@
             <div class="bar-row"><div class="bar-label">GPT-5.6-luna-pro</div><div class="bar-track"><div class="bar-fill" style="width:5.3%;background:var(--m-lunapro)"></div></div><div class="bar-value">6</div></div>
             <div class="bar-row"><div class="bar-label">GPT-5.6-sol-pro</div><div class="bar-track"><div class="bar-fill" style="width:4.4%;background:var(--m-solpro)"></div></div><div class="bar-value">5</div></div>
             <div class="bar-row"><div class="bar-label">GPT-5.6-terra-pro</div><div class="bar-track"><div class="bar-fill" style="width:7.1%;background:var(--m-terrapro)"></div></div><div class="bar-value">8</div></div>
+            <div class="bar-row"><div class="bar-label">GLM 5.2</div><div class="bar-track"><div class="bar-fill" style="width:47.8%;background:var(--m-glm)"></div></div><div class="bar-value">54</div></div>
           </div>
 
           <div class="chart">
@@ -262,6 +273,7 @@
             <div class="bar-row"><div class="bar-label">GPT-5.6-luna-pro</div><div class="bar-track"><div class="bar-fill" style="width:12.3%;background:var(--m-lunapro)"></div></div><div class="bar-value">7</div></div>
             <div class="bar-row"><div class="bar-label">GPT-5.6-sol-pro</div><div class="bar-track"><div class="bar-fill" style="width:7.0%;background:var(--m-solpro)"></div></div><div class="bar-value">4</div></div>
             <div class="bar-row"><div class="bar-label">GPT-5.6-terra-pro</div><div class="bar-track"><div class="bar-fill" style="width:10.5%;background:var(--m-terrapro)"></div></div><div class="bar-value">6</div></div>
+            <div class="bar-row"><div class="bar-label">GLM 5.2</div><div class="bar-track"><div class="bar-fill" style="width:93.0%;background:var(--m-glm)"></div></div><div class="bar-value">53</div></div>
           </div>
 
           <div class="chart">
@@ -277,6 +289,7 @@
             <div class="bar-row"><div class="bar-label">GPT-5.6-luna-pro</div><div class="bar-track"><div class="bar-fill" style="width:2.7%;background:var(--m-lunapro)"></div></div><div class="bar-value">0.30M</div></div>
             <div class="bar-row"><div class="bar-label">GPT-5.6-sol-pro</div><div class="bar-track"><div class="bar-fill" style="width:2.0%;background:var(--m-solpro)"></div></div><div class="bar-value">0.22M</div></div>
             <div class="bar-row"><div class="bar-label">GPT-5.6-terra-pro</div><div class="bar-track"><div class="bar-fill" style="width:2.3%;background:var(--m-terrapro)"></div></div><div class="bar-value">0.26M</div></div>
+            <div class="bar-row"><div class="bar-label">GLM 5.2</div><div class="bar-track"><div class="bar-fill" style="width:19.1%;background:var(--m-glm)"></div></div><div class="bar-value">2.13M</div></div>
           </div>
 
           <div class="chart">
@@ -292,6 +305,7 @@
             <div class="bar-row"><div class="bar-label">GPT-5.6-luna-pro</div><div class="bar-track"><div class="bar-fill" style="width:2.1%;background:var(--m-lunapro)"></div></div><div class="bar-value">$0.41</div></div>
             <div class="bar-row"><div class="bar-label">GPT-5.6-sol-pro</div><div class="bar-track"><div class="bar-fill" style="width:9.7%;background:var(--m-solpro)"></div></div><div class="bar-value">$1.85</div></div>
             <div class="bar-row"><div class="bar-label">GPT-5.6-terra-pro</div><div class="bar-track"><div class="bar-fill" style="width:4.2%;background:var(--m-terrapro)"></div></div><div class="bar-value">$0.80</div></div>
+            <div class="bar-row"><div class="bar-label">GLM 5.2</div><div class="bar-track"><div class="bar-fill" style="width:3.4%;background:var(--m-glm)"></div></div><div class="bar-value">$0.65</div></div>
           </div>
 
           <div class="chart">
@@ -307,6 +321,7 @@
             <div class="bar-row"><div class="bar-label">GPT-5.6-luna-pro</div><div class="bar-track"><div class="bar-fill" style="width:35.8%;background:var(--m-lunapro)"></div></div><div class="bar-value">478</div></div>
             <div class="bar-row"><div class="bar-label">GPT-5.6-sol-pro</div><div class="bar-track"><div class="bar-fill" style="width:26.9%;background:var(--m-solpro)"></div></div><div class="bar-value">359</div></div>
             <div class="bar-row"><div class="bar-label">GPT-5.6-terra-pro</div><div class="bar-track"><div class="bar-fill" style="width:22.9%;background:var(--m-terrapro)"></div></div><div class="bar-value">306</div></div>
+            <div class="bar-row"><div class="bar-label">GLM 5.2</div><div class="bar-track"><div class="bar-fill" style="width:70.0%;background:var(--m-glm)"></div></div><div class="bar-value">934</div></div>
           </div>
 
           <p class="meta">
@@ -353,12 +368,13 @@
                 <tr><td>GPT-5.6-luna-pro</td><td>pi</td><td class="yes">✓ 2-link, atan2/acos</td><td>Single dispatch, linear async script</td><td>SVG, dark control-room, dual physical+logical graph</td><td>Clickable/keyboard-accessible SVG hotspots for sample+processor selection</td></tr>
                 <tr><td>GPT-5.6-sol-pro</td><td>pi</td><td class="yes">✓ 2-link, two-circle intersection</td><td>Configurable multi-stop route, parallel policy/projection dispatch</td><td>SVG, dark lime/cyan "terminal" theme</td><td>User-orderable multi-processor route + <code>Promise.all</code> fan-out — most architected of the six pi/CLI runs</td></tr>
                 <tr><td>GPT-5.6-terra-pro</td><td>pi</td><td class="yes">✓ 2-link, atan2/acos</td><td>Single dispatch, linear async script</td><td>SVG, dark navy/cyan/lime</td><td>Toast notifications on selection change; seeded initial event feed</td></tr>
+                <tr><td>GLM 5.2</td><td>pi</td><td class="yes">✓ 2-link, atan2/acos, elbow-config selection</td><td>Full — continuous scheduler, gated policy fan-out, autoloop re-enqueue</td><td>SVG, dark three-panel control-room</td><td>Semantically-guarded policy fan-out + full 8-component vocab with animated query→policy read-loop</td></tr>
               </tbody>
             </table>
           </div>
 
           <p class="meta">
-            9 of 11 implemented genuine inverse kinematics (atan2/acos or two-circle-intersection
+            10 of 12 implemented genuine inverse kinematics (atan2/acos or two-circle-intersection
             law-of-cosines solves for a 2-link arm) despite the prompt never mentioning IK, physics, or
             joint math — it just asked for an arm that "can pick up a sample ... and move it." Only the
             base (non-<code>-pro</code>) GPT-5.6-luna and GPT-5.6-terra skipped IK entirely, in favor of
@@ -366,7 +382,9 @@
             real IK <em>and</em> the same effort tier's queue sophistication didn't automatically follow —
             luna-pro and terra-pro stayed single-shot linear scripts even with correct arm geometry, while
             sol-pro alone crossed into a genuinely reconfigurable multi-stop route with parallel
-            policy/projection dispatch, the most architected of any pi/CLI run in the set.
+            policy/projection dispatch — the most architected of the GPT-5.6 pi/CLI runs. The twelfth entry,
+            GLM 5.2 (run separately), went further still: a continuous scheduler with semantically-guarded
+            policy fan-out and the full eight-component read-loop wired, not just narrated.
           </p>
         </section>
       </article>
@@ -501,6 +519,17 @@
           <p class="verdict">Gains real IK and path-based animation over the base terra, but stays the least ambitious of the three <code>-pro</code> runs — same single fixed-dropdown, single-sequence shape as before, just with correct geometry underneath.</p>
         </div>
 
+        <div class="model-card">
+          <h3>GLM 5.2 (Zhipu) <span class="harness-tag">pi</span></h3>
+          <div class="model-meta">934 lines · 54 turns · 53 tool calls · $0.65</div>
+          <dl>
+            <dt>Kinematics</dt><dd>Real 2-link IK — <code>ik(tx,ty)</code> solves shoulder→elbow via <code>atan2</code>/<code>acos</code> law-of-cosines, then selects between the two valid elbow configurations by keeping the one that sits higher (smaller <code>y</code>), so the arm never swings through the floor. Gripper jaws are oriented perpendicular to the forearm each frame.</dd>
+            <dt>Queue/events</dt><dd>The most complete scheduling engine in the pi cohort — a real <code>QUEUE</code>/<code>ACTIVE</code> scheduler with <code>tryLoadNext()</code> continuous dispatch, autoloop re-enqueue, and gated policy fan-out: <code>on_arrival</code> fires only when <code>to=proc</code>, <code>on_rack</code> only when <code>to=rack</code>, so one <code>sample_transferred</code> can't spuriously trigger both. Both loops are wired with animated packets — including back-arc policy→command edges arching over the graph and the query→policy read-return round trip.</dd>
+            <dt>Notable</dt><dd>Full eight-component DIZZY vocabulary (<code>c/d/e/y/j/m/q</code> + querier) all present and animated; interactive — click rack slots to spawn or enqueue vials, plus pause/play/speed/autoloop controls. Processors animate per type (heater pulses, centrifuge spins, spectrometer beams); vials blend color toward each processor they pass through. Verified headless: no console/page errors, the arm reaches every station without NaNs, and the feed fills with the full c/d/e/y vocabulary.</dd>
+          </dl>
+          <p class="verdict">The most architected pi run in the set — a genuine continuous scheduler with semantically-guarded policy dispatch and the full eight-component read-loop wired end-to-end, not just narrated.</p>
+        </div>
+
       </article>
 
       <!-- ═══════════════════════════════════════════ -->
@@ -525,6 +554,7 @@
             <a href="gpt-5-6luna-pro/index.html">GPT-5.6-luna-pro</a>
             <a href="gpt-5-6sol-pro/index.html">GPT-5.6-sol-pro</a>
             <a href="gpt-5-6terra-pro/index.html">GPT-5.6-terra-pro</a>
+            <a href="glm5-2/index.html">GLM 5.2</a>
           </nav>
           <p style="margin-top:1em;">Full agent session transcripts:</p>
           <nav class="card-links links-row">
@@ -539,6 +569,7 @@
             <a href="sessions/gpt-5-6luna-pro.html">GPT-5.6-luna-pro</a>
             <a href="sessions/gpt-5-6sol-pro.html">GPT-5.6-sol-pro</a>
             <a href="sessions/gpt-5-6terra-pro.html">GPT-5.6-terra-pro</a>
+            <a href="sessions/glm5-2.html">GLM 5.2</a>
           </nav>
           <p class="meta" style="margin-top:1em;">
             Shared prompt: <a href="PROMPT.md">PROMPT.md</a> — identical text handed to every model, no other context, no follow-up coaching beyond housekeeping commands.
