@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DIZZY Viz — Robot Lab</title>
+<style>
+  :root{
+    --bg:#070a12; --bg2:#0b1020; --panel:#0e1424; --panel2:#121a2e;
+    --line:#1c2540; --ink:#c7d2e8; --muted:#6b7896;
+    --c:#22d3ee;  /* command  */
+    --d:#a78bfa;  /* procedure */
+    --e:#fbbf24;  /* event     */
+    --y:#fb7185;  /* policy    */
+    --j:#34d399;  /* projection*/
+    --m:#38bdf8;  /* model     */
+    --q:#e879f9;  /* query     */
+    --ok:#9ae6b4;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:
+      radial-gradient(1200px 600px at 20% -10%, #14204a55, transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, #2a124855, transparent 60%),
+      var(--bg);
+    color:var(--ink); font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    overflow:hidden;
+  }
+  #app{display:grid; grid-template-columns: 1fr 420px; grid-template-rows: auto 1fr auto; height:100vh; gap:10px; padding:10px}
+  header{grid-column:1/3; display:flex; align-items:center; gap:14px}
+  header h1{font-size:18px; margin:0; letter-spacing:.14em; text-transform:uppercase; color:#e8eefc}
+  header h1 b{color:var(--d)}
+  header .sub{color:var(--muted); font-size:12px}
+  .pill{font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); border:1px solid var(--line); padding:3px 8px; border-radius:999px}
+  #scene-wrap{grid-column:1; grid-row:2; background:linear-gradient(180deg,var(--panel),var(--bg2)); border:1px solid var(--line); border-radius:14px; position:relative; overflow:hidden}
+  #scene{width:100%; height:100%; display:block}
+  .scene-hud{position:absolute; left:12px; top:10px; display:flex; gap:8px; flex-wrap:wrap; pointer-events:none}
+  .badge{background:#0b1120cc; border:1px solid var(--line); border-radius:8px; padding:5px 9px; font-size:11px; color:var(--ink)}
+  .badge .k{color:var(--muted); margin-right:6px}
+  .badge .v{color:#fff; font-variant-numeric:tabular-nums}
+  #right{grid-column:2; grid-row:2; display:grid; grid-template-rows: 1fr 1fr; gap:10px; min-height:0}
+  .card{background:linear-gradient(180deg,var(--panel),var(--bg2)); border:1px solid var(--line); border-radius:14px; display:flex; flex-direction:column; min-height:0; overflow:hidden}
+  .card .hd{padding:8px 12px; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between}
+  .card .hd .t{font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:#cfd8ee}
+  .card .hd .hint{font-size:10px; color:var(--muted)}
+  #feed{flex:1; overflow-y:auto; padding:6px 8px; scrollbar-width:thin}
+  #feed::-webkit-scrollbar{width:8px} #feed::-webkit-scrollbar-thumb{background:#1f2a44; border-radius:8px}
+  .row{display:flex; gap:7px; align-items:flex-start; padding:4px 5px; border-radius:7px; font-size:11px; line-height:1.35; animation:slidein .25s ease}
+  .row:hover{background:#0c1322}
+  .row .ico{flex:0 0 18px; height:18px; border-radius:5px; display:grid; place-items:center; font-weight:700; font-size:10px; color:#04060c; margin-top:1px}
+  .row .nm{color:#dbe4f5; font-weight:600}
+  .row .pl{color:var(--muted)}
+  .row .tm{color:#3f4a68; margin-left:auto; font-variant-numeric:tabular-nums; white-space:nowrap}
+  @keyframes slidein{from{opacity:0; transform:translateY(-4px)} to{opacity:1; transform:none}}
+  #graph-wrap{flex:1; position:relative; min-height:0}
+  #graph{width:100%; height:100%; display:block}
+  .gnode rect{transition:filter .15s}
+  .gnode text{pointer-events:none}
+  footer{grid-column:1/3; display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:2px 4px}
+  button{background:#111a30; color:var(--ink); border:1px solid var(--line); border-radius:9px; padding:7px 12px; font-size:12px; cursor:pointer}
+  button:hover{border-color:#2a3a66; background:#162038}
+  button.primary{border-color:#3a2f66; color:#e9e6ff}
+  .ctl{display:flex; align-items:center; gap:7px; font-size:11px; color:var(--muted)}
+  input[type=range]{accent-color:var(--d)}
+  .legend{display:flex; gap:10px; flex-wrap:wrap; font-size:10px; color:var(--muted)}
+  .legend span{display:inline-flex; align-items:center; gap:4px}
+  .legend i{width:9px; height:9px; border-radius:3px; display:inline-block}
+  .toast{position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:#0b1120ee; border:1px solid var(--line); color:var(--ink); padding:6px 12px; border-radius:9px; font-size:12px; opacity:0; transition:opacity .3s; pointer-events:none}
+  .toast.show{opacity:1}
+  .glink{fill:none; stroke:#2a3357; stroke-width:1.2}
+  .glink.back{stroke-dasharray:3 4}
+  .pkt{filter:drop-shadow(0 0 4px currentColor)}
+  .nlabel{font:600 10px Inter,system-ui; fill:#cdd6ec}
+  .nsym{font:700 10px Inter,system-ui}
+  .ndesc{font:8.5px Inter,system-ui; fill:#7c89a8}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>DIZZY<b>·</b>VIZ</h1>
+    <span class="pill">event-driven robot lab</span>
+    <span class="sub">Commands → Procedures → Events → Policies → Commands&nbsp;&nbsp;·&nbsp;&nbsp;Events → Projections → Models → Queries → Procedures</span>
+  </header>
+
+  <div id="scene-wrap">
+    <div class="scene-hud">
+      <div class="badge"><span class="k">active</span><span class="v" id="hud-active">—</span></div>
+      <div class="badge"><span class="k">step</span><span class="v" id="hud-step">—</span></div>
+      <div class="badge"><span class="k">queue</span><span class="v" id="hud-queue">0</span></div>
+      <div class="badge"><span class="k">processed</span><span class="v" id="hud-done">0</span></div>
+    </div>
+    <svg id="scene" viewBox="0 0 760 540" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <div id="right">
+    <div class="card">
+      <div class="hd"><span class="t">Command &amp; Event Queue</span><span class="hint">live feed · newest on top</span></div>
+      <div id="feed"></div>
+    </div>
+    <div class="card">
+      <div class="hd"><span class="t">DIZZY Component Graph</span><span class="hint">packets flow along wiring</span></div>
+      <div id="graph-wrap"><svg id="graph" viewBox="0 0 520 580" preserveAspectRatio="xMidYMid meet"></svg></div>
+    </div>
+  </div>
+
+  <footer>
+    <button id="btn-play" class="primary">⏸ Pause</button>
+    <button id="btn-add">+ Random Sample</button>
+    <button id="btn-reset">Reset</button>
+    <div class="ctl"><label>speed</label><input id="speed" type="range" min="0.3" max="2.6" step="0.1" value="1.2"><span id="speed-v">1.2×</span></div>
+    <div class="ctl"><label>auto-loop</label><input id="autoloop" type="checkbox" checked></div>
+    <div class="legend" id="legend"></div>
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* ============================================================================
+   DIZZY VIZ — a stylized, interactive visualization of a DIZZY event-driven
+   library, embodied as a robot-arm lab that processes samples through a chain
+   of processors. The robot arm is the "physical" side; the network graph and
+   the live feed are the DIZZY control software: commands, procedures, events,
+   policies, projections, models, queries.
+
+   Two loops (per DIZZY):
+     reactivity: Commands -> Procedures -> Events -> Policies -> Commands
+     data:       Events -> Projections -> Models -> Queries -> Procedures
+   ========================================================================== */
+
+const $ = id => document.getElementById(id);
+const SVGNS = "http://www.w3.org/2000/svg";
+function svg(tag, attrs={}, parent=null){
+  const el = document.createElementNS(SVGNS, tag);
+  for(const k in attrs) el.setAttribute(k, attrs[k]);
+  if(parent) parent.appendChild(el);
+  return el;
+}
+const lerp = (a,b,t)=>a+(b-a)*t;
+const clamp = (v,a,b)=>v<a?a:v>b?b:v;
+const now = ()=>performance.now();
+
+/* ----------------------------------------------------------------------------
+   COLORS per component type
+---------------------------------------------------------------------------- */
+const COL = { c:"#22d3ee", d:"#a78bfa", e:"#fbbf24", y:"#fb7185", j:"#34d399", m:"#38bdf8", q:"#e879f9" };
+
+/* ----------------------------------------------------------------------------
+   DIZZY component registry — the "feature file" in code form.
+   Each node: {id, type, name, desc, x, y}
+---------------------------------------------------------------------------- */
+const NODES = {
+  // commands
+  c_transfer:{type:"c", name:"transfer_sample", desc:"move sample from→to", x:50, y:230},
+  c_run:      {type:"c", name:"run_processor",   desc:"operate a processor",  x:50, y:370},
+  // procedures
+  d_transfer: {type:"d", name:"relocate_sample", desc:"handles transfer_sample", x:140, y:230},
+  d_operate:  {type:"d", name:"operate_processor",desc:"handles run_processor",   x:140, y:370},
+  // events
+  e_transferred:{type:"e", name:"sample_transferred", desc:"sample relocated", x:236, y:170},
+  e_processed:  {type:"e", name:"sample_processed",   desc:"processor finished", x:236, y:370},
+  // policies
+  y_run:  {type:"y", name:"on_arrival",  desc:"to=proc ⇒ run it",        x:330, y:80},
+  y_load: {type:"y", name:"on_rack",     desc:"to=rack ⇒ load next",     x:330, y:175},
+  y_route:{type:"y", name:"on_processed",desc:"next step or return",      x:330, y:285},
+  // projections
+  j_samples:{type:"j", name:"sample_state", desc:"fold → samples",   x:330, y:405},
+  j_proclog:{type:"j", name:"proc_log",      desc:"fold → processors", x:330, y:485},
+  // models
+  m_samples:{type:"m", name:"samples",    desc:"read-side state", x:430, y:405},
+  m_procs: {type:"m", name:"processors", desc:"utilization",     x:430, y:485},
+  // queries
+  q_sample:{type:"q", name:"get_sample_state", desc:"reads samples",    x:430, y:175},
+  q_proc:  {type:"q", name:"get_proc_status", desc:"reads processors", x:430, y:285},
+};
+const SYM = {c:"c",d:"d",e:"e",y:"y",j:"j",m:"m",q:"q"};
+const TNAME = {c:"Command",d:"Procedure",e:"Event",y:"Policy",j:"Projection",m:"Model",q:"Query"};
+
+/* edges: [src, dst, back?] — back edges arc over the top (policy→command) */
+const EDGES = [
+  ["c_transfer","d_transfer"],
+  ["c_run","d_operate"],
+  ["d_transfer","e_transferred"],
+  ["d_operate","e_processed"],
+  ["e_transferred","y_run"],
+  ["e_transferred","y_load"],
+  ["e_processed","y_route"],
+  ["e_transferred","j_samples"],
+  ["e_processed","j_samples"],
+  ["e_transferred","j_proclog"],
+  ["e_processed","j_proclog"],
+  ["j_samples","m_samples"],
+  ["j_proclog","m_procs"],
+  ["m_samples","q_sample"],
+  ["m_procs","q_proc"],
+  ["q_sample","y_route"],
+  ["q_sample","y_load"],
+  ["q_proc","y_load"],
+  ["y_run","c_run",true],
+  ["y_route","c_transfer",true],
+  ["y_load","c_transfer",true],
+];
+
+/* ----------------------------------------------------------------------------
+   PROCESSORS & SAMPLES (the "physical" world)
+---------------------------------------------------------------------------- */
+const PROCESSORS = {
+  heater:       {id:"heater",       name:"Heater",       color:"#f97316", cx:600, cy:235, kind:"heat"},
+  centrifuge:   {id:"centrifuge",   name:"Centrifuge",   color:"#38bdf8", cx:672, cy:340, kind:"spin"},
+  spectrometer: {id:"spectrometer", name:"Spectrometer", color:"#34d399", cx:560, cy:405, kind:"beam"},
+};
+// grip/insert points (where the arm reaches to grip or release a sample)
+function procGripPoint(p){ return {x:p.cx, y:p.cy-44}; }
+function procSamplePos(p){ return {x:p.cx, y:p.cy+6}; }   // where the vial sits inside
+
+const RACK_X = 70;
+const RACK_SLOTS = [ // y of the slot pocket (vial sits here)
+  {y:388},{y:338},{y:288},{y:238}
+];
+function rackGripPoint(i){ return {x:RACK_X, y:RACK_SLOTS[i].y-46}; }
+function rackSamplePos(i){ return {x:RACK_X, y:RACK_SLOTS[i].y-18}; }
+
+const ARM = {
+  base:{x:340, y:500}, shoulder:{x:340, y:432},
+  L1:168, L2:162,
+  gripper:{x:340, y:300}, // current world gripper pos
+  fingersOpen:1,           // 1 open, 0 closed
+  home:{x:340, y:300},
+};
+
+let SAMPLES = [];      // each: {id, color, recipe:[procId...], step, loc:{...}, el, fillEl}
+let QUEUE = [];         // sample ids awaiting processing
+let ACTIVE = null;      // sample currently being processed (or null)
+let doneCount = 0;
+let sampleSeq = 0;
+
+function makeSample(color, recipe){
+  const id = "S"+(++sampleSeq);
+  return {id, color, baseColor:color, recipe, step:0, loc:null, el:null};
+}
+function placeInRack(s){
+  if(!s.loc || s.loc.type!=="rack") s.loc = {type:"rack", slot: findFreeSlot()};
+  return s;
+}
+function findFreeSlot(){
+  for(let i=0;i<RACK_SLOTS.length;i++){
+    if(!SAMPLES.some(s=>s.loc && s.loc.type==="rack" && s.loc.slot===i)) return i;
+  }
+  return SAMPLES.length % RACK_SLOTS.length;
+}
+
+const RECIPES_POOL = [
+  ["heater","centrifuge"],
+  ["spectrometer"],
+  ["heater","spectrometer","centrifuge"],
+  ["centrifuge","heater"],
+  ["spectrometer","heater"],
+];
+const SAMPLE_COLORS = ["#c084fc","#22d3ee","#facc15","#f472b6","#4ade80","#fb923c","#60a5fa"];
+
+function seedSamples(){
+  SAMPLES = [
+    makeSample("#c084fc", ["heater","centrifuge"]),
+    makeSample("#22d3ee", ["spectrometer"]),
+    makeSample("#facc15", ["heater","spectrometer","centrifuge"]),
+  ];
+  SAMPLES.forEach(placeInRack);
+  QUEUE = SAMPLES.map(s=>s.id);
+  ACTIVE = null;
+  doneCount = 0;
+}
+
+/* ----------------------------------------------------------------------------
+   CONTROLLER / SIMULATION
+   - scheduler: delayed callbacks (for graph packet timing)
+   - op: current physical operation (executing the "current command")
+   - packets: animated graph packets
+---------------------------------------------------------------------------- */
+let running = true;
+let speed = 1.2;
+let autoloop = true;
+let last = now();
+let timers = [];
+function schedule(fn, ms){ timers.push({at:now()+ms, fn}); }
+function tickTimers(){
+  const t = now();
+  for(let i=timers.length-1;i>=0;i--){
+    if(timers[i].at<=t){ const f=timers[i].fn; timers.splice(i,1); f(); }
+  }
+}
+
+let op = null;   // current operation: {kind:"transfer"|"run", phase, t, dur, ...}
+let currentCommand = null; // {cmdId, ...} the command currently being executed
+let busy = false;          // mid-policy/transition (graph animating) -> no new op yet
+
+/* ----------------------------------------------------------------------------
+   GRAPH: build static SVG, edge paths, packet system
+---------------------------------------------------------------------------- */
+const graph = $("graph");
+let edgePaths = {}; // id "src>dst" -> {pathEl, points:[{x,y}...], ctrl}
+function buildGraph(){
+  graph.innerHTML="";
+  // defs glow
+  const defs = svg("defs",{},graph);
+  const fz = svg("filter",{id:"glow",x:"-60%",y:"-60%",width:"220%",height:"220%"},defs);
+  svg("feGaussianBlur",{stdDeviation:"2.4",result:"b"},fz);
+  const m = svg("merge",{},fz); svg("mergeNode",{in:"b"},m); svg("mergeNode",{in:"SourceGraphic"},m);
+
+  // edges first (under nodes)
+  for(const [s,d,back] of EDGES){
+    const A=NODES[s], B=NODES[d];
+    const path = svg("path",{class:"glink"+(back?" back":""),d:edgeD(A,B,back)},graph);
+    edgePaths[s+">"+d] = {pathEl:path, A, B, back, points:edgePoints(A,B,back)};
+  }
+  // nodes
+  for(const id in NODES){
+    const n=NODES[id], col=COL[n.type];
+    const g=svg("g",{class:"gnode",transform:`translate(${n.x},${n.y})`},graph);
+    g.dataset.id=id;
+    const w=92, h=34;
+    const r=svg("rect",{x:-w/2,y:-h/2,width:w,height:h,rx:9,fill:"#0c1322",stroke:col,"stroke-width":1.3},g);
+    r.style.filter="url(#glow)";
+    svg("circle",{cx:-w/2+12,cy:0,r:9,fill:col},g);
+    const sym=svg("text",{x:-w/2+12,y:3.4,"text-anchor":"middle",class:"nsym",fill:"#04060c"},g);
+    sym.textContent=SYM[n.type];
+    const nm=svg("text",{x:-w/2+24,y:-2,class:"nlabel"},g); nm.textContent=n.name;
+    const ds=svg("text",{x:-w/2+24,y:9,class:"ndesc"},g); ds.textContent=n.desc;
+    n._el=g; n._rect=r;
+  }
+  // packets layer
+  const pl = svg("g",{id:"pkts"},graph);
+}
+function edgeD(A,B,back){
+  if(back){
+    const cx=(A.x+B.x)/2, cy=Math.min(A.y,B.y)-70 - Math.abs(A.x-B.x)*0.05;
+    return `M${A.x},${A.y-12} Q${cx},${cy} ${B.x},${B.y-12}`;
+  }
+  return `M${A.x+8},${A.y} L${B.x-8},${B.y}`;
+}
+function edgePoints(A,B,back){
+  const pts=[];
+  const N=24;
+  if(back){
+    const cx=(A.x+B.x)/2, cy=Math.min(A.y,B.y)-70 - Math.abs(A.x-B.x)*0.05;
+    for(let i=0;i<=N;i++){const t=i/N, x=(1-t)*(1-t)*A.x+2*(1-t)*t*cx+t*t*B.x, y=(1-t)*(1-t)*(A.y-12)+2*(1-t)*t*cy+t*t*(B.y-12); pts.push({x,y});}
+  } else {
+    for(let i=0;i<=N;i++){const t=i/N; pts.push({x:lerp(A.x+8,B.x-8,t), y:lerp(A.y,B.y,t)});}
+  }
+  return pts;
+}
+let packets=[];
+function spawnPkt(src,dst,col,opts={}){
+  const key=src+">"+dst; const ep=edgePaths[key]; if(!ep) return;
+  const dur = opts.dur ?? 520;
+  const id = "p"+Math.random().toString(36).slice(2);
+  const c = svg("circle",{r:3.4, fill:col, class:"pkt", style:`color:${col}`},$("pkts"));
+  packets.push({id,el:c,pts:ep.points,t:0,dur,onDone:opts.onDone, label:opts.label});
+  // also flash the dst node
+  flashNode(dst, col);
+}
+function flashNode(id,col){
+  const n=NODES[id]; if(!n||!n._rect) return;
+  n._rect.setAttribute("stroke",col);
+  n._rect.setAttribute("stroke-width",2.4);
+  schedule(()=>{ if(n._rect){ n._rect.setAttribute("stroke",COL[n.type]); n._rect.setAttribute("stroke-width",1.3);} },260);
+}
+function updatePackets(dt){
+  for(let i=packets.length-1;i>=0;i--){
+    const p=packets[i]; p.t += dt*1;
+    const k = clamp(p.t/p.dur,0,1);
+    const idx = clamp(Math.floor(k*(p.pts.length-1)),0,p.pts.length-2);
+    const a=p.pts[idx], b=p.pts[idx+1], f=k*(p.pts.length-1)-idx;
+    p.el.setAttribute("cx", lerp(a.x,b.x,f));
+    p.el.setAttribute("cy", lerp(a.y,b.y,f));
+    p.el.setAttribute("opacity", k<0.08?k/0.08: k>0.9?(1-k)/0.1:1);
+    if(k>=1){ p.el.remove(); packets.splice(i,1); if(p.onDone) p.onDone(); }
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   FEED
+---------------------------------------------------------------------------- */
+const feedEl = $("feed");
+let feedItems=0;
+function feed(type, name, payload){
+  const row=document.createElement("div"); row.className="row";
+  const ico=document.createElement("div"); ico.className="ico"; ico.style.background=COL[type];
+  ico.textContent=SYM[type];
+  const body=document.createElement("div");
+  body.innerHTML=`<span class="nm">${name}</span> <span class="pl">${payload||""}</span>`;
+  const tm=document.createElement("div"); tm.className="tm";
+  const d=new Date(); tm.textContent=d.toTimeString().slice(0,8);
+  row.appendChild(ico); row.appendChild(body); row.appendChild(tm);
+  feedEl.insertBefore(row, feedEl.firstChild);
+  feedItems++;
+  while(feedItems>60){ feedEl.removeChild(feedEl.lastChild); feedItems--; }
+}
+
+/* ----------------------------------------------------------------------------
+   THE DIZZY FLOW — dispatching commands, emitting events, running policies
+---------------------------------------------------------------------------- */
+// Dispatch a command: animate c->d, then start the op (procedure execution)
+function dispatchCommand(cmdId, payload){
+  currentCommand = {id:cmdId, payload};
+  feed("c", NODES[cmdId].name, fmtPayload(payload));
+  const procId = ({c_transfer:"d_transfer", c_run:"d_operate"})[cmdId];
+  busy = true;
+  spawnPkt(cmdId, procId, COL.c, {dur:430, onDone:()=>{
+    startOp(cmdId, payload);
+  }});
+}
+function fmtPayload(p){
+  if(!p) return "";
+  const out=[];
+  for(const k in p){
+    let v=p[k];
+    if(k==="from"||k==="to") v=fmtLoc(v);
+    else if(typeof v==="object") v=JSON.stringify(v);
+    out.push(`${k}=${v}`);
+  }
+  return out.join(" ");
+}
+
+// Start the physical operation that embodies the procedure's execution.
+function startOp(cmdId, payload){
+  if(cmdId==="c_transfer"){
+    op = {kind:"transfer", from:payload.from, to:payload.to, sid:payload.sample, phase:0, t:0};
+    const s = sampleById(payload.sample);
+    ACTIVE = s;
+    updateHud();
+  } else if(cmdId==="c_run"){
+    op = {kind:"run", proc:payload.processor, sid:payload.sample, phase:0, t:0};
+  }
+  busy=false;
+}
+
+function sampleById(id){ return SAMPLES.find(s=>s.id===id); }
+function locPoint(loc){
+  if(loc.type==="rack") return rackSamplePos(loc.slot);
+  if(loc.type==="proc") return procSamplePos(PROCESSORS[loc.id]);
+  if(loc.type==="gripper") return {x:ARM.gripper.x, y:ARM.gripper.y+20};
+  return {x:0,y:0};
+}
+function locGrip(loc){
+  if(loc.type==="rack") return rackGripPoint(loc.slot);
+  if(loc.type==="proc") return procGripPoint(PROCESSORS[loc.id]);
+  return {x:ARM.gripper.x,y:ARM.gripper.y};
+}
+
+/* advance the current operation */
+function stepOp(dt){
+  if(!op) return;
+  const s = sampleById(op.sid);
+  if(op.kind==="transfer"){
+    // phases: 0 to from-grip, 1 grip(close), 2 cruise up, 3 across, 4 to to-grip, 5 release(open), 6 home
+    const from = op.from, to = op.to;
+    const fromGrip = (from.type==="rack")? rackGripPoint(from.slot) : procGripPoint(PROCESSORS[from.id]);
+    const toGrip   = (to.type==="rack")   ? rackGripPoint(to.slot)   : procGripPoint(PROCESSORS[to.id]);
+    const cruiseY = 150;
+    const targets = [
+      fromGrip, fromGrip,
+      {x:fromGrip.x, y:cruiseY},
+      {x:toGrip.x,   y:cruiseY},
+      toGrip, toGrip,
+      ARM.home,
+    ];
+    const durs = [820, 300, 560, 760, 640, 300, 680];
+    // initialize phase start pos
+    if(op.startX===undefined){ op.startX=ARM.gripper.x; op.startY=ARM.gripper.y; }
+    op.t += dt;
+    while(op.phase<targets.length && op.t>=durs[op.phase]){
+      // snap to phase target, then advance
+      ARM.gripper.x=targets[op.phase].x; ARM.gripper.y=targets[op.phase].y;
+      // arrival action
+      if(op.phase===1){ ARM.fingersOpen=0; if(s) s.loc={type:"gripper"}; }
+      else if(op.phase===5){ ARM.fingersOpen=1; if(s) s.loc={...to}; }
+      op.t -= durs[op.phase];
+      op.phase++;
+      op.startX=ARM.gripper.x; op.startY=ARM.gripper.y;
+    }
+    if(op.phase<targets.length){
+      const cur=targets[op.phase];
+      const prog = clamp(op.t/durs[op.phase],0,1);
+      const e = easeInOut(prog);
+      ARM.gripper.x = lerp(op.startX, cur.x, e);
+      ARM.gripper.y = lerp(op.startY, cur.y, e);
+      // open fingers slightly when approaching grip/release points
+      if(op.phase===0) ARM.fingersOpen = lerp(1, 0.55, clamp((1-prog)*1.2,0,1));
+      if(op.phase===4) ARM.fingersOpen = lerp(0.55, 1, clamp(prog,0,1));
+    } else {
+      ARM.gripper.x=ARM.home.x; ARM.gripper.y=ARM.home.y; ARM.fingersOpen=1;
+      const finished = op; op=null;
+      finishProcedure("d_transfer","e_transferred", {sample:finished.sid, from:fmtLoc(finished.from), to:fmtLoc(finished.to), toType:finished.to.type, toId:(finished.to.id!==undefined?finished.to.id:finished.to.slot)});
+    }
+  } else if(op.kind==="run"){
+    const p = PROCESSORS[op.proc];
+    const dur = 1600;
+    op.t += dt;
+    if(op.t>=dur){
+      const finished=op; op=null;
+      if(s){ s.color = blend(s.color, p.color, 0.55); }
+      finishProcedure("d_operate","e_processed", {sample:finished.sid, processor:finished.proc});
+    }
+  }
+}
+function easeInOut(t){ return t<0.5? 2*t*t : 1-Math.pow(-2*t+2,2)/2; }
+
+function fmtLoc(l){ return l.type==="rack"? `rack[${l.slot}]` : `proc:${l.id}`; }
+
+// procedure finished -> emit event, fan out to projections + relevant policy
+function finishProcedure(dId, eId, evPayload){
+  feed("d", NODES[dId].name, "→ "+NODES[eId].name);
+  spawnPkt(dId, eId, COL.d, {dur:380, onDone:()=>{
+    emitEvent(eId, evPayload);
+  }});
+}
+function emitEvent(eId, p){
+  feed("e", NODES[eId].name, fmtPayload(p));
+  // fan-out to projections (data loop)
+  const projections = EDGES.filter(([s,d])=>s===eId && NODES[d].type==="j").map(([s,d])=>d);
+  // fan-out to policies (reactivity loop) — gated by event semantics
+  let policies = EDGES.filter(([s,d])=>s===eId && NODES[d].type==="y").map(([s,d])=>d);
+  if(eId==="e_transferred"){
+    policies = policies.filter(y => {
+      if(y==="y_run")  return p.toType==="proc";
+      if(y==="y_load") return p.toType==="rack";
+      return true;
+    });
+  }
+  projections.forEach(j=>{
+    spawnPkt(eId, j, COL.e, {dur:440, onDone:()=>{
+      spawnPkt(j, modelOf(j), COL.j, {dur:380, onDone:()=> updateModelReadout()});
+    }});
+  });
+  policies.forEach(y=>{
+    spawnPkt(eId, y, COL.e, {dur:440, onDone:()=> runPolicy(y, p)});
+  });
+}
+function modelOf(j){ return EDGES.find(([s,d])=>s===j && NODES[d].type==="m")[1]; }
+function queriesOf(y){ return EDGES.filter(([s,d])=>s===y && NODES[d].type==="q").map(([s,d])=>d); }
+
+function runPolicy(yId, evPayload){
+  // consult queries (animated), then dispatch command(s) — or go idle.
+  const qs = queriesOf(yId);
+  let pending = qs.length;
+  const after = ()=> dispatchPolicy(yId, evPayload);
+  if(qs.length===0){ after(); return; }
+  qs.forEach(q=>{
+    spawnPkt(yId, q, COL.y, {dur:360, onDone:()=>{
+      spawnPkt(q, yId, COL.q, {dur:360, onDone:()=>{
+        if(--pending<=0) after();
+      }});
+    }});
+  });
+}
+
+// The decision logic of each policy — pure DIZZY-style "decides which command".
+function dispatchPolicy(yId, evPayload){
+  const s = sampleById(evPayload.sample);
+  if(yId==="y_run"){
+    // to=processor ⇒ run it
+    dispatchCommandFromPolicy("y_run","c_run", {processor: evPayload.toId, sample: evPayload.sample});
+  } else if(yId==="y_route"){
+    // after processed: advance step; if more recipe → transfer to next proc; else → return to rack
+    if(s){ s.step++; }
+    if(s && s.step < s.recipe.length){
+      const nextProc = s.recipe[s.step];
+      const from = {type:"proc", id: evPayload.processor};
+      const to   = {type:"proc", id: nextProc};
+      dispatchCommandFromPolicy("y_route","c_transfer", {sample:s.id, from, to});
+    } else {
+      // done: return to rack
+      const from = {type:"proc", id: evPayload.processor};
+      const to   = {type:"rack", slot: s?s.loc.slot ?? findFreeSlot() : findFreeSlot()};
+      dispatchCommandFromPolicy("y_route","c_transfer", {sample: evPayload.sample, from, to});
+    }
+  } else if(yId==="y_load"){
+    // to=rack ⇒ a sample just returned. Load next queued sample (rack→firstProc) or idle.
+    if(s){ // the returning sample finished its recipe
+      doneCount++; updateHud();
+      // remove from active
+      if(ACTIVE===s){ ACTIVE=null; updateHud(); }
+      // re-queue for autoloop if enabled
+      if(autoloop){ QUEUE.push(s.id); }
+    }
+    tryLoadNext();
+  }
+}
+function dispatchCommandFromPolicy(yId, cId, payload){
+  feed("y", NODES[yId].name, "→ "+NODES[cId].name);
+  spawnPkt(yId, cId, COL.y, {dur:480, onDone:()=>{
+    dispatchCommand(cId, payload);
+  }});
+}
+
+// Try to load the next sample from the queue: rack → its first processor.
+function tryLoadNext(){
+  if(op || busy) return;            // something in flight
+  if(QUEUE.length===0){ maybeIdle(); return; }
+  const sid = QUEUE.shift();
+  const s = sampleById(sid);
+  if(!s){ tryLoadNext(); return; }
+  // ensure sample is in a rack slot
+  if(!s.loc || s.loc.type!=="rack"){ s.loc = {type:"rack", slot: findFreeSlot()}; }
+  // reset step for a fresh run (if it's a re-loop)
+  s.step = 0;
+  s.color = s.baseColor;
+  const firstProc = s.recipe[0];
+  const from = {type:"rack", slot: s.loc.slot};
+  const to   = {type:"proc", id: firstProc};
+  // policy y_load consults q_proc too (animated). We just dispatch.
+  feed("y","on_rack","→ transfer_sample");
+  spawnPkt("y_load","c_transfer",COL.y,{dur:480, onDone:()=>{
+    dispatchCommand("c_transfer",{sample:s.id, from, to});
+  }});
+}
+function maybeIdle(){
+  if(!running) return;
+  // nothing to do; wait for user to add a sample. Show a soft toast.
+  showToast("idle — no queued samples. click + Random Sample or a rack vial.");
+}
+let toastT=null;
+function showToast(msg){
+  const t=$("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2600);
+}
+
+function updateModelReadout(){
+  // the "models" are read-side state; reflect in HUD / processor badges
+  updateHud();
+}
+
+/* ----------------------------------------------------------------------------
+   COLOR UTILS
+---------------------------------------------------------------------------- */
+function hex2rgb(h){h=h.replace("#",""); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function rgb2hex(a){return "#"+a.map(v=>clamp(Math.round(v),0,255).toString(16).padStart(2,"0")).join("");}
+function blend(c1,c2,t){const a=hex2rgb(c1),b=hex2rgb(c2);return rgb2hex([lerp(a[0],b[0],t),lerp(a[1],b[1],t),lerp(a[2],b[2],t)]);}
+
+/* ----------------------------------------------------------------------------
+   SCENE RENDERING (robot arm + lab)
+---------------------------------------------------------------------------- */
+const scene = $("scene");
+let sceneEls = {};
+function buildScene(){
+  scene.innerHTML="";
+  const defs = svg("defs",{},scene);
+  // floor grid
+  const pat = svg("pattern",{id:"grid",width:"40",height:"40",patternUnits:"userSpaceOnUse"},defs);
+  svg("path",{d:"M40 0 H0 V40",fill:"none",stroke:"#162038",width:"1"},pat);
+  svg("rect",{x:0,y:0,width:760,height:540,fill:"url(#grid)",opacity:"0.5"},scene);
+
+  // soft vignette
+  svg("rect",{x:0,y:0,width:760,height:540,fill:"url(#vg)"},scene);
+  const vg = svg("radialGradient",{id:"vg",cx:"50%",cy:"42%",r:"75%"},defs);
+  svg("stop",{offset:"0%","stop-color":"#0b1426","stop-opacity":"0"},vg);
+  svg("stop",{offset:"100%","stop-color":"#04060d","stop-opacity":"0.9"},vg);
+
+  // floor line
+  svg("rect",{x:0,y:498,width:760,height:42,fill:"#0a1120"},scene);
+  svg("line",{x1:0,y1:498,x2:760,y2:498,stroke:"#1c2540",width:"2"},scene);
+
+  // RACK
+  const rack = svg("g",{id:"rack"},scene);
+  svg("rect",{x:36,y:210,width:68,height:300,rx:8,fill:"#0c1426",stroke:"#243054"},rack);
+  svg("rect",{x:30,y:505,width:80,height:10,rx:3,fill:"#162038",stroke:"#243054"},rack);
+  for(let i=0;i<RACK_SLOTS.length;i++){
+    const y=RACK_SLOTS[i].y;
+    svg("rect",{x:42,y:y-26,width:56,height:44,rx:6,fill:"#0a1020",stroke:"#22304f"},rack);
+    svg("text",{x:70,y:y+34,"text-anchor":"middle",fill:"#3b486b",font:"9px Inter"},rack).textContent="slot "+i;
+  }
+  svg("text",{x:70,y:200,"text-anchor":"middle",fill:"#6b7896",font:"10px Inter","letter-spacing":"2"},rack).textContent="RACK";
+
+  // PROCESSORS
+  for(const id in PROCESSORS){
+    const p=PROCESSORS[id];
+    const g=svg("g",{id:"proc-"+id},scene);
+    svg("rect",{x:p.cx-44,y:p.cy-34,width:88,height:74,rx:10,fill:"#0c1426",stroke:p.color,"stroke-opacity":"0.6"},g);
+    // opening on top
+    svg("rect",{x:p.cx-16,y:p.cy-40,width:32,height:8,rx:3,fill:"#070a12",stroke:p.color,"stroke-opacity":"0.7"},g);
+    svg("text",{x:p.cx,y:p.cy+2,"text-anchor":"middle",fill:p.color,font:"600 10px Inter"},g).textContent=p.name;
+    svg("text",{x:p.cx,y:p.cy+16,"text-anchor":"middle",fill:"#3b486b",font:"8px Inter"},g).textContent=id;
+    p._el=g; p._anim=null;
+  }
+
+  // arm group
+  const arm = svg("g",{id:"arm"},scene);
+  // pedestal
+  svg("rect",{x:ARM.base.x-30,y:ARM.base.y,width:60,height:14,rx:3,fill:"#1a2440",stroke:"#2a3a66"},arm);
+  svg("rect",{x:ARM.base.x-14,y:ARM.base.y-10,width:28,height:12,rx:2,fill:"#223054",stroke:"#34507f"},arm);
+  // segments (lines updated each frame)
+  sceneEls.upper = svg("line",{stroke:"url(#armg)","stroke-width":14,"stroke-linecap":"round"},arm);
+  sceneEls.lower = svg("line",{stroke:"url(#armg2)","stroke-width":12,"stroke-linecap":"round"},arm);
+  sceneEls.shoulderC = svg("circle",{r:8,fill:"#34507f",stroke:"#9fb3df"},arm);
+  sceneEls.elbowC = svg("circle",{r:7,fill:"#34507f",stroke:"#9fb3df"},arm);
+  // gripper
+  sceneEls.fL = svg("line",{stroke:"#9fb3df","stroke-width":4,"stroke-linecap":"round"},arm);
+  sceneEls.fR = svg("line",{stroke:"#9fb3df","stroke-width":4,"stroke-linecap":"round"},arm);
+  sceneEls.gripBase = svg("circle",{r:4,fill:"#cfe0ff"},arm);
+
+  // arm gradients
+  const ag = svg("linearGradient",{id:"armg",x1:"0",y1:"0",x2:"1",y2:"1"},defs);
+  svg("stop",{offset:"0%","stop-color":"#5b6e9e"},ag); svg("stop",{offset:"100%","stop-color":"#2a3a66"},ag);
+  const ag2 = svg("linearGradient",{id:"armg2",x1:"0",y1:"0",x2:"1",y2:"1"},defs);
+  svg("stop",{offset:"0%","stop-color":"#48608f"},ag2); svg("stop",{offset:"100%","stop-color":"#22304f"},ag2);
+
+  // sample vials group (drawn on top of arm so carried vial is visible)
+  sceneEls.samples = svg("g",{id:"samples"},scene);
+
+  // glow for arm joints
+  const f = svg("filter",{id:"jglow",x:"-80%",y:"-80%",width:"260%","height":"260%"},defs);
+  svg("feGaussianBlur",{stdDeviation:"1.6",result:"b"},f);
+  const mm=svg("merge",{},f); svg("mergeNode",{in:"b"},mm); svg("mergeNode",{in:"SourceGraphic"},mm);
+  sceneEls.shoulderC.setAttribute("filter","url(#jglow)");
+  sceneEls.elbowC.setAttribute("filter","url(#jglow)");
+}
+
+function buildSampleEl(s){
+  const g=svg("g",{},sceneEls.samples);
+  svg("path",{d:"M-9 -22 L-9 -6 Q-9 4 0 4 Q9 4 9 -6 L9 -22 Z",fill:s.color,stroke:"#ffffff","stroke-opacity":"0.25","stroke-width":"1"},g);
+  svg("rect",{x:-10,y:-26,width:20,height:5,rx:2,fill:"#cdd6ec"},g);
+  s.el=g;
+  s._cap=g.querySelector("rect");
+  s._body=g.querySelector("path");
+  return g;
+}
+function updateSampleEl(s){
+  if(!s.el) buildSampleEl(s);
+  const pos = locPoint(s.loc);
+  s.el.setAttribute("transform",`translate(${pos.x},${pos.y})`);
+  if(s._body) s._body.setAttribute("fill", s.color);
+}
+
+/* 2-bone IK; choose the elbow config that sits higher (smaller y) */
+function ik(tx,ty){
+  const bx=ARM.shoulder.x, by=ARM.shoulder.y, L1=ARM.L1, L2=ARM.L2;
+  let dx=tx-bx, dy=ty-by, d=Math.hypot(dx,dy);
+  const maxd=L1+L2-2;
+  if(d>maxd){ const k=maxd/d; dx*=k; dy*=k; d=maxd; }
+  const baseA=Math.atan2(dy,dx);
+  const cosK=clamp((L1*L1 + d*d - L2*L2)/(2*L1*d),-1,1);
+  const k=Math.acos(cosK);
+  const cfgs=[];
+  for(const s of [-1,1]){
+    const sh=baseA + s*k;
+    const ex=bx+L1*Math.cos(sh), ey=by+L1*Math.sin(sh);
+    cfgs.push({sh,ex,ey});
+  }
+  // choose elbow higher (smaller y)
+  cfgs.sort((a,b)=>a.ey-b.ey);
+  const c=cfgs[0];
+  return {ex:c.ex, ey:c.ey, gx:bx+dx, gy:by+dy};
+}
+
+function renderArm(){
+  const gx=ARM.gripper.x, gy=ARM.gripper.y;
+  const {ex,ey} = ik(gx,gy);
+  sceneEls.upper.setAttribute("x1",ARM.shoulder.x); sceneEls.upper.setAttribute("y1",ARM.shoulder.y);
+  sceneEls.upper.setAttribute("x2",ex); sceneEls.upper.setAttribute("y2",ey);
+  sceneEls.lower.setAttribute("x1",ex); sceneEls.lower.setAttribute("y1",ey);
+  sceneEls.lower.setAttribute("x2",gx); sceneEls.lower.setAttribute("y2",gy);
+  sceneEls.shoulderC.setAttribute("cx",ARM.shoulder.x); sceneEls.shoulderC.setAttribute("cy",ARM.shoulder.y);
+  sceneEls.elbowC.setAttribute("cx",ex); sceneEls.elbowC.setAttribute("cy",ey);
+  // fingers along forearm dir
+  const fa=Math.atan2(gy-ey, gx-ex);
+  const open = 0.35 + ARM.fingersOpen*0.5; // radians offset
+  const flen=20;
+  const fx=gx, fy=gy;
+  const lx = fx + Math.cos(fa-open)*flen, ly = fy + Math.sin(fa-open)*flen;
+  const rx = fx + Math.cos(fa+open)*flen, ry = fy + Math.sin(fa+open)*flen;
+  sceneEls.fL.setAttribute("x1",fx); sceneEls.fL.setAttribute("y1",fy); sceneEls.fL.setAttribute("x2",lx); sceneEls.fL.setAttribute("y2",ly);
+  sceneEls.fR.setAttribute("x1",fx); sceneEls.fR.setAttribute("y1",fy); sceneEls.fR.setAttribute("x2",rx); sceneEls.fR.setAttribute("y2",ry);
+  sceneEls.gripBase.setAttribute("cx",fx); sceneEls.gripBase.setAttribute("cy",fy);
+}
+
+function renderProcessors(t){
+  for(const id in PROCESSORS){
+    const p=PROCESSORS[id];
+    if(op && op.kind==="run" && op.proc===id){
+      const k=clamp(op.t/1600,0,1);
+      if(p.kind==="heat"){
+        p._el.querySelector("rect").setAttribute("stroke-opacity", 0.5+0.4*Math.sin(t/120));
+        p._el.querySelector("rect").setAttribute("stroke", blend(p.color,"#fde68a",0.3+0.3*Math.sin(t/120)));
+      } else if(p.kind==="spin"){
+        const a=t/140;
+        if(!p._spin){ p._spin=svg("g",{},p._el); for(let i=0;i<4;i++){const ang=i*Math.PI/2; svg("line",{x1:0,y1:0,x2:Math.cos(ang)*16,y2:Math.sin(ang)*16,stroke:p.color,"stroke-width":3,"stroke-linecap":"round"},p._spin);} p._spin.setAttribute("transform",`translate(${p.cx},${p.cy-12})`);}
+        p._spin.setAttribute("transform",`translate(${p.cx},${p.cy-12}) rotate(${a*180/Math.PI})`);
+      } else if(p.kind==="beam"){
+        if(!p._beam){ p._beam=svg("rect",{x:p.cx-4,y:p.cy-34,width:8,height:30,fill:p.color,opacity:0},p._el);}
+        p._beam.setAttribute("opacity", 0.3+0.5*Math.abs(Math.sin(t/100)));
+      }
+    } else {
+      p._el.querySelector("rect").setAttribute("stroke-opacity",0.6);
+      p._el.querySelector("rect").setAttribute("stroke",p.color);
+      if(p._spin){ p._spin.remove(); p._spin=null; }
+      if(p._beam){ p._beam.remove(); p._beam=null; }
+    }
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   HUD + legend
+---------------------------------------------------------------------------- */
+function updateHud(){
+  $("hud-queue").textContent = QUEUE.length + (ACTIVE?1:0);
+  $("hud-done").textContent = doneCount;
+  $("hud-active").textContent = ACTIVE? ACTIVE.id : "—";
+  if(ACTIVE){
+    $("hud-step").textContent = `${ACTIVE.step}/${ACTIVE.recipe.length}`;
+  } else { $("hud-step").textContent="—"; }
+}
+function buildLegend(){
+  const l=$("legend");
+  for(const t of ["c","d","e","y","j","m","q"]){
+    const s=document.createElement("span");
+    s.innerHTML=`<i style="background:${COL[t]}"></i>${SYM[t]} ${TNAME[t]}`;
+    l.appendChild(s);
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   MAIN LOOP
+---------------------------------------------------------------------------- */
+function frame(){
+  const t=now();
+  let dt = t-last; last=t;
+  if(!running){ requestAnimationFrame(frame); return; }
+  dt = Math.min(dt,60) * speed/1.2; // scale by speed but cap
+
+  // smooth gripper tracking handled in stepOp via direct set; ensure render uses ARM.gripper
+  stepOp(dt);
+  renderProcessors(t);
+  for(const s of SAMPLES) updateSampleEl(s);
+  renderArm();
+  updatePackets(dt);
+  tickTimers();
+
+  // autoscale: if idle and queue empty, autoloop handled via tryLoadNext on completions.
+  requestAnimationFrame(frame);
+}
+
+/* ----------------------------------------------------------------------------
+   INTERACTIONS
+---------------------------------------------------------------------------- */
+function attachUI(){
+  $("btn-play").onclick = ()=>{
+    running=!running; $("btn-play").textContent = running? "⏸ Pause":"▶ Play"; last=now();
+  };
+  $("btn-add").onclick = ()=>{ addRandomSample(); };
+  $("btn-reset").onclick = ()=>{ resetAll(); };
+  $("speed").oninput = e=>{ speed=parseFloat(e.target.value); $("speed-v").textContent=speed.toFixed(1)+"×"; };
+  $("autoloop").onchange = e=>{ autoloop=e.target.checked; };
+
+  // click rack slot to enqueue / add a sample there
+  $("scene").addEventListener("click", e=>{
+    // detect slot click via y
+    const pt = svgPoint(e);
+    if(pt.x<110 && pt.y>205 && pt.y<510){
+      // which slot?
+      let best=-1,bd=999;
+      for(let i=0;i<RACK_SLOTS.length;i++){const d=Math.abs(pt.y-RACK_SLOTS[i].y); if(d<bd){bd=d;best=i;}}
+      if(best>=0){
+        const existing = SAMPLES.find(s=>s.loc && s.loc.type==="rack" && s.loc.slot===best);
+        if(existing){
+          // enqueue that existing sample (if not already queued/active)
+          if(!QUEUE.includes(existing.id) && ACTIVE!==existing){
+            QUEUE.push(existing.id); showToast(`enqueued ${existing.id}`);
+            if(!op && !busy) tryLoadNext();
+          } else { showToast(`${existing.id} already queued`); }
+        } else {
+          addRandomSampleAt(best);
+        }
+      }
+    }
+  });
+}
+function svgPoint(e){
+  const sc=$("scene"); const ctm=pointCtm(sc); const p=$("scene").createSVGPoint();
+  p.x=e.clientX; p.y=e.clientY; return p.matrixTransform(ctm);
+}
+function pointCtm(svgEl){ return svgEl.getScreenCTM().inverse(); }
+
+function addRandomSample(){
+  const slot = findFreeSlot();
+  addRandomSampleAt(slot);
+}
+function addRandomSampleAt(slot){
+  const color = SAMPLE_COLORS[Math.floor(Math.random()*SAMPLE_COLORS.length)];
+  const recipe = RECIPES_POOL[Math.floor(Math.random()*RECIPES_POOL.length)].slice();
+  const s = makeSample(color, recipe);
+  s.loc = {type:"rack", slot};
+  SAMPLES.push(s);
+  QUEUE.push(s.id);
+  showToast(`+ ${s.id} → ${recipe.map(r=>PROCESSORS[r].name).join(" → ")}`);
+  if(!op && !busy) tryLoadNext();
+}
+function resetAll(){
+  timers=[]; packets.forEach(p=>p.el.remove()); packets=[]; op=null; currentCommand=null; busy=false;
+  feedEl.innerHTML=""; feedItems=0;
+  seedSamples();
+  buildSampleElsAll();
+  updateHud();
+  showToast("reset");
+  // prime
+  schedule(()=>tryLoadNext(), 400);
+}
+function buildSampleElsAll(){
+  // clear
+  sceneEls.samples.innerHTML="";
+  SAMPLES.forEach(s=>{ s.el=null; buildSampleEl(s); });
+}
+
+/* ----------------------------------------------------------------------------
+   BOOT
+---------------------------------------------------------------------------- */
+function boot(){
+  buildGraph();
+  buildScene();
+  buildLegend();
+  seedSamples();
+  buildSampleElsAll();
+  updateHud();
+  attachUI();
+  feed("y","on_rack","→ transfer_sample  (primer)");
+  schedule(()=>{ showToast("dizzy system online — policies evaluating queue"); tryLoadNext(); }, 350);
+  last=now();
+  requestAnimationFrame(frame);
+}
+boot();
+</script>
+</body>
+</html>
