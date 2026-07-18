@@ -3,7 +3,7 @@
 <head>
     <meta charset='utf-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
-    <title>DIZZY LAB: 12 Models, One Prompt</title>
+    <title>DIZZY LAB: 13 Models, One Prompt</title>
     <link rel='stylesheet' href='../main.css'>
     <style>
         :root {
@@ -19,6 +19,7 @@
             --m-solpro:  #f9a8d4;
             --m-terrapro:#c2c6d6;
             --m-glm:    #fb923c;
+            --m-kimi:   #38bdf8;
         }
 
         .lede {
@@ -193,18 +194,18 @@
 
       <article>
         <header>
-          <h1 class="stretch grow-1">DIZZY LAB: 12 Models, One Prompt</h1>
+          <h1 class="stretch grow-1">DIZZY LAB: 13 Models, One Prompt</h1>
         </header>
         <p class="lede">
           I gave the same prompt — build a standalone HTML/JS visualization of a mock robot arm
           driven by a <a href="https://github.com/PNNL/dizzy">DIZZY</a>-style event-sourced system —
-          to 12 different model/agent combinations, with zero other context or coaching.
-          Three ran in <strong>Claude Code</strong> (Fable 5, Opus 4.8, Sonnet 5), and nine ran through
+          to 13 different model/agent combinations, with zero other context or coaching.
+          Three ran in <strong>Claude Code</strong> (Fable 5, Opus 4.8, Sonnet 5), and ten ran through
           <strong>pi</strong>, a lighter-weight agent CLI (Sakana Fugu Ultra twice — once bare, once with
-          a design-system "viz skill" loaded — and OpenAI's GPT-5.6 across six variants: the
+          a design-system "viz skill" loaded — OpenAI's GPT-5.6 across six variants: the
           <code>luna</code>/<code>sol</code>/<code>terra</code> effort tiers, and their <code>-pro</code>
-          counterparts, plus a single bare run of Zhipu's GLM 5.2). Below is what came out, what it cost,
-          and how the approaches differ.
+          counterparts — plus single bare runs of Zhipu's GLM 5.2 and Moonshot's Kimi K3). Below is what
+          came out, what it cost, and how the approaches differ.
         </p>
       </article>
 
@@ -224,6 +225,18 @@
         you're reading was authored in the same session.
       </div>
 
+      <div class="callout">
+        <strong>Update:</strong> added a thirteenth run — Moonshot's <strong>Kimi K3</strong>
+        (<code>moonshotai/kimi-k3</code> via OpenRouter) through the same pi harness and identical
+        single-shot prompt. Unlike every other pi/CLI entry, this one was <em>not</em> hands-off: it
+        repeatedly hit its output token limit mid-response and had to be manually nudged to
+        <em>"try to continue"</em> before it finished, and it spent several tool calls scripting its own
+        headless-Chromium test harness — writing and then deleting throwaway <code>shot_test.html</code>/
+        <code>shot_modal.html</code>/<code>test_drive.html</code> driver files to screenshot and
+        console-check its own output before declaring done. Turn count and cost below reflect that extra
+        back-and-forth.
+      </div>
+
       <!-- ═══════════════════════════════════════════ -->
       <!--               METRICS                       -->
       <!-- ═══════════════════════════════════════════ -->
@@ -236,12 +249,14 @@
         <section>
           <p>
             "Turns" below counts agent (LLM) responses within the session — how many times the model
-            spoke or acted before finishing. All 12 got the identical single-shot prompt from
-            <code>PROMPT.md</code>; the pi/CLI runs stayed genuinely single-shot (one prompt in, done),
+            spoke or acted before finishing. All 13 got the identical single-shot prompt from
+            <code>PROMPT.md</code>; most of the pi/CLI runs stayed genuinely single-shot (one prompt in, done),
             while all three Claude Code runs got a courtesy <code>/model</code>/<code>/export</code>/
             "commit and push" nudge afterward — and Fable 5 specifically ran out of room mid-task and needed
             a manual <em>"Continue from where you left off"</em> to finish, which is reflected in its outsized
-            turn count and cost below.
+            turn count and cost below. Kimi K3 is the one pi/CLI exception: it hit its own output token
+            limit mid-response more than once and needed a manual <em>"try to continue"</em> nudge to finish,
+            on top of spending several turns writing and screenshotting throwaway HTML test files.
           </p>
 
           <div class="chart">
@@ -258,6 +273,7 @@
             <div class="bar-row"><div class="bar-label">GPT-5.6-sol-pro</div><div class="bar-track"><div class="bar-fill" style="width:4.4%;background:var(--m-solpro)"></div></div><div class="bar-value">5</div></div>
             <div class="bar-row"><div class="bar-label">GPT-5.6-terra-pro</div><div class="bar-track"><div class="bar-fill" style="width:7.1%;background:var(--m-terrapro)"></div></div><div class="bar-value">8</div></div>
             <div class="bar-row"><div class="bar-label">GLM 5.2</div><div class="bar-track"><div class="bar-fill" style="width:47.8%;background:var(--m-glm)"></div></div><div class="bar-value">54</div></div>
+            <div class="bar-row"><div class="bar-label">Kimi K3</div><div class="bar-track"><div class="bar-fill" style="width:41.6%;background:var(--m-kimi)"></div></div><div class="bar-value">47</div></div>
           </div>
 
           <div class="chart">
@@ -274,6 +290,7 @@
             <div class="bar-row"><div class="bar-label">GPT-5.6-sol-pro</div><div class="bar-track"><div class="bar-fill" style="width:7.0%;background:var(--m-solpro)"></div></div><div class="bar-value">4</div></div>
             <div class="bar-row"><div class="bar-label">GPT-5.6-terra-pro</div><div class="bar-track"><div class="bar-fill" style="width:10.5%;background:var(--m-terrapro)"></div></div><div class="bar-value">6</div></div>
             <div class="bar-row"><div class="bar-label">GLM 5.2</div><div class="bar-track"><div class="bar-fill" style="width:93.0%;background:var(--m-glm)"></div></div><div class="bar-value">53</div></div>
+            <div class="bar-row"><div class="bar-label">Kimi K3</div><div class="bar-track"><div class="bar-fill" style="width:78.9%;background:var(--m-kimi)"></div></div><div class="bar-value">45</div></div>
           </div>
 
           <div class="chart">
@@ -290,6 +307,7 @@
             <div class="bar-row"><div class="bar-label">GPT-5.6-sol-pro</div><div class="bar-track"><div class="bar-fill" style="width:2.0%;background:var(--m-solpro)"></div></div><div class="bar-value">0.22M</div></div>
             <div class="bar-row"><div class="bar-label">GPT-5.6-terra-pro</div><div class="bar-track"><div class="bar-fill" style="width:2.3%;background:var(--m-terrapro)"></div></div><div class="bar-value">0.26M</div></div>
             <div class="bar-row"><div class="bar-label">GLM 5.2</div><div class="bar-track"><div class="bar-fill" style="width:19.1%;background:var(--m-glm)"></div></div><div class="bar-value">2.13M</div></div>
+            <div class="bar-row"><div class="bar-label">Kimi K3</div><div class="bar-track"><div class="bar-fill" style="width:25.1%;background:var(--m-kimi)"></div></div><div class="bar-value">2.80M</div></div>
           </div>
 
           <div class="chart">
@@ -306,6 +324,7 @@
             <div class="bar-row"><div class="bar-label">GPT-5.6-sol-pro</div><div class="bar-track"><div class="bar-fill" style="width:9.7%;background:var(--m-solpro)"></div></div><div class="bar-value">$1.85</div></div>
             <div class="bar-row"><div class="bar-label">GPT-5.6-terra-pro</div><div class="bar-track"><div class="bar-fill" style="width:4.2%;background:var(--m-terrapro)"></div></div><div class="bar-value">$0.80</div></div>
             <div class="bar-row"><div class="bar-label">GLM 5.2</div><div class="bar-track"><div class="bar-fill" style="width:3.4%;background:var(--m-glm)"></div></div><div class="bar-value">$0.65</div></div>
+            <div class="bar-row"><div class="bar-label">Kimi K3</div><div class="bar-track"><div class="bar-fill" style="width:14.4%;background:var(--m-kimi)"></div></div><div class="bar-value">$2.75</div></div>
           </div>
 
           <div class="chart">
@@ -322,6 +341,7 @@
             <div class="bar-row"><div class="bar-label">GPT-5.6-sol-pro</div><div class="bar-track"><div class="bar-fill" style="width:26.9%;background:var(--m-solpro)"></div></div><div class="bar-value">359</div></div>
             <div class="bar-row"><div class="bar-label">GPT-5.6-terra-pro</div><div class="bar-track"><div class="bar-fill" style="width:22.9%;background:var(--m-terrapro)"></div></div><div class="bar-value">306</div></div>
             <div class="bar-row"><div class="bar-label">GLM 5.2</div><div class="bar-track"><div class="bar-fill" style="width:70.0%;background:var(--m-glm)"></div></div><div class="bar-value">934</div></div>
+            <div class="bar-row"><div class="bar-label">Kimi K3</div><div class="bar-track"><div class="bar-fill" style="width:61.7%;background:var(--m-kimi)"></div></div><div class="bar-value">823</div></div>
           </div>
 
           <p class="meta">
@@ -369,12 +389,13 @@
                 <tr><td>GPT-5.6-sol-pro</td><td>pi</td><td class="yes">✓ 2-link, two-circle intersection</td><td>Configurable multi-stop route, parallel policy/projection dispatch</td><td>SVG, dark lime/cyan "terminal" theme</td><td>User-orderable multi-processor route + <code>Promise.all</code> fan-out — most architected of the six pi/CLI runs</td></tr>
                 <tr><td>GPT-5.6-terra-pro</td><td>pi</td><td class="yes">✓ 2-link, atan2/acos</td><td>Single dispatch, linear async script</td><td>SVG, dark navy/cyan/lime</td><td>Toast notifications on selection change; seeded initial event feed</td></tr>
                 <tr><td>GLM 5.2</td><td>pi</td><td class="yes">✓ 2-link, atan2/acos, elbow-config selection</td><td>Full — continuous scheduler, gated policy fan-out, autoloop re-enqueue</td><td>SVG, dark three-panel control-room</td><td>Semantically-guarded policy fan-out + full 8-component vocab with animated query→policy read-loop</td></tr>
+                <tr><td>Kimi K3</td><td>pi</td><td class="yes">✓ 2-link, atan2/acos</td><td>Full — <code>pump()</code> queue loop, concurrent policy+projection dispatch, conditional policy firing</td><td>SVG, dark three-panel control-room</td><td>Read side genuinely consulted mid-dispatch (<code>proc.queries</code> query→data-loop hop) before the command executes</td></tr>
               </tbody>
             </table>
           </div>
 
           <p class="meta">
-            10 of 12 implemented genuine inverse kinematics (atan2/acos or two-circle-intersection
+            11 of 13 implemented genuine inverse kinematics (atan2/acos or two-circle-intersection
             law-of-cosines solves for a 2-link arm) despite the prompt never mentioning IK, physics, or
             joint math — it just asked for an arm that "can pick up a sample ... and move it." Only the
             base (non-<code>-pro</code>) GPT-5.6-luna and GPT-5.6-terra skipped IK entirely, in favor of
@@ -382,9 +403,13 @@
             real IK <em>and</em> the same effort tier's queue sophistication didn't automatically follow —
             luna-pro and terra-pro stayed single-shot linear scripts even with correct arm geometry, while
             sol-pro alone crossed into a genuinely reconfigurable multi-stop route with parallel
-            policy/projection dispatch — the most architected of the GPT-5.6 pi/CLI runs. The twelfth entry,
-            GLM 5.2 (run separately), went further still: a continuous scheduler with semantically-guarded
-            policy fan-out and the full eight-component read-loop wired, not just narrated.
+            policy/projection dispatch — the most architected of the GPT-5.6 pi/CLI runs. GLM 5.2 went
+            further still: a continuous scheduler with semantically-guarded policy fan-out and the full
+            eight-component read-loop wired, not just narrated. Kimi K3, the thirteenth entry, landed in
+            similar territory — a real <code>pump()</code> queue loop with concurrent policy/projection
+            dispatch and conditional policy firing — but got there the hard way, needing a manual nudge
+            past its own output limit and burning several turns on a self-authored headless-browser test
+            harness before it converged.
           </p>
         </section>
       </article>
@@ -530,6 +555,17 @@
           <p class="verdict">The most architected pi run in the set — a genuine continuous scheduler with semantically-guarded policy dispatch and the full eight-component read-loop wired end-to-end, not just narrated.</p>
         </div>
 
+        <div class="model-card">
+          <h3>Kimi K3 (Moonshot) <span class="harness-tag">pi</span></h3>
+          <div class="model-meta">823 lines · 47 turns · 45 tool calls · $2.75 · needed a manual "try to continue"</div>
+          <dl>
+            <dt>Kinematics</dt><dd>Real 2-link IK — <code>ik(gx,tx,ty)</code> via <code>atan2</code>/<code>acos</code>, with a fixed elbow-side branch chosen explicitly (per a code comment) for "smooth, machine-like motion" rather than picking whichever solution is closer each frame.</dd>
+            <dt>Queue/events</dt><dd>The whole feature is declared as data upfront (<code>FEATURE = {commands, procedures, policies, projections, models, queries}</code>, a literal in-code <code>.feat.yaml</code>) and driven by a real async <code>pump()</code> loop over a shared queue: <code>dispatchCommand</code> makes procedures consult the read side (<code>proc.queries</code>) before executing, and <code>dispatchEvent</code> fans out to policies and projections concurrently via <code>Promise.all</code>, with policies conditionally firing (<code>policyFires</code>) rather than always dispatching.</dd>
+            <dt>Notable</dt><dd>The one run in the whole set that visibly struggled: it hit its own output token limit mid-response more than once and needed a manual <em>"try to continue"</em> to finish, then spent several tool calls writing, running, and deleting throwaway headless-Chromium test rigs (<code>shot_test.html</code>, <code>shot_modal.html</code>, <code>test_drive.html</code>) to screenshot and console-check its own work before cleaning them up and declaring done.</dd>
+          </dl>
+          <p class="verdict">Technically on par with the best of the pi cohort — real IK, a genuine queue engine with conditional policy firing and a query round-trip — but the only run that needed hand-holding to actually finish, and the most expensive pi/CLI entry as a result.</p>
+        </div>
+
       </article>
 
       <!-- ═══════════════════════════════════════════ -->
@@ -555,6 +591,7 @@
             <a href="gpt-5-6sol-pro/index.html">GPT-5.6-sol-pro</a>
             <a href="gpt-5-6terra-pro/index.html">GPT-5.6-terra-pro</a>
             <a href="glm5-2/index.html">GLM 5.2</a>
+            <a href="kimi-k3/index.html">Kimi K3</a>
           </nav>
           <p style="margin-top:1em;">Full agent session transcripts:</p>
           <nav class="card-links links-row">
@@ -570,6 +607,7 @@
             <a href="sessions/gpt-5-6sol-pro.html">GPT-5.6-sol-pro</a>
             <a href="sessions/gpt-5-6terra-pro.html">GPT-5.6-terra-pro</a>
             <a href="sessions/glm5-2.html">GLM 5.2</a>
+            <a href="sessions/kimi-k3.html">Kimi K3</a>
           </nav>
           <p class="meta" style="margin-top:1em;">
             Shared prompt: <a href="PROMPT.md">PROMPT.md</a> — identical text handed to every model, no other context, no follow-up coaching beyond housekeeping commands.

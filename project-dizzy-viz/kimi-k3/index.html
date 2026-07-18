@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DIZZY Lab — a living feature-file</title>
+<style>
+:root{
+  --bg:#0b0f14; --panel:#10161e; --panel2:#0d131a; --line:#1e2836; --line2:#263241;
+  --txt:#c9d4e3; --dim:#6b7a8f; --mono:ui-monospace,'SF Mono','Cascadia Code',Menlo,Consolas,monospace;
+  --c:#f5a524; --d:#5ea8ff; --e:#3ddc97; --y:#c58bff; --j:#2fd6c8; --m:#ff7eb6; --q:#9aa7b8;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--txt);font:13px/1.45 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  display:flex;flex-direction:column;overflow:hidden}
+/* ---------- header ---------- */
+header{display:flex;align-items:center;gap:18px;padding:8px 14px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#101722,#0c1119);flex:0 0 auto;flex-wrap:wrap}
+.brand{font:700 20px/1 var(--mono);letter-spacing:1px;color:#eaf1fa}
+.brand b{color:var(--e)}
+.brand small{display:block;font:400 9px/1.4 var(--mono);color:var(--dim);letter-spacing:2.5px;margin-top:3px}
+.loops{font:10.5px/1.6 var(--mono);color:var(--dim)}
+.loops .c1{color:var(--c)} .loops .d1{color:var(--d)} .loops .e1{color:var(--e)} .loops .y1{color:var(--y)}
+.loops .j1{color:var(--j)} .loops .m1{color:var(--m)} .loops .q1{color:var(--q)}
+.legend{display:flex;gap:5px;flex-wrap:wrap}
+.lg{display:flex;align-items:center;gap:5px;padding:2px 8px 2px 3px;border:1px solid var(--line);border-radius:20px;
+  font:10px var(--mono);color:var(--dim);cursor:default}
+.lg i{display:inline-flex;width:16px;height:16px;border-radius:50%;font:700 9.5px/16px var(--mono);font-style:normal;
+  justify-content:center;color:#0b0f14}
+.controls{margin-left:auto;display:flex;gap:8px;align-items:center}
+button{font:600 11.5px var(--mono);color:var(--txt);background:#18212d;border:1px solid var(--line2);
+  border-radius:8px;padding:6px 12px;cursor:pointer;transition:all .15s}
+button:hover{background:#222e3f;border-color:#3a4a61}
+button.primary{background:#123322;border-color:#2c6e4f;color:#7de8b4}
+button.primary:hover{background:#17432c}
+button.seg{padding:6px 9px}
+button.seg.on{background:#2a3a4f;color:#fff;border-color:#4a6076}
+/* ---------- layout ---------- */
+main{flex:1;display:grid;grid-template-columns:minmax(0,1.25fr) 196px minmax(0,1fr);gap:10px;padding:10px;min-height:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;
+  min-height:0;overflow:hidden;position:relative}
+.ptitle{flex:0 0 auto;padding:7px 12px;border-bottom:1px solid var(--line);font:700 10.5px var(--mono);
+  letter-spacing:1.6px;color:#8fa2bb;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.ptitle span{font-weight:400;letter-spacing:.3px;color:var(--dim);font-size:9.5px;text-align:right}
+#rightStack{display:flex;flex-direction:column;gap:10px;min-height:0;min-width:0}
+#graphPanel{flex:1.55}
+#modelsPanel{flex:1}
+svg{flex:1;min-height:0;width:100%}
+/* ---------- world ---------- */
+#toast{position:absolute;top:44px;left:50%;transform:translateX(-50%);background:#2b1a12;border:1px solid #8a4b1f;
+  color:#ffb86b;padding:5px 14px;border-radius:8px;font:600 11px var(--mono);opacity:0;pointer-events:none;
+  transition:opacity .25s;z-index:5;white-space:nowrap}
+#hint{position:absolute;left:14px;bottom:12px;background:#12202e;border:1px solid #2a4a66;color:#9fd0ff;
+  padding:6px 12px;border-radius:8px;font:11px var(--mono);z-index:5;transition:opacity .5s;pointer-events:none}
+/* ---------- queue & journal ---------- */
+#queuePanel{background:var(--panel2)}
+#queue{flex:1.25;overflow-y:auto;overflow-x:hidden;padding:8px;display:flex;flex-direction:column;gap:6px;min-height:0}
+#journal{flex:1;overflow-y:auto;overflow-x:hidden;padding:8px 10px;border-top:1px solid var(--line);font:10px var(--mono);
+  color:#7ea88f;min-height:0}
+#journal div{padding:1.5px 0;white-space:nowrap}
+#journal .seq{color:#4a5a4f;margin-right:5px}
+.empty{color:#3d4a5c;font:italic 10.5px var(--mono);text-align:center;margin-top:14px}
+.chip{flex:0 0 auto;display:flex;align-items:center;gap:7px;background:#151d29;border:1px solid var(--line2);
+  border-radius:8px;padding:5px 8px;transition:opacity .3s,transform .3s,border-color .2s,box-shadow .2s}
+.chip .badge{flex:0 0 auto;width:17px;height:17px;border-radius:50%;font:700 10px/17px var(--mono);
+  text-align:center;color:#0b0f14}
+.chip>span:nth-child(2){min-width:0;overflow:hidden}
+.chip .nm{font:600 10px var(--mono);color:#dbe5f2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .pl{font:9px var(--mono);color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .st{margin-left:auto;font:8.5px var(--mono);color:var(--dim);flex:0 0 auto}
+.chip.command{border-left:3px solid var(--c)} .chip.event{border-left:3px solid var(--e)}
+.chip.command .badge{background:var(--c)} .chip.event .badge{background:var(--e)}
+.chip.dispatching{border-color:var(--d);box-shadow:0 0 10px #5ea8ff44}
+.chip.executing{border-color:var(--d);box-shadow:0 0 14px #5ea8ff66}
+.chip.executing .st{color:var(--d)}
+/* ---------- models ---------- */
+#models{flex:1;overflow:auto;padding:8px 10px;min-height:0}
+table{border-collapse:collapse;width:100%;font:10px var(--mono)}
+th{font:700 9px var(--mono);letter-spacing:1px;color:var(--dim);text-align:left;padding:3px 6px;border-bottom:1px solid var(--line)}
+td{padding:3px 6px;border-bottom:1px solid #182130;color:#b9c7d9}
+tr.flash td{animation:rowFlash 1s}
+@keyframes rowFlash{0%{background:#2fd6c833}100%{background:transparent}}
+.stats{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
+.stat{flex:1;min-width:70px;background:#0d141c;border:1px solid var(--line);border-radius:8px;padding:5px 9px;text-align:center}
+.stat b{display:block;font:700 16px var(--mono);color:#eaf1fa}
+.stat span{font:8.5px var(--mono);color:var(--dim);letter-spacing:1px}
+.stat.flash{animation:rowFlash 1s}
+/* ---------- graph svg ---------- */
+.node{cursor:default}
+.node rect{fill:#141b25;stroke:#2a3646;stroke-width:1.2;transition:stroke .15s}
+.node text{fill:#c3cfdd;font:9px var(--mono)}
+.node .badge{fill:#2a3646}
+.node .bl{fill:#0b0f14;font:700 8.5px var(--mono);text-anchor:middle}
+.node.lit rect{stroke:var(--nc);stroke-width:1.8;filter:drop-shadow(0 0 6px var(--nc))}
+.node.exec rect{stroke:var(--nc);stroke-width:2.2;filter:drop-shadow(0 0 10px var(--nc))}
+.node.nope rect{stroke:#5a6673;stroke-dasharray:3 3}
+.edge{fill:none;stroke:#2b3b52;stroke-width:1.1;opacity:.85}
+.edge.dashed{stroke-dasharray:4 4}
+.edge.fb{stroke:#2c3a52}
+.dot{filter:drop-shadow(0 0 4px currentColor)}
+.laneLbl{fill:#3d4c60;font:700 8px var(--mono);letter-spacing:1.2px;text-anchor:middle}
+/* ---------- world svg ---------- */
+.wlbl{fill:#54677f;font:600 10px var(--mono);text-anchor:middle}
+.wsub{fill:#3d4c60;font:8.5px var(--mono);text-anchor:middle}
+.clickable{cursor:pointer}
+.clickable:hover .zone{stroke:#4a6076}
+.zone{fill:#182130;stroke:#2a3646;stroke-width:1.2;transition:stroke .15s}
+.mach{fill:#161e28;stroke:#2a3646;stroke-width:1.2}
+.coil{stroke:#f87171;stroke-width:2;fill:none;opacity:.25}
+.heater.on .coil{animation:heatPulse .45s ease-in-out infinite}
+@keyframes heatPulse{0%,100%{opacity:.15}50%{opacity:1}}
+.frost{fill:#93c5fd;opacity:.18;font-size:11px}
+.cooler.on .frost{animation:frostPulse .8s ease-in-out infinite}
+@keyframes frostPulse{0%,100%{opacity:.1}50%{opacity:.95}}
+.ring{fill:none;stroke:#c084fc;stroke-width:1.6;stroke-dasharray:5 5;opacity:.15}
+.centrifuge.on .ring{animation:spinRing .6s linear infinite;transform-box:fill-box;transform-origin:center;opacity:.9}
+@keyframes spinRing{to{transform:rotate(360deg)}}
+.laser{fill:#4ade80;opacity:0}
+.scanner.on .laser{animation:scanSweep 1s ease-in-out infinite}
+@keyframes scanSweep{0%,100%{transform:translateY(0);opacity:.85}50%{transform:translateY(44px);opacity:.85}}
+.bub{fill:#a3b86b;opacity:0}
+.contam .bub{opacity:.85;animation:bubUp 1.6s ease-in infinite}
+.bub.b2{animation-delay:.5s!important}.bub.b3{animation-delay:1s!important}
+@keyframes bubUp{0%{transform:translateY(0);opacity:0}25%{opacity:.85}100%{transform:translateY(-14px);opacity:0}}
+.hotglow{filter:drop-shadow(0 0 5px #ef4444)}
+.coldglow{filter:drop-shadow(0 0 4px #60a5fa)}
+.scanicon{font:700 13px var(--mono);text-anchor:middle}
+/* ---------- fly chips ---------- */
+.fly{position:fixed;z-index:50;pointer-events:none;display:flex;align-items:center;gap:5px;background:#1a2432;
+  border:1px solid var(--line2);border-radius:14px;padding:3px 9px 3px 4px;font:600 9.5px var(--mono);color:#dbe5f2;
+  transition:transform .48s cubic-bezier(.45,.05,.35,1),opacity .48s;white-space:nowrap}
+.fly i{width:14px;height:14px;border-radius:50%;font:700 8.5px/14px var(--mono);font-style:normal;text-align:center;color:#0b0f14}
+/* ---------- modal ---------- */
+#modal{position:fixed;inset:0;background:#05080cd9;display:none;align-items:center;justify-content:center;z-index:100}
+#modal.open{display:flex}
+#modalBox{width:min(680px,92vw);max-height:86vh;background:var(--panel);border:1px solid var(--line2);border-radius:12px;
+  display:flex;flex-direction:column;overflow:hidden}
+#modalBox pre{flex:1;overflow:auto;margin:0;padding:14px 16px;font:11px/1.55 var(--mono);color:#a9e5c5}
+#modalBox .ptitle button{margin-left:auto}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">DIZZY<b>·lab</b><small>A LIVING FEATURE-FILE</small></div>
+  <div class="loops">
+    <span class="c1">Commands</span> → <span class="d1">Procedures</span> → <span class="e1">Events</span> → <span class="y1">Policies</span> → <span class="c1">Commands</span>&nbsp;&nbsp;<i>(reactivity)</i><br>
+    <span class="e1">Events</span> → <span class="j1">Projections</span> → <span class="m1">Models</span> → <span class="q1">Queries</span> → <span class="d1">Procedures</span>&nbsp;&nbsp;<i>(data)</i>
+  </div>
+  <div class="legend" id="legend"></div>
+  <div class="controls">
+    <button class="primary" id="btnDemo">▶ run demo recipe</button>
+    <button id="btnFeat">{ } .feat.yaml</button>
+    <button class="seg on" data-speed="1">1×</button><button class="seg" data-speed="2">2×</button><button class="seg" data-speed="4">4×</button>
+    <button id="btnReset">⟲ reset</button>
+  </div>
+</header>
+<main>
+  <section class="panel" id="worldPanel">
+    <div class="ptitle">THE PHYSICAL WORLD <span>side effects live here — click machines to issue commands</span></div>
+    <svg id="world" viewBox="0 0 980 600" preserveAspectRatio="xMidYMax meet"></svg>
+    <div id="toast"></div>
+    <div id="hint">▸ click a <b>rack</b> to pick up a sample, then click a <b>processor</b> to change it</div>
+  </section>
+  <section class="panel" id="queuePanel">
+    <div class="ptitle">MESSAGE BUS <span>queue</span></div>
+    <div id="queue"></div>
+    <div class="ptitle">EVENT STREAM <span>immutable facts</span></div>
+    <div id="journal"></div>
+  </section>
+  <div id="rightStack">
+    <section class="panel" id="graphPanel">
+      <div class="ptitle">THE FEATURE-FILE, ALIVE <span>packets travel the declared wiring</span></div>
+      <svg id="graph" viewBox="0 0 740 720" preserveAspectRatio="xMidYMid meet"></svg>
+    </section>
+    <section class="panel" id="modelsPanel">
+      <div class="ptitle">READ SIDE — MODELS <span>written only by projections · rebuildable from the event stream</span></div>
+      <div id="models"></div>
+    </section>
+  </div>
+</main>
+<div id="modal"><div id="modalBox">
+  <div class="ptitle">robot_lab.feat.yaml — the design lives in the artifact<button id="btnClose">✕ close</button></div>
+  <pre id="featYaml"></pre>
+</div></div>
+<script>
+/* The artifact itself — this page is a living rendering of this file. */
+const FEAT_YAML=`# robot_lab.feat.yaml — a robot arm shuttles samples between racks and processors.
+# Every click in the world enqueues a command; every fact recorded fans out to
+# projections (data loop) and policies (reactivity loop).
+
+commands:
+  pick_up_sample:   Pick up the next sample from a rack
+  process_sample:   Run the carried sample through a processor
+  store_sample:     Archive the carried sample in storage
+  discard_sample:   Dispose of the carried sample in waste
+  return_sample:    Return the carried sample to a rack
+
+procedures:
+  handle_pick_up_sample:
+    description: Move the arm to a rack and grip the next sample
+    command: pick_up_sample
+    emits: [sample_picked_up, rack_empty]        # failures are facts too
+  run_processor:
+    description: Place, process, and re-grip the sample
+    command: process_sample
+    queries: [get_sample_state]                  # reads the model before deciding
+    emits: [sample_heated, sample_cooled, sample_centrifuged, sample_scanned,
+            sample_contaminated, processing_failed]
+  archive_sample:
+    description: Place the sample into a storage slot
+    command: store_sample
+    emits: [sample_stored]
+  dispose_sample:
+    description: Drop the sample into the waste bin
+    command: discard_sample
+    emits: [sample_discarded]
+  handle_return_sample:
+    description: Place the sample back into a rack slot
+    command: return_sample
+    emits: [sample_returned]
+
+events:
+  sample_picked_up:      Arm gripped a sample from a rack
+  rack_empty:            Pick attempted on an empty rack
+  sample_heated:         Sample was heated
+  sample_cooled:         Sample was cooled
+  sample_centrifuged:    Sample was spun (one more separation pass)
+  sample_scanned:        Sample purity was measured
+  sample_contaminated:   Sample was ruined by overheating
+  processing_failed:     A processor refused the sample
+  sample_stored:         Sample was archived
+  sample_returned:       Sample was returned to a rack
+  sample_discarded:      Sample was dropped in waste
+
+policies:
+  store_pure_sample:           # the reactivity loop, live:
+    description: A pure scan result archives the sample automatically
+    event: sample_scanned
+    emits: [store_sample]      # policies dispatch commands, never events
+  discard_contaminated_sample:
+    description: Contaminated samples go straight to waste
+    event: sample_contaminated
+    emits: [discard_sample]
+
+projections:
+  track_pickup:        { event: sample_picked_up,   model: samples }
+  track_heat:          { event: sample_heated,      model: samples }
+  track_cool:          { event: sample_cooled,      model: samples }
+  track_spin:          { event: sample_centrifuged, model: samples }
+  track_scan:          { event: sample_scanned,     model: samples }
+  note_contamination:  { event: sample_contaminated, model: samples }
+  track_store:         { event: sample_stored,      model: samples }
+  track_return:        { event: sample_returned,    model: samples }
+  track_discard:       { event: sample_discarded,   model: samples }
+  count_store:         { event: sample_stored,      model: lab_stats }
+  count_discard:       { event: sample_discarded,   model: lab_stats }
+  log_failure:         { event: processing_failed,  model: lab_stats }
+
+models:
+  samples:
+    description: Read-optimized view of every sample — rebuilt by replaying events
+  lab_stats:
+    description: Running counts of stored, discarded, and failed work
+
+queries:
+  get_sample_state:
+    description: Current state of the carried sample
+    model: samples
+`;
+</script>
+<script>
+'use strict';
+/* ================= utils ================= */
+const $=s=>document.querySelector(s);
+const NS='http://www.w3.org/2000/svg';
+function S(tag,attrs,parent){const el=document.createElementNS(NS,tag);
+  for(const k in attrs){if(k==='text')el.textContent=attrs[k];else el.setAttribute(k,attrs[k]);}
+  if(parent)parent.appendChild(el);return el;}
+const lerp=(a,b,k)=>a+(b-a)*k, clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const ease=k=>k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+let SPEED=1, GEN=0, msgId=0;
+const wait=ms=>new Promise(r=>setTimeout(r,Math.max(20,ms/SPEED)));
+/* rAF with timeout fallback: keeps animating in throttled/headless contexts */
+function rafOr(cb){let done=false;const run=()=>{if(done)return;done=true;cb();};
+  requestAnimationFrame(run);setTimeout(run,34);}
+function tween(dur,fn){return new Promise(res=>{const g=GEN,d=Math.max(30,dur/SPEED);let t=0;
+  (function step(){if(g!==GEN)return res();t+=16.7;const k=Math.min(1,t/d);fn(ease(k));
+    k<1?rafOr(step):res();})();});}
+const C={c:'#f5a524',d:'#5ea8ff',e:'#3ddc97',y:'#c58bff',j:'#2fd6c8',m:'#ff7eb6',q:'#9aa7b8'};
+const TYPE_NAME={c:'command',d:'procedure',e:'event',y:'policy',j:'projection',m:'model',q:'query'};
+
+/* ================= the feature (a .feat.yaml, as data) ================= */
+const FEATURE={
+  commands:['pick_up_sample','process_sample','store_sample','discard_sample','return_sample'],
+  procedures:[
+    {name:'handle_pick_up_sample',command:'pick_up_sample',emits:['sample_picked_up','rack_empty']},
+    {name:'run_processor',command:'process_sample',queries:['get_sample_state'],
+     emits:['sample_heated','sample_cooled','sample_centrifuged','sample_scanned','sample_contaminated','processing_failed']},
+    {name:'archive_sample',command:'store_sample',emits:['sample_stored']},
+    {name:'dispose_sample',command:'discard_sample',emits:['sample_discarded']},
+    {name:'handle_return_sample',command:'return_sample',emits:['sample_returned']},
+  ],
+  events:['sample_picked_up','rack_empty','sample_heated','sample_cooled','sample_centrifuged','sample_scanned',
+    'sample_contaminated','processing_failed','sample_stored','sample_returned','sample_discarded'],
+  policies:[
+    {name:'store_pure_sample',event:'sample_scanned',dispatches:['store_sample']},
+    {name:'discard_contaminated_sample',event:'sample_contaminated',dispatches:['discard_sample']},
+  ],
+  projections:[
+    {name:'track_pickup',event:'sample_picked_up',model:'samples'},
+    {name:'track_heat',event:'sample_heated',model:'samples'},
+    {name:'track_cool',event:'sample_cooled',model:'samples'},
+    {name:'track_spin',event:'sample_centrifuged',model:'samples'},
+    {name:'track_scan',event:'sample_scanned',model:'samples'},
+    {name:'note_contamination',event:'sample_contaminated',model:'samples'},
+    {name:'track_store',event:'sample_stored',model:'samples'},
+    {name:'track_return',event:'sample_returned',model:'samples'},
+    {name:'track_discard',event:'sample_discarded',model:'samples'},
+    {name:'count_store',event:'sample_stored',model:'lab_stats'},
+    {name:'count_discard',event:'sample_discarded',model:'lab_stats'},
+    {name:'log_failure',event:'processing_failed',model:'lab_stats'},
+  ],
+  models:['samples','lab_stats'],
+  queries:[{name:'get_sample_state',model:'samples'}],
+};
+const PROC_BY_CMD={}; FEATURE.procedures.forEach(p=>PROC_BY_CMD[p.command]=p);
+
+/* ================= state ================= */
+const RACKS={A:{x:100},B:{x:210},C:{x:320}}, RACK_DX=[-24,0,24], SLOT_Y=402;
+const PROCS={
+  heater:{x:455,label:'Heater',cls:'heater'},
+  cooler:{x:560,label:'Cooler',cls:'cooler'},
+  centrifuge:{x:665,label:'Centrifuge',cls:'centrifuge'},
+  scanner:{x:775,label:'Scanner',cls:'scanner'},
+};
+const PROC_SLOT_Y=296, STORE_X=875, STORE_DX=[-33,-11,11,33], STORE_Y=[322,388], WASTE_X=42;
+const state={samples:[],arm:{gx:520,t1:0.19,t2:2.96,grip:0,carrying:null},queue:[],journal:[],
+  models:{samples:{},stats:{stored:0,discarded:0,failures:0,lastFailure:'—'}}};
+function resetState(){
+  state.samples=[];let n=0;
+  for(const r of['A','B','C'])for(let i=0;i<(r==='C'?2:3);i++){
+    n++;state.samples.push({id:'S'+n,temp:'ambient',spins:0,scanned:false,result:null,
+      contaminated:false,loc:{type:'rack',rack:r,slot:i},fall:0});}
+  state.arm={gx:520,t1:0.19,t2:2.96,grip:0,carrying:null};  // folded rest pose
+  state.queue=[];state.journal=[];
+  state.models={samples:{},stats:{stored:0,discarded:0,failures:0,lastFailure:'—'}};
+  for(const s of state.samples)
+    state.models.samples[s.id]={loc:'rack '+s.loc.rack,temp:'ambient',spins:0,scan:'—',status:'active'};
+}
+const sampleAt=(rack,i)=>state.samples.find(s=>s.loc.type==='rack'&&s.loc.rack===rack&&s.loc.slot===i);
+const carried=()=>state.samples.find(s=>s.id===state.arm.carrying);
+
+/* ================= world: scene ================= */
+const world=$('#world');
+let armE={}, sampleG={}, procG={}, scanIconEl, armStatusEl;
+const L1=160,L2=160,SH_Y=92;
+function buildWorld(){
+  world.innerHTML='';
+  const defs=S('defs',{},world);
+  const bg=S('rect',{x:0,y:0,width:980,height:600,fill:'#0d131b'},world);
+  // back-wall grid
+  for(let x=40;x<980;x+=60)S('line',{x1:x,y1:0,x2:x,y2:430,stroke:'#111a26','stroke-width':1},world);
+  for(let y=40;y<430;y+=60)S('line',{x1:0,y1:y,x2:980,y2:y,stroke:'#111a26','stroke-width':1},world);
+  S('text',{x:490,y:210,'text-anchor':'middle',style:'font:700 26px var(--mono)',fill:'#131c29',text:'commands are intents — events are facts'},world);
+  S('text',{x:490,y:240,'text-anchor':'middle',style:'font:600 13px var(--mono)',fill:'#131c29',text:'the arm only ever acts in response to a queued command'},world);
+  // bench
+  S('rect',{x:0,y:430,width:980,height:170,fill:'#141c27'},world);
+  S('rect',{x:0,y:430,width:980,height:5,fill:'#223047'},world);
+  // gantry rail
+  S('rect',{x:24,y:74,width:932,height:8,rx:3,fill:'#223047'},world);
+  S('rect',{x:24,y:70,width:932,height:3,rx:1.5,fill:'#31435c'},world);
+  S('text',{x:36,y:64,class:'wsub','text-anchor':'start',text:'gantry rail'},world);
+  armStatusEl=S('text',{x:966,y:586,'text-anchor':'end',style:'font:600 12px var(--mono)',fill:'#54677f',text:'arm: idle'},world);
+  // waste bin
+  const wb=S('g',{class:'clickable','data-zone':'waste'},world);
+  S('rect',{class:'zone',x:12,y:382,width:60,height:48,rx:6},wb);
+  S('path',{d:'M18 382 L66 382 L60 426 L24 426 Z',fill:'#1c2836',stroke:'#3a2a2a','stroke-width':1.2},wb);
+  S('text',{x:42,y:412,class:'wlbl',fill:'#e08a8a',text:'🗑'},wb);
+  S('text',{x:42,y:448,class:'wsub',text:'waste'},wb);
+  // racks
+  for(const r in RACKS){const rx=RACKS[r].x;
+    const g=S('g',{class:'clickable','data-rack':r},world);
+    S('rect',{class:'zone',x:rx-46,y:356,width:92,height:74,rx:6},g);
+    S('rect',{x:rx-42,y:396,width:84,height:30,rx:4,fill:'#1c2836',stroke:'#2a3646','stroke-width':1},g);
+    for(let i=0;i<3;i++)S('circle',{cx:rx+RACK_DX[i],cy:400,r:11,fill:'#0d141c',stroke:'#2a3a4f','stroke-width':1},g);
+    S('text',{x:rx,y:376,class:'wlbl',text:'Rack '+r},g);
+    RACKS[r].g=g;}
+  // processors
+  for(const k in PROCS){const p=PROCS[k],px=p.x;
+    const g=S('g',{class:'clickable '+p.cls,'data-proc':k},world);
+    S('rect',{class:'zone',x:px-46,y:268,width:92,height:162,rx:8},g);
+    S('rect',{class:'mach',x:px-38,y:288,width:76,height:138,rx:6},g);
+    S('rect',{x:px-14,y:284,width:28,height:8,rx:3,fill:'#0d141c',stroke:'#2a3a4f','stroke-width':1},g);
+    S('circle',{cx:px+28,cy:306,r:3.5,fill:'#24354a',class:'lamp'},g);
+    if(k==='heater')for(let i=0;i<3;i++)S('path',{class:'coil',d:`M${px-20} ${400-i*22} q10 -8 20 0 q10 8 20 0`},g);
+    if(k==='cooler')for(let i=0;i<3;i++)S('text',{class:'frost',x:px-18+i*15,y:395-i*26,text:'❄'},g);
+    if(k==='centrifuge')S('circle',{class:'ring',cx:px,cy:340,r:26},g);
+    if(k==='scanner'){S('rect',{x:px-30,y:300,width:60,height:120,rx:4,fill:'none',stroke:'#2a3a4f','stroke-width':1},g);
+      S('rect',{class:'laser',x:px-28,y:302,width:56,height:3,rx:1.5},g);}
+    S('text',{x:px,y:448,class:'wsub',text:p.label},g);
+    p.g=g;procG[k]=g;}
+  scanIconEl=S('text',{x:775,y:262,class:'scanicon',text:''},world);
+  // storage shelf
+  const st=S('g',{class:'clickable','data-zone':'storage'},world);
+  S('rect',{class:'zone',x:823,y:252,width:104,height:178,rx:8},st);
+  S('rect',{class:'mach',x:829,y:258,width:92,height:166,rx:6},st);
+  for(let r=0;r<2;r++){S('line',{x1:833,y1:STORE_Y[r]+6,x2:917,y2:STORE_Y[r]+6,stroke:'#2a3a4f','stroke-width':2},st);
+    for(let c=0;c<4;c++)S('circle',{cx:STORE_X+STORE_DX[c],cy:STORE_Y[r],r:11,fill:'#0d141c',stroke:'#2a3a4f','stroke-width':1},st);}
+  S('text',{x:875,y:276,class:'wlbl',text:'Storage'},st);
+  S('text',{x:875,y:448,class:'wsub',text:'archive'},st);
+  // arm layers
+  armE.g=S('g',{},world);
+  armE.upper=S('line',{stroke:'#4a5f7d','stroke-width':11,'stroke-linecap':'round'},armE.g);
+  armE.fore=S('line',{stroke:'#5f7ba0','stroke-width':8,'stroke-linecap':'round'},armE.g);
+  armE.carr=S('rect',{x:-24,y:-20,width:48,height:26,rx:5,fill:'#2c3c52',stroke:'#4a6076','stroke-width':1.2},armE.g);
+  armE.sh=S('circle',{r:8,fill:'#31435c',stroke:'#5f7ba0','stroke-width':2},armE.g);
+  armE.el=S('circle',{r:6,fill:'#31435c',stroke:'#5f7ba0','stroke-width':1.6},armE.g);
+  armE.wr=S('circle',{r:4.5,fill:'#7de8b4'},armE.g);
+  armE.gl=S('line',{stroke:'#9fb4cd','stroke-width':3.4,'stroke-linecap':'round'},armE.g);
+  armE.gr=S('line',{stroke:'#9fb4cd','stroke-width':3.4,'stroke-linecap':'round'},armE.g);
+  // samples on top
+  const sl=S('g',{},world);
+  for(const s of state.samples){
+    const g=S('g',{},sl);
+    S('rect',{x:-8,y:-41,width:16,height:6,rx:2,fill:'#5b6b80'},g);            // cap
+    const glass=S('rect',{x:-9,y:-36,width:18,height:36,rx:4,fill:'#e8f2ff22',stroke:'#b9c9dd','stroke-width':1.1},g);
+    const liq=S('rect',{x:-7,y:-24,width:14,height:22,rx:3,fill:'#d9a441'},g);
+    const liq2=S('rect',{x:-7,y:-24,width:14,height:9,rx:3,fill:'#ffffff',opacity:0},g);
+    for(let b=0;b<3;b++)S('circle',{class:'bub '+(b?'b'+(b+1):''),cx:-3+b*3,cy:-8,r:1.6},g);
+    const id=S('text',{x:0,y:-28,class:'wsub','text-anchor':'middle',fill:'#e8f2ff',text:s.id},g);
+    sampleG[s.id]={g,glass,liq,liq2,id};}
+}
+const LIQ_COLOR={ambient:'#d9a441',hot:'#ef4444',cold:'#60a5fa'};
+function ik(gx,tx,ty){            // consistent elbow branch (side=1): smooth, machine-like motion
+  let dx=tx-gx,dy=ty-SH_Y,d=clamp(Math.hypot(dx,dy),62,L1+L2-8);
+  const phi=Math.atan2(dy,dx),al=Math.acos(clamp((L1*L1+d*d-L2*L2)/(2*L1*d),-1,1));
+  const t1=phi-al,ex=gx+L1*Math.cos(t1),ey=SH_Y+L1*Math.sin(t1);
+  return{t1,t2:Math.atan2(ty-ey,tx-ex)};}
+function wrist() {const a=state.arm,sx=a.gx,sy=SH_Y;
+  const ex=sx+L1*Math.cos(a.t1),ey=sy+L1*Math.sin(a.t1);
+  return{sx,sy,ex,ey,wx:ex+L2*Math.cos(a.t2),wy:ey+L2*Math.sin(a.t2)};}
+function storageSlotPos(i){return[STORE_X+STORE_DX[i%4],STORE_Y[Math.floor(i/4)]];}
+const storeUsed=i=>state.samples.some(s=>s.loc.type==='storage'&&s.loc.slot===i);
+function render(){
+  const a=state.arm,{sx,sy,ex,ey,wx,wy}=wrist();
+  armE.carr.setAttribute('transform',`translate(${sx},${sy-14})`);
+  for(const[k,v]of[['x1',sx],['y1',sy],['x2',ex],['y2',ey]])armE.upper.setAttribute(k,v);
+  for(const[k,v]of[['x1',ex],['y1',ey],['x2',wx],['y2',wy]])armE.fore.setAttribute(k,v);
+  armE.sh.setAttribute('cx',sx);armE.sh.setAttribute('cy',sy);
+  armE.el.setAttribute('cx',ex);armE.el.setAttribute('cy',ey);
+  armE.wr.setAttribute('cx',wx);armE.wr.setAttribute('cy',wy);
+  const sp=lerp(10,3.5,a.grip);
+  for(const[k,v]of[['x1',wx],['y1',wy],['x2',wx-sp],['y2',wy+15]])armE.gl.setAttribute(k,v);
+  for(const[k,v]of[['x1',wx],['y1',wy],['x2',wx+sp],['y2',wy+15]])armE.gr.setAttribute(k,v);
+  for(const s of state.samples){const G=sampleG[s.id];if(!G)continue;
+    let x,y,rot=0,op=1;const L=s.loc;
+    if(L.type==='rack'){x=RACKS[L.rack].x+RACK_DX[L.slot];y=SLOT_Y;}
+    else if(L.type==='arm'){x=wx;y=wy+48;}
+    else if(L.type==='processor'){x=PROCS[L.proc].x;y=PROC_SLOT_Y;
+      if(L.proc==='centrifuge'&&procG.centrifuge.classList.contains('on'))rot=(performance.now()/4)%360;}
+    else if(L.type==='storage'){[x,y]=storageSlotPos(L.slot);}
+    else{x=WASTE_X;y=352+s.fall*62;op=1-s.fall;}
+    G.g.setAttribute('transform',`translate(${x},${y}) rotate(${rot} 0 -20)`);
+    G.g.setAttribute('opacity',op);
+    G.liq.setAttribute('fill',s.contaminated?'#6b7d3a':LIQ_COLOR[s.temp]);
+    G.liq2.setAttribute('opacity',s.spins>0?0.45:0);
+    G.g.classList.toggle('contam',s.contaminated);
+    G.glass.setAttribute('class',s.temp==='hot'?'hotglow':s.temp==='cold'?'coldglow':'');
+  }
+  rafOr(render);
+}
+
+/* ================= graph: the feature-file as a network ================= */
+const graph=$('#graph'), nodes={}, edges={};
+let dotLayer;
+function nodePos(){
+  const pos={};
+  FEATURE.commands.forEach((n,i)=>pos[n]={x:75, y:110+i*62,t:'c'});
+  FEATURE.procedures.forEach((p,i)=>pos[p.name]={x:215,y:110+i*62,t:'d'});
+  FEATURE.events.forEach((n,i)=>pos[n]={x:355,y:64+i*47,t:'e'});
+  FEATURE.policies.forEach((p,i)=>pos[p.name]={x:495,y:100+i*70,t:'y'});
+  FEATURE.projections.forEach((p,i)=>pos[p.name]={x:495,y:262+i*37,t:'j'});
+  pos['samples']={x:650,y:420,t:'m'}; pos['lab_stats']={x:650,y:486,t:'m'};
+  pos['get_sample_state']={x:650,y:100,t:'q'};
+  return pos;}
+function edgePath(x1,y1,x2,y2,fb){
+  if(fb)return`M ${x1} ${y1} C ${x1+90} ${y1-150}, ${x2-30} ${y2-170}, ${x2} ${y2-17}`;
+  const dx=Math.max(28,Math.abs(x2-x1)*.45);
+  return`M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`;}
+function addEdge(from,to,type,opts={}){
+  const a=nodes[from],b=nodes[to];if(!a||!b)return;
+  const fb=opts.fb,dashed=opts.dashed;
+  const x1=fb?a.x-a.w/2:a.x+a.w/2, y1=a.y;
+  const x2=fb?b.x:(opts.toTop?b.x:b.x-b.w/2), y2=b.y;
+  const p=S('path',{d:edgePath(x1,y1,x2,y2,fb),class:'edge'+(dashed?' dashed':'')+(fb?' fb':'')},edges.layer);
+  edges[from+'→'+to]={path:p,len:p.getTotalLength()};
+  p.style.setProperty('--ec',C[type]||'#5a6a80');}
+function splitLabel(n){if(n.length<=17)return[n];
+  const parts=n.split('_');let l1='',i=0;
+  while(i<parts.length-1&&(l1+parts[i]).length<=16){l1+=(l1?'_':'')+parts[i++];}
+  return[l1,parts.slice(i).join('_')];}
+function buildGraph(){
+  graph.innerHTML='';edges.layer=S('g',{},graph);dotLayer=S('g',{},graph);
+  const pos=nodePos(), lanes=[['c',75,'COMMANDS'],['d',215,'PROCEDURES'],['e',355,'EVENTS'],
+    ['y',495,'POLICIES + PROJ.'],['m',650,'MODELS + QUERIES']];
+  for(const[t,x,lbl]of lanes)S('text',{x,y:26,class:'laneLbl',fill:C[t[0]],text:lbl},graph);
+  const layer=S('g',{},graph);
+  for(const name in pos){const{x,y,t}=pos[name],w=t==='y'||t==='j'?126:120,h=30;
+    const g=S('g',{class:'node'},layer);g.style.setProperty('--nc',C[t]);
+    S('rect',{x:x-w/2,y:y-h/2,width:w,height:h,rx:8},g);
+    S('circle',{class:'badge',cx:x-w/2+13,cy:y,r:9,fill:C[t]},g);
+    S('text',{class:'bl',x:x-w/2+13,y:y+3,text:t==='q'?'Q':t},g);
+    const lines=splitLabel(name);
+    lines.forEach((ln,i)=>S('text',{x:x-w/2+27,y:lines.length===1?y+3.5:y-2+i*11,text:ln},g));
+    nodes[name]={g,x,y,w,h,t};}
+  for(const p of FEATURE.procedures){addEdge(p.command,p.name,'c');
+    for(const e of p.emits)addEdge(p.name,e,'e');
+    for(const q of p.queries||[])addEdge(q,p.name,'q',{dashed:true});}
+  for(const p of FEATURE.policies){addEdge(p.event,p.name,'e');
+    for(const c of p.dispatches)addEdge(p.name,c,'y',{fb:true});}
+  for(const p of FEATURE.projections){addEdge(p.event,p.name,'e');addEdge(p.name,p.model,'j');}
+  addEdge('samples','get_sample_state','m',{dashed:true});
+}
+function pulseNode(name,ms=700){
+  const n=nodes[name];if(!n)return;n.g.classList.add('lit');
+  setTimeout(()=>n.g.classList.remove('lit'),ms/SPEED);}
+function setExec(name,on,ok=true){
+  const n=nodes[name];if(!n)return;
+  n.g.classList.toggle('exec',on&&ok);n.g.classList.toggle('nope',on&&!ok);}
+function dotAlong(from,to,color,dur=600){
+  const E=edges[from+'→'+to];if(!E)return wait(200);
+  const dot=S('circle',{r:4.5,class:'dot',fill:color,style:`color:${color}`},dotLayer);
+  return tween(dur,k=>{const pt=E.path.getPointAtLength(E.len*k);
+    dot.setAttribute('cx',pt.x);dot.setAttribute('cy',pt.y);}).then(()=>dot.remove());}
+
+/* ================= queue / journal / models UI ================= */
+const queueEl=$('#queue'), journalEl=$('#journal'), modelsEl=$('#models');
+function addChip(msg){
+  const d=document.createElement('div');
+  d.className='chip '+msg.kind; d.id='chip'+msg.id;
+  d.innerHTML=`<span class="badge">${msg.kind==='command'?'c':'e'}</span>
+    <span><span class="nm">${msg.name}</span><br><span class="pl">${fmtPayload(msg.payload)}</span></span>
+    <span class="st">queued</span>`;
+  queueEl.querySelector('.empty')?.remove();
+  queueEl.appendChild(d);queueEl.scrollTop=queueEl.scrollHeight;}
+function setChip(msg,st){const d=$('#chip'+msg.id);if(!d)return;
+  d.classList.remove('dispatching','executing');if(st!=='queued')d.classList.add(st);
+  d.querySelector('.st').textContent=st;}
+function removeChip(msg){const d=$('#chip'+msg.id);if(!d)return;
+  d.style.opacity=0;d.style.transform='translateX(30px)';setTimeout(()=>{d.remove();
+    if(!queueEl.children.length)queueEl.innerHTML='<div class="empty">queue empty — click a machine in the world</div>';},320);}
+function fmtPayload(p){return Object.entries(p||{}).map(([k,v])=>`${k}: ${v}`).join('  ');}
+function renderJournal(){
+  journalEl.innerHTML=state.journal.slice(-60).map((j,i)=>
+    `<div><span class="seq">${String(j.seq).padStart(3,'0')}</span>${j.name} <span style="color:#4a5a4f">${fmtPayload(j.payload)}</span></div>`).join('');
+  journalEl.scrollTop=journalEl.scrollHeight;}
+function renderModels(flash){
+  const rows=Object.entries(state.models.samples).map(([id,r])=>
+    `<tr data-k="${id}" class="${flash==='s:'+id?'flash':''}"><td>${id}</td><td>${r.loc}</td><td>${r.temp}</td><td>${r.spins}</td><td>${r.scan}</td><td>${r.status}</td></tr>`).join('');
+  const st=state.models.stats;
+  modelsEl.innerHTML=`<table><tr><th>id</th><th>location</th><th>temp</th><th>spins</th><th>scan</th><th>status</th></tr>${rows}</table>
+    <div class="stats">
+      <div class="stat ${flash==='stored'?'flash':''}"><b>${st.stored}</b><span>STORED</span></div>
+      <div class="stat ${flash==='discarded'?'flash':''}"><b>${st.discarded}</b><span>DISCARDED</span></div>
+      <div class="stat ${flash==='failures'?'flash':''}"><b>${st.failures}</b><span>FAILURES</span></div>
+      <div class="stat" style="flex:2.4"><b style="font-size:10px;padding-top:5px">${st.lastFailure}</b><span>LAST FAILURE</span></div>
+    </div>`;}
+function toast(t){const el=$('#toast');el.textContent=t;el.style.opacity=1;
+  clearTimeout(toast.h);toast.h=setTimeout(()=>el.style.opacity=0,2400);}
+function flyChip(fromR,toR,msg){
+  const d=document.createElement('div');d.className='fly';
+  const col=msg.kind==='command'?C.c:C.e;
+  d.innerHTML=`<i style="background:${col}">${msg.kind==='command'?'c':'e'}</i>${msg.name}`;
+  d.style.left=fromR.x+'px';d.style.top=fromR.y+'px';document.body.appendChild(d);
+  const dx=(toR.x+toR.width/2)-(fromR.x+d.offsetWidth/2), dy=(toR.y+toR.height/2)-(fromR.y+10);
+  setTimeout(()=>{d.style.transform=`translate(${dx}px,${dy}px) scale(.85)`;d.style.opacity=.25;},30);
+  setTimeout(()=>d.remove(),560/SPEED);return wait(430);}
+const nodeRect=n=>{const r=nodes[n]?.g.getBoundingClientRect();
+  return r||new DOMRect(innerWidth/2,innerHeight/2,1,1);};
+const queueRect=()=>queueEl.getBoundingClientRect();
+
+/* ================= world effects (procedure bodies) ================= */
+async function moveArm(tx,ty,dur){
+  const a=state.arm,gx2=clamp(tx,40,940),p=ik(gx2,tx,ty);
+  const s={gx:a.gx,t1:a.t1,t2:a.t2};
+  await tween(dur,k=>{a.gx=lerp(s.gx,gx2,k);a.t1=lerp(s.t1,p.t1,k);a.t2=lerp(s.t2,p.t2,k);});}
+const grip=v=>tween(200,k=>state.arm.grip=lerp(state.arm.grip,v,k));
+async function doPickUp(rack){
+  const r=RACKS[rack];
+  await moveArm(r.x,250,560);
+  const idx=RACK_DX.findIndex((_,i)=>sampleAt(rack,i));
+  if(idx<0){await wait(350);return[{name:'rack_empty',payload:{rack}}];}
+  const sx=r.x+RACK_DX[idx];
+  await moveArm(sx,354,360); await grip(1);
+  const s=sampleAt(rack,idx); s.loc={type:'arm'}; state.arm.carrying=s.id;
+  await moveArm(sx,245,380);
+  return[{name:'sample_picked_up',payload:{sample:s.id,rack}}];}
+function applyProcessRule(k,s){
+  if(s.contaminated&&k!=='scanner')
+    return{name:'processing_failed',payload:{sample:s.id,reason:'already_contaminated'}};
+  if(k==='heater'){
+    if(s.temp==='hot'){s.contaminated=true;
+      return{name:'sample_contaminated',payload:{sample:s.id,reason:'overheated'}};}
+    s.temp='hot';return{name:'sample_heated',payload:{sample:s.id}};}
+  if(k==='cooler'){s.temp='cold';return{name:'sample_cooled',payload:{sample:s.id}};}
+  if(k==='centrifuge'){
+    if(s.temp==='cold')
+      return{name:'processing_failed',payload:{sample:s.id,reason:'too_viscous_while_cold'}};
+    s.spins++;return{name:'sample_centrifuged',payload:{sample:s.id,spins:s.spins}};}
+  // scanner
+  s.scanned=true;s.result=(s.spins>=1&&!s.contaminated)?'pure':'impure';
+  scanIconEl.textContent=s.result==='pure'?'✓':'✗';
+  scanIconEl.setAttribute('fill',s.result==='pure'?'#4ade80':'#f87171');
+  return{name:'sample_scanned',payload:{sample:s.id,result:s.result}};}
+async function doProcess(k){
+  const p=PROCS[k],s=carried();
+  await moveArm(p.x,185,560); await moveArm(p.x,248,340);
+  await grip(0); s.loc={type:'processor',proc:k};
+  await moveArm(p.x,175,300);
+  p.g.classList.add('on'); p.g.querySelector('.lamp')?.setAttribute('fill','#7de8b4');
+  await wait(640);
+  const ev=applyProcessRule(k,s);
+  await wait(700);
+  p.g.classList.remove('on'); p.g.querySelector('.lamp')?.setAttribute('fill','#24354a');
+  await moveArm(p.x,248,300); await grip(1); s.loc={type:'arm'};
+  if(k==='scanner')setTimeout(()=>scanIconEl.textContent='',600);
+  await moveArm(p.x,180,360);
+  return[ev];}
+async function doStore(){
+  const s=carried();let i=0;while(i<8&&storeUsed(i))i++;
+  if(i>=8){toast('storage is full');return[];}
+  const[x,y]=storageSlotPos(i);
+  await moveArm(x,y-145,560); await moveArm(x,y-48,360); await grip(0);
+  s.loc={type:'storage',slot:i}; state.arm.carrying=null;
+  await moveArm(x,y-145,360);
+  return[{name:'sample_stored',payload:{sample:s.id,slot:i}}];}
+async function doDiscard(reason){
+  const s=carried();
+  await moveArm(WASTE_X,290,540); await grip(0);
+  s.loc={type:'waste'}; state.arm.carrying=null; s.fall=0;
+  await tween(420,k=>s.fall=k);
+  return[{name:'sample_discarded',payload:{sample:s.id,reason}}];}
+async function doReturn(rack){
+  const s=carried();
+  const idx=RACK_DX.findIndex((_,i)=>!sampleAt(rack,i));
+  if(idx<0){toast('rack '+rack+' has no free slot');return[];}
+  const sx=RACKS[rack].x+RACK_DX[idx];
+  await moveArm(sx,250,540); await moveArm(sx,354,360); await grip(0);
+  s.loc={type:'rack',rack,slot:idx}; state.arm.carrying=null;
+  await moveArm(sx,245,360);
+  return[{name:'sample_returned',payload:{sample:s.id,rack}}];}
+async function runCommand(msg){
+  const p=msg.payload,s=carried();
+  switch(msg.name){
+    case 'pick_up_sample':
+      if(s){toast('arm is already carrying '+s.id);return[];}
+      return doPickUp(p.rack);
+    case 'process_sample':
+      if(!s){toast('no sample on the arm');return[];}
+      return doProcess(p.processor);
+    case 'store_sample':
+      if(!s){toast('no sample on the arm');return[];}
+      return doStore();
+    case 'discard_sample':
+      if(!s){toast('no sample on the arm');return[];}
+      return doDiscard(p.reason||'manual');
+    case 'return_sample':
+      if(!s){toast('no sample on the arm');return[];}
+      return doReturn(p.rack);
+  }}
+
+/* ================= the bus ================= */
+function enqueueCommand(name,payload,origin){
+  const msg={id:++msgId,kind:'command',name,payload};
+  state.queue.push(msg);addChip(msg);
+  if(origin==='click')flyChip(lastClick,queueRect(),msg);
+  else if(origin&&origin.fromNode)flyChip(nodeRect(origin.fromNode),queueRect(),msg);
+  pulseNode(name,700);
+  pump();}
+function enqueueEvent(name,payload,origin){
+  const msg={id:++msgId,kind:'event',name,payload};
+  state.queue.push(msg);addChip(msg);
+  state.journal.push({seq:state.journal.length+1,name,payload});renderJournal();
+  if(origin&&origin.fromNode)flyChip(nodeRect(origin.fromNode),queueRect(),msg);
+  pump();}
+let pumping=false;
+async function pump(){
+  if(pumping)return;pumping=true;const g=GEN;
+  while(state.queue.length){
+    if(g!==GEN)break;
+    const msg=state.queue[0];
+    if(msg.kind==='command')await dispatchCommand(msg,g);else await dispatchEvent(msg,g);
+    if(g!==GEN)break;
+    state.queue.shift();removeChip(msg);
+    await wait(120);}
+  pumping=false;}
+async function dispatchCommand(msg,g){
+  const proc=PROC_BY_CMD[msg.name];
+  setChip(msg,'dispatching');
+  await dotAlong(msg.name,proc.name,C.c,480); if(g!==GEN)return;
+  setChip(msg,'executing');setExec(proc.name,true);
+  armStatusEl.textContent='arm: '+proc.name;armStatusEl.setAttribute('fill',C.d);
+  for(const q of proc.queries||[]){  // data loop: consult the read side first
+    await dotAlong('samples',q,C.q,360);
+    await dotAlong(q,proc.name,C.q,420);}
+  const events=await runCommand(msg); if(g!==GEN)return;
+  setExec(proc.name,false);
+  armStatusEl.textContent='arm: idle';armStatusEl.setAttribute('fill','#54677f');
+  for(const ev of events){
+    await dotAlong(proc.name,ev.name,C.e,440); if(g!==GEN)return;
+    pulseNode(ev.name,900);
+    enqueueEvent(ev.name,ev.payload,{fromNode:ev.name});
+    await wait(150);}
+}
+async function dispatchEvent(msg,g){
+  setChip(msg,'dispatching');pulseNode(msg.name,700);
+  const projs=FEATURE.projections.filter(p=>p.event===msg.name);
+  const pols=FEATURE.policies.filter(p=>p.event===msg.name);
+  const jobs=[];
+  for(const pr of projs)jobs.push((async()=>{
+    await dotAlong(msg.name,pr.name,C.e,460);if(g!==GEN)return;
+    setExec(pr.name,true);await wait(200);
+    const flash=applyProjection(pr.name,msg);
+    await dotAlong(pr.name,pr.model,C.j,380);
+    pulseNode(pr.model,700);renderModels(flash);
+    setExec(pr.name,false);})());
+  for(const py of pols)jobs.push((async()=>{
+    await dotAlong(msg.name,py.name,C.e,460);if(g!==GEN)return;
+    const fired=policyFires(py.name,msg);
+    setExec(py.name,true,fired);await wait(260);
+    if(fired)for(const cn of py.dispatches){
+      await dotAlong(py.name,cn,C.c,620);if(g!==GEN)return;
+      pulseNode(cn,700);
+      enqueueCommand(cn,policyPayload(py.name,msg),{fromNode:cn});}
+    setExec(py.name,false);})());
+  await Promise.all(jobs);}
+const policyFires=(n,msg)=>n==='store_pure_sample'?msg.payload.result==='pure':true;
+const policyPayload=(n,msg)=>n==='store_pure_sample'?{sample:msg.payload.sample}:{reason:msg.payload.reason};
+function applyProjection(name,msg){
+  const M=state.models,s=M.samples[msg.payload.sample],p=msg.payload;
+  switch(name){
+    case'track_pickup':s.loc='robot arm';break;
+    case'track_heat':s.temp='hot';break;
+    case'track_cool':s.temp='cold';break;
+    case'track_spin':s.spins=p.spins;break;
+    case'track_scan':s.scan=p.result;break;
+    case'note_contamination':s.status='contaminated';break;
+    case'track_store':s.loc='storage';s.status='stored';break;
+    case'track_return':s.loc='rack '+p.rack;break;
+    case'track_discard':s.loc='waste';s.status='discarded';break;
+    case'count_store':M.stats.stored++;return'stored';
+    case'count_discard':M.stats.discarded++;return'discarded';
+    case'log_failure':M.stats.failures++;M.stats.lastFailure=p.reason;return'failures';
+  }
+  return's:'+msg.payload.sample;}
+
+/* ================= interaction ================= */
+let lastClick={x:200,y:200,width:1,height:1};
+const pendingPick=()=>state.queue.some(m=>m.kind==='command'&&m.name==='pick_up_sample');
+function userCommand(name,payload){
+  $('#hint').style.opacity=0;
+  const willCarry=carried()||pendingPick();
+  if(name==='pick_up_sample'&&willCarry)return toast('arm busy — a sample is carried or incoming');
+  if(name!=='pick_up_sample'&&!willCarry)return toast('arm is empty — pick up a sample from a rack first');
+  enqueueCommand(name,payload,'click');}
+world.addEventListener('click',ev=>{
+  lastClick={x:ev.clientX-40,y:ev.clientY-10,width:80,height:20};
+  const t=ev.target.closest('[data-rack],[data-proc],[data-zone]');if(!t)return;
+  if(t.dataset.rack){
+    if(carried())userCommand('return_sample',{rack:t.dataset.rack});
+    else userCommand('pick_up_sample',{rack:t.dataset.rack});}
+  else if(t.dataset.proc)userCommand('process_sample',{processor:t.dataset.proc});
+  else if(t.dataset.zone==='storage')userCommand('store_sample',{});
+  else if(t.dataset.zone==='waste')userCommand('discard_sample',{reason:'manual'});});
+
+/* ================= demo / reset / speed / modal ================= */
+const DEMO=[
+  ['pick_up_sample',{rack:'A'}],
+  ['process_sample',{processor:'heater'}],
+  ['process_sample',{processor:'cooler'}],
+  ['process_sample',{processor:'centrifuge'}],   // cold → fails: too viscous
+  ['process_sample',{processor:'heater'}],
+  ['process_sample',{processor:'heater'}],       // hot again → contaminated → policy discards
+  ['pick_up_sample',{rack:'B'}],
+  ['process_sample',{processor:'centrifuge'}],
+  ['process_sample',{processor:'scanner'}],      // pure → policy stores it
+  ['pick_up_sample',{rack:'C'}],
+  ['process_sample',{processor:'heater'}],
+  ['process_sample',{processor:'centrifuge'}],
+  ['process_sample',{processor:'scanner'}],      // pure → policy stores it
+];
+let demoRunning=false;
+const quiescent=async g=>{while(g===GEN&&(state.queue.length||pumping))await wait(220);};
+$('#btnDemo').onclick=async()=>{
+  if(demoRunning)return toast('demo already running');
+  demoRunning=true;$('#hint').style.opacity=0;const g=GEN;
+  for(const[n,p]of DEMO){
+    await quiescent(g);if(g!==GEN)break;
+    enqueueCommand(n,p,{fromNode:n});}
+  demoRunning=false;};
+$('#btnReset').onclick=()=>{
+  GEN++;pumping=false;demoRunning=false;
+  resetState();buildWorld();queueEl.innerHTML='<div class="empty">queue empty — click a machine in the world</div>';
+  journalEl.innerHTML='';renderModels();$('#hint').style.opacity=1;
+  scanIconEl.textContent='';};
+document.querySelectorAll('[data-speed]').forEach(b=>b.onclick=()=>{
+  SPEED=+b.dataset.speed;
+  document.querySelectorAll('[data-speed]').forEach(x=>x.classList.toggle('on',x===b));});
+$('#btnFeat').onclick=()=>$('#modal').classList.add('open');
+$('#btnClose').onclick=()=>$('#modal').classList.remove('open');
+$('#modal').onclick=e=>{if(e.target.id==='modal')$('#modal').classList.remove('open');};
+
+/* ================= legend + init ================= */
+$('#legend').innerHTML=Object.entries(TYPE_NAME).map(([t,n])=>
+  `<span class="lg" title="${n}"><i style="background:${C[t]}">${t==='q'?'Q':t}</i>${n}</span>`).join('');
+$('#featYaml').textContent=FEAT_YAML;
+resetState();buildWorld();buildGraph();renderModels();
+queueEl.innerHTML='<div class="empty">queue empty — click a machine in the world</div>';
+rafOr(render);
+</script>
+</body>
+</html>
