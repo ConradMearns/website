@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Neutral Loss Spectra — an interactive tutorial for GC-MS &amp; LC-MS</title>
+<style>
+:root{
+  --bg:#0b0f14; --panel:#121a24; --panel2:#0f1620; --ink:#e6edf3; --dim:#93a4b5;
+  --line:#22303f; --accent:#58a6ff; --green:#7ee787; --amber:#e6a23c; --red:#f97583;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+main{max-width:1020px;margin:0 auto;padding:0 18px 80px}
+header{padding:48px 18px 24px;text-align:center;
+  background:radial-gradient(1200px 300px at 50% -80px,#14304f33,transparent),var(--bg);}
+header h1{font-size:2rem;margin:0 0 6px}
+header p{color:var(--dim);max-width:780px;margin:0 auto}
+section{margin-top:44px}
+h2{font-size:1.4rem;border-left:4px solid var(--accent);padding-left:10px;margin-bottom:10px}
+h3{font-size:1.05rem;color:var(--accent);margin:18px 0 6px}
+p{margin:8px 0}
+ul{margin:6px 0 6px 4px}
+li{margin:4px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr}}
+.tldr{border-color:#2f81f7;background:linear-gradient(180deg,#12233a,#101a27)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#1b2735;
+  border:1px solid #2b3b4e;border-radius:6px;padding:1px 6px;font-size:.9em}
+.eq{display:block;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:1.02rem;
+  background:var(--panel2);border:1px dashed #2b3b4e;border-radius:10px;padding:12px;margin:10px 0;overflow-x:auto}
+.hl{color:var(--green);font-weight:600}.hl2{color:var(--amber);font-weight:600}.hl3{color:var(--red);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin:10px 0}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{background:#16222f;color:#cfe3ff}
+tr:nth-child(even) td{background:#101822}
+button{cursor:pointer;border:1px solid #2b3b4e;background:#1b2735;color:var(--ink);
+  border-radius:9px;padding:8px 14px;font-size:.95rem}
+button:hover{border-color:var(--accent)}
+button.primary{background:#1f6feb;border-color:#1f6feb;color:#fff}
+button.chip{border-radius:999px;padding:6px 12px;margin:3px}
+button.chip.active{background:#1f6feb;border-color:#58a6ff;color:#fff}
+button:disabled{opacity:.75;cursor:default}
+canvas{width:100%;display:block;background:var(--panel2);border:1px solid var(--line);border-radius:12px}
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.legend span{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:.8rem;color:var(--dim)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.status{font-family:ui-monospace,Menlo,monospace;font-size:.85rem;color:var(--green);
+  background:#0d1510;border:1px solid #1d3a26;border-radius:8px;padding:6px 10px;margin-top:8px;min-height:1.2em}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:10px 0}
+label.small{font-size:.85rem;color:var(--dim)}
+input[type=range]{accent-color:var(--accent)}
+details{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:10px 0}
+summary{cursor:pointer;font-weight:600;color:#cfe3ff}
+details[open]{border-color:#2f81f7}
+.q{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:10px 0;background:var(--panel)}
+.q p{margin:4px 0 8px;font-weight:600}
+.q .opt{display:block;width:100%;text-align:left;margin:5px 0}
+.q .opt.correct{background:#14532d;border-color:var(--green)}
+.q .opt.wrong{background:#4c1d24;border-color:var(--red)}
+.expl{font-size:.88rem;color:var(--dim);margin-top:6px;display:none}
+.expl.show{display:block}
+.tooltip{position:absolute;pointer-events:none;background:#0d141c;border:1px solid #33506e;border-radius:8px;
+  padding:6px 9px;font-size:.8rem;color:var(--ink);display:none;max-width:280px;z-index:5}
+.svgwrap{position:relative}
+.callout{border-left:3px solid var(--amber);background:#1b160c;padding:8px 12px;border-radius:0 8px 8px 0;
+  margin:10px 0;font-size:.92rem}
+footer{color:var(--dim);text-align:center;font-size:.8rem;margin-top:60px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>The Neutral-Loss Spectrum</h1>
+  <p>An interactive explainer for raw GC-MS and LC-MS data: what a neutral-loss scan is,
+     how the hardware produces it, and how to read one without fooling yourself.</p>
+</header>
+
+<main>
+
+<!-- ============ TL;DR ============ -->
+<section id="tldr">
+  <div class="card tldr">
+    <h3 style="margin-top:0">The 60-second version</h3>
+    <p>When an ion fragments in a tandem mass spectrometer it breaks into a <span class="hl">charged piece</span>
+    (which the instrument can see) and a <span class="hl3">neutral piece</span> (which it cannot — no charge, no steering, no detection).
+    The neutral piece is only revealed by the <b>mass gap</b> between precursor and fragment: the <b>neutral loss, Δm</b>.</p>
+    <p>A <b>neutral-loss spectrum</b> is a filtered spectrum: on a triple-quadrupole, Q1 and Q3 are scanned
+    <i>together</i>, always Δm apart. A compound reaches the detector <b>only if it loses exactly Δm</b> in the collision cell.
+    The output looks like an MS¹ spectrum (intensity vs. precursor m/z) but contains <b>only members of one structural class</b> —
+    e.g. Δm = 98 Da shows only things that lose H₃PO₄ → <b>phosphopeptides</b>; Δm = 176 Da → <b>glucuronide metabolites</b>.</p>
+  </div>
+</section>
+
+<!-- ============ BASICS ============ -->
+<section id="basics">
+  <h2>1 · Why “neutral” losses are invisible</h2>
+  <div class="card">
+    <p>Mass spectrometers manipulate and detect <b>charged</b> particles with electric and magnetic fields.
+    A neutral fragment keeps the precursor's velocity, drifts out of the ion beam, and is pumped away — it never produces a peak.
+    You only ever <i>infer</i> it from arithmetic:</p>
+    <span class="eq">[M+H]⁺  at m/z 305&nbsp;&nbsp;→&nbsp;&nbsp;<span class="hl">fragment⁺ at m/z 261</span> (detected)
+      &nbsp;&nbsp;+&nbsp;&nbsp;<span class="hl3">CO₂ · 44 Da</span> (neutral — invisible, inferred from 305 − 261)</span>
+    <p>The gap of 44 Da is a <b>fingerprint</b>: something in that molecule was a carboxyl group.
+    Different chemistries give characteristic gaps — water (18), ammonia (17), CO₂ (44), SO₃ (80), H₃PO₄ (98), glucuronic acid (176)…
+    That turns a mass difference into a <b>class test</b>.</p>
+    <div class="callout">Analogy: a security checkpoint that only counts travelers who shed <i>exactly one 18 kg suitcase</i>
+    in the tunnel. You never weigh the suitcase — you weigh people before and after, and the 18 kg difference tells you who was carrying one.</div>
+    <p><b>GC-EI note:</b> in classical GC-MS the molecular ion M⁺• and its fragments are all born in the ion source,
+    so one EI spectrum already contains these gaps (M−15, M−18, M−29…). Reading them <i>is</i> neutral-loss analysis —
+    see the interactive explorer in section 5.</p>
+  </div>
+</section>
+
+<!-- ============ SIMULATOR ============ -->
+<section id="sim">
+  <h2>2 · The triple-quadrupole neutral-loss scan — simulator</h2>
+  <div class="card">
+    <p>Below is a virtual Q–q–Q. <b>Q1</b> scans precursor mass M upward; <b>q2</b> is a collision cell filled with N₂/Ar;
+    <b>Q3</b> scans in lock-step at M − Δm. Watch the readouts under Q1 and Q3 stay <i>exactly Δm apart</i>.
+    Colored dots are ions; <span style="color:#8b949e">gray dots</span> are neutral fragments (invisible to a real detector).
+    Ions of a compound only enter q2 when the scan reaches their m/z — that's Q1 doing its filtering job.</p>
+
+    <div class="controls" id="nlChips"></div>
+
+    <div class="controls">
+      <button class="primary" id="startBtn">▶ Start scan</button>
+      <button id="resetBtn">↺ Reset</button>
+      <label class="small">scan speed <input type="range" id="speed" min="40" max="300" value="110" style="vertical-align:middle"> m/z per s</label>
+    </div>
+
+    <canvas id="machine" style="height:210px"></canvas>
+    <div class="legend" id="legend"></div>
+    <canvas id="spectra" style="height:300px; margin-top:12px"></canvas>
+    <div class="status" id="status">Pick a neutral loss above, then press ▶ Start scan.</div>
+
+    <h3>What to watch for</h3>
+    <ul>
+      <li><b>Q1 and Q3 move together</b>, glued Δm apart. Nothing else about the hardware changes during the scan.</li>
+      <li>In q2, each precursor fragments. Only the fragments whose mass equals the current Q3 setting
+          (= precursor − Δm) survive Q3 and hit the detector (flash). Wrong-mass fragments are deflected into the rods.</li>
+      <li><b>Analyte C</b> has no labile neutral group — it is abundant in the full scan (top panel) but <i>never</i> appears in any neutral-loss spectrum. Absence of a peak ≠ absence of the compound.</li>
+      <li><b>Analyte D</b> and the <b>phosphopeptide</b> lose <i>two</i> different neutrals — they show up in two different NL spectra.</li>
+      <li>Peak height ∝ abundance <i>× fragmentation yield</i>, not abundance alone. NL spectra are screening tools, not quantitative ones.</li>
+    </ul>
+    <div class="callout">Singly charged ions are used here for clarity. For charge state z, the <i>m/z</i> offset is
+    Δmass/z — a doubly charged phosphopeptide losing H₃PO₄ (98 Da) shifts by <b>49 m/z</b>, a classic gotcha (see quiz!).</div>
+  </div>
+</section>
+
+<!-- ============ READING ============ -->
+<section id="reading">
+  <h2>3 · How to read a neutral-loss spectrum</h2>
+  <div class="card">
+    <ul>
+      <li><b>X-axis = precursor m/z</b> (same axis as an MS¹ scan). <b>Y-axis = detector counts.</b></li>
+      <li>A peak at m/z M asserts two things at once: <i>a precursor of mass M exists</i> and <i>it ejects Δm under CID</i>
+          → the molecule contains the corresponding functional group.</li>
+      <li>It is a <b>class filter on a dirty matrix</b>: e.g. a 176 Da NL scan of urine extract shows glucuronide metabolites
+          and hides almost everything else.</li>
+      <li>It tells you <b>nothing about where</b> in the molecule the loss came from, and gives no full fragment fingerprint —
+          follow up hits with product-ion scans or HRMS.</li>
+      <li>QqQ scans run at unit resolution: <b>isobaric coincidences cause false positives</b>. A peak at M could be an unrelated
+          M′ that happens to satisfy M′ − fragment′ = Δm. Confirm.</li>
+      <li>Intensity depends on collision energy and fragmentation yield — <b>don't compare abundances across compound classes</b>.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ TABLE ============ -->
+<section id="table">
+  <h2>4 · Common neutral losses worth memorizing</h2>
+  <div class="card">
+    <table>
+      <tr><th>Δm (Da)</th><th>Neutral species</th><th>Typical compound class</th><th>Where you meet it</th></tr>
+      <tr><td>17.03</td><td>NH₃</td><td>amines, amino acids, peptides</td><td>LC-ESI &amp; CI</td></tr>
+      <tr><td>18.01</td><td>H₂O</td><td>alcohols, carboxylic acids, peptides</td><td>everywhere — GC-EI &amp; LC-ESI</td></tr>
+      <tr><td>~28</td><td>CO (27.99) / C₂H₄ (28.03)</td><td>aldehydes, ketones / ethyl groups</td><td>GC-EI</td></tr>
+      <tr><td>32.04</td><td>CH₃OH</td><td>methyl esters, methoxy compounds</td><td>GC-EI</td></tr>
+      <tr><td>44.00</td><td>CO₂</td><td>free carboxylic acids, carbamates</td><td>LC-ESI, GC-EI</td></tr>
+      <tr><td>56.06</td><td>C₄H₈ (isobutene)</td><td>Boc-protected amines</td><td>LC-ESI (med-chem)</td></tr>
+      <tr><td>63.96</td><td>SO₂</td><td>sulfonamides, sulfones</td><td>LC-ESI</td></tr>
+      <tr><td>79.96</td><td>SO₃</td><td><b>sulfate conjugates</b>, sulfonates</td><td>LC-ESI (metabolite ID)</td></tr>
+      <tr><td>97.98</td><td>H₃PO₄</td><td><b>phosphopeptides</b> (pSer/pThr), phosphate metabolites</td><td>LC-ESI (phosphoproteomics)</td></tr>
+      <tr><td>129.04</td><td>C₅H₇NO₃ (pyroglutamic acid)</td><td><b>glutathione (GSH) adducts</b></td><td>LC-ESI (reactive-metabolite screening)</td></tr>
+      <tr><td>162.05</td><td>C₆H₁₀O₅ (hexose)</td><td>O-glycosides, flavonoid glycosides</td><td>LC-ESI (natural products)</td></tr>
+      <tr><td>176.03</td><td>C₆H₈O₆ (glucuronic acid)</td><td><b>glucuronide conjugates</b></td><td>LC-ESI (drug metabolism)</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ============ GC vs LC ============ -->
+<section id="gclc">
+  <h2>5 · The same idea, two different worlds</h2>
+  <div class="grid2">
+    <div class="card">
+      <h3 style="margin-top:0">GC-MS</h3>
+      <ul>
+        <li>Most GC-MS systems are <b>single-quadrupole EI</b> — there is no collision cell and no Q3, so a hardware NL scan
+            doesn't exist (you'd need a GC-QqQ).</li>
+        <li>Instead, neutral losses live <b>inside every EI spectrum</b>: read the gaps below the molecular ion.
+            M−15 (•CH₃), M−18 (H₂O), M−29 (•C₂H₅/CHO), M−31 (•OCH₃), M−43, M−60 (acetic acid from acetates),
+            M−90 (TMS-OH from silylated analytes).</li>
+        <li>In <b>chemical ionization</b>, [M+H]⁺ often loses H₂O, NH₃, etc. — same arithmetic.</li>
+        <li>On high-res GC-Orbitrap/Q-TOF systems you can compute constant-neutral-loss views in software.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">LC-MS</h3>
+      <ul>
+        <li>ESI + <b>triple quadrupole</b> is the classic home of the NL scan: 98 (or 49 for z = 2) for phosphopeptides,
+            80 for sulfates, 176 for glucuronides, 129 for GSH adducts, 44 for acids.</li>
+        <li>Use it to <b>screen a class out of a filthy matrix</b>, then characterize hits with product-ion scans.</li>
+        <li>Q-TOFs and Orbitraps can't link-scan; you acquire DDA/DIA and <b>mine constant neutral losses in software</b>
+            (MS-DIAL, mzMine, Compound Discoverer, MassHunter…).</li>
+        <li>Mostly qualitative — quantitation is done by MRM instead.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>GC-EI explorer — the “other” neutral-loss spectrum</h3>
+  <div class="card">
+    <p>Hover the peaks of this stylized EI spectrum (molecular ion M⁺• = 158). Then flip the axis:
+    re-plotting every peak at <code>M − m/z</code> converts an ordinary spectrum into a <b>neutral-loss spectrum</b> —
+    the software meaning of the term you'll meet in data-processing tools.</p>
+    <div class="controls">
+      <button id="eiToggle" class="chip active">View: m/z spectrum</button>
+    </div>
+    <div class="svgwrap" id="eiWrap">
+      <svg id="eiSvg" viewBox="0 0 900 300" width="100%" role="img" aria-label="EI spectrum explorer"></svg>
+      <div class="tooltip" id="eiTip"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ QUIZ ============ -->
+<section id="quiz">
+  <h2>6 · Check yourself</h2>
+  <div id="quizWrap"></div>
+  <p><b id="score">Score: 0/5</b></p>
+</section>
+
+<!-- ============ ADVANCED ============ -->
+<section id="advanced">
+  <h2>7 · Going deeper</h2>
+
+  <details>
+    <summary>Charge states: why Δm/z = Δmass ÷ z matters</summary>
+    <p>Quadrupoles select by m/z, not mass. A neutral loss of 98 Da appears as an offset of 98 for z = 1,
+    49 for z = 2, 32.7 for z = 3. Phosphopeptide NL methods on QqQ instruments therefore run <i>two</i> linked scans
+    (98 and 49) to catch singly and doubly charged precursors. In EI-GC-MS everything is z = 1, so the gap equals the mass directly.</p>
+  </details>
+
+  <details>
+    <summary>Where NL scan sits among the four QqQ scan modes</summary>
+    <table>
+      <tr><th>Mode</th><th>Q1</th><th>q2</th><th>Q3</th><th>What you get</th></tr>
+      <tr><td>Product ion</td><td>fixed on M</td><td>CID</td><td>scans</td><td>full fragment fingerprint of one precursor</td></tr>
+      <tr><td>Precursor ion</td><td>scans</td><td>CID</td><td>fixed on f</td><td>all precursors that produce fragment f</td></tr>
+      <tr><td><b>Neutral loss</b></td><td>scans</td><td>CID</td><td>scans, locked at Q1 − Δm</td><td>all precursors that lose Δm — a structural class</td></tr>
+      <tr><td>MRM / SRM</td><td>fixed on M</td><td>CID</td><td>fixed on f</td><td>one specific transition — the quantitation workhorse</td></tr>
+    </table>
+  </details>
+
+  <details>
+    <summary>Practical tuning tips (LC-QqQ)</summary>
+    <ul>
+      <li><b>Collision energy</b> is class-specific: too low → no fragmentation, no signal; too high → secondary losses
+          (e.g. phosphopeptides losing H₃PO₄ <i>and</i> H₂O) and weaker signal. Optimize on a standard.</li>
+      <li>Scan speed trades against duty cycle and sensitivity; don't outrun your chromatographic peak (≥ 10 points across it).</li>
+      <li>Unit resolution → confirm hits by product-ion scan or accurate mass. Isobaric coincidences are the main artifact.</li>
+      <li>Common paired strategy: NL survey scan → automatically trigger product-ion scans on detected peaks (information-dependent acquisition).</li>
+    </ul>
+  </details>
+
+  <details>
+    <summary>Common GC-EI neutral losses (read as M⁺• minus fragment)</summary>
+    <table>
+      <tr><th>Gap (Da)</th><th>Lost</th><th>Suggests</th></tr>
+      <tr><td>15</td><td>•CH₃</td><td>methyl branch; ubiquitous in TMS derivatives</td></tr>
+      <tr><td>17</td><td>•OH</td><td>alcohols, acids</td></tr>
+      <tr><td>18</td><td>H₂O</td><td>alcohols (often with M−15 companion)</td></tr>
+      <tr><td>29</td><td>•C₂H₅ / •CHO</td><td>ethyl chains / aldehydes</td></tr>
+      <tr><td>31</td><td>•OCH₃</td><td>methyl esters, methoxy</td></tr>
+      <tr><td>35/36</td><td>•Cl / HCl</td><td>chlorinated compounds (check 3:1 isotope)</td></tr>
+      <tr><td>43</td><td>CH₃CO• / C₃H₇•</td><td>methyl ketones / propyl chains</td></tr>
+      <tr><td>60</td><td>CH₃COOH</td><td>acetate esters, alditol acetates (sugar analysis)</td></tr>
+      <tr><td>90</td><td>TMS-OH</td><td>silylated –OH groups (derivatized GC-MS)</td></tr>
+    </table>
+  </details>
+</section>
+
+<footer>Built as a teaching aid — the simulator is simplified (singly charged ions, idealized yields) but the logic is real.</footer>
+
+</main>
+
+<script>
+"use strict";
+/* ============================================================
+   helpers
+============================================================ */
+const $ = s => document.querySelector(s);
+const rand = (a,b)=>a+Math.random()*(b-a);
+
+if(!CanvasRenderingContext2D.prototype.roundRect){
+  CanvasRenderingContext2D.prototype.roundRect=function(x,y,w,h){ this.rect(x,y,w,h); return this; };
+}
+
+function fitCanvas(cv){
+  const dpr = window.devicePixelRatio||1;
+  const w = cv.clientWidth, h = cv.clientHeight;
+  cv.width  = Math.max(1,Math.round(w*dpr));
+  cv.height = Math.max(1,Math.round(h*dpr));
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,w,h};
+}
+
+/* ============================================================
+   PART 1 — triple-quadrupole simulator
+============================================================ */
+const NL_OPTIONS = [
+  {mass:17,  label:'17 · NH₃',    name:'ammonia'},
+  {mass:18,  label:'18 · H₂O',    name:'water'},
+  {mass:44,  label:'44 · CO₂',    name:'carbon dioxide'},
+  {mass:80,  label:'80 · SO₃',    name:'sulfur trioxide'},
+  {mass:98,  label:'98 · H₃PO₄',  name:'phosphoric acid'},
+  {mass:176, label:'176 · C₆H₈O₆',name:'glucuronic acid'},
+];
+function nlName(m){ const o=NL_OPTIONS.find(o=>o.mass===m); return o?o.name:m+' Da'; }
+
+const compounds = [
+  {name:'Analyte A (alcohol)',     mz:260, color:'#e6a23c', losses:[18],    yield:0.80, abundance:0.55},
+  {name:'Analyte B (acid)',        mz:305, color:'#c586c0', losses:[44],    yield:0.70, abundance:0.80},
+  {name:'Sulfated metabolite',     mz:333, color:'#4ec9b0', losses:[80],    yield:0.75, abundance:0.50},
+  {name:'Analyte C (hydrocarbon)', mz:370, color:'#9cdcfe', losses:[],      yield:0.00, abundance:0.90},
+  {name:'Analyte D (di-acid)',     mz:412, color:'#f97583', losses:[44,18], yield:0.55, abundance:0.65},
+  {name:'Glucuronide conjugate',   mz:497, color:'#7ee787', losses:[176],   yield:0.85, abundance:0.70},
+  {name:'Phosphopeptide',          mz:812, color:'#d2a8ff', losses:[98,18], yield:0.60, abundance:0.85},
+];
+
+const SIM = {
+  nl:18, minMz:150, maxMz:850, speed:110,
+  scanMz:150, scanning:false, paused:true, done:false,
+  ions:[], neutrals:[], hits:{}, spawned:new Set(),
+  flash:0, mw:900, lastStatus:0,
+};
+
+const machineCv = $('#machine'), specCv = $('#spectra');
+
+function layout(w){
+  const q1x=Math.max(70,w*0.13), q1w=64;
+  const q2x=Math.max(q1x+q1w+26,w*0.30), q2w=Math.max(96,w*0.22);
+  const q3x=Math.max(q2x+q2w+30,w*0.615), q3w=64;
+  const detX=Math.min(w-30,Math.max(q3x+q3w+34,w*0.80));
+  return {lineY:92, srcX:40, q1:{x:q1x,w:q1w}, q2:{x:q2x,w:q2w}, q3:{x:q3x,w:q3w}, detX};
+}
+
+function setStatus(msg){ const el=$('#status'); if(el.textContent!==msg) el.textContent=msg; }
+function totalHits(){ return Object.values(SIM.hits).reduce((a,b)=>a+b,0); }
+
+function reset(){
+  SIM.ions=[]; SIM.neutrals=[]; SIM.hits={}; SIM.spawned=new Set();
+  SIM.scanMz=SIM.minMz; SIM.scanning=false; SIM.paused=true; SIM.done=false; SIM.flash=0;
+  $('#startBtn').textContent='▶ Start scan';
+}
+
+function fragment(ion){
+  const c=compounds[ion.ci];
+  ion.fragged=true;
+  const canLose=c.losses.includes(SIM.nl);
+  ion.path = (canLose && Math.random() < (c.yield||0.6)) ? 'signal' : 'other';
+  const nN = ion.path==='signal' ? 1 : 2;
+  for(let i=0;i<nN;i++){
+    SIM.neutrals.push({x:ion.x, y:ion.y+rand(-3,3), vx:rand(20,60),
+      vy:(Math.random()<0.5?-1:1)*rand(35,85), life:1});
+  }
+}
+
+function update(dt){
+  if(SIM.paused) return;
+  const L=layout(SIM.mw);
+
+  if(SIM.scanning){
+    SIM.scanMz += SIM.speed*dt;
+    if(SIM.scanMz >= SIM.maxMz){
+      SIM.scanMz=SIM.maxMz; SIM.scanning=false; SIM.done=true;
+      $('#startBtn').textContent='▶ Run again';
+      setStatus(`Scan complete — ${totalHits()} detector hits from precursors that lose ${SIM.nl} Da (${nlName(SIM.nl)}). Press ▶ to run again or pick another loss.`);
+    }
+    compounds.forEach((c,i)=>{
+      if(!SIM.spawned.has(i) && SIM.scanMz>=c.mz){
+        SIM.spawned.add(i);
+        const n=Math.round(16+c.abundance*10);
+        for(let k=0;k<n;k++){
+          SIM.ions.push({x:L.srcX-k*10-rand(0,6), y:L.lineY+rand(-3,3),
+            vx:rand(225,255), vy:0, ci:i, fragged:false, path:null, alpha:1, deflect:false});
+        }
+      }
+    });
+  }
+
+  const xFrag=L.q2.x+L.q2.w*0.5, q3x=L.q3.x, detX=L.detX;
+  SIM.ions = SIM.ions.filter(ion=>{
+    ion.x += ion.vx*dt; ion.y += ion.vy*dt;
+    if(!ion.fragged && ion.x>=xFrag) fragment(ion);
+    if(ion.fragged && ion.path!=='signal' && ion.x>=q3x){
+      if(!ion.deflect){ ion.deflect=true; ion.vy=(Math.random()<0.5?-1:1)*rand(40,80); }
+      ion.vy += Math.sign(ion.vy)*260*dt;
+      ion.alpha -= 2.2*dt;
+    }
+    if(ion.path==='signal' && ion.x>=detX){
+      SIM.hits[ion.ci]=(SIM.hits[ion.ci]||0)+1; SIM.flash=1; return false;
+    }
+    return ion.alpha>0 && ion.x < SIM.mw-4;
+  });
+
+  SIM.neutrals = SIM.neutrals.filter(p=>{
+    p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=1.4*dt; return p.life>0;
+  });
+  SIM.flash=Math.max(0,SIM.flash-3*dt);
+}
+
+function box(ctx,x,y,w,h,fill,stroke){
+  ctx.fillStyle=fill; ctx.strokeStyle=stroke; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.roundRect(x,y,w,h,7); ctx.fill(); ctx.stroke();
+}
+function mLabel(ctx,t,x,y){ ctx.fillStyle='#cfe3ff'; ctx.font='12px sans-serif'; ctx.textAlign='center'; ctx.fillText(t,x,y); }
+function mSub(ctx,t,x,y){ ctx.fillStyle='#58a6ff'; ctx.font='10px ui-monospace,Menlo,monospace'; ctx.textAlign='center'; ctx.fillText(t,x,y); }
+
+function drawMachine(ctx,w,h){
+  const L=layout(w), y=L.lineY;
+  ctx.clearRect(0,0,w,h);
+
+  ctx.strokeStyle='#1a2530'; ctx.setLineDash([3,5]);
+  ctx.beginPath(); ctx.moveTo(8,y); ctx.lineTo(w-8,y); ctx.stroke(); ctx.setLineDash([]);
+
+  // legend (top-left)
+  ctx.textAlign='left'; ctx.font='11px sans-serif';
+  ctx.fillStyle='#e6a23c'; ctx.beginPath(); ctx.arc(16,16,3,0,7); ctx.fill();
+  ctx.fillStyle='#93a4b5'; ctx.fillText('ion',24,20);
+  ctx.fillStyle='#8b949e'; ctx.beginPath(); ctx.arc(64,16,3,0,7); ctx.fill();
+  ctx.fillStyle='#93a4b5'; ctx.fillText('neutral (invisible to MS)',72,20);
+
+  // lock annotation (top center)
+  ctx.fillStyle='#58a6ff'; ctx.font='11px ui-monospace,Menlo,monospace'; ctx.textAlign='center';
+  ctx.fillText(`Q3 ≡ Q1 − ${SIM.nl}.0   (the two rods never leave this offset)`,
+    (L.q1.x+L.q3.x+L.q3.w)/2, 20);
+
+  // source
+  box(ctx,8,y-24,52,48,'#16222f','#2b3b4e');
+  mLabel(ctx,'source',34,y+40); mSub(ctx,'EI / ESI',34,y+53);
+
+  // Q1
+  box(ctx,L.q1.x,y-24,L.q1.w,48,'#101d2c','#2f81f7');
+  mLabel(ctx,'Q1',L.q1.x+L.q1.w/2,y-32);
+  mSub(ctx,'pass '+SIM.scanMz.toFixed(1),L.q1.x+L.q1.w/2,y+40);
+
+  // q2
+  box(ctx,L.q2.x,y-24,L.q2.w,48,'#1c2330','#8b949e');
+  mLabel(ctx,'q2 · collision cell',L.q2.x+L.q2.w/2,y-32);
+  mSub(ctx,'CID gas (N₂/Ar)',L.q2.x+L.q2.w/2,y+40);
+
+  // Q3
+  box(ctx,L.q3.x,y-24,L.q3.w,48,'#101d2c','#2f81f7');
+  mLabel(ctx,'Q3',L.q3.x+L.q3.w/2,y-32);
+  mSub(ctx,'pass '+(SIM.scanMz-SIM.nl).toFixed(1),L.q3.x+L.q3.w/2,y+40);
+
+  // detector
+  box(ctx,L.detX,y-30,14,60,'#241a10','#e6a23c');
+  if(SIM.flash>0){ ctx.fillStyle=`rgba(230,162,60,${SIM.flash*0.8})`; ctx.fillRect(L.detX-3,y-33,20,66); }
+  mLabel(ctx,'detector',L.detX+7,y+48);
+
+  // neutrals
+  SIM.neutrals.forEach(p=>{
+    ctx.globalAlpha=Math.max(0,p.life);
+    ctx.fillStyle='#8b949e';
+    ctx.beginPath(); ctx.arc(p.x,p.y,2,0,7); ctx.fill();
+  });
+  ctx.globalAlpha=1;
+
+  // ions
+  SIM.ions.forEach(ion=>{
+    const c=compounds[ion.ci];
+    let col=c.color;
+    if(ion.fragged && ion.path!=='signal') col='#6e7b8a';
+    ctx.globalAlpha=Math.max(0,Math.min(1,ion.alpha));
+    if(ion.path==='signal'){ ctx.shadowColor=c.color; ctx.shadowBlur=8; }
+    ctx.fillStyle=col;
+    ctx.beginPath(); ctx.arc(ion.x,ion.y,3,0,7); ctx.fill();
+    ctx.shadowBlur=0; ctx.globalAlpha=1;
+  });
+}
+
+function drawSpectra(ctx,w,h){
+  ctx.clearRect(0,0,w,h);
+  const x0=52, x1=w-16, top1=26, h1=74, top2=140, h2=120;
+  const X=mz=>x0+(mz-SIM.minMz)/(SIM.maxMz-SIM.minMz)*(x1-x0);
+
+  ctx.fillStyle='#93a4b5'; ctx.font='12px sans-serif'; ctx.textAlign='left';
+  ctx.fillText('Reference — ordinary full-scan MS (every precursor appears)',x0,14);
+  ctx.fillText(`Neutral-loss spectrum — only precursors losing ${SIM.nl} Da (${nlName(SIM.nl)})`,x0,top2-8);
+
+  function axes(top,height){
+    ctx.strokeStyle='#22303f'; ctx.lineWidth=1; ctx.beginPath();
+    ctx.moveTo(x0,top); ctx.lineTo(x0,top+height); ctx.lineTo(x1,top+height); ctx.stroke();
+    ctx.fillStyle='#5b6b7c'; ctx.font='10px sans-serif'; ctx.textAlign='center';
+    for(let mz=200;mz<=800;mz+=100){
+      const px=X(mz);
+      ctx.fillText(mz,px,top+height+13);
+      ctx.strokeStyle='#141d28'; ctx.beginPath(); ctx.moveTo(px,top); ctx.lineTo(px,top+height); ctx.stroke();
+    }
+  }
+  axes(top1,h1); axes(top2,h2);
+
+  // reference stems
+  compounds.forEach(c=>{
+    const px=X(c.mz), ph=c.abundance*h1;
+    ctx.strokeStyle=c.color+'55'; ctx.lineWidth=3; ctx.beginPath();
+    ctx.moveTo(px,top1+h1); ctx.lineTo(px,top1+h1-ph); ctx.stroke();
+  });
+
+  // NL stems
+  compounds.forEach((c,i)=>{
+    const n=SIM.hits[i]||0; if(!n) return;
+    const px=X(c.mz), ph=Math.min(1,n/22)*h2;
+    ctx.strokeStyle=c.color; ctx.lineWidth=3; ctx.beginPath();
+    ctx.moveTo(px,top2+h2); ctx.lineTo(px,top2+h2-ph); ctx.stroke();
+    ctx.fillStyle=c.color; ctx.font='10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(n,px,top2+h2-ph-5);
+  });
+
+  // scan cursor
+  if(SIM.scanning){
+    const px=X(SIM.scanMz);
+    ctx.strokeStyle='#58a6ff88'; ctx.lineWidth=1; ctx.beginPath();
+    ctx.moveTo(px,top2); ctx.lineTo(px,top2+h2); ctx.stroke();
+  }
+  ctx.fillStyle='#5b6b7c'; ctx.font='11px sans-serif'; ctx.textAlign='right';
+  ctx.fillText('precursor m/z →',x1,top2+h2+27);
+}
+
+/* ------- main loop ------- */
+let lastT=performance.now();
+function frame(t){
+  const dt=Math.min(0.05,(t-lastT)/1000); lastT=t;
+  const m=fitCanvas(machineCv); SIM.mw=m.w;
+  update(dt);
+  drawMachine(m.ctx,m.w,m.h);
+  const s=fitCanvas(specCv);
+  drawSpectra(s.ctx,s.w,s.h);
+  if(SIM.scanning && t-SIM.lastStatus>120){
+    SIM.lastStatus=t;
+    setStatus(`Scanning…  Q1 = ${SIM.scanMz.toFixed(1)}   →   Q3 = ${(SIM.scanMz-SIM.nl).toFixed(1)}   (locked offset −${SIM.nl}.0 Da)   ·   detector hits: ${totalHits()}`);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ------- controls ------- */
+const chipsWrap=$('#nlChips');
+NL_OPTIONS.forEach(o=>{
+  const b=document.createElement('button');
+  b.className='chip'+(o.mass===SIM.nl?' active':'');
+  b.textContent='Δm '+o.label; b.title='lose '+o.name;
+  b.onclick=()=>{
+    SIM.nl=o.mass; reset();
+    chipsWrap.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+    b.classList.add('active');
+    setStatus(`Neutral loss set to Δm = ${o.mass} Da (${o.name}). Press ▶ Start scan.`);
+  };
+  chipsWrap.appendChild(b);
+});
+
+$('#startBtn').onclick=()=>{
+  if(SIM.done) reset();
+  if(SIM.paused){
+    SIM.paused=false; SIM.scanning=true; $('#startBtn').textContent='⏸ Pause';
+  }else{
+    SIM.paused=true; $('#startBtn').textContent='▶ Resume';
+  }
+};
+$('#resetBtn').onclick=()=>{ reset(); setStatus('Reset. Pick a neutral loss, then press ▶ Start scan.'); };
+$('#speed').oninput=e=>{ SIM.speed=+e.target.value; };
+
+// legend
+const lg=$('#legend');
+compounds.forEach(c=>{
+  const s=document.createElement('span');
+  s.innerHTML=`<span class="dot" style="background:${c.color}"></span>${c.name} · m/z ${c.mz}` +
+    (c.losses.length?` · loses ${c.losses.join(', ')}`:' · no common NL');
+  lg.appendChild(s);
+});
+
+/* ============================================================
+   PART 2 — GC-EI explorer
+============================================================ */
+const EI = {
+  M:158, mode:'mz', svg:$('#eiSvg'),
+  peaks:[
+    {mz:41,  i:100, note:'C₃H₅⁺ — generic hydrocarbon fragment'},
+    {mz:43,  i:48,  note:'C₃H₇⁺ / CH₃CO⁺'},
+    {mz:55,  i:82,  note:'C₄H₇⁺'},
+    {mz:69,  i:58,  note:'C₅H₉⁺'},
+    {mz:83,  i:64,  note:'C₆H₁₁⁺'},
+    {mz:97,  i:35,  note:'C₇H₁₃⁺'},
+    {mz:115, i:26,  note:'M − 43 → loss of C₃H₇• (propyl radical)'},
+    {mz:129, i:11,  note:'M − 29 → loss of •C₂H₅ / •CHO'},
+    {mz:140, i:44,  note:'M − 18 → loss of H₂O (classic alcohol!)'},
+    {mz:143, i:13,  note:'M − 15 → loss of •CH₃'},
+    {mz:158, i:9,   note:'M⁺• molecular ion (m/z 158) — the reference point'},
+  ]
+};
+function svgEl(name,attrs){
+  const e=document.createElementNS('http://www.w3.org/2000/svg',name);
+  for(const k in attrs) e.setAttribute(k,attrs[k]);
+  return e;
+}
+function showTip(e,p,mode){
+  const tip=$('#eiTip'), wrap=$('#eiWrap'), r=wrap.getBoundingClientRect();
+  tip.style.display='block';
+  tip.style.left=Math.min(r.width-280,(e.clientX-r.left+12))+'px';
+  tip.style.top=(e.clientY-r.top-12)+'px';
+  tip.innerHTML = mode==='mz'
+    ? `<b>m/z ${p.mz}</b> · rel. int. ${p.i}%<br>${p.note}`
+    : `<b>Δm = ${EI.M-p.mz} Da</b> (fragment at m/z ${p.mz})<br>${p.note}`;
+}
+function hideTip(){ $('#eiTip').style.display='none'; }
+
+function drawEI(){
+  const mode=EI.mode, svg=EI.svg;
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+  const W=900,H=300,x0=56,x1=W-24,y0=H-44,y1=26,maxX=170;
+  const X=v=>x0+v/maxX*(x1-x0), Y=i=>y0-(i/100)*(y0-y1);
+
+  svg.appendChild(svgEl('line',{x1:x0,y1:y1,x2:x0,y2:y0,stroke:'#22303f'}));
+  svg.appendChild(svgEl('line',{x1:x0,y1:y0,x2:x1,y2:y0,stroke:'#22303f'}));
+  for(let v=0;v<=160;v+=20){
+    svg.appendChild(svgEl('line',{x1:X(v),y1:y0,x2:X(v),y2:y0+5,stroke:'#22303f'}));
+    const t=svgEl('text',{x:X(v),y:y0+19,'text-anchor':'middle',fill:'#5b6b7c','font-size':11});
+    t.textContent=v; svg.appendChild(t);
+  }
+  [0,50,100].forEach(i=>{
+    const t=svgEl('text',{x:x0-8,y:Y(i)+4,'text-anchor':'end',fill:'#5b6b7c','font-size':11});
+    t.textContent=i+'%'; svg.appendChild(t);
+    svg.appendChild(svgEl('line',{x1:x0,y1:Y(i),x2:x1,y2:Y(i),stroke:'#141d28'}));
+  });
+  const cap=svgEl('text',{x:(x0+x1)/2,y:H-8,'text-anchor':'middle',fill:'#93a4b5','font-size':12});
+  cap.textContent = mode==='mz' ? 'm/z' : 'neutral loss  Δm = M − fragment m/z   (Da)';
+  svg.appendChild(cap);
+
+  EI.peaks.forEach(p=>{
+    const v = mode==='mz' ? p.mz : (EI.M - p.mz);
+    const g=svgEl('g',{});
+    const ln =svgEl('line',{x1:X(v),x2:X(v),y1:y0,y2:Y(p.i),stroke:'#58a6ff','stroke-width':4,'stroke-linecap':'round'});
+    const hit=svgEl('line',{x1:X(v),x2:X(v),y1:y0,y2:Y(p.i),stroke:'rgba(0,0,0,0)','stroke-width':16});
+    g.appendChild(ln); g.appendChild(hit);
+    g.addEventListener('mousemove',e=>showTip(e,p,mode));
+    g.addEventListener('mouseenter',()=>ln.setAttribute('stroke','#7ee787'));
+    g.addEventListener('mouseleave',()=>{ ln.setAttribute('stroke','#58a6ff'); hideTip(); });
+    svg.appendChild(g);
+  });
+}
+$('#eiToggle').onclick=()=>{
+  EI.mode = EI.mode==='mz' ? 'loss' : 'mz';
+  $('#eiToggle').textContent = EI.mode==='mz' ? 'View: m/z spectrum' : 'View: neutral-loss spectrum';
+  drawEI();
+};
+
+/* ============================================================
+   PART 3 — quiz
+============================================================ */
+const QUIZ=[
+ {q:'On a triple quadrupole, how is a neutral-loss scan (Δm = 98 Da) actually acquired?',
+  opts:['Q1 is fixed while Q3 scans','Q1 scans while Q3 sits fixed at m/z 98',
+        'Q1 and Q3 scan together, always 98 apart','Q1 and Q3 scan independently of each other'],
+  a:2, e:'Q1 and Q3 are scanned in sync with a constant offset of Δm. Signal appears only when a precursor at mass M fragments to M − 98 in q2.'},
+ {q:'You screen raw urine extracts with a 176 Da neutral-loss LC-MS/MS method. Which compounds light up?',
+  opts:['Sulfate conjugates','Glucuronide conjugates','Phosphopeptides','Everything heavier than 176 Da'],
+  a:1, e:'Glucuronides characteristically lose 176 Da (C₆H₈O₆). Sulfates → 80 Da; phosphopeptides → 98 Da.'},
+ {q:'In a GC-EI spectrum the molecular ion is at m/z 186 and a large peak sits at m/z 168. What happened?',
+  opts:['Loss of water (18 Da)','Loss of CO₂ (44 Da)','The sample is impure','Nothing — it is noise'],
+  a:0, e:'M⁺• − 18 is the classic signature of H₂O loss, typical of alcohols. In EI you read neutral losses as gaps below the molecular ion.'},
+ {q:'Why can’t the mass spectrometer detect the neutral fragment directly?',
+  opts:['It is too small to register','It is uncharged — MS can only steer and detect ions',
+        'It evaporates instantly','It is consumed by the collision gas'],
+  a:1, e:'Mass analyzers manipulate charged particles with electric/magnetic fields. A neutral drifts out of the beam and is pumped away; we infer it from the mass gap.'},
+ {q:'A doubly charged phosphopeptide [M+2H]²⁺ loses H₃PO₄ (98 Da). What Q1↔Q3 spacing do you set?',
+  opts:['98 m/z','196 m/z','49 m/z','It cannot be measured this way'],
+  a:2, e:'Quadrupoles work in m/z, so the offset is Δmass/z = 98/2 = 49. Charge state divides the spacing — the classic gotcha of NL methods.'},
+];
+(function renderQuiz(){
+  const wrap=$('#quizWrap'); let score=0;
+  QUIZ.forEach((Q,qi)=>{
+    const div=document.createElement('div'); div.className='q';
+    div.innerHTML=`<p>${qi+1}. ${Q.q}</p>`;
+    Q.opts.forEach((o,oi)=>{
+      const b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.onclick=()=>{
+        [...div.querySelectorAll('.opt')].forEach((bb,bi)=>{
+          bb.disabled=true; if(bi===Q.a) bb.classList.add('correct');
+        });
+        if(oi===Q.a){ score++; } else { b.classList.add('wrong'); }
+        div.querySelector('.expl').classList.add('show');
+        $('#score').textContent=`Score: ${score}/${QUIZ.length}`;
+      };
+      div.appendChild(b);
+    });
+    const ex=document.createElement('div'); ex.className='expl'; ex.textContent=Q.e;
+    div.appendChild(ex);
+    wrap.appendChild(div);
+  });
+})();
+
+/* ------- boot ------- */
+drawEI();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
