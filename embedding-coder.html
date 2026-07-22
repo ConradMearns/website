@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marginalia — embedding-based qualitative coder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F6F7F4; --panel:#FFFFFF; --ink:#1B2228; --ink-soft:#5A6670; --line:#DDE2DC;
+  --action:#0E6E66; --action-ink:#F2FBF9; --warn:#B3541E;
+  --hl-1:#FFE24A; --hl-2:#FF9EC4; --hl-3:#A8E866; --hl-4:#7FD4FF; --hl-5:#FFB35C;
+  --hl-6:#D9B8FF; --hl-7:#8CE8D0; --hl-8:#FFD1A8;
+  --mono:'Spline Sans Mono',ui-monospace,monospace;
+  --sans:'Public Sans',system-ui,sans-serif;
+  --slab:'Zilla Slab',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.5;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(to bottom,transparent 0 27px,rgba(27,34,40,.035) 27px 28px);}
+.wrap{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:1.2rem 1.2rem 4rem}
+
+header{display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap;padding:.4rem 0 1rem;border-bottom:2px solid var(--ink)}
+h1{font-family:var(--slab);font-weight:700;font-size:1.7rem;letter-spacing:-.01em}
+h1 mark{background:linear-gradient(104deg,transparent 4%,var(--hl-1) 5%,var(--hl-1) 96%,transparent 97%);padding:0 .18em}
+.tagline{font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.08em}
+#dbstate{margin-left:auto;font-family:var(--mono);font-size:.72rem;color:var(--ink-soft)}
+#dbstate b{color:var(--action)}
+
+.cols{display:grid;grid-template-columns:400px 1fr;gap:1.1rem;margin-top:1.1rem}
+@media(max-width:960px){.cols{grid-template-columns:1fr}}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;margin-bottom:1rem;overflow:hidden}
+.card>summary,.card-h{list-style:none;cursor:pointer;display:flex;align-items:center;gap:.55rem;
+  padding:.6rem .85rem;font-family:var(--slab);font-weight:600;font-size:1rem;border-bottom:1px solid var(--line);user-select:none}
+.card>summary::-webkit-details-marker{display:none}
+.card>summary::after{content:"▸";margin-left:auto;color:var(--ink-soft);transition:transform .15s}
+.card[open]>summary::after{transform:rotate(90deg)}
+.step{font-family:var(--mono);font-size:.68rem;background:var(--ink);color:var(--paper);border-radius:3px;padding:.1rem .38rem}
+.card-b{padding:.85rem}
+label{display:block;font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin:.65rem 0 .25rem}
+label:first-child{margin-top:0}
+input[type=text],input[type=password],input[type=number],select,textarea{
+  width:100%;border:1px solid var(--line);border-radius:4px;background:var(--paper);
+  font-family:var(--sans);font-size:.9rem;color:var(--ink);padding:.45rem .55rem}
+textarea{font-family:var(--mono);font-size:.8rem;line-height:1.55;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--action);outline-offset:1px;border-color:var(--action)}
+.row{display:flex;gap:.6rem}.row>*{flex:1}
+.hint{font-size:.74rem;color:var(--ink-soft);margin-top:.3rem}
+
+button{font-family:var(--mono);font-size:.78rem;font-weight:600;letter-spacing:.02em;
+  border:1px solid var(--ink);border-radius:4px;background:var(--panel);color:var(--ink);
+  padding:.45rem .8rem;cursor:pointer;transition:transform .05s}
+button:hover{background:var(--paper)}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--action);border-color:var(--action);color:var(--action-ink)}
+button.primary:hover{background:#0B5951}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btnrow{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem}
+.btnrow .spacer{flex:1}
+
+.pill{display:inline-block;font-family:var(--mono);font-size:.68rem;border:1px solid var(--line);
+  border-radius:999px;padding:.1rem .55rem;color:var(--ink-soft);margin-left:.4rem}
+.pill.ok{border-color:var(--action);color:var(--action)}
+.pill.warn{border-color:var(--warn);color:var(--warn)}
+
+#codelist{display:flex;flex-direction:column;gap:.55rem;margin-top:.4rem}
+.code-item{border:1px solid var(--line);border-radius:5px;padding:.55rem;background:var(--paper);position:relative}
+.code-item .swatch{position:absolute;left:0;top:0;bottom:0;width:5px;border-radius:5px 0 0 5px}
+.code-item .ci-head{display:flex;gap:.45rem;align-items:center;margin-left:.5rem}
+.code-item input[type=text]{font-weight:600}
+.code-item textarea{margin-left:.5rem;width:calc(100% - .5rem);margin-top:.4rem}
+.code-item .del{border:none;background:none;color:var(--ink-soft);font-size:1rem;padding:.1rem .3rem}
+.code-item .del:hover{color:var(--warn)}
+.code-item .embflag{font-family:var(--mono);font-size:.65rem;color:var(--ink-soft);white-space:nowrap}
+
+#progressbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:.6rem;display:none}
+#progressbar>div{height:100%;width:0;background:var(--action);transition:width .2s}
+#statusline{font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);margin-top:.4rem;min-height:1em}
+#statusline.err{color:var(--warn)}
+
+/* results */
+#results .card-b{padding:0}
+#legend{display:flex;flex-wrap:wrap;gap:.45rem;padding:.7rem .85rem;border-bottom:1px solid var(--line)}
+.leg{display:flex;align-items:center;gap:.35rem;font-family:var(--mono);font-size:.72rem;cursor:pointer;
+  border:1px solid var(--line);border-radius:999px;padding:.12rem .6rem;user-select:none}
+.leg .dot{width:.72em;height:.72em;border-radius:2px;transform:skewX(-8deg)}
+.leg.off{opacity:.35}
+#threshrow{display:flex;align-items:center;gap:.7rem;padding:.55rem .85rem;border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:.72rem;color:var(--ink-soft)}
+#threshrow input[type=range]{flex:1;accent-color:var(--action)}
+#threshval{font-weight:600;color:var(--ink);min-width:3.2em;text-align:right}
+#doc-view{padding:1.1rem 1.25rem;font-family:var(--slab);font-size:1.02rem;line-height:1.9;max-height:60vh;overflow-y:auto;white-space:pre-wrap}
+#doc-view:empty::before{content:"Run the pipeline to see the coded document here.";font-family:var(--sans);color:var(--ink-soft);font-size:.85rem}
+.sent{border-radius:2px;transition:background .15s;cursor:default}
+.sent.hit{padding:.05em .12em;background:linear-gradient(104deg,transparent 2%,var(--hlc,#FFE24A) 3%,var(--hlc,#FFE24A) 97%,transparent 98%)}
+.sent.multi{box-shadow:0 3px 0 -1px var(--hlc2,transparent)}
+#matches{border-top:1px solid var(--line)}
+#matches table{width:100%;border-collapse:collapse;font-size:.78rem}
+#matches th{font-family:var(--mono);font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;
+  text-align:left;color:var(--ink-soft);padding:.5rem .85rem;border-bottom:1px solid var(--line)}
+#matches td{padding:.42rem .85rem;border-bottom:1px solid var(--paper);vertical-align:top}
+#matches td.sim{font-family:var(--mono);white-space:nowrap}
+#matches .codecell{font-family:var(--mono);font-size:.7rem;white-space:nowrap}
+#matches .codecell .dot{display:inline-block;width:.7em;height:.7em;border-radius:2px;margin-right:.35em;vertical-align:-1px;transform:skewX(-8deg)}
+.matches-h{font-family:var(--slab);font-weight:600;padding:.6rem .85rem .1rem}
+dialog{border:1px solid var(--ink);border-radius:6px;padding:1rem;max-width:26rem;font-size:.85rem}
+dialog::backdrop{background:rgba(27,34,40,.35)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1><mark>Marginalia</mark></h1>
+  <span class="tagline">sliding-window embeddings · codebook similarity · all in this tab</span>
+  <span id="dbstate">duckdb: <b>loading…</b></span>
+</header>
+
+<div class="cols">
+<div><!-- ===================== LEFT: pipeline ===================== -->
+
+<details class="card" open>
+  <summary><span class="step">1</span> Connection &amp; model</summary>
+  <div class="card-b">
+    <label for="apikey">OpenRouter API key</label>
+    <input type="password" id="apikey" placeholder="sk-or-v1-…" autocomplete="off">
+    <div class="hint">Held in memory only — never written into save files. Key is visible to this page; use a personal key.</div>
+
+    <label for="modelsel">Embedding model</label>
+    <div class="row">
+      <select id="modelsel"><option value="">— load list or type below —</option></select>
+      <button id="btn-models" style="flex:0 0 auto">Load models</button>
+    </div>
+    <input type="text" id="modelfree" placeholder="or type a model id, e.g. openai/text-embedding-3-small" style="margin-top:.4rem">
+
+    <label>Rate limiting</label>
+    <div class="row">
+      <div><input type="number" id="batchsize" value="48" min="1" max="512"><div class="hint">texts / request</div></div>
+      <div><input type="number" id="intervalms" value="600" min="0" step="100"><div class="hint">ms between requests</div></div>
+      <div><input type="number" id="maxretries" value="3" min="0" max="8"><div class="hint">retries on 429/5xx</div></div>
+    </div>
+  </div>
+</details>
+
+<details class="card" open>
+  <summary><span class="step">2</span> Document &amp; chunking <span class="pill" id="pill-doc">empty</span></summary>
+  <div class="card-b">
+    <label for="docname">Document name</label>
+    <input type="text" id="docname" placeholder="interview-04, standup transcript…">
+    <label for="doctext">Source text</label>
+    <textarea id="doctext" rows="9" placeholder="Paste a transcript, conversation, or any document…"></textarea>
+    <div class="row">
+      <div><label for="scales">Window sizes (sentences)</label><input type="text" id="scales" value="1,3,8"></div>
+      <div><label for="stride">Stride</label><input type="number" id="stride" value="1" min="1"></div>
+    </div>
+    <div class="btnrow">
+      <button id="btn-chunk">Chunk</button>
+      <button id="btn-embed-doc" class="primary" disabled>Embed windows</button>
+    </div>
+  </div>
+</details>
+
+<details class="card" open>
+  <summary><span class="step">3</span> Codebook <span class="pill" id="pill-codes">0 codes</span></summary>
+  <div class="card-b">
+    <div id="codelist"></div>
+    <div class="btnrow">
+      <button id="btn-addcode">+ Add code</button>
+      <span class="spacer"></span>
+      <button id="btn-embed-codes" class="primary" disabled>Embed codes</button>
+    </div>
+    <div class="hint">Give each code a rich definition — a sentence or two plus an exemplar quote embeds far better than a bare label.</div>
+  </div>
+</details>
+
+<details class="card" open>
+  <summary><span class="step">4</span> Run &amp; session</summary>
+  <div class="card-b">
+    <div class="btnrow">
+      <button id="btn-compare" class="primary" disabled>Compare in DuckDB</button>
+      <span class="spacer"></span>
+      <button id="btn-save">Save session</button>
+      <button id="btn-load">Load session</button>
+      <input type="file" id="loadfile" accept=".json" class="sr">
+    </div>
+    <div id="progressbar"><div></div></div>
+    <div id="statusline">Ready.</div>
+  </div>
+</details>
+
+</div>
+<div><!-- ===================== RIGHT: results ===================== -->
+
+<div class="card" id="results">
+  <div class="card-h"><span class="step">→</span> Coded document</div>
+  <div class="card-b">
+    <div id="legend"></div>
+    <div id="threshrow" hidden>
+      <span>per-code percentile ≥</span>
+      <input type="range" id="thresh" min="50" max="99" value="90">
+      <span id="threshval">90%</span>
+    </div>
+    <div id="doc-view"></div>
+    <div id="matches"></div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script type="module">
+import * as duckdb from 'https://cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@1.29.0/+esm';
+
+/* ---------------- state ---------------- */
+const S = {
+  db:null, conn:null,
+  sentences:[],           // [{i, text}]
+  windows:[],             // [{id, size, start, end, text, emb:null|[], model}]
+  codes:[],               // [{id, name, definition, emb:null|[], model, color}]
+  sims:null,              // [{wid, cid, sim}]
+  sentScores:null,        // Map sentIdx -> Map cid -> {sim, pr}
+  docName:'', docText:'',
+  nextCodeId:1,
+};
+const PALETTE = ['--hl-1','--hl-2','--hl-3','--hl-4','--hl-5','--hl-6','--hl-7','--hl-8'];
+const $ = id => document.getElementById(id);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* ---------------- status helpers ---------------- */
+function status(msg, err=false){ const el=$('statusline'); el.textContent=msg; el.classList.toggle('err',err); }
+function progress(frac){ const bar=$('progressbar'); if(frac==null){bar.style.display='none';return;}
+  bar.style.display='block'; bar.firstElementChild.style.width=(frac*100).toFixed(1)+'%'; }
+
+/* ---------------- DuckDB boot ---------------- */
+async function bootDB(){
+  try{
+    const bundles = duckdb.getJsDelivrBundles();
+    const bundle = await duckdb.selectBundle(bundles);
+    const workerUrl = URL.createObjectURL(new Blob([`importScripts("${bundle.mainWorker}");`],{type:'text/javascript'}));
+    const worker = new Worker(workerUrl);
+    const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
+    S.db = new duckdb.AsyncDuckDB(logger, worker);
+    await S.db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+    S.conn = await S.db.connect();
+    URL.revokeObjectURL(workerUrl);
+    $('dbstate').innerHTML = 'duckdb: <b>in-memory · ready</b>';
+  }catch(e){
+    $('dbstate').innerHTML = 'duckdb: <b style="color:var(--warn)">failed</b>';
+    status('DuckDB-WASM failed to load: '+e.message, true);
+  }
+}
+bootDB();
+
+/* ---------------- model list ---------------- */
+$('btn-models').addEventListener('click', async ()=>{
+  status('Fetching model list from OpenRouter…');
+  try{
+    const r = await fetch('https://openrouter.ai/api/v1/models');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j = await r.json();
+    const models = (j.data||[]).filter(m =>
+      (m.architecture?.output_modalities||[]).includes('embeddings') || /embed/i.test(m.id));
+    models.sort((a,b)=>a.id.localeCompare(b.id));
+    const sel = $('modelsel');
+    sel.innerHTML = '<option value="">— select —</option>';
+    for(const m of models){
+      const o = document.createElement('option');
+      o.value = m.id; o.textContent = m.id;
+      sel.appendChild(o);
+    }
+    status(`Loaded ${models.length} embedding models.`);
+  }catch(e){ status('Model list failed: '+e.message+' — you can still type a model id.', true); }
+});
+$('modelsel').addEventListener('change', e=>{ if(e.target.value) $('modelfree').value = e.target.value; });
+const currentModel = ()=> $('modelfree').value.trim() || $('modelsel').value;
+
+/* ---------------- chunking ---------------- */
+function splitSentences(text){
+  const out = [];
+  if(typeof Intl !== 'undefined' && Intl.Segmenter){
+    const seg = new Intl.Segmenter('en',{granularity:'sentence'});
+    for(const s of seg.segment(text)){ if(s.segment.trim()) out.push(s.segment); }
+  }else{
+    for(const s of text.split(/(?<=[.!?])\s+/)){ if(s.trim()) out.push(s+' '); }
+  }
+  return out;
+}
+$('btn-chunk').addEventListener('click', ()=>{
+  S.docName = $('docname').value.trim() || 'untitled';
+  S.docText = $('doctext').value;
+  if(!S.docText.trim()){ status('Paste some text first.', true); return; }
+  const raw = splitSentences(S.docText);
+  S.sentences = raw.map((t,i)=>({i, text:t}));
+  const sizes = $('scales').value.split(',').map(s=>parseInt(s.trim())).filter(n=>n>0);
+  const stride = Math.max(1, parseInt($('stride').value)||1);
+  S.windows = []; let id=0;
+  for(const size of sizes){
+    for(let start=0; start<S.sentences.length; start+=stride){
+      const end = Math.min(start+size, S.sentences.length) - 1;
+      if(end < start) break;
+      S.windows.push({id:id++, size, start, end,
+        text: S.sentences.slice(start,end+1).map(s=>s.text).join(''), emb:null, model:null});
+      if(end === S.sentences.length-1) break;
+    }
+  }
+  S.sims = null; S.sentScores = null;
+  $('pill-doc').textContent = `${S.sentences.length} sents · ${S.windows.length} windows`;
+  $('pill-doc').className = 'pill ok';
+  $('btn-embed-doc').disabled = false;
+  renderResults();
+  status(`Chunked into ${S.windows.length} windows across sizes [${sizes.join(', ')}], stride ${stride}.`);
+});
+
+/* ---------------- embedding via OpenRouter ---------------- */
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+async function embedBatch(model, texts, retriesLeft){
+  const key = $('apikey').value.trim();
+  const r = await fetch('https://openrouter.ai/api/v1/embeddings',{
+    method:'POST',
+    headers:{ 'Authorization':'Bearer '+key, 'Content-Type':'application/json' },
+    body: JSON.stringify({ model, input:texts })
+  });
+  if(r.status===429 || r.status>=500){
+    if(retriesLeft>0){ await sleep(1500*(1+Math.random())); return embedBatch(model,texts,retriesLeft-1); }
+    throw new Error('HTTP '+r.status+' after retries');
+  }
+  if(!r.ok){ const body = await r.text(); throw new Error('HTTP '+r.status+': '+body.slice(0,200)); }
+  const j = await r.json();
+  return j.data.sort((a,b)=>a.index-b.index).map(d=>d.embedding);
+}
+async function embedItems(items, label){
+  const model = currentModel();
+  if(!model){ status('Pick or type an embedding model first.', true); return false; }
+  if(!$('apikey').value.trim()){ status('Enter your OpenRouter API key first.', true); return false; }
+  const todo = items.filter(it => !it.emb || it.model !== model);
+  if(todo.length===0){ status(`All ${label} already embedded with ${model}.`); return true; }
+  const batchSize = Math.max(1, parseInt($('batchsize').value)||48);
+  const interval  = Math.max(0, parseInt($('intervalms').value)||0);
+  const retries   = Math.max(0, parseInt($('maxretries').value)||0);
+  let done = 0;
+  try{
+    for(let i=0;i<todo.length;i+=batchSize){
+      const batch = todo.slice(i,i+batchSize);
+      const embs = await embedBatch(model, batch.map(b=>b.text ?? b.definition), retries);
+      batch.forEach((b,k)=>{ b.emb = embs[k]; b.model = model; });
+      done += batch.length;
+      progress(done/todo.length);
+      status(`Embedding ${label}: ${done}/${todo.length} (dim ${embs[0]?.length ?? '?'})`);
+      if(i+batchSize<todo.length && interval>0) await sleep(interval);
+    }
+    progress(null);
+    status(`Embedded ${done} ${label} with ${model}.`);
+    return true;
+  }catch(e){
+    progress(null);
+    status(`Embedding ${label} failed at ${done}/${todo.length}: ${e.message}`, true);
+    return false;
+  }
+}
+$('btn-embed-doc').addEventListener('click', async ()=>{
+  $('btn-embed-doc').disabled = true;
+  const ok = await embedItems(S.windows, 'windows');
+  $('btn-embed-doc').disabled = false;
+  if(ok) maybeEnableCompare();
+});
+$('btn-embed-codes').addEventListener('click', async ()=>{
+  syncCodesFromDOM();
+  const withDefs = S.codes.filter(c=>c.definition.trim());
+  if(withDefs.length===0){ status('Add at least one code with a definition.', true); return; }
+  $('btn-embed-codes').disabled = true;
+  const ok = await embedItems(withDefs, 'codes');
+  $('btn-embed-codes').disabled = false;
+  renderCodes();
+  if(ok) maybeEnableCompare();
+});
+function maybeEnableCompare(){
+  const wReady = S.windows.length>0 && S.windows.every(w=>w.emb);
+  const cReady = S.codes.some(c=>c.emb);
+  $('btn-compare').disabled = !(wReady && cReady);
+}
+
+/* ---------------- codebook UI ---------------- */
+function addCode(name='', definition='', emb=null, model=null){
+  const c = { id:S.nextCodeId++, name, definition, emb, model,
+              color: css(PALETTE[(S.nextCodeId-2)%PALETTE.length]), enabled:true };
+  S.codes.push(c); renderCodes(); return c;
+}
+function syncCodesFromDOM(){
+  for(const el of document.querySelectorAll('.code-item')){
+    const c = S.codes.find(x=>x.id==el.dataset.id); if(!c) continue;
+    const nm = el.querySelector('.ci-name').value, df = el.querySelector('.ci-def').value;
+    if(nm!==c.name || df!==c.definition){ c.name=nm; c.definition=df; c.emb=null; c.model=null; }
+  }
+}
+function renderCodes(){
+  const list = $('codelist'); list.innerHTML='';
+  for(const c of S.codes){
+    const el = document.createElement('div');
+    el.className='code-item'; el.dataset.id=c.id;
+    el.innerHTML = `<div class="swatch" style="background:${c.color}"></div>
+      <div class="ci-head">
+        <input type="text" class="ci-name" placeholder="code name" value="${escAttr(c.name)}">
+        <span class="embflag">${c.emb?'embedded':'—'}</span>
+        <button class="del" title="Remove code">✕</button>
+      </div>
+      <textarea class="ci-def" rows="2" placeholder="Definition + an exemplar quote…">${escHtml(c.definition)}</textarea>`;
+    el.querySelector('.del').addEventListener('click', ()=>{
+      S.codes = S.codes.filter(x=>x.id!==c.id); renderCodes(); maybeEnableCompare(); renderResults();
+    });
+    el.querySelector('.ci-name').addEventListener('input', ()=>{ c.name=el.querySelector('.ci-name').value; });
+    el.querySelector('.ci-def').addEventListener('input', ()=>{
+      c.definition=el.querySelector('.ci-def').value; c.emb=null; c.model=null;
+      el.querySelector('.embflag').textContent='—'; maybeEnableCompare();
+    });
+    list.appendChild(el);
+  }
+  $('pill-codes').textContent = `${S.codes.length} codes`;
+  $('pill-codes').className = 'pill' + (S.codes.some(c=>c.emb) ? ' ok' : '');
+}
+$('btn-addcode').addEventListener('click', ()=>addCode());
+addCode('', '');
+
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;'); }
+
+/* ---------------- compare in DuckDB ---------------- */
+$('btn-compare').addEventListener('click', async ()=>{
+  if(!S.conn){ status('DuckDB is not ready.', true); return; }
+  syncCodesFromDOM();
+  const codes = S.codes.filter(c=>c.emb);
+  const wModel = S.windows[0]?.model, cModels = new Set(codes.map(c=>c.model));
+  if(cModels.size>1 || (wModel && !cModels.has(wModel))){
+    status(`Model mismatch — windows use ${wModel}, codes use ${[...cModels].join(', ')}. Re-embed one side.`, true);
+    return;
+  }
+  $('btn-compare').disabled = true;
+  status('Loading vectors into DuckDB…');
+  try{
+    await S.db.registerFileText('w.json', JSON.stringify(
+      S.windows.map(w=>({wid:w.id, s:w.start, e:w.end, emb:w.emb}))));
+    await S.db.registerFileText('c.json', JSON.stringify(
+      codes.map(c=>({cid:c.id, emb:c.emb}))));
+    await S.conn.query(`CREATE OR REPLACE TABLE w AS SELECT * FROM read_json_auto('w.json', maximum_object_size=104857600);`);
+    await S.conn.query(`CREATE OR REPLACE TABLE c AS SELECT * FROM read_json_auto('c.json', maximum_object_size=104857600);`);
+    status('Computing cosine similarities (cross join in SQL)…');
+    const res = await S.conn.query(`
+      SELECT w.wid, w.s, w.e, c.cid,
+             list_cosine_similarity(w.emb, c.emb) AS sim
+      FROM w CROSS JOIN c;`);
+    S.sims = res.toArray().map(r=>({wid:Number(r.wid), s:Number(r.s), e:Number(r.e), cid:Number(r.cid), sim:Number(r.sim)}));
+    aggregateToSentences();
+    $('threshrow').hidden = false;
+    renderResults();
+    status(`Compared ${S.windows.length} windows × ${codes.length} codes = ${S.sims.length} pairs.`);
+  }catch(e){
+    status('Compare failed: '+e.message, true);
+  }finally{
+    $('btn-compare').disabled = false;
+  }
+});
+
+/* sentence-level aggregation + per-code percentile rank */
+function aggregateToSentences(){
+  const n = S.sentences.length;
+  const perCode = new Map();               // cid -> Float64Array of max sim per sentence
+  for(const row of S.sims){
+    let arr = perCode.get(row.cid);
+    if(!arr){ arr = new Float64Array(n).fill(-2); perCode.set(row.cid, arr); }
+    for(let i=row.s; i<=row.e; i++) if(row.sim > arr[i]) arr[i] = row.sim;
+  }
+  S.sentScores = new Map();
+  for(const [cid, arr] of perCode){
+    const sorted = Array.from(arr).filter(v=>v>-2).sort((a,b)=>a-b);
+    const m = sorted.length;
+    for(let i=0;i<n;i++){
+      if(arr[i]<=-2) continue;
+      // percentile rank of this sentence's score within this code's own distribution
+      let lo=0, hi=m; const v=arr[i];
+      while(lo<hi){ const mid=(lo+hi)>>1; if(sorted[mid]<v) lo=mid+1; else hi=mid; }
+      const pr = m>1 ? lo/(m-1) : 1;
+      if(!S.sentScores.has(i)) S.sentScores.set(i, new Map());
+      S.sentScores.get(i).set(cid, {sim:arr[i], pr:Math.min(pr,1)});
+    }
+  }
+}
+
+/* ---------------- results rendering ---------------- */
+$('thresh').addEventListener('input', ()=>{ $('threshval').textContent=$('thresh').value+'%'; renderResults(); });
+
+function renderResults(){
+  renderLegend();
+  const view = $('doc-view'); view.innerHTML='';
+  const matches = $('matches'); matches.innerHTML='';
+  if(S.sentences.length===0) return;
+  const th = parseInt($('thresh').value)/100;
+  const frag = document.createDocumentFragment();
+  for(const sent of S.sentences){
+    const span = document.createElement('span');
+    span.className='sent'; span.textContent=sent.text;
+    const scores = S.sentScores?.get(sent.i);
+    if(scores){
+      const hits = [...scores.entries()]
+        .filter(([cid,v]) => v.pr>=th && codeById(cid)?.enabled)
+        .sort((a,b)=>b[1].sim-a[1].sim);
+      if(hits.length){
+        const top = codeById(hits[0][0]);
+        span.classList.add('hit');
+        span.style.setProperty('--hlc', top.color);
+        if(hits.length>1){
+          span.classList.add('multi');
+          span.style.setProperty('--hlc2', codeById(hits[1][0]).color);
+        }
+        span.title = hits.map(([cid,v])=>`${codeById(cid).name||('code '+cid)}: sim ${v.sim.toFixed(3)} · p${(v.pr*100).toFixed(0)}`).join('\n');
+      }
+    }
+    frag.appendChild(span);
+  }
+  view.appendChild(frag);
+  renderMatches(th);
+}
+function codeById(cid){ return S.codes.find(c=>c.id===cid); }
+function renderLegend(){
+  const leg = $('legend'); leg.innerHTML='';
+  for(const c of S.codes.filter(c=>c.emb)){
+    const el = document.createElement('span');
+    el.className='leg'+(c.enabled?'':' off');
+    el.innerHTML=`<span class="dot" style="background:${c.color}"></span>${escHtml(c.name||('code '+c.id))}`;
+    el.addEventListener('click', ()=>{ c.enabled=!c.enabled; renderResults(); });
+    leg.appendChild(el);
+  }
+}
+function renderMatches(th){
+  if(!S.sentScores) return;
+  const rows=[];
+  for(const [si, m] of S.sentScores)
+    for(const [cid, v] of m)
+      if(v.pr>=th && codeById(cid)?.enabled) rows.push({si, cid, ...v});
+  rows.sort((a,b)=>b.sim-a.sim);
+  const top = rows.slice(0,40);
+  if(top.length===0) return;
+  const div = $('matches');
+  div.innerHTML = `<div class="matches-h">Top matches above threshold</div>
+    <table><thead><tr><th>code</th><th>similarity</th><th>sentence</th></tr></thead>
+    <tbody>${top.map(r=>{
+      const c=codeById(r.cid);
+      return `<tr><td class="codecell"><span class="dot" style="background:${c.color}"></span>${escHtml(c.name||('code '+c.id))}</td>
+        <td class="sim">${r.sim.toFixed(3)} <span style="color:var(--ink-soft)">p${(r.pr*100).toFixed(0)}</span></td>
+        <td>${escHtml(S.sentences[r.si].text.slice(0,220))}</td></tr>`;
+    }).join('')}</tbody></table>`;
+}
+
+/* ---------------- save / load session ---------------- */
+$('btn-save').addEventListener('click', ()=>{
+  syncCodesFromDOM();
+  const payload = {
+    app:'marginalia', version:1, savedAt:new Date().toISOString(),
+    model: currentModel() || null,
+    docName:S.docName || $('docname').value, docText:S.docText || $('doctext').value,
+    scales:$('scales').value, stride:$('stride').value,
+    sentences:S.sentences,
+    windows:S.windows,
+    codes:S.codes.map(({id,name,definition,emb,model})=>({id,name,definition,emb,model})),
+    sims:S.sims,
+  };
+  const blob = new Blob([JSON.stringify(payload)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (payload.docName||'session').replace(/\s+/g,'-')+'.marginalia.json';
+  a.click(); URL.revokeObjectURL(a.href);
+  status('Session saved (API key not included).');
+});
+$('btn-load').addEventListener('click', ()=>$('loadfile').click());
+$('loadfile').addEventListener('change', async e=>{
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    const p = JSON.parse(await f.text());
+    if(p.app!=='marginalia') throw new Error('not a Marginalia session file');
+    S.docName=p.docName||''; S.docText=p.docText||'';
+    $('docname').value=S.docName; $('doctext').value=S.docText;
+    $('scales').value=p.scales||'1,3,8'; $('stride').value=p.stride||'1';
+    if(p.model) $('modelfree').value=p.model;
+    S.sentences=p.sentences||[]; S.windows=p.windows||[];
+    S.codes=(p.codes||[]).map((c,k)=>({...c, color:css(PALETTE[k%PALETTE.length]), enabled:true}));
+    S.nextCodeId = Math.max(0,...S.codes.map(c=>c.id))+1;
+    S.sims=p.sims||null;
+    if(S.sims) aggregateToSentences(); else S.sentScores=null;
+    $('pill-doc').textContent = S.sentences.length? `${S.sentences.length} sents · ${S.windows.length} windows` : 'empty';
+    $('pill-doc').className = 'pill'+(S.sentences.length?' ok':'');
+    $('btn-embed-doc').disabled = S.windows.length===0;
+    $('threshrow').hidden = !S.sims;
+    renderCodes(); maybeEnableCompare(); renderResults();
+    status(`Loaded "${S.docName}" — ${S.windows.length} windows, ${S.codes.length} codes${S.sims?', similarities restored':''}.`);
+  }catch(err){ status('Load failed: '+err.message, true); }
+  e.target.value='';
+});
+</script>
+</body>
+</html>

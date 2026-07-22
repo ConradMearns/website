@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Self-Editing Page — Selection + LLM Jobs</title>
+<style>
+  :root {
+    --chrome-bg: #16181d;
+    --chrome-panel: #1e2128;
+    --chrome-border: #2c3038;
+    --chrome-text: #c7cdd6;
+    --chrome-dim: #7a8290;
+    --accent: #4fc3f7;
+    --ok: #66bb6a;
+    --err: #ef5350;
+    --warn: #ffb74d;
+    --doc-bg: #fafafa;
+    --sel: #4fc3f7;
+    font-size: 14px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: var(--chrome-bg);
+    color: var(--chrome-text);
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+  /* ---------- Sidebar ---------- */
+  #sidebar {
+    width: 340px;
+    min-width: 340px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--chrome-border);
+    background: var(--chrome-panel);
+  }
+  #sidebar section {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--chrome-border);
+  }
+  #sidebar h2 {
+    margin: 0 0 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--chrome-dim);
+    font-weight: 600;
+  }
+  input[type="password"], input[type="text"], textarea, select {
+    width: 100%;
+    background: var(--chrome-bg);
+    border: 1px solid var(--chrome-border);
+    color: var(--chrome-text);
+    border-radius: 4px;
+    padding: 7px 9px;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: 1px solid var(--accent);
+    border-color: var(--accent);
+  }
+  textarea { resize: vertical; min-height: 70px; }
+  button {
+    background: var(--accent);
+    color: #0b1116;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 14px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button.secondary {
+    background: transparent;
+    color: var(--chrome-text);
+    border: 1px solid var(--chrome-border);
+  }
+  .row { display: flex; gap: 8px; margin-top: 8px; }
+  .row > * { flex: 1; }
+  #sel-summary {
+    font-family: "Cascadia Code", "Consolas", monospace;
+    font-size: 12px;
+    color: var(--accent);
+    min-height: 18px;
+    word-break: break-all;
+  }
+  /* ---------- Queue ---------- */
+  #queue { flex: 0 0 auto; max-height: 30vh; overflow-y: auto; }
+  .job {
+    border: 1px solid var(--chrome-border);
+    border-radius: 4px;
+    padding: 7px 9px;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .job .status { font-weight: 700; text-transform: uppercase; font-size: 10px; letter-spacing: 0.06em; }
+  .job.queued .status { color: var(--chrome-dim); }
+  .job.running .status { color: var(--warn); }
+  .job.done .status { color: var(--ok); }
+  .job.error .status { color: var(--err); }
+  .job .instr { color: var(--chrome-text); margin-top: 2px; }
+  .job .meta { color: var(--chrome-dim); margin-top: 2px; font-family: monospace; font-size: 11px; }
+  /* ---------- Event log ---------- */
+  #log-wrap { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+  #log {
+    flex: 1;
+    overflow-y: auto;
+    font-family: "Cascadia Code", "Consolas", monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--chrome-dim);
+  }
+  #log .ev-selection { color: var(--accent); }
+  #log .ev-job { color: var(--warn); }
+  #log .ev-edit { color: var(--ok); }
+  #log .ev-error { color: var(--err); }
+  /* ---------- Document canvas ---------- */
+  #canvas {
+    flex: 1;
+    overflow: auto;
+    background: var(--doc-bg);
+    position: relative;
+    cursor: crosshair;
+  }
+  #doc {
+    max-width: 760px;
+    margin: 40px auto 120px;
+    background: white;
+    color: #222;
+    padding: 48px 56px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+    border-radius: 2px;
+    font-family: Georgia, serif;
+    line-height: 1.6;
+    user-select: none;
+  }
+  #doc h1 { font-size: 30px; margin-top: 0; }
+  #doc h2 { font-size: 21px; margin-top: 1.6em; }
+  #doc table { border-collapse: collapse; width: 100%; }
+  #doc td, #doc th { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
+  #doc blockquote { border-left: 3px solid #bbb; margin-left: 0; padding-left: 16px; color: #555; }
+  /* selection highlight on doc elements */
+  .is-selected {
+    outline: 2px solid var(--sel);
+    outline-offset: 2px;
+    background: rgba(79,195,247,0.08);
+  }
+  .just-edited { animation: flash 1.2s ease-out; }
+  @keyframes flash {
+    0% { background: rgba(102,187,106,0.35); }
+    100% { background: transparent; }
+  }
+  .job-locked { opacity: 0.55; pointer-events: none; }
+  /* drag rectangle */
+  #rubber {
+    position: fixed;
+    border: 1.5px dashed var(--sel);
+    background: rgba(79,195,247,0.12);
+    pointer-events: none;
+    display: none;
+    z-index: 100;
+  }
+</style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <section>
+    <h2>OpenRouter</h2>
+    <input type="password" id="api-key" placeholder="sk-or-v1-...  (kept in memory only)">
+    <div class="row">
+      <select id="model">
+        <option value="anthropic/claude-sonnet-4-6">claude-sonnet-4-6</option>
+        <option value="anthropic/claude-haiku-4-5" selected>claude-haiku-4-5</option>
+        <option value="google/gemini-2.5-flash">gemini-2.5-flash</option>
+        <option value="openai/gpt-4o-mini">gpt-4o-mini</option>
+      </select>
+    </div>
+  </section>
+
+  <section>
+    <h2>Selection</h2>
+    <div id="sel-summary">— nothing selected —</div>
+    <div class="row">
+      <button class="secondary" id="clear-sel">Clear selection</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Instruction</h2>
+    <textarea id="instruction" placeholder="Describe the change, e.g. 'make this section more formal' or 'convert to a bulleted list'"></textarea>
+    <div class="row">
+      <button id="run">Run edit</button>
+      <button class="secondary" id="undo" disabled>Undo</button>
+    </div>
+  </section>
+
+  <section id="queue-wrap">
+    <h2>Job queue</h2>
+    <div id="queue"></div>
+  </section>
+
+  <section id="log-wrap">
+    <h2>Event log</h2>
+    <div id="log"></div>
+  </section>
+</aside>
+
+<main id="canvas">
+  <article id="doc">
+    <h1>The Self-Editing Document</h1>
+    <p>This page rewrites itself. Drag a rectangle over any part of this document, type an instruction in the sidebar, and an LLM job will replace the selected fragments in place.</p>
+
+    <h2>How selection works</h2>
+    <p>While you drag, the page walks its own DOM tree and tests each element's bounding box against your rectangle. Fully contained elements win; if nothing is fully contained, intersecting elements are used instead. Parents absorb their children, so you get the topmost sensible units.</p>
+    <blockquote>Every element here carries a <code>data-edit-id</code>, which is how edits stay addressable across rewrites.</blockquote>
+
+    <h2>Some material to edit</h2>
+    <p>The quick brown fox jumps over the lazy dog. This sentence exists purely to be rewritten, restyled, translated, or deleted. Try selecting it and asking for pirate speak.</p>
+    <ul>
+      <li>First item: apples</li>
+      <li>Second item: oranges</li>
+      <li>Third item: a small tin of regret</li>
+    </ul>
+
+    <h2>A table, for structural edits</h2>
+    <table>
+      <thead>
+        <tr><th>Component</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Selection engine</td><td>working</td></tr>
+        <tr><td>Job queue</td><td>working</td></tr>
+        <tr><td>Voice input</td><td>phase two</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Closing note</h2>
+    <p>Undo restores a snapshot of the whole document taken before each job, so experimentation is cheap. The event log on the left shows selection and job events as they fire.</p>
+  </article>
+</main>
+
+<div id="rubber"></div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   Bus — every module talks through CustomEvents on this target
+   ============================================================ */
+const bus = new EventTarget();
+function emit(type, detail) { bus.dispatchEvent(new CustomEvent(type, { detail })); }
+
+/* ============================================================
+   Event log
+   ============================================================ */
+const logEl = document.getElementById("log");
+function logLine(cls, text) {
+  const div = document.createElement("div");
+  div.className = cls;
+  div.textContent = `${new Date().toLocaleTimeString()}  ${text}`;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+bus.addEventListener("selection-changed", e =>
+  logLine("ev-selection", `selection-changed [${e.detail.ids.join(", ") || "∅"}]`));
+bus.addEventListener("job-queued",  e => logLine("ev-job", `job-queued #${e.detail.id}`));
+bus.addEventListener("job-started", e => logLine("ev-job", `job-started #${e.detail.id} → ${e.detail.model}`));
+bus.addEventListener("job-done",    e => logLine("ev-edit", `job-done #${e.detail.id} — edited [${e.detail.edited.join(", ")}]`));
+bus.addEventListener("job-error",   e => logLine("ev-error", `job-error #${e.detail.id} — ${e.detail.message}`));
+
+/* ============================================================
+   Doc tagging — stable data-edit-id on every element
+   ============================================================ */
+const doc = document.getElementById("doc");
+let idCounter = 0;
+function tagTree(root) {
+  for (const el of root.querySelectorAll("*")) {
+    if (!el.dataset.editId) el.dataset.editId = "e" + (++idCounter);
+  }
+}
+doc.dataset.editId = "doc-root";
+tagTree(doc);
+
+/* ============================================================
+   Selection engine — drag rectangle + containment test
+   ============================================================ */
+const canvas = document.getElementById("canvas");
+const rubber = document.getElementById("rubber");
+let dragOrigin = null;
+let dragging = false;
+let selectedIds = [];
+
+function rectsIntersect(a, b) {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+}
+function rectContains(outer, inner) {
+  return inner.left >= outer.left && inner.right <= outer.right &&
+         inner.top >= outer.top && inner.bottom <= outer.bottom;
+}
+
+function computeSelection(dragRect) {
+  const all = [...doc.querySelectorAll("[data-edit-id]")];
+  let candidates = all.filter(el => rectContains(dragRect, el.getBoundingClientRect()));
+  if (candidates.length === 0) {
+    candidates = all.filter(el => rectsIntersect(dragRect, el.getBoundingClientRect()));
+  }
+  // topmost filter: drop any element whose ancestor is also a candidate
+  const set = new Set(candidates);
+  return candidates.filter(el => {
+    for (let p = el.parentElement; p && p !== doc.parentElement; p = p.parentElement) {
+      if (set.has(p)) return false;
+    }
+    return true;
+  });
+}
+
+function applySelection(elements) {
+  doc.querySelectorAll(".is-selected").forEach(el => el.classList.remove("is-selected"));
+  elements.forEach(el => el.classList.add("is-selected"));
+  const ids = elements.map(el => el.dataset.editId);
+  const changed = ids.join(",") !== selectedIds.join(",");
+  selectedIds = ids;
+  document.getElementById("sel-summary").textContent =
+    ids.length ? ids.map(id => {
+      const el = doc.querySelector(`[data-edit-id="${id}"]`);
+      return `${el.tagName.toLowerCase()}#${id}`;
+    }).join("  ") : "— nothing selected —";
+  if (changed) emit("selection-changed", { ids });
+}
+
+canvas.addEventListener("mousedown", e => {
+  if (e.button !== 0) return;
+  dragOrigin = { x: e.clientX, y: e.clientY };
+  dragging = false;
+});
+window.addEventListener("mousemove", e => {
+  if (!dragOrigin) return;
+  const dx = Math.abs(e.clientX - dragOrigin.x), dy = Math.abs(e.clientY - dragOrigin.y);
+  if (!dragging && dx < 4 && dy < 4) return;
+  dragging = true;
+  const rect = {
+    left: Math.min(dragOrigin.x, e.clientX),
+    top: Math.min(dragOrigin.y, e.clientY),
+    right: Math.max(dragOrigin.x, e.clientX),
+    bottom: Math.max(dragOrigin.y, e.clientY),
+  };
+  Object.assign(rubber.style, {
+    display: "block",
+    left: rect.left + "px", top: rect.top + "px",
+    width: (rect.right - rect.left) + "px",
+    height: (rect.bottom - rect.top) + "px",
+  });
+  applySelection(computeSelection(rect));
+});
+window.addEventListener("mouseup", () => {
+  if (dragOrigin && !dragging) applySelection([]); // plain click clears
+  dragOrigin = null;
+  dragging = false;
+  rubber.style.display = "none";
+});
+document.getElementById("clear-sel").addEventListener("click", () => applySelection([]));
+
+/* ============================================================
+   Job queue — serial execution against OpenRouter
+   ============================================================ */
+const queueEl = document.getElementById("queue");
+const jobs = [];
+let jobSeq = 0;
+let processing = false;
+const undoStack = [];
+const undoBtn = document.getElementById("undo");
+
+function renderJob(job) {
+  let el = document.getElementById("job-" + job.id);
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "job-" + job.id;
+    queueEl.prepend(el);
+  }
+  el.className = "job " + job.status;
+  el.innerHTML = `
+    <div class="status">${job.status}</div>
+    <div class="instr"></div>
+    <div class="meta">#${job.id} · targets: ${job.ids.join(", ")}${job.error ? " · " + job.error : ""}</div>`;
+  el.querySelector(".instr").textContent = job.instruction;
+}
+
+function enqueueJob(instruction, ids) {
+  const job = { id: ++jobSeq, instruction, ids, status: "queued", error: null };
+  jobs.push(job);
+  renderJob(job);
+  emit("job-queued", { id: job.id });
+  processQueue();
+}
+
+async function processQueue() {
+  if (processing) return;
+  const job = jobs.find(j => j.status === "queued");
+  if (!job) return;
+  processing = true;
+  job.status = "running";
+  renderJob(job);
+
+  const targets = job.ids
+    .map(id => doc.querySelector(`[data-edit-id="${id}"]`))
+    .filter(Boolean);
+  targets.forEach(el => el.classList.add("job-locked"));
+  emit("job-started", { id: job.id, model: currentModel() });
+
+  try {
+    // full-document snapshot for undo
+    undoStack.push(doc.innerHTML);
+    undoBtn.disabled = false;
+
+    const edits = await requestEdits(job.instruction, targets);
+    const editedIds = [];
+    for (const [id, html] of Object.entries(edits)) {
+      const el = doc.querySelector(`[data-edit-id="${id}"]`);
+      if (!el) continue;
+      const tpl = document.createElement("template");
+      tpl.innerHTML = html.trim();
+      const replacement = tpl.content.firstElementChild;
+      if (!replacement) continue;
+      replacement.dataset.editId = id;          // enforce identity
+      el.replaceWith(replacement);
+      tagTree(replacement);                     // tag any new children
+      replacement.classList.remove("is-selected", "job-locked");
+      replacement.classList.add("just-edited");
+      setTimeout(() => replacement.classList.remove("just-edited"), 1300);
+      editedIds.push(id);
+    }
+    job.status = "done";
+    emit("job-done", { id: job.id, edited: editedIds });
+  } catch (err) {
+    undoStack.pop(); // snapshot unused
+    if (undoStack.length === 0) undoBtn.disabled = true;
+    job.status = "error";
+    job.error = err.message;
+    emit("job-error", { id: job.id, message: err.message });
+  } finally {
+    targets.forEach(el => el.classList.remove("job-locked"));
+    renderJob(job);
+    processing = false;
+    processQueue(); // next in line
+  }
+}
+
+/* ============================================================
+   OpenRouter client
+   ============================================================ */
+function currentModel() { return document.getElementById("model").value; }
+
+async function requestEdits(instruction, targets) {
+  const key = document.getElementById("api-key").value.trim();
+  if (!key) throw new Error("no API key set");
+
+  const fragments = targets.map(el => ({ id: el.dataset.editId, html: cleanOuterHTML(el) }));
+
+  const system = [
+    "You edit HTML fragments inside a live document.",
+    "The user gives an instruction and a JSON array of fragments, each {id, html}.",
+    "Respond with ONLY a JSON object, no markdown fences, of the form:",
+    '{"edits": {"<id>": "<full replacement outerHTML>", ...}}',
+    "Rules:",
+    "- The root element of each replacement MUST keep the same data-edit-id attribute.",
+    "- Omit ids that need no change.",
+    "- Do not invent new ids. Do not add class attributes.",
+    "- Keep the same general element vocabulary as the document unless the instruction says otherwise.",
+  ].join("\n");
+
+  const user = JSON.stringify({ instruction, fragments });
+
+  const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + key,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: currentModel(),
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    }),
+  });
+  if (!resp.ok) {
+    const body = await resp.text().catch(() => "");
+    throw new Error(`OpenRouter ${resp.status}: ${body.slice(0, 200)}`);
+  }
+  const data = await resp.json();
+  const text = data.choices?.[0]?.message?.content ?? "";
+  const clean = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/,"").trim();
+  let parsed;
+  try { parsed = JSON.parse(clean); }
+  catch { throw new Error("model returned non-JSON: " + clean.slice(0, 120)); }
+  if (!parsed.edits || typeof parsed.edits !== "object") {
+    throw new Error("response missing 'edits' object");
+  }
+  return parsed.edits;
+}
+
+// strip our runtime classes before sending fragments to the model
+function cleanOuterHTML(el) {
+  const clone = el.cloneNode(true);
+  clone.querySelectorAll(".is-selected, .job-locked, .just-edited").forEach(n =>
+    n.classList.remove("is-selected", "job-locked", "just-edited"));
+  clone.classList.remove("is-selected", "job-locked", "just-edited");
+  if (clone.getAttribute("class") === "") clone.removeAttribute("class");
+  return clone.outerHTML;
+}
+
+/* ============================================================
+   Controls
+   ============================================================ */
+document.getElementById("run").addEventListener("click", () => {
+  const instruction = document.getElementById("instruction").value.trim();
+  if (!instruction) return;
+  const ids = selectedIds.length ? [...selectedIds] : ["doc-root"];
+  enqueueJob(instruction, ids);
+  document.getElementById("instruction").value = "";
+});
+document.getElementById("instruction").addEventListener("keydown", e => {
+  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) document.getElementById("run").click();
+});
+undoBtn.addEventListener("click", () => {
+  const snapshot = undoStack.pop();
+  if (snapshot == null) return;
+  doc.innerHTML = snapshot;
+  tagTree(doc);
+  applySelection([]);
+  logLine("ev-edit", "undo — document restored");
+  if (undoStack.length === 0) undoBtn.disabled = true;
+});
+</script>
+</body>
+</html>

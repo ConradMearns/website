@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marginalia v2 — matched-filter qualitative coding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F6F7F4; --panel:#FFFFFF; --ink:#1B2228; --ink-soft:#5A6670; --line:#DDE2DC;
+  --action:#0E6E66; --action-ink:#F2FBF9; --warn:#B3541E;
+  --hl-1:#F5C400; --hl-2:#E85D9C; --hl-3:#5CB338; --hl-4:#2E9BD6; --hl-5:#E8842B;
+  --hl-6:#9B6BD6; --hl-7:#1FA893; --hl-8:#C46A4A;
+  --mono:'Spline Sans Mono',ui-monospace,monospace;
+  --sans:'Public Sans',system-ui,sans-serif;
+  --slab:'Zilla Slab',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.5;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(to bottom,transparent 0 27px,rgba(27,34,40,.03) 27px 28px);}
+.wrap{position:relative;z-index:1;max-width:1360px;margin:0 auto;padding:1.2rem 1.2rem 4rem}
+
+header{display:flex;align-items:baseline;gap:1rem;flex-wrap:wrap;padding:.4rem 0 1rem;border-bottom:2px solid var(--ink)}
+h1{font-family:var(--slab);font-weight:700;font-size:1.7rem;letter-spacing:-.01em}
+h1 mark{background:linear-gradient(104deg,transparent 4%,var(--hl-1) 5%,var(--hl-1) 96%,transparent 97%);padding:0 .18em}
+.tagline{font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.08em}
+#modelstate{margin-left:auto;font-family:var(--mono);font-size:.72rem;color:var(--ink-soft)}
+#modelstate b{color:var(--action)}
+
+.cols{display:grid;grid-template-columns:420px 1fr;gap:1.1rem;margin-top:1.1rem}
+@media(max-width:1000px){.cols{grid-template-columns:1fr}}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;margin-bottom:1rem;overflow:hidden}
+.card>summary,.card-h{list-style:none;cursor:pointer;display:flex;align-items:center;gap:.55rem;
+  padding:.6rem .85rem;font-family:var(--slab);font-weight:600;font-size:1rem;border-bottom:1px solid var(--line);user-select:none}
+.card-h{cursor:default}
+.card>summary::-webkit-details-marker{display:none}
+.card>summary::after{content:"▸";margin-left:auto;color:var(--ink-soft);transition:transform .15s}
+.card[open]>summary::after{transform:rotate(90deg)}
+.step{font-family:var(--mono);font-size:.68rem;background:var(--ink);color:var(--paper);border-radius:3px;padding:.1rem .38rem}
+.card-b{padding:.85rem}
+label{display:block;font-family:var(--mono);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin:.65rem 0 .25rem}
+label:first-child{margin-top:0}
+input[type=text],input[type=number],textarea{
+  width:100%;border:1px solid var(--line);border-radius:4px;background:var(--paper);
+  font-family:var(--sans);font-size:.9rem;color:var(--ink);padding:.45rem .55rem}
+textarea{font-family:var(--mono);font-size:.78rem;line-height:1.55;resize:vertical}
+input:focus,textarea:focus{outline:2px solid var(--action);outline-offset:1px;border-color:var(--action)}
+.row{display:flex;gap:.6rem}.row>*{flex:1}
+.hint{font-size:.74rem;color:var(--ink-soft);margin-top:.3rem}
+
+button{font-family:var(--mono);font-size:.78rem;font-weight:600;letter-spacing:.02em;
+  border:1px solid var(--ink);border-radius:4px;background:var(--panel);color:var(--ink);
+  padding:.45rem .8rem;cursor:pointer;transition:transform .05s}
+button:hover{background:var(--paper)}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--action);border-color:var(--action);color:var(--action-ink)}
+button.primary:hover{background:#0B5951}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btnrow{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem}
+.btnrow .spacer{flex:1}
+
+.pill{display:inline-block;font-family:var(--mono);font-size:.68rem;border:1px solid var(--line);
+  border-radius:999px;padding:.1rem .55rem;color:var(--ink-soft);margin-left:.4rem}
+.pill.ok{border-color:var(--action);color:var(--action)}
+
+#codelist{display:flex;flex-direction:column;gap:.55rem;margin-top:.4rem}
+.code-item{border:1px solid var(--line);border-radius:5px;padding:.55rem .55rem .55rem .8rem;background:var(--paper);position:relative}
+.code-item .swatch{position:absolute;left:0;top:0;bottom:0;width:5px;border-radius:5px 0 0 5px}
+.code-item .ci-head{display:flex;gap:.45rem;align-items:center}
+.code-item input.ci-name{font-weight:600}
+.code-item .del{border:none;background:none;color:var(--ink-soft);font-size:1rem;padding:.1rem .3rem}
+.code-item .del:hover{color:var(--warn)}
+.code-item label{margin-top:.5rem}
+.code-item label .neg{color:var(--warn)}
+
+#progressbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:.6rem;display:none}
+#progressbar>div{height:100%;width:0;background:var(--action);transition:width .15s}
+#statusline{font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);margin-top:.4rem;min-height:1em}
+#statusline.err{color:var(--warn)}
+
+/* tuning strip */
+#tuning{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem .7rem}
+#tuning .knob input[type=number]{padding:.3rem .45rem;font-size:.82rem}
+
+/* ============ right side: signal lanes + text ============ */
+#lanes{padding:.35rem .85rem .6rem}
+.lane{margin-top:.55rem}
+.lane-h{display:flex;align-items:center;gap:.45rem;font-family:var(--mono);font-size:.72rem;margin-bottom:.15rem}
+.lane-h .dot{width:.75em;height:.75em;border-radius:2px;transform:skewX(-8deg)}
+.lane-h .readout{margin-left:auto;color:var(--ink-soft);font-size:.68rem;min-width:9em;text-align:right}
+.lane canvas{display:block;width:100%;height:52px;border:1px solid var(--line);border-radius:4px;background:var(--panel);cursor:crosshair}
+#lanes:empty::before{content:"Run the filter to see per-code signal tracks here.";font-family:var(--sans);color:var(--ink-soft);font-size:.85rem;display:block;padding:.6rem 0}
+
+#threshrow{display:flex;align-items:center;gap:.9rem;padding:.55rem .85rem;border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:.7rem;color:var(--ink-soft);flex-wrap:wrap}
+#threshrow .tr{display:flex;align-items:center;gap:.4rem}
+#threshrow input[type=range]{width:110px;accent-color:var(--action)}
+#threshrow b{color:var(--ink);font-weight:600;min-width:2.4em;display:inline-block}
+
+#doc-view{padding:1.1rem 1.25rem;font-family:var(--slab);font-size:1rem;line-height:1.95;max-height:46vh;overflow-y:auto;white-space:pre-wrap;border-top:1px solid var(--line)}
+#doc-view:empty::before{content:"The document, with detected events marked, appears here.";font-family:var(--sans);color:var(--ink-soft);font-size:.85rem}
+.ev{border-radius:2px;padding:.04em .1em;cursor:pointer;
+  background:linear-gradient(104deg,transparent 2%,var(--evc) 3%,var(--evc) 97%,transparent 98%)}
+.ev.flash{outline:2px solid var(--ink);outline-offset:1px}
+
+#events{border-top:1px solid var(--line)}
+#events table{width:100%;border-collapse:collapse;font-size:.78rem}
+#events th{font-family:var(--mono);font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;
+  text-align:left;color:var(--ink-soft);padding:.5rem .85rem;border-bottom:1px solid var(--line)}
+#events td{padding:.42rem .85rem;border-bottom:1px solid var(--paper);vertical-align:top}
+#events td.num{font-family:var(--mono);white-space:nowrap}
+#events .codecell{font-family:var(--mono);font-size:.7rem;white-space:nowrap}
+#events .dot{display:inline-block;width:.7em;height:.7em;border-radius:2px;margin-right:.35em;vertical-align:-1px;transform:skewX(-8deg)}
+#events tr.evrow{cursor:pointer}
+#events tr.evrow:hover td{background:var(--paper)}
+.events-h{font-family:var(--slab);font-weight:600;padding:.6rem .85rem .1rem}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1><mark>Marginalia</mark> v2</h1>
+  <span class="tagline">codes as matched filters · token embeddings · 100% in-browser</span>
+  <span id="modelstate">model: <b>not loaded</b></span>
+</header>
+
+<div class="cols">
+<div><!-- ============== LEFT ============== -->
+
+<details class="card" open>
+  <summary><span class="step">1</span> Document <span class="pill" id="pill-doc">demo loaded</span></summary>
+  <div class="card-b">
+    <label for="docname">Name</label>
+    <input type="text" id="docname" value="standup-demo">
+    <label for="doctext">Source text</label>
+    <textarea id="doctext" rows="10"></textarea>
+  </div>
+</details>
+
+<details class="card" open>
+  <summary><span class="step">2</span> Codebook <span class="pill" id="pill-codes">0 codes</span></summary>
+  <div class="card-b">
+    <div id="codelist"></div>
+    <div class="btnrow">
+      <button id="btn-addcode">+ Add code</button>
+    </div>
+    <div class="hint">Positives define what fires the filter; negatives subtract look-alikes.
+    One example per line. E.g. a <em>person-name</em> code: positives are utterances that <em>contain</em> names
+    ("I spoke with Dr. Ramirez"), negatives are discussion <em>about</em> naming ("we should pick a name for the product").</div>
+  </div>
+</details>
+
+<details class="card" open>
+  <summary><span class="step">3</span> Filter tuning</summary>
+  <div class="card-b">
+    <div id="tuning">
+      <div class="knob"><label for="scales">Window sizes (tokens)</label><input type="text" id="scales" value="6,16,40"></div>
+      <div class="knob"><label for="stride">Stride (tokens)</label><input type="number" id="stride" value="2" min="1"></div>
+      <div class="knob"><label for="smooth">Smoothing (positions)</label><input type="number" id="smooth" value="7" min="1" step="2"></div>
+      <div class="knob"><label for="negw">Negative weight λ</label><input type="number" id="negw" value="1.0" min="0" step="0.1"></div>
+      <div class="knob"><label for="dcmode">DC removal</label>
+        <input type="text" id="dcmode" value="doc mean" readonly style="color:var(--ink-soft)"></div>
+      <div class="knob"><label>Model</label>
+        <input type="text" value="all-MiniLM-L6-v2 (local)" readonly style="color:var(--ink-soft)"></div>
+    </div>
+    <div class="btnrow">
+      <button id="btn-run" class="primary">Run filter</button>
+      <span class="spacer"></span>
+      <button id="btn-save">Save session</button>
+      <button id="btn-load">Load session</button>
+      <input type="file" id="loadfile" accept=".json" class="sr" aria-hidden="true">
+    </div>
+    <div id="progressbar"><div></div></div>
+    <div id="statusline">First run downloads the embedding model (~25 MB) into browser cache.</div>
+  </div>
+</details>
+
+</div>
+<div><!-- ============== RIGHT ============== -->
+
+<div class="card" id="results">
+  <div class="card-h"><span class="step">→</span> Signal tracks &amp; detections</div>
+  <div id="threshrow">
+    <span class="tr">enter z ≥ <input type="range" id="zhi" min="0.5" max="4" step="0.1" value="2.0"><b id="zhi-v">2.0</b></span>
+    <span class="tr">exit z ≥ <input type="range" id="zlo" min="0" max="3" step="0.1" value="0.8"><b id="zlo-v">0.8</b></span>
+    <span class="tr">min prominence <input type="range" id="prom" min="0" max="2" step="0.1" value="0.5"><b id="prom-v">0.5</b></span>
+  </div>
+  <div id="lanes"></div>
+  <div id="doc-view"></div>
+  <div id="events"></div>
+</div>
+
+</div>
+</div>
+
+<script type="module">
+import { AutoTokenizer, AutoModel, Tensor, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.3.3';
+env.allowLocalModels = false;
+
+/* ================= state ================= */
+const MODEL_ID = 'Xenova/all-MiniLM-L6-v2';
+const S = {
+  tokenizer:null, model:null, dim:0,
+  clsId:null, sepId:null,
+  // document embedding cache
+  docTextEmbedded:null,      // text that tokVecs corresponds to
+  tokIds:null, tokOffsets:null, // [ [startChar,endChar], ... ]
+  prefix:null,               // Float64Array (N+1)*dim prefix sums of token vectors
+  docMean:null,              // Float32Array dim
+  nTok:0,
+  // per-example embedding cache: Map text -> Float32Array
+  exCache:new Map(),
+  codes:[], nextCodeId:1,
+  tracks:null,               // Map cid -> {z:Float32Array(P), cos:Float32Array(P)}
+  positions:0, stride:2, minScale:6,
+  events:[],                 // {id, cid, posStart, posEnd, peakZ, peakCos, charStart, charEnd}
+};
+const PALETTE = ['--hl-1','--hl-2','--hl-3','--hl-4','--hl-5','--hl-6','--hl-7','--hl-8'];
+const $ = id => document.getElementById(id);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function status(msg, err=false){ const el=$('statusline'); el.textContent=msg; el.classList.toggle('err',err); }
+function progress(f){ const b=$('progressbar'); if(f==null){b.style.display='none';return;}
+  b.style.display='block'; b.firstElementChild.style.width=(f*100).toFixed(1)+'%'; }
+const escHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+/* ================= demo content ================= */
+$('doctext').value =
+`Okay, quick standup. Yesterday I finished the ingestion refactor and got the tests green again. The flaky one in CI turned out to be a timezone thing, not our code.
+Nice. I spent most of yesterday pairing with Priya on the export bug — she found the root cause in about twenty minutes, it was the encoding fallback.
+Classic. By the way, can you put a meeting on my calendar for Thursday at 2pm with the design team? We need to walk through the new onboarding flow before the freeze.
+Sure, I'll send the invite after this. Also Dr. Ramirez emailed back about the accessibility audit, he can join our review whenever we're ready.
+Great. On naming — we still haven't picked a name for the new service. "Pipeline-two" is a placeholder and it's leaking into the docs.
+Ha, naming things, the second hardest problem. Let's brainstorm names async in the channel.
+One more thing: could you schedule a call with the vendor for early next week? Monday or Tuesday morning works, maybe 9:30.
+Will do. Sarah said she wants to sit in on that one too, so I'll add her.
+Last item, the migration. Marcus thinks we can do it without downtime if we dual-write for a week first.
+Alright, let's try that. Same time tomorrow, everyone.`;
+
+/* ================= codebook UI ================= */
+function addCode(name='', pos='', neg=''){
+  const c = { id:S.nextCodeId++, name, pos, neg,
+              color: css(PALETTE[(S.nextCodeId-2)%PALETTE.length]), enabled:true };
+  S.codes.push(c); renderCodes(); return c;
+}
+function renderCodes(){
+  const list = $('codelist'); list.innerHTML='';
+  for(const c of S.codes){
+    const el = document.createElement('div');
+    el.className='code-item'; el.dataset.id=c.id;
+    el.innerHTML = `<div class="swatch" style="background:${c.color}"></div>
+      <div class="ci-head">
+        <input type="text" class="ci-name" placeholder="code name" value="${escHtml(c.name).replace(/"/g,'&quot;')}">
+        <button class="del" title="Remove code">✕</button>
+      </div>
+      <label>Positive examples</label>
+      <textarea class="ci-pos" rows="3" placeholder="one per line">${escHtml(c.pos)}</textarea>
+      <label><span class="neg">Negative examples</span></label>
+      <textarea class="ci-neg" rows="2" placeholder="near-misses to subtract, one per line">${escHtml(c.neg)}</textarea>`;
+    el.querySelector('.del').addEventListener('click', ()=>{
+      S.codes = S.codes.filter(x=>x.id!==c.id); renderCodes();
+    });
+    el.querySelector('.ci-name').addEventListener('input', e=>{ c.name=e.target.value; });
+    el.querySelector('.ci-pos').addEventListener('input', e=>{ c.pos=e.target.value; });
+    el.querySelector('.ci-neg').addEventListener('input', e=>{ c.neg=e.target.value; });
+    list.appendChild(el);
+  }
+  $('pill-codes').textContent = `${S.codes.length} codes`;
+  $('pill-codes').className = 'pill'+(S.codes.length?' ok':'');
+}
+$('btn-addcode').addEventListener('click', ()=>addCode());
+
+addCode('calendar request',
+`can you put a meeting on my calendar for Thursday at 2pm
+let's schedule a call next Tuesday morning
+could you schedule a call with the vendor for next week
+send me an invite for the review on Friday
+book some time with the design team`,
+`we talked about the schedule being tight
+the calendar quarter ends in March
+the timeline for the migration is aggressive`);
+addCode('person name',
+`I spoke with Dr. Ramirez yesterday
+Sarah said she wants to join
+pairing with Priya on the export bug
+Marcus thinks we can do it
+John Smith emailed back`,
+`we still haven't picked a name for the new service
+naming things is the second hardest problem
+let's brainstorm names for it
+what should we call this feature`);
+
+/* ================= model loading ================= */
+async function ensureModel(){
+  if(S.model) return;
+  status('Downloading tokenizer + model (cached after first run)…');
+  const cb = p => { if(p.status==='progress' && p.total) progress(p.loaded/p.total); };
+  S.tokenizer = await AutoTokenizer.from_pretrained(MODEL_ID, { progress_callback: cb });
+  let device = 'wasm', dtype = 'q8';
+  if(navigator.gpu){ device='webgpu'; dtype='fp32'; }
+  try{
+    S.model = await AutoModel.from_pretrained(MODEL_ID, { device, dtype, progress_callback: cb });
+  }catch(e){
+    status('WebGPU init failed, falling back to WASM…');
+    S.model = await AutoModel.from_pretrained(MODEL_ID, { device:'wasm', dtype:'q8', progress_callback: cb });
+    device='wasm';
+  }
+  const specials = await S.tokenizer('', {add_special_tokens:true});
+  const sd = Array.from(specials.input_ids.data, Number);
+  S.clsId = sd[0]; S.sepId = sd[sd.length-1];
+  progress(null);
+  $('modelstate').innerHTML = `model: <b>MiniLM-L6 · ${device}</b>`;
+}
+
+/* run model on raw id arrays, return Float32Array tokens×dim (specials stripped) */
+async function forwardIds(ids){
+  const withSpecial = [S.clsId, ...ids, S.sepId];
+  const n = withSpecial.length;
+  const input_ids = new Tensor('int64', BigInt64Array.from(withSpecial.map(BigInt)), [1,n]);
+  const attention_mask = new Tensor('int64', BigInt64Array.from({length:n},()=>1n), [1,n]);
+  const token_type_ids = new Tensor('int64', BigInt64Array.from({length:n},()=>0n), [1,n]);
+  const out = await S.model({input_ids, attention_mask, token_type_ids});
+  const hs = out.last_hidden_state; // [1, n, dim]
+  const dim = hs.dims[2];
+  S.dim = dim;
+  const data = hs.data; // Float32Array
+  return { data: data.slice(dim, dim*(n-1)), dim, count: n-2 }; // strip CLS/SEP
+}
+
+/* mean-pool a short text -> Float32Array(dim), cached */
+async function embedExample(text){
+  const key = text.trim();
+  if(S.exCache.has(key)) return S.exCache.get(key);
+  const enc = await S.tokenizer(key, {add_special_tokens:false});
+  const ids = Array.from(enc.input_ids.data, Number);
+  if(ids.length===0) return null;
+  const fw = await forwardIds(ids.slice(0, 254));
+  const v = new Float32Array(fw.dim);
+  for(let t=0;t<fw.count;t++) for(let d=0;d<fw.dim;d++) v[d]+=fw.data[t*fw.dim+d];
+  for(let d=0;d<fw.dim;d++) v[d]/=fw.count;
+  S.exCache.set(key, v);
+  return v;
+}
+
+/* ================= document embedding: tokenize, align, segment, prefix sums ================= */
+async function embedDocument(text){
+  const enc = await S.tokenizer(text, {add_special_tokens:false});
+  const ids = Array.from(enc.input_ids.data, Number);
+  const N = ids.length;
+  if(N===0) throw new Error('document tokenized to zero tokens');
+
+  // token strings for greedy char alignment
+  let tokens;
+  if(S.tokenizer.model?.convert_ids_to_tokens){
+    tokens = S.tokenizer.model.convert_ids_to_tokens(ids);
+  }else{
+    tokens = ids.map(id=>S.tokenizer.decode([id]));
+  }
+  const lower = text.toLowerCase();
+  const offsets = new Array(N);
+  let cursor = 0;
+  for(let i=0;i<N;i++){
+    let t = tokens[i];
+    if(t.startsWith('##')) t = t.slice(2);
+    const needle = t.toLowerCase();
+    let idx = needle.length ? lower.indexOf(needle, cursor) : -1;
+    if(idx < 0 || idx > cursor + 40){ // [UNK] or normalization drift: pin to cursor
+      offsets[i] = [cursor, Math.min(cursor+1, text.length)];
+      cursor = Math.min(cursor+1, text.length);
+    }else{
+      offsets[i] = [idx, idx + needle.length];
+      cursor = idx + needle.length;
+    }
+  }
+
+  // segment with halo, forward, collect token vectors
+  const SEG = 224, HALO = 32;
+  const step = SEG - 2*HALO;
+  const tokVecs = []; let dim = 0;
+  let done = 0;
+  for(let s=0; s<N; s+=step){
+    const a = Math.max(0, s-HALO), b = Math.min(N, s+step+HALO);
+    const fw = await forwardIds(ids.slice(a,b));
+    dim = fw.dim;
+    const keepFrom = s - a;                       // skip left halo
+    const keepTo   = keepFrom + Math.min(step, N-s); // through real content
+    for(let t=keepFrom; t<keepTo; t++)
+      tokVecs.push(fw.data.subarray(t*dim,(t+1)*dim));
+    done = Math.min(N, s+step);
+    progress(done/N);
+    status(`Embedding document tokens: ${done}/${N}`);
+    await new Promise(r=>setTimeout(r)); // let UI breathe
+  }
+
+  // prefix sums (Float64 for stability) + doc mean
+  const prefix = new Float64Array((N+1)*dim);
+  for(let t=0;t<N;t++){
+    const src = tokVecs[t], base=(t)*dim, nb=(t+1)*dim;
+    for(let d=0;d<dim;d++) prefix[nb+d] = prefix[base+d] + src[d];
+  }
+  const docMean = new Float32Array(dim);
+  for(let d=0;d<dim;d++) docMean[d] = prefix[N*dim+d]/N;
+
+  S.tokIds = ids; S.tokOffsets = offsets; S.prefix = prefix;
+  S.docMean = docMean; S.nTok = N; S.dim = dim;
+  S.docTextEmbedded = text;
+  progress(null);
+}
+
+/* ================= kernels ================= */
+function centerNorm(v, mean){
+  const dim=v.length, out=new Float32Array(dim); let ss=0;
+  for(let d=0;d<dim;d++){ const x=v[d]-mean[d]; out[d]=x; ss+=x*x; }
+  const n=Math.sqrt(ss)||1;
+  for(let d=0;d<dim;d++) out[d]/=n;
+  return out;
+}
+async function buildKernels(){
+  const kernels = [];
+  for(const c of S.codes){
+    const posLines = c.pos.split('\n').map(s=>s.trim()).filter(Boolean);
+    const negLines = c.neg.split('\n').map(s=>s.trim()).filter(Boolean);
+    if(posLines.length===0) continue;
+    const dim = S.dim;
+    const pos = new Float32Array(dim), neg = negLines.length? new Float32Array(dim):null;
+    for(const l of posLines){ const v=await embedExample(l); for(let d=0;d<dim;d++) pos[d]+=v[d]/posLines.length; }
+    if(neg) for(const l of negLines){ const v=await embedExample(l); for(let d=0;d<dim;d++) neg[d]+=v[d]/negLines.length; }
+    kernels.push({ cid:c.id,
+      pos: centerNorm(pos, S.docMean),
+      neg: neg? centerNorm(neg, S.docMean) : null });
+  }
+  return kernels;
+}
+
+/* ================= the convolution ================= */
+function computeTracks(kernels){
+  const scales = $('scales').value.split(',').map(s=>parseInt(s.trim())).filter(n=>n>0);
+  const stride = Math.max(1, parseInt($('stride').value)||1);
+  const negW = Math.max(0, parseFloat($('negw').value)||0);
+  const N=S.nTok, dim=S.dim, prefix=S.prefix, mean=S.docMean;
+  const P = Math.max(1, Math.ceil((N - Math.min(...scales) + 1)/stride));
+  S.positions = P; S.stride = stride; S.minScale = Math.min(...scales);
+
+  S.tracks = new Map();
+  const w = new Float32Array(dim);
+  for(const k of kernels){
+    const combined = new Float32Array(P).fill(-Infinity);
+    const combCos  = new Float32Array(P).fill(-Infinity);
+    for(const size of scales){
+      const raw = new Float32Array(P).fill(NaN);
+      for(let p=0;p<P;p++){
+        const s=p*stride, e=Math.min(s+size, N);
+        if(e-s < Math.min(size, 3)) { raw[p]=NaN; continue; }
+        const len=e-s, b0=s*dim, b1=e*dim;
+        let ss=0;
+        for(let d=0;d<dim;d++){ const x=(prefix[b1+d]-prefix[b0+d])/len - mean[d]; w[d]=x; ss+=x*x; }
+        const inv = 1/(Math.sqrt(ss)||1);
+        let dp=0; for(let d=0;d<dim;d++) dp += w[d]*k.pos[d];
+        let score = dp*inv;
+        if(k.neg && negW>0){ let dn=0; for(let d=0;d<dim;d++) dn += w[d]*k.neg[d]; score -= negW*dn*inv; }
+        raw[p]=score;
+      }
+      // z-score within this scale
+      let m=0,c=0; for(const v of raw) if(!Number.isNaN(v)){m+=v;c++;} m/=c||1;
+      let sd=0; for(const v of raw) if(!Number.isNaN(v)) sd+=(v-m)*(v-m); sd=Math.sqrt(sd/(c||1))||1e-6;
+      for(let p=0;p<P;p++){
+        if(Number.isNaN(raw[p])) continue;
+        const z=(raw[p]-m)/sd;
+        if(z>combined[p]){ combined[p]=z; combCos[p]=raw[p]; }
+      }
+    }
+    // smoothing (box filter, run twice ≈ triangular)
+    const sm = Math.max(1, parseInt($('smooth').value)||1);
+    const z = boxSmooth(boxSmooth(combined, sm), sm);
+    S.tracks.set(k.cid, {z, cos:combCos});
+  }
+}
+function boxSmooth(arr, w){
+  if(w<=1) return Float32Array.from(arr);
+  const n=arr.length, out=new Float32Array(n), h=Math.floor(w/2);
+  for(let i=0;i<n;i++){
+    let s=0,c=0;
+    for(let j=Math.max(0,i-h); j<=Math.min(n-1,i+h); j++){ const v=arr[j]; if(isFinite(v)){s+=v;c++;} }
+    out[i]=c? s/c : 0;
+  }
+  return out;
+}
+
+/* ================= peak detection: prominence + hysteresis ================= */
+function detectEvents(){
+  const zhi=parseFloat($('zhi').value), zlo=parseFloat($('zlo').value), minProm=parseFloat($('prom').value);
+  S.events=[]; let eid=0;
+  if(!S.tracks) return;
+  for(const c of S.codes){
+    if(!c.enabled || !S.tracks.has(c.id)) continue;
+    const {z, cos} = S.tracks.get(c.id);
+    const P=z.length;
+    // local maxima above zhi
+    const peaks=[];
+    for(let p=1;p<P-1;p++)
+      if(z[p]>=zhi && z[p]>=z[p-1] && z[p]>z[p+1]) peaks.push(p);
+    if(P>1 && z[0]>=zhi && z[0]>z[1]) peaks.unshift(0);
+    if(P>1 && z[P-1]>=zhi && z[P-1]>z[P-2]) peaks.push(P-1);
+    const spans=[];
+    for(const pk of peaks){
+      // prominence: drop to the higher of the two flanking minima before a taller peak
+      let leftMin=z[pk]; for(let i=pk-1;i>=0;i--){ if(z[i]>z[pk])break; if(z[i]<leftMin)leftMin=z[i]; }
+      let rightMin=z[pk]; for(let i=pk+1;i<P;i++){ if(z[i]>z[pk])break; if(z[i]<rightMin)rightMin=z[i]; }
+      if(z[pk]-Math.max(leftMin,rightMin) < minProm) continue;
+      // hysteresis expansion
+      let a=pk; while(a>0 && z[a-1]>=zlo) a--;
+      let b=pk; while(b<P-1 && z[b+1]>=zlo) b++;
+      spans.push({a,b,pk});
+    }
+    // merge overlapping spans, keep the tallest peak
+    spans.sort((x,y)=>x.a-y.a);
+    const merged=[];
+    for(const s of spans){
+      const last=merged[merged.length-1];
+      if(last && s.a<=last.b){ last.b=Math.max(last.b,s.b); if(z[s.pk]>z[last.pk]) last.pk=s.pk; }
+      else merged.push({...s});
+    }
+    for(const m of merged){
+      const t0=m.a*S.stride, t1=Math.min(m.b*S.stride + S.minScale, S.nTok)-1;
+      S.events.push({ id:eid++, cid:c.id, posStart:m.a, posEnd:m.b,
+        peakZ:z[m.pk], peakCos:cos[m.pk],
+        charStart:S.tokOffsets[t0][0], charEnd:S.tokOffsets[t1][1] });
+    }
+  }
+  S.events.sort((a,b)=>b.peakZ-a.peakZ);
+}
+
+/* ================= run pipeline ================= */
+$('btn-run').addEventListener('click', async ()=>{
+  const text = $('doctext').value;
+  if(!text.trim()){ status('Paste a document first.', true); return; }
+  if(!S.codes.some(c=>c.pos.trim())){ status('Add at least one code with positive examples.', true); return; }
+  $('btn-run').disabled=true;
+  try{
+    await ensureModel();
+    if(S.docTextEmbedded !== text){
+      await embedDocument(text);
+    }
+    status('Embedding code examples…');
+    const kernels = await buildKernels();
+    status('Convolving kernels over the document…');
+    await new Promise(r=>setTimeout(r));
+    computeTracks(kernels);
+    detectEvents();
+    renderAll();
+    const nEx = S.codes.reduce((a,c)=>a+c.pos.split('\n').filter(x=>x.trim()).length+c.neg.split('\n').filter(x=>x.trim()).length,0);
+    status(`Done — ${S.nTok} tokens, ${S.positions} positions × ${kernels.length} kernels, ${S.events.length} events. (${nEx} examples cached)`);
+    $('pill-doc').textContent = `${S.nTok} tokens`;
+    $('pill-doc').className='pill ok';
+  }catch(e){
+    console.error(e);
+    status('Run failed: '+e.message, true);
+  }finally{
+    $('btn-run').disabled=false;
+  }
+});
+
+/* threshold sliders re-detect instantly, no re-embed */
+for(const [id,lab] of [['zhi','zhi-v'],['zlo','zlo-v'],['prom','prom-v']]){
+  $(id).addEventListener('input', ()=>{
+    $(lab).textContent = parseFloat($(id).value).toFixed(1);
+    if(S.tracks){ detectEvents(); renderAll(); }
+  });
+}
+
+/* ================= rendering ================= */
+function codeById(cid){ return S.codes.find(c=>c.id===cid); }
+
+function renderAll(){ renderLanes(); renderDoc(); renderEventTable(); }
+
+function renderLanes(){
+  const lanes=$('lanes'); lanes.innerHTML='';
+  if(!S.tracks) return;
+  const zhi=parseFloat($('zhi').value), zlo=parseFloat($('zlo').value);
+  for(const c of S.codes){
+    if(!S.tracks.has(c.id)) continue;
+    const {z}=S.tracks.get(c.id);
+    const lane=document.createElement('div'); lane.className='lane';
+    lane.innerHTML=`<div class="lane-h"><span class="dot" style="background:${c.color}"></span>
+      <span>${escHtml(c.name||('code '+c.id))}</span><span class="readout"></span></div>`;
+    const cv=document.createElement('canvas'); lane.appendChild(cv); lanes.appendChild(lane);
+    drawTrack(cv, z, c, zhi, zlo);
+    const readout=lane.querySelector('.readout');
+    cv.addEventListener('mousemove', e=>{
+      const r=cv.getBoundingClientRect();
+      const p=Math.min(z.length-1, Math.max(0, Math.round((e.clientX-r.left)/r.width*(z.length-1))));
+      readout.textContent=`pos ${p} · z=${z[p].toFixed(2)}`;
+    });
+    cv.addEventListener('mouseleave', ()=>readout.textContent='');
+    cv.addEventListener('click', e=>{
+      const r=cv.getBoundingClientRect();
+      const p=(e.clientX-r.left)/r.width*(z.length-1);
+      const ev=S.events.filter(ev=>ev.cid===c.id)
+        .sort((a,b)=>Math.abs((a.posStart+a.posEnd)/2-p)-Math.abs((b.posStart+b.posEnd)/2-p))[0];
+      if(ev) jumpToEvent(ev.id);
+    });
+  }
+}
+function drawTrack(cv, z, code, zhi, zlo){
+  const dpr=window.devicePixelRatio||1;
+  const W=cv.clientWidth||600, H=52;
+  cv.width=W*dpr; cv.height=H*dpr;
+  const ctx=cv.getContext('2d'); ctx.scale(dpr,dpr);
+  const P=z.length;
+  let zmax=3.5; for(const v of z) if(v>zmax) zmax=v;
+  const zmin=-2;
+  const y=v=>H-(v-zmin)/(zmax-zmin)*H;
+  const x=p=>p/(P-1)*W;
+  // guides
+  ctx.strokeStyle='#E7EAE4'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,y(0)); ctx.lineTo(W,y(0)); ctx.stroke();
+  ctx.setLineDash([3,3]); ctx.strokeStyle='#C6CCC4';
+  ctx.beginPath(); ctx.moveTo(0,y(zhi)); ctx.lineTo(W,y(zhi)); ctx.stroke();
+  ctx.setLineDash([]);
+  // event spans
+  for(const ev of S.events) if(ev.cid===code.id){
+    ctx.fillStyle=code.color+'33';
+    ctx.fillRect(x(ev.posStart), 0, Math.max(2,x(ev.posEnd)-x(ev.posStart)), H);
+  }
+  // filled area above zero
+  ctx.beginPath(); ctx.moveTo(0,y(Math.max(0,z[0])));
+  for(let p=1;p<P;p++) ctx.lineTo(x(p), y(Math.max(0,z[p])));
+  ctx.lineTo(W,y(0)); ctx.lineTo(0,y(0)); ctx.closePath();
+  ctx.fillStyle=code.color+'2A'; ctx.fill();
+  // line
+  ctx.beginPath(); ctx.moveTo(0,y(z[0]));
+  for(let p=1;p<P;p++) ctx.lineTo(x(p), y(z[p]));
+  ctx.strokeStyle=code.color; ctx.lineWidth=1.6; ctx.stroke();
+}
+
+function renderDoc(){
+  const view=$('doc-view'); view.innerHTML='';
+  const text=$('doctext').value;
+  if(!S.tracks){ return; }
+  // build char-range marks from events (top-z wins on overlap)
+  const evs=[...S.events].sort((a,b)=>a.peakZ-b.peakZ); // paint ascending so strongest paints last
+  const cuts=new Set([0,text.length]);
+  for(const e of evs){ cuts.add(e.charStart); cuts.add(e.charEnd); }
+  const pts=[...cuts].sort((a,b)=>a-b);
+  const frag=document.createDocumentFragment();
+  for(let i=0;i<pts.length-1;i++){
+    const a=pts[i], b=pts[i+1]; if(a>=b) continue;
+    const covering=S.events.filter(e=>e.charStart<=a && e.charEnd>=b);
+    const seg=text.slice(a,b);
+    if(covering.length===0){ frag.appendChild(document.createTextNode(seg)); continue; }
+    const top=covering.sort((x,y)=>y.peakZ-x.peakZ)[0];
+    const c=codeById(top.cid);
+    const span=document.createElement('span');
+    span.className='ev'; span.dataset.ev=top.id;
+    const alpha=Math.min(.85,.25+.18*top.peakZ);
+    span.style.setProperty('--evc', hexA(c.color,alpha));
+    span.title=covering.map(e=>`${codeById(e.cid).name}: z=${e.peakZ.toFixed(2)} cos=${e.peakCos.toFixed(3)}`).join('\n');
+    span.textContent=seg;
+    span.addEventListener('click',()=>jumpToEvent(top.id,false));
+    frag.appendChild(span);
+  }
+  view.appendChild(frag);
+}
+function hexA(hex,a){
+  const h=hex.replace('#',''); const n=parseInt(h,16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+}
+function renderEventTable(){
+  const div=$('events'); div.innerHTML='';
+  if(!S.events.length) return;
+  const text=$('doctext').value;
+  div.innerHTML=`<div class="events-h">Detected events — the "tool calls"</div>
+  <table><thead><tr><th>code</th><th>peak z</th><th>cos</th><th>span</th><th>text</th></tr></thead>
+  <tbody>${S.events.map(e=>{
+    const c=codeById(e.cid);
+    return `<tr class="evrow" data-ev="${e.id}">
+      <td class="codecell"><span class="dot" style="background:${c.color}"></span>${escHtml(c.name||'')}</td>
+      <td class="num">${e.peakZ.toFixed(2)}</td><td class="num">${e.peakCos.toFixed(3)}</td>
+      <td class="num">${e.charStart}–${e.charEnd}</td>
+      <td>${escHtml(text.slice(e.charStart,e.charEnd).slice(0,180))}</td></tr>`;
+  }).join('')}</tbody></table>`;
+  for(const row of div.querySelectorAll('.evrow'))
+    row.addEventListener('click',()=>jumpToEvent(parseInt(row.dataset.ev)));
+}
+function jumpToEvent(eid, scroll=true){
+  const el=document.querySelector(`#doc-view .ev[data-ev="${eid}"]`);
+  if(!el) return;
+  if(scroll) el.scrollIntoView({block:'center',behavior:'smooth'});
+  el.classList.add('flash');
+  setTimeout(()=>el.classList.remove('flash'), 1200);
+}
+
+/* ================= save / load ================= */
+$('btn-save').addEventListener('click', ()=>{
+  const round=arr=>arr?Array.from(arr,v=>+v.toFixed(4)):null;
+  const payload={
+    app:'marginalia', version:2, savedAt:new Date().toISOString(),
+    doc:{ name:$('docname').value, text:$('doctext').value },
+    params:{ scales:$('scales').value, stride:$('stride').value, smooth:$('smooth').value,
+             negw:$('negw').value, zhi:$('zhi').value, zlo:$('zlo').value, prom:$('prom').value },
+    codes:S.codes.map(({id,name,pos,neg})=>({id,name,pos,neg})),
+    analysis: S.tracks? {
+      nTok:S.nTok, stride:S.stride, minScale:S.minScale, positions:S.positions,
+      tokOffsets:S.tokOffsets,
+      tracks:Object.fromEntries([...S.tracks].map(([cid,t])=>[cid,{z:round(t.z),cos:round(t.cos)}])),
+    } : null,
+  };
+  const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=($('docname').value.trim()||'session').replace(/\s+/g,'-')+'.marginalia.json';
+  a.click(); URL.revokeObjectURL(a.href);
+  status('Session saved. (Tracks included; token embeddings recomputed on demand — they are free now.)');
+});
+$('btn-load').addEventListener('click', ()=>$('loadfile').click());
+$('loadfile').addEventListener('change', async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{
+    const p=JSON.parse(await f.text());
+    if(p.app!=='marginalia'||p.version!==2) throw new Error('not a Marginalia v2 session');
+    $('docname').value=p.doc.name||''; $('doctext').value=p.doc.text||'';
+    for(const [k,id] of [['scales','scales'],['stride','stride'],['smooth','smooth'],['negw','negw']])
+      if(p.params[k]!=null) $(id).value=p.params[k];
+    for(const [k,id,lab] of [['zhi','zhi','zhi-v'],['zlo','zlo','zlo-v'],['prom','prom','prom-v']])
+      if(p.params[k]!=null){ $(id).value=p.params[k]; $(lab).textContent=parseFloat(p.params[k]).toFixed(1); }
+    S.codes=(p.codes||[]).map((c,k)=>({...c, color:css(PALETTE[k%PALETTE.length]), enabled:true}));
+    S.nextCodeId=Math.max(0,...S.codes.map(c=>c.id))+1;
+    renderCodes();
+    if(p.analysis){
+      S.nTok=p.analysis.nTok; S.stride=p.analysis.stride;
+      S.minScale=p.analysis.minScale; S.positions=p.analysis.positions;
+      S.tokOffsets=p.analysis.tokOffsets;
+      S.tracks=new Map(Object.entries(p.analysis.tracks).map(([cid,t])=>
+        [parseInt(cid), {z:Float32Array.from(t.z), cos:Float32Array.from(t.cos)}]));
+      S.docTextEmbedded=null; // embeddings not saved; re-run will recompute
+      detectEvents(); renderAll();
+      $('pill-doc').textContent=`${S.nTok} tokens (tracks restored)`;
+      $('pill-doc').className='pill ok';
+    }else{ S.tracks=null; S.events=[]; renderAll(); }
+    status(`Loaded "${p.doc.name}" — ${S.codes.length} codes${p.analysis?', tracks restored (re-run to recompute with new params)':''}.`);
+  }catch(err){ status('Load failed: '+err.message, true); }
+  e.target.value='';
+});
+
+renderCodes.call(null);
+</script>
+</body>
+</html>
