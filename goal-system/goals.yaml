@@ -1,0 +1,154 @@
+version: 0
+
+subjects:
+  - id: goal-graph
+    name: the goal graph system itself
+    aliases: [goalc, goal system, this repo]
+  - id: home-server-data
+    name: data on the home server
+    aliases: [my data, the backups]
+  - id: website
+    name: the website repo (conradmearns site)
+    aliases: [this repo, the site]
+
+goals:
+  # ── self-hosting root ────────────────────────────────────────────────
+  - id: g-governed
+    text: Goals are governed by a provenanced goal graph
+    mode: maintain
+    subject: goal-graph
+    grade: heuristic
+    status: confirmed
+    derived_from:
+      - quote: "we will have a pile of text from which to derive goals - the objective is provenance"
+        source: corpus/2026-07-22-goal-system-design.md
+        role: states
+    supported_by: [s-layers]
+
+  - id: g-provenance
+    text: Every confirmed node traces to source text
+    mode: maintain
+    subject: goal-graph
+    grade: deterministic
+    status: confirmed
+    derived_from:
+      - quote: "The main idea is to record - not infer"
+        source: corpus/2026-07-22-goal-system-design.md
+        role: states
+    supported_by: [sn-lint-provenance]
+
+  - id: g-determinism
+    text: All leaf goals terminate in deterministic evidence
+    mode: maintain
+    subject: goal-graph
+    grade: deterministic
+    status: confirmed
+    derived_from:
+      - quote: "some rules may be that all goals should terminate with deterministic leaves"
+        source: corpus/2026-07-22-goal-system-design.md
+        role: states
+    supported_by: [sn-lint-grades]
+
+  - id: g-evidence-fresh
+    text: Evidence for confirmed leaves is within its TTL
+    mode: maintain
+    subject: goal-graph
+    grade: deterministic
+    status: confirmed
+    derived_from:
+      - quote: "How will we save and record evidence over time? ... how much of this information is outdated?"
+        source: corpus/2026-07-22-goal-system-design.md
+        role: states
+    supported_by: [sn-staleness]
+
+  - id: g-action-linked
+    text: Every failing goal has an open seed tracking the fix
+    mode: maintain
+    subject: goal-graph
+    grade: deterministic
+    status: candidate          # gray — seeds not yet adopted in this repo
+    derived_from:
+      - quote: "I wonder if that might work to add the tasking / action layer, so we can keep goal systems distinct"
+        source: corpus/2026-07-22-goal-system-design.md
+        role: states
+    supported_by: [sn-orphan-failures]
+
+  # ── first real-world candidate (demo of gray) ────────────────────────
+  - id: g-backups
+    text: Home-server data is backed up
+    mode: maintain
+    subject: home-server-data
+    grade: heuristic           # will refine: restore-test makes it deterministic
+    status: candidate
+    derived_from:
+      - quote: "\"I want my data backed up\" and \"See! need the backups, why did that happen...\" both yield to the same goal"
+        source: corpus/2026-07-22-goal-system-design.md
+        role: states
+    supported_by: []
+
+  # ── website subject (test drive) ─────────────────────────────────────
+  - id: g-site-reachable
+    text: Every page is reachable from index.html by following links
+    mode: maintain
+    subject: website
+    grade: deterministic
+    status: candidate
+    derived_from:
+      - quote: "All pages should be accessible from the index.html - in a like tree fashion."
+        source: corpus/2026-07-22-site-tree-goal.md
+        role: states
+    supported_by: [sn-site-reachable]
+
+  - id: g-site-not-flat
+    text: index.html does not directly list every page (navigation stays tree-shaped)
+    mode: avoid
+    subject: website
+    grade: heuristic          # needs a threshold to become deterministic — see gap-002
+    status: candidate
+    derived_from:
+      - quote: "They dont need to be listed all under index.html, this we should avoid."
+        source: corpus/2026-07-22-site-tree-goal.md
+        role: states
+    supported_by: []
+
+strategies:
+  - id: s-layers
+    text: Argue the graph is trustworthy layer by layer — provenance of
+      structure, determinism of leaves, freshness of evidence, linkage to action
+    status: confirmed
+    reviewed_by: conrad
+    reviewed_at: 2026-07-22
+    supported_by: [g-provenance, g-determinism, g-evidence-fresh, g-action-linked]
+
+solutions:
+  - id: sn-lint-provenance
+    kind: check
+    recipe: just evidence-lint-provenance
+    ttl: 24h
+    grade: deterministic
+
+  - id: sn-lint-grades
+    kind: check
+    recipe: just evidence-lint-grades
+    ttl: 24h
+    grade: deterministic
+
+  - id: sn-staleness
+    kind: check
+    recipe: just evidence-staleness
+    ttl: 24h
+    grade: deterministic
+
+  - id: sn-orphan-failures
+    kind: check
+    recipe: just evidence-orphan-failures
+    ttl: 24h
+    grade: deterministic
+
+  - id: sn-site-reachable
+    kind: check
+    recipe: just evidence-site-reachable
+    ttl: 24h
+    grade: deterministic
+# gaps live in gaps.jsonl (append-only events) or are derived at read time —
+# never here. goals.yaml is pure structure.

@@ -1,0 +1,55 @@
+# goal system verbs ---------------------------------------------------------
+
+default: tree
+
+tree:            # render the fold
+    uv run scripts/goalc.py tree
+
+lint:            # constitution checks over goals.yaml
+    uv run scripts/goalc.py lint
+
+check *ID:       # run due evidence (or one solution), append to runs.jsonl
+    uv run scripts/goalc.py check {{ID}}
+
+query:           # DuckDB over goals + runs (+ seeds if present)
+    uv run python -c "import yaml,json,sys;json.dump(yaml.safe_load(open('goals.yaml')),open('.goals.json','w'))"
+    duckdb -init queries.sql
+
+ingest FILE:     # register a corpus file in the ledger (manual MVP)
+    uv run python -c "import hashlib,json,datetime,sys; p=sys.argv[1]; \
+      print(json.dumps({'doc_sha':hashlib.sha256(open(p,'rb').read()).hexdigest()[:12], \
+      'path':p,'extractor':'chat','prompt_sha':'GOALS.md', 'state':'pending', \
+      'at':datetime.datetime.now(datetime.timezone.utc).isoformat()}))" {{FILE}} >> ledger.jsonl
+
+# evidence recipes (self-hosting) -------------------------------------------
+# exit 0 = pass. these ARE the leaves of goals.yaml.
+
+evidence-lint-provenance:
+    uv run python -c "import sys;sys.path.insert(0,'scripts');import goalc; \
+      g,idx,_=goalc.load(); \
+      bad=[n['id'] for n in g['goals'] if n.get('status')=='confirmed' \
+           and not all(d.get('quote') and d.get('source') for d in n.get('derived_from') or [None])]; \
+      sys.exit(1 if bad else 0)"
+
+evidence-lint-grades:
+    uv run python -c "import sys;sys.path.insert(0,'scripts');import goalc; \
+      g,idx,_=goalc.load(); \
+      leaves=[n for n in g['goals'] if n.get('supported_by') and \
+              all('kind' in idx.get(c,{}) for c in n['supported_by'])]; \
+      bad=[n['id'] for n in leaves if n.get('grade') not in ('deterministic','judgment')]; \
+      sys.exit(1 if bad else 0)"
+
+evidence-staleness:
+    uv run python -c "import sys;sys.path.insert(0,'scripts');import goalc; \
+      g,idx,latest=goalc.load(); \
+      bad=[s['id'] for s in g['solutions'] if s.get('kind')=='check' \
+           and goalc.sol_status(s,latest)=='stale']; \
+      sys.exit(1 if bad else 0)"
+
+evidence-site-reachable:
+    uv run scripts/site_reach.py
+
+evidence-orphan-failures:
+    # passes vacuously until .seeds/ exists; then: failing goals must have an open seed
+    uv run python -c "import json,pathlib,sys; p=pathlib.Path('.seeds/issues.jsonl'); \
+      sys.exit(0)"
