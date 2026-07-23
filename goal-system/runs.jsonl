@@ -4,3 +4,8 @@
 {"solution_id": "sn-orphan-failures", "started_at": "2026-07-23T02:23:37.423203+00:00", "finished_at": "2026-07-23T02:23:37.436066+00:00", "status": "passed", "graph_sha": "v0", "subject_sha": null}
 {"solution_id": "sn-site-reachable", "started_at": "2026-07-23T03:17:32.913160+00:00", "finished_at": "2026-07-23T03:17:32.956019+00:00", "status": "failed", "graph_sha": "cb981d7", "subject_sha": null}
 {"solution_id": "sn-site-reachable", "started_at": "2026-07-23T04:02:50.331027+00:00", "finished_at": "2026-07-23T04:02:50.390948+00:00", "status": "failed", "graph_sha": "cb981d7", "subject_sha": null}
+{"solution_id": "sn-site-reachable", "started_at": "2026-07-23T04:24:37.208067+00:00", "finished_at": "2026-07-23T04:24:37.609772+00:00", "status": "failed", "graph_sha": "66a835d", "subject_sha": null}
+{"solution_id": "sn-site-reachable", "started_at": "2026-07-23T13:39:34.424230+00:00", "finished_at": "2026-07-23T13:39:34.470624+00:00", "status": "failed", "graph_sha": "66a835d", "subject_sha": null}
+{"solution_id": "sn-bastion-page", "started_at": "2026-07-23T13:39:34.470773+00:00", "finished_at": "2026-07-23T13:39:34.474096+00:00", "status": "failed", "graph_sha": "66a835d", "subject_sha": null}
+{"solution_id": "sn-resume-exists", "started_at": "2026-07-23T13:39:34.474180+00:00", "finished_at": "2026-07-23T13:39:34.503757+00:00", "status": "failed", "graph_sha": "66a835d", "subject_sha": null}
+{"solution_id": "sn-resume-fresh", "started_at": "2026-07-23T13:39:34.503869+00:00", "finished_at": "2026-07-23T13:39:34.539492+00:00", "status": "failed", "graph_sha": "66a835d", "subject_sha": null}

@@ -52,6 +52,22 @@ evidence-staleness:
 evidence-site-reachable:
     uv run scripts/site_reach.py
 
+evidence-bastion-page:
+    # page under either site convention: flat html or project dir
+    test -e ../bastion.html -o -e ../project-bastion/index.html
+
+evidence-resume-exists:
+    uv run python -c "import pathlib,sys; \
+      sys.exit(0 if list(pathlib.Path('..').glob('resume.*')) else 1)"
+
+evidence-resume-fresh:
+    # newest git commit touching resume.* is within 6 months (183 days)
+    uv run python -c "import pathlib,subprocess,sys,time; \
+      fs=[str(p) for p in pathlib.Path('..').glob('resume.*')] or sys.exit(1); \
+      t=max(int(subprocess.run(['git','-C','..','log','-1','--format=%ct','--',f], \
+      capture_output=True,text=True).stdout or 0) for f in fs); \
+      sys.exit(0 if t and time.time()-t < 183*86400 else 1)"
+
 evidence-orphan-failures:
     # passes vacuously until .seeds/ exists; then: failing goals must have an open seed
     uv run python -c "import json,pathlib,sys; p=pathlib.Path('.seeds/issues.jsonl'); \

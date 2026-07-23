@@ -95,7 +95,115 @@ goals:
         role: states
     supported_by: []
 
+  # ── from the why experiment ──────────────────────────────────────────
+  - id: g-portfolio
+    text: The website is a portfolio of every project I build
+    mode: maintain
+    subject: website
+    grade: heuristic          # deterministic needs a project registry — see gap-004
+    status: candidate
+    derived_from:
+      - quote: "I want to add it because I want this website to be a portfolio of all the projects I build."
+        source: corpus/2026-07-23-why-experiment.md
+        role: states
+    supported_by: [s-portfolio-pages]
+
+  - id: g-bastion-page
+    text: A bastion project page exists and is reachable
+    mode: achieve
+    subject: website
+    grade: deterministic
+    status: candidate
+    derived_from:
+      - quote: "establish the bastion project page"
+        source: corpus/2026-07-23-why-experiment.md
+        role: states
+      - quote: "bastion is a project that connects a homelab server to a cloud server, and routes web connections to the homelab for media access like pictures."
+        source: corpus/2026-07-23-why-experiment.md
+        role: motivates
+    supported_by: [sn-bastion-page]
+
+  - id: g-career-tracked
+    text: Career accomplishments and progression are tracked in a single place — this site
+    mode: maintain
+    subject: website
+    grade: heuristic
+    status: candidate
+    derived_from:
+      - quote: "I need a single place to track my accomplishments and career progression, otherwise I lose track or forget."
+        source: corpus/2026-07-23-why-experiment.md
+        role: states
+    supported_by: [s-resume-on-site]
+
+  - id: g-resume-on-site
+    text: The resume lives on the site, reachable from index
+    mode: maintain
+    subject: website
+    grade: deterministic
+    status: candidate
+    derived_from:
+      - quote: "I want the resume on the site specifically so I know where to find it."
+        source: corpus/2026-07-23-why-experiment.md
+        role: states
+    supported_by: [sn-resume-exists]
+
+  - id: g-resume-fresh
+    text: The resume has been updated within the last 6 months
+    mode: maintain
+    subject: website
+    grade: deterministic
+    status: candidate
+    derived_from:
+      - quote: "6mo or so is probably the freshness I'm looking for. certainly once a year"
+        source: corpus/2026-07-23-why-experiment.md
+        role: states
+    supported_by: [sn-resume-fresh]
+
+  - id: g-no-social-media
+    text: People can access what I am up to without social media
+    mode: maintain
+    subject: website
+    grade: heuristic
+    status: candidate
+    derived_from:
+      - quote: "I want to facilitate people's access to what I am up to without social media"
+        source: corpus/2026-07-23-why-experiment.md
+        role: states
+      - quote: "I guess to steer some of my own attention to my website? if I don't pay attention to my own site - I'll never get an itch to make it better?"
+        source: corpus/2026-07-23-why-experiment.md
+        role: motivates
+    supported_by: [s-now-page]
+
+  - id: g-now-fresh
+    text: A /now page exists and is recently updated
+    mode: maintain
+    subject: website
+    grade: deterministic      # window undefined — see gap-005
+    status: candidate
+    derived_from:
+      - quote: "add a /now status"
+        source: corpus/2026-07-23-why-experiment.md
+        role: states
+    supported_by: []
+
 strategies:
+  - id: s-portfolio-pages
+    text: Argue portfolio-ness project by project — each built project gets a
+      reachable page on the site
+    status: candidate
+    supported_by: [g-bastion-page]
+
+  - id: s-resume-on-site
+    text: Track career in one place by keeping the resume on the site,
+      reachable and fresh
+    status: candidate
+    supported_by: [g-resume-on-site, g-resume-fresh]
+
+  - id: s-now-page
+    text: Give people a social-media-free window via a /now page kept fresh
+    status: candidate
+    supported_by: [g-now-fresh]
+
   - id: s-layers
     text: Argue the graph is trustworthy layer by layer — provenance of
       structure, determinism of leaves, freshness of evidence, linkage to action
@@ -132,6 +240,24 @@ solutions:
   - id: sn-site-reachable
     kind: check
     recipe: just evidence-site-reachable
+    ttl: 24h
+    grade: deterministic
+
+  - id: sn-bastion-page
+    kind: check
+    recipe: just evidence-bastion-page
+    ttl: 24h
+    grade: deterministic
+
+  - id: sn-resume-exists
+    kind: check
+    recipe: just evidence-resume-exists
+    ttl: 24h
+    grade: deterministic
+
+  - id: sn-resume-fresh
+    kind: check
+    recipe: just evidence-resume-fresh
     ttl: 24h
     grade: deterministic
 # gaps live in gaps.jsonl (append-only events) or are derived at read time —
