@@ -4,9 +4,6 @@ subjects:
   - id: goal-graph
     name: the goal graph system itself
     aliases: [goalc, goal system, this repo]
-  - id: home-server-data
-    name: data on the home server
-    aliases: [my data, the backups]
   - id: website
     name: the website repo (conradmearns site)
     aliases: [this repo, the site]
@@ -73,20 +70,7 @@ goals:
         role: states
     supported_by: [sn-orphan-failures]
 
-  # ── first real-world candidate (demo of gray) ────────────────────────
-  - id: g-backups
-    text: Home-server data is backed up
-    mode: maintain
-    subject: home-server-data
-    grade: heuristic           # will refine: restore-test makes it deterministic
-    status: candidate
-    derived_from:
-      - quote: "\"I want my data backed up\" and \"See! need the backups, why did that happen...\" both yield to the same goal"
-        source: corpus/2026-07-22-goal-system-design.md
-        role: states
-    supported_by: []
-
-  # ── website subject (test drive) ─────────────────────────────────────
+  # ── website subject ──────────────────────────────────────────────────
   - id: g-site-reachable
     text: Every page is reachable from index.html by following links
     mode: maintain

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.10"
-# dependencies = ["pyyaml>=6"]
+# dependencies = ["pyyaml>=6", "rich>=13"]
 # ///
 """goalc — tree / lint / check over goals.yaml + runs.jsonl. Append-only; never edits goals.yaml."""
 import json, subprocess, sys, datetime as dt
@@ -76,28 +76,39 @@ def roots(g, idx):
     referenced = {c for n in idx.values() for c in n.get("supported_by") or []}
     return [n["id"] for n in g.get("goals") or [] if n["id"] not in referenced]
 
+STYLE = {"pass": "green", "fail": "bold red", "stale": "yellow", "none": "magenta"}
+
 def tree():
+    from rich.console import Console
+    from rich.text import Text
+    from rich.tree import Tree
     g, idx, latest = load()
     gaps = {x["anchor"]: x for x in load_gaps(idx) if x.get("anchor")}
-    def line(nid, prefix, last):
+    def label(nid):
         n = idx[nid]; st = fold(nid, idx, latest)
-        gl = GLYPH["candidate"] if n.get("status") == "candidate" else GLYPH[st]
+        cand = n.get("status") == "candidate"
+        t = Text()
+        t.append(GLYPH["candidate" if cand else st] + " ",
+                 style="grey50" if cand else STYLE[st])
+        t.append(n.get("text", nid), style="grey50 italic" if cand else "")
         tags = []
-        if n.get("status") == "candidate": tags.append("candidate")
+        if cand: tags.append("candidate")
         if nid in gaps: tags.append(f"gap: {gaps[nid]['kind']}")
         if "kind" in n: tags.append(n.get("recipe", n.get("uri", "")))
-        branch = "" if prefix is None else ("└── " if last else "├── ")
-        print(f"{prefix or ''}{branch}{gl} {n.get('text', nid)}"
-              + (f"   [{' · '.join(t for t in tags if t)}]" if tags else ""))
-        kids = n.get("supported_by") or []
-        for i, c in enumerate(kids):
-            ext = "" if prefix is None else (prefix + ("    " if last else "│   "))
-            line(c, ext, i == len(kids) - 1)
+        if tags: t.append(f"  [{' · '.join(x for x in tags if x)}]", style="dim")
+        return t
+    def add(branch, nid):
+        node = branch.add(label(nid))
+        for c in idx[nid].get("supported_by") or []:
+            add(node, c)
+    root = Tree("goals", hide_root=True)
     for r in roots(g, idx):
-        line(r, None, True)
+        add(root, r)
+    console = Console()
+    console.print(root)
     for gp in load_gaps(idx):
         if gp.get("anchor") not in idx:
-            print(f"? (unanchored gap {gp['gap_id']}) {gp['question']}")
+            console.print(f"[dim]? (unanchored gap {gp['gap_id']}) {gp['question']}[/dim]")
 
 def gaps_cmd():
     g, idx, _ = load()
