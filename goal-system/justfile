@@ -11,6 +11,9 @@ lint:            # constitution checks over goals.yaml
 check *ID:       # run due evidence (or one solution), append to runs.jsonl
     uv run scripts/goalc.py check {{ID}}
 
+gaps:            # open questions — authored (gaps.jsonl fold) + derived
+    uv run scripts/goalc.py gaps
+
 query:           # DuckDB over goals + runs (+ seeds if present)
     uv run python -c "import yaml,json,sys;json.dump(yaml.safe_load(open('goals.yaml')),open('.goals.json','w'))"
     duckdb -init queries.sql

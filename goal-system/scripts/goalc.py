@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["pyyaml>=6"]
+# ///
 """goalc — tree / lint / check over goals.yaml + runs.jsonl. Append-only; never edits goals.yaml."""
 import json, subprocess, sys, datetime as dt
 from pathlib import Path
