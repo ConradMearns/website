@@ -78,7 +78,31 @@ def roots(g, idx):
 
 STYLE = {"pass": "green", "fail": "bold red", "stale": "yellow", "none": "magenta"}
 
-def tree():
+def descendants(nid, idx, acc=None):
+    acc = set() if acc is None else acc
+    for c in idx.get(nid, {}).get("supported_by") or []:
+        if c not in acc:
+            acc.add(c); descendants(c, idx, acc)
+    return acc
+
+def select(filt, g, idx):
+    """Resolve a filter to subgraph roots: subject id/alias/name, or node id."""
+    f = filt.lower()
+    subj = next((s["id"] for s in g.get("subjects") or []
+                 if f == s["id"].lower() or f == s.get("name", "").lower()
+                 or f in [a.lower() for a in s.get("aliases") or []]), None)
+    if subj:
+        sel = [n["id"] for n in g.get("goals") or [] if n.get("subject") == subj]
+    elif filt in idx:
+        sel = [filt]
+    else:
+        names = ", ".join(s["id"] for s in g.get("subjects") or [])
+        sys.exit(f"no subject or node '{filt}' (subjects: {names})")
+    # keep only top-most: drop nodes already inside another selection's subtree
+    return [i for i in sel
+            if not any(i in descendants(j, idx) for j in sel if j != i)]
+
+def tree(filt=None):
     from rich.console import Console
     from rich.text import Text
     from rich.tree import Tree
@@ -102,13 +126,14 @@ def tree():
         for c in idx[nid].get("supported_by") or []:
             add(node, c)
     root = Tree("goals", hide_root=True)
-    for r in roots(g, idx):
+    for r in (select(filt, g, idx) if filt else roots(g, idx)):
         add(root, r)
     console = Console()
     console.print(root)
-    for gp in load_gaps(idx):
-        if gp.get("anchor") not in idx:
-            console.print(f"[dim]? (unanchored gap {gp['gap_id']}) {gp['question']}[/dim]")
+    if not filt:
+        for gp in load_gaps(idx):
+            if gp.get("anchor") not in idx:
+                console.print(f"[dim]? (unanchored gap {gp['gap_id']}) {gp['question']}[/dim]")
 
 def gaps_cmd():
     g, idx, _ = load()
@@ -169,8 +194,8 @@ def check(only=None):
 
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "tree"
-    if cmd == "tree": tree()
+    if cmd == "tree": tree(sys.argv[2] if len(sys.argv) > 2 else None)
     elif cmd == "lint": sys.exit(lint())
     elif cmd == "check": check(sys.argv[2] if len(sys.argv) > 2 else None)
     elif cmd == "gaps": gaps_cmd()
-    else: sys.exit(f"usage: goalc.py [tree|lint|check [solution-id]|gaps]")
+    else: sys.exit(f"usage: goalc.py [tree [subject|node-id]|lint|check [solution-id]|gaps]")

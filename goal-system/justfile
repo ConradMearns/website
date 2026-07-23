@@ -2,8 +2,8 @@
 
 default: tree
 
-tree:            # render the fold
-    uv run scripts/goalc.py tree
+tree *FILTER:    # render the fold, optionally scoped to a subject or node id
+    uv run scripts/goalc.py tree {{FILTER}}
 
 lint:            # constitution checks over goals.yaml
     uv run scripts/goalc.py lint
