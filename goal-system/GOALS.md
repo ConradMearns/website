@@ -1,143 +1,180 @@
-# GOALS.md — Goal System Constitution
+# GOALS.md — Goal System Constitution (v1: indications)
 
 Instructions for Claude (and reference for humans) governing this repository.
-Read this file and `goals.yaml` at the start of any session that touches goals.
+Read this file at the start of any session that touches goals.
 
 ## What this is
 
-A provenanced goal graph, GSN-derived: **goals** (claims about desired steady
-states), **strategies** (reasoning that decomposes them), **solutions**
-(evidence — executable checks or static artifacts). Goals are extracted from a
-corpus of timestamped conversation/document files, validated by evidence runs,
-and repaired through gap questions. Tasks live elsewhere (seeds); this graph
-tracks *truth*, not work.
+A provenanced goal graph where **structure itself is a fold**. The machine
+observes conversations and appends **indications** — atomic, provenanced
+claims about goals. The human appends **approvals**. The goal graph is never
+written directly by anyone: it is compiled from the two logs, in two views:
+
+- **optimistic** — every indication except those explicitly rejected
+  ("the system if all of this turned out true")
+- **strict** — only what is explicitly approved
+  ("the system we are willing to stand behind")
+
+Evidence runs validate leaves; gaps carry open questions; the corpus of
+timestamped conversation files is where everything ultimately comes from.
+Tasks live elsewhere; this graph tracks *truth*, not work.
+
+## Indications
+
+An indication is one atomic, approvable claim, derived from a span of source
+text. Indications do a lot — one kind per thing they can indicate:
+
+| kind | claims | payload |
+|---|---|---|
+| `goal` | a goal exists | `node`, `text`, `subject` |
+| `strategy` | a way to combine goals exists | `node`, `text` |
+| `solution` | an evidence mechanism exists | `node`, `recipe`/`uri`, `ttl`, `window?` |
+| `subject` | a subject exists | `node`, `name`, `aliases` |
+| `mode` | a goal is achieve / maintain / avoid | `node`, `mode` |
+| `grade` | determinism grade | `node`, `grade` |
+| `fundamental` | the goal is fundamental — "it just is" | `node` |
+| `supports` | parent is argued/evidenced by child | `node`, `child` |
+| `relates` | goal→goal contribution | `node`, `to`, `effect: helps\|hurts\|breaks` |
+
+Every indication carries `span` (or `spans`): `{quote, source, role}`. A goal
+without a `fundamental` indication is a means objective — something held
+because it helps something else. Fundamental goals define value; they are
+what a business communicates with and what satisfaction — the customer's,
+ours — is measured against.
+
+Each indication has exactly one of three states, computed from
+`approvals.jsonl`: **approved**, **rejected**, or **pending** (no action
+yet). Approval events are appended, never edited; the latest event per
+indication wins, so any verdict can be superseded by appending another.
 
 ## Constitution
 
-1. **Record, not infer.** Every `confirmed` node carries `derived_from`: one or
-   more spans (verbatim quote + source file + role). Machine proposals enter as
-   `status: candidate` (rendered gray) and are promoted only by a human commit.
-   Inference may generate *questions* (gaps), never facts.
+1. **Record, not infer.** The machine writes only `indications.jsonl`; the
+   human writes only `approvals.jsonl`. Neither writes the graph — it is
+   compiled. Every indication carries a span; inference may generate
+   *questions* (gaps) and *indications*, never approved structure.
 
-2. **Gaps, not guesses.** Gaps are the only channel through which inference
-   may speak: question-shaped, never work-shaped. They are not structure and
-   never live in `goals.yaml`. Two kinds:
-   - *Derived* gaps (a goal with no strategy/solution, an orphan, a stale
-     strategy) are computed from structure at read time, like status — never
-     stored.
-   - *Authored* gaps (substantive questions to the human: thresholds,
-     obstacles, domain discoveries) are events appended to `gaps.jsonl`
-     (`raised` / `resolved`). Resolution is a new fact appended — pointing at
-     the corpus span that answered it — never a mutation. Answers arrive as
-     new corpus files and are extracted like everything else.
+2. **Gaps, not guesses.** Unchanged: derived gaps (a goal with no support)
+   are computed at read time; authored questions are events in `gaps.jsonl`
+   (`raised`/`resolved`). Resolution is a new fact appended, never a
+   mutation.
 
-3. **Edges need textual warrant.** A `supported_by` link is recorded only when
-   source text states the relation ("so that", "to ensure", "because"). Related-
-   looking goals without a textual link get a gap, not an edge.
+3. **Warrant is literal.** Every span's `quote` must occur verbatim
+   (whitespace-normalized) in its named `source` file — enforced by lint.
+   This closes the channel where an extractor could forge provenance.
+   `relates` edges need warrant like everything else: "because", "so that",
+   "but", "at the cost of".
 
-4. **Determinism gradient.** Every goal and solution carries
-   `grade: deterministic | statistical | heuristic | judgment`. Grade must be
-   monotone non-decreasing in determinism walking down. Leaves must be
-   `deterministic`, or `judgment` with a sampled human review attached.
-   Strategies carry the inferential debt between heuristic parents and
-   deterministic children — they take human sign-off (`reviewed_by`,
-   `reviewed_at`), and go stale when the tree beneath them changes.
+4. **Determinism gradient.** Grades `deterministic | statistical | heuristic
+   | judgment`, monotone non-decreasing in determinism walking down the
+   strict view. Leaves must be `deterministic`, or `judgment` with sampled
+   human review.
 
-5. **Append-only truth.** `runs.jsonl`, `ledger.jsonl`, and `gaps.jsonl` are
-   never edited, only appended. Status is NEVER written into `goals.yaml` — it
-   is a fold computed from runs at read time; open gaps are likewise a fold
-   over gap events. `goals.yaml` is pure structure, expanding as information
-   arrives, never retracting; git history is the promotion log.
+5. **Append-only truth.** `indications.jsonl`, `approvals.jsonl`,
+   `runs.jsonl`, `gaps.jsonl`, `ledger.jsonl`: appended, never edited. All
+   graph state — structure, status, open gaps — is a fold at read time. The
+   compiled views under `views/` are build artifacts, never sources.
 
-6. **Goal identity is evidence identity.** Two statements are the same goal iff
-   one check would evidence both. Normalize utterances to
-   `(mode, subject, predicate)` before comparing. Adjudication verdicts are
-   five-way: `same | refines | motivates | contradicts | unrelated` — only
-   `same` merges. Near-duplicates are usually refinements; do not collapse
-   hierarchy.
+6. **Goal identity is evidence identity.** Two statements are the same goal
+   iff one check would evidence both. Adjudication verdicts —
+   `same | refines | motivates | contradicts` — enter as indications too.
+   Only `same` merges; near-duplicates are usually refinements.
+   Corollary: **subject identity is measurement identity** — a subject is
+   the thing whose state a check reads (`subject_sha`). If we cannot say
+   what `subject_sha` would hash, we have a topic, not a subject.
 
 7. **Modes select folds.** `maintain` = every run in the trailing `window`
-   passed. `achieve` = at least one passing run exists. `avoid` = no violation
-   event in the window. Scripts evaluate leaves; temporality lives in the fold
-   over run history. (MVP fold: latest run + TTL; window folds come later.)
+   passed. `avoid` = anti-maintain: identical fold, opposite reading — a
+   failing run means a violation was observed. `achieve` = at least one
+   passing run exists, sticky. No `window` declared → latest run + TTL.
+   How often to look is a property of each goal's solution, not a system
+   metric. Relations (`relates`) never propagate fold status — a goal is
+   not red because a green goal hurts it; tensions are surfaced, not folded.
 
-8. **Tasks are not evidence.** Seeds (`.seeds/`) track work; closing a task is
-   a claim. A task's closure triggers an evidence re-run; only the fold turns a
-   goal green. Seeds reference goals (`extensions.goal_id`); goals never
-   reference seeds.
+8. **Tasks are not evidence.** Seeds track work; closing a task is a claim.
+   Only the fold turns a goal green.
 
-## Claude session protocol
+## Claude session protocol — discovery mode
 
-- When the human discusses goals, propose **candidate YAML blocks** matching
-  the schema below, with `derived_from` quoting their exact words and naming
-  the corpus file this chat will become. Never write `status: confirmed`.
-- Surface gap questions when structure is missing; quote the anchoring spans.
-  Raising an authored gap = appending a `raised` event to `gaps.jsonl`;
-  resolving one = appending a `resolved` event citing the answering span.
-- When a check fails, triage as `flaky | regression | domain_discovery` and,
-  for domain discovery, propose candidate domain-facts/obstacles + a gap
-  question — never conclusions.
-- Never edit `runs.jsonl`, `ledger.jsonl`, `gaps.jsonl`, or emitted status —
-  append only. Never promote candidates; the human's commit is the
-  confirmation event.
+Discovery is a **state, and it is open until the human closes it.** This
+protocol exists because the model's training pulls toward producing
+artifacts the moment production is possible; here, that is the failure mode.
 
-## Schema (v0 — prose-defined; LinkML extracted later from what survives)
+- While discovery is open: **no files are written.** Proposed indications
+  live in the chat as readable claims ("indication: g-x helps g-y, from
+  'because...'"). Receiving answers is not closure — answers open threads.
+  `answered ⇒ closed` is an illegal transition.
+- The conversation's aim: walk toward **fundamental goals**. The indicator
+  is the answer shape "**it just is**" — when why-questions stop producing
+  "because it helps X". The model may notice this; only the human confirms
+  fundamentality (as an approval, like everything else).
+- Question repertoire, used naturally, not as a script: *why is that
+  important?* · *what would happen if you couldn't?* · *what would it mean
+  if that were true?* · *tell me about the last time this happened* · *my
+  label for this is ____ — is that your meaning?* (confirm every label
+  before it becomes an indication's text) · *which two of these are alike,
+  and how does the third differ?* (when subjects are unclear).
+  Sources in `references.bib`.
+- Watch for and voice indications of every kind as they occur: goal
+  definitions, strategies, evidence mechanisms, modes, fundamentality, and
+  especially relation talk — "but", "except", "at the cost of" indicate
+  hurts/breaks; "because", "so that" indicate helps/supports.
+- The model may **propose** closure ("this thread reads saturated — close,
+  park, or keep digging?"); only the human closes (catchball). On "sort
+  it": append the accumulated indications to `indications.jsonl`, then
+  stop — approval is the human's move, at their pace.
+- When a check fails, triage as `flaky | regression | domain_discovery`;
+  for domain discovery, propose indications + a gap question, never
+  conclusions.
+- Never append to `approvals.jsonl` (except as explicitly directed
+  backfill). Never edit any log. Imperfection is expected; the transcript
+  is the safety net — everything lands in corpus and can be re-mined.
 
-```yaml
-subjects:                # registry — dedup happens here
-  - {id, name, aliases: []}
-
-goals:
-  - id: g-<slug>
-    text: <curated label, human-signed>
-    mode: maintain | achieve | avoid
-    subject: <subject id>
-    grade: deterministic | statistical | heuristic | judgment
-    status: candidate | confirmed
-    derived_from:
-      - {quote, source, role: states|restates|amends|motivates|contradicts}
-    supported_by: [<strategy or solution ids>]
-
-strategies:
-  - id: s-<slug>
-    text: <the reasoning step>
-    status: candidate | confirmed
-    reviewed_by: <name>        # sign-off carries the inferential debt
-    reviewed_at: <date>
-    supported_by: [<goal ids>]
-
-solutions:
-  - id: sn-<slug>
-    kind: check | static
-    recipe: just <target>      # for checks: exit code + artifacts
-    ttl: <e.g. 24h>            # staleness horizon
-    window: <e.g. 7d>          # for maintain folds (later)
-    grade: deterministic | ...
-    uri/sha256:                # for static evidence
+## Schema (v1)
 
 ```
+indications.jsonl   (machine-appended)
+{id: i-NNNN, at, kind, node, span|spans: {quote, source, role},
+ ...kind-specific payload (see table above)}
 
-Gap events (`gaps.jsonl`, one JSON object per line — NOT part of goals.yaml):
+approvals.jsonl     (human-appended, via `goalc approve|reject`)
+{indication: i-NNNN, verdict: approved|rejected, at, by}
 
-```yaml
-{gap_id, event: raised | resolved,
- kind: missing_strategy|missing_solution|missing_parent|obstacle,
- anchor: <node id>, question, at, span?: <quote+source, on resolved>}
+runs.jsonl          {solution_id, started_at, finished_at, status,
+                     subject_sha, graph_sha, cases?, artifacts?}
+gaps.jsonl          {gap_id, event: raised|resolved, kind, anchor,
+                     question, at, span?}
+ledger.jsonl        {doc_sha, path, extractor, prompt_sha, state, at}
 ```
 
 ## Files
 
 ```
-GOALS.md        this constitution
-goals.yaml      structure — human-promoted only (no gaps, no status)
-runs.jsonl      append-only evidence runs {solution_id, started_at,
-                finished_at, status, subject_sha, graph_sha, cases?, artifacts?}
-gaps.jsonl      append-only gap events (raised/resolved); open = fold
-ledger.jsonl    corpus processing log {doc_sha, path, extractor, prompt_sha,
-                state, at}
-corpus/         the pile — save chats here, timestamped
-scripts/goalc.py   tree / lint / check / gaps
-queries.sql     DuckDB examples over goals + runs (+ .seeds if present)
-justfile        verbs and evidence recipes (run via uv)
-pyproject.toml  deps (pyyaml) — `uv run` resolves the env, no manual pip
+GOALS.md            this constitution
+indications.jsonl   machine-observed claims — append-only
+approvals.jsonl     human verdicts — append-only
+runs.jsonl          evidence runs — append-only
+gaps.jsonl          question events — append-only
+ledger.jsonl        corpus processing log — append-only
+corpus/             the pile — save chats here, timestamped
+views/              compiled goal files (goalc build) — artifacts, gitignored
+scripts/goalc.py    tree / lint / check / gaps / pending / approve / reject / build
+references.bib      goal-discovery bibliography
+queries.sql         DuckDB over the logs
+justfile            verbs and evidence recipes (run via uv)
+pyproject.toml      deps — `uv run` resolves the env
+```
+
+## Verbs
+
+```
+just tree [FILTER]      optimistic view (pending rendered gray); FILTER =
+                        subject or node id
+just tree-strict        approved-only view
+just pending            indications awaiting a verdict
+just approve I...       append approval events
+just reject I...        append rejection events
+just check [SOLUTION]   run due evidence over the optimistic view
+just build              write views/goals.{optimistic,approved}.yaml
+just lint | gaps | ingest FILE
 ```

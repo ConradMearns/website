@@ -2,3 +2,5 @@
 {"doc_sha": "612177b881e6", "path": "corpus/2026-07-22-gaps-are-events.md", "extractor": "chat", "prompt_sha": "GOALS.md", "state": "pending", "at": "2026-07-23T04:02:50.002456+00:00"}
 {"doc_sha": "702fbc344eee", "path": "corpus/2026-07-22-prune-examples.md", "extractor": "chat", "prompt_sha": "GOALS.md", "state": "pending", "at": "2026-07-23T04:16:58.177195+00:00"}
 {"doc_sha": "610e7f63973a", "path": "corpus/2026-07-23-why-experiment.md", "extractor": "chat", "prompt_sha": "GOALS.md", "state": "pending", "at": "2026-07-23T13:39:34.312560+00:00"}
+{"doc_sha": "511ff81df2c8", "path": "corpus/2026-07-23-indications-redesign.md", "extractor": "chat", "prompt_sha": "GOALS.md", "state": "pending", "at": "2026-07-24T01:26:55.069405+00:00"}
+{"doc_sha": "4776414def55", "path": "corpus/2026-07-22-goal-system-design.md", "extractor": "chat", "prompt_sha": "GOALS.md", "state": "pending", "at": "2026-07-24T01:27:50.591426+00:00"}
