@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Δv Flight Computer — KSP Satellite Shift Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --space:#0A0D16; --panel:#10141F; --line:#1E2536;
+    --text:#C9D1E3; --muted:#6B7488;
+    --cur:#6FD5E0; --tgt:#F2B950; --xfer:#E8ECF6;
+    --warn:#F0716B; --ok:#7CE0A3;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--space);color:var(--text);
+    font-family:'JetBrains Mono','Consolas',monospace;font-size:14px;line-height:1.5}
+  h1,h2,h3,.disp,button,.tab{font-family:'Chakra Petch','Segoe UI',sans-serif}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 48px}
+  header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:18px}
+  header h1{font-size:1.3rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+  header .sub{color:var(--muted);font-size:.78rem;margin-right:auto}
+
+  button{background:#182036;border:1px solid #2A3550;color:var(--text);
+    border-radius:6px;padding:7px 12px;font-size:.78rem;font-weight:600;
+    letter-spacing:.05em;cursor:pointer}
+  button:hover{background:#1F2A45}
+  button.ghost{background:none;border-color:var(--line)}
+  button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #33405E;outline-offset:1px}
+  select,input{background:#0C101B;border:1px solid var(--line);border-radius:6px;
+    color:var(--text);font:inherit;padding:6px 8px}
+
+  .grid{display:grid;grid-template-columns:420px 1fr;gap:16px;align-items:start}
+  @media(max-width:960px){.grid{grid-template-columns:1fr}}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+  .panel h2{font-size:.72rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .panel h2 .dot{width:8px;height:8px;border-radius:50%}
+  .panel h2 .spacer{margin-left:auto}
+  .panel + .panel{margin-top:16px}
+
+  /* fleet rows: two-line cards */
+  .orow{border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-bottom:8px}
+  .sat-list .orow{border-left:3px solid var(--cur)}
+  .tgt-list .orow{border-left:3px solid var(--tgt)}
+  .orow .r1{display:flex;gap:6px;margin-bottom:6px}
+  .orow .r1 input[type=text]{flex:1;min-width:0;font-size:.82rem;padding:5px 7px}
+  .orow .r1 select{font-size:.76rem;max-width:120px}
+  .orow .del{background:none;border:none;color:var(--muted);font-size:1.05rem;
+    padding:0 2px;cursor:pointer;line-height:1}
+  .orow .del:hover{color:var(--warn)}
+  .orow .r2{display:grid;gap:6px}
+  .orow .r2.c4{grid-template-columns:repeat(4,1fr)}
+  .orow .r2.c3{grid-template-columns:repeat(3,1fr)}
+  .fld label{display:block;font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:2px}
+  .fld input{width:100%;padding:4px 6px;font-size:.78rem;text-align:right}
+  .fld.dvb input{border-color:#2E4A3A}
+
+  /* tabs */
+  .tabs{display:flex;gap:6px;margin-bottom:14px}
+  .tab{background:none;border:1px solid var(--line);border-radius:6px 6px 0 0;
+    border-bottom:none;color:var(--muted);padding:8px 16px}
+  .tab.active{background:var(--panel);color:var(--text);border-color:#2A3550}
+
+  /* matrix */
+  .matrix-scroll{overflow-x:auto}
+  table{border-collapse:collapse;font-size:.8rem}
+  .mtx th{font-size:.66rem;letter-spacing:.06em;color:var(--muted);font-weight:600;
+    padding:6px 8px;text-align:center;white-space:nowrap}
+  .mtx th.rowh{text-align:right;color:var(--cur)}
+  .mtx th.rowh .bud{display:block;font-size:.6rem;color:var(--muted);font-weight:400}
+  .mtx th.colh{color:var(--tgt)}
+  .mtx th.colh .bd{display:block;font-size:.6rem;color:var(--muted);font-weight:400}
+  .mtx td{padding:0;border:2px solid var(--panel)}
+  .cell{display:block;width:100%;min-width:80px;border:none;border-radius:4px;
+    padding:8px 6px;font-family:'JetBrains Mono',monospace;font-size:.8rem;
+    color:#fff;cursor:pointer;text-align:center;position:relative}
+  .cell:hover{filter:brightness(1.25)}
+  .cell.sel{outline:2px solid #fff;outline-offset:-2px}
+  .cell.over{opacity:.5;outline:2px dashed var(--warn);outline-offset:-2px}
+  .cell .star{position:absolute;top:1px;right:4px;font-size:.7rem}
+  .assign-note{margin-top:10px;font-size:.78rem;color:var(--ok)}
+  .assign-note.bad{color:var(--warn)}
+  .empty{color:var(--muted);font-size:.85rem;padding:20px 0}
+
+  /* maneuver tab */
+  .pairpick{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+  .pairpick .arrow{color:var(--muted)}
+  .pairpick select{max-width:220px}
+  .total{display:flex;align-items:baseline;gap:14px;margin:2px 0 12px;flex-wrap:wrap}
+  .total .num{font-size:2.1rem;font-weight:700;color:var(--ok);font-family:'JetBrains Mono',monospace}
+  .total .unit{color:var(--muted)}
+  .budget{font-size:.8rem}
+  .budget b.ok{color:var(--ok)} .budget b.bad{color:var(--warn)}
+  .burns{width:100%}
+  .burns th{font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    text-align:left;font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line)}
+  .burns td{padding:7px 8px;border-bottom:1px solid #161C2B;vertical-align:top}
+  .burns td.num,.burns th.num{text-align:right;white-space:nowrap;font-family:'JetBrains Mono',monospace}
+  .burns tr:last-child td{border-bottom:none}
+  .b1{color:var(--cur);font-weight:700}.b2{color:var(--tgt);font-weight:700}
+  .pos{color:var(--ok)}.neg{color:#E0A46F}.zero{color:var(--muted)}
+  .note{color:var(--muted);font-size:.74rem;margin-top:10px}
+  .warn{color:var(--warn);font-size:.8rem;margin-top:8px}
+
+  .plot svg{display:block;width:100%;height:auto;margin-top:6px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.72rem;color:var(--muted);padding:6px 4px 0}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:16px;height:0;border-top:2px solid}
+  .swatch.cur{border-color:var(--cur)}.swatch.tgt{border-color:var(--tgt)}
+  .swatch.xfer{border-color:var(--xfer);border-top-style:dashed}
+
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  @media(max-width:560px){.stats{grid-template-columns:1fr}}
+  .stat-card{border:1px solid var(--line);border-radius:6px;padding:10px 12px;font-size:.76rem}
+  .stat-card .tag{font-size:.66rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    display:block;margin-bottom:6px}
+  .stat-card.cur .tag{color:var(--cur)}.stat-card.tgt .tag{color:var(--tgt)}
+  .stat-card div{display:flex;justify-content:space-between;gap:8px}
+  .stat-card div span:first-child{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Δv Flight Computer</h1>
+    <span class="sub">satellite shift planner · patched conics · vis-viva</span>
+    <button id="save" class="ghost">Save JSON</button>
+    <button id="load" class="ghost">Load JSON</button>
+    <input type="file" id="loadfile" accept=".json,application/json" hidden>
+  </header>
+
+  <div class="grid">
+    <!-- FLEET -->
+    <div>
+      <div class="panel">
+        <h2><span class="dot" style="background:var(--cur)"></span>Satellites
+          <span class="spacer"></span><button id="addsat" class="ghost">+ add</button></h2>
+        <div id="sats" class="sat-list"></div>
+      </div>
+      <div class="panel">
+        <h2><span class="dot" style="background:var(--tgt)"></span>Target orbits
+          <span class="spacer"></span><button id="addtgt" class="ghost">+ add</button></h2>
+        <div id="tgts" class="tgt-list"></div>
+      </div>
+      <p class="note" style="margin-top:12px">Altitudes above the surface, as in-game. Same-body plane change uses Δ-inclination only (LAN &amp; AoP assumed aligned); normal signs assume burning at the <b>ascending node</b>. Interbody transfers are ideal patched-conic Hohmann estimates — inclination is assumed handled by the launch window and approach geometry; budget ~5–10% extra for windows and corrections.</p>
+    </div>
+
+    <!-- TABS -->
+    <div>
+      <div class="tabs">
+        <button class="tab active" data-tab="matrix">Δv Matrix</button>
+        <button class="tab" data-tab="pair">Maneuver Node</button>
+      </div>
+
+      <div id="tab-matrix" class="panel">
+        <h2>All pairs — required Δv (m/s)</h2>
+        <div class="matrix-scroll" id="matrix"></div>
+        <div id="assign" class="assign-note"></div>
+        <p class="note">Click a cell for the full plan. Dashed red cells exceed that satellite's remaining Δv. ★ marks the optimal budget-respecting assignment (minimum fleet-wide Δv).</p>
+      </div>
+
+      <div id="tab-pair" class="panel" hidden>
+        <div class="pairpick">
+          <select id="picksat"></select><span class="arrow">→</span><select id="picktgt"></select>
+        </div>
+        <div id="pairbody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Bodies: μ (m³/s²), radius, atmo top (m), parent, orbit semi-major axis around parent (m) ───
+const BODIES = {
+  "Kerbol": {mu:1.1723328e18, r:261600000, atmo:600000, parent:null,    a:0},
+  "Moho":   {mu:1.6860938e11, r:250000,  atmo:0,      parent:"Kerbol", a:5263138304},
+  "Eve":    {mu:8.1717302e12, r:700000,  atmo:90000,  parent:"Kerbol", a:9832684544},
+  "Gilly":  {mu:8.2894498e6,  r:13000,   atmo:0,      parent:"Eve",    a:31500000},
+  "Kerbin": {mu:3.5316e12,    r:600000,  atmo:70000,  parent:"Kerbol", a:13599840256},
+  "Mun":    {mu:6.5138398e10, r:200000,  atmo:0,      parent:"Kerbin", a:12000000},
+  "Minmus": {mu:1.7658e9,     r:60000,   atmo:0,      parent:"Kerbin", a:47000000},
+  "Duna":   {mu:3.0136321e11, r:320000,  atmo:50000,  parent:"Kerbol", a:20726155264},
+  "Ike":    {mu:1.8568369e10, r:130000,  atmo:0,      parent:"Duna",   a:3200000},
+  "Dres":   {mu:2.1484489e10, r:138000,  atmo:0,      parent:"Kerbol", a:40839348203},
+  "Jool":   {mu:2.82528e14,   r:6000000, atmo:200000, parent:"Kerbol", a:68773560320},
+  "Laythe": {mu:1.962e12,     r:500000,  atmo:50000,  parent:"Jool",   a:27184000},
+  "Vall":   {mu:2.074815e11,  r:300000,  atmo:0,      parent:"Jool",   a:43152000},
+  "Tylo":   {mu:2.82528e12,   r:600000,  atmo:0,      parent:"Jool",   a:68500000},
+  "Bop":    {mu:2.4868349e9,  r:65000,   atmo:0,      parent:"Jool",   a:128500000},
+  "Pol":    {mu:7.2170208e8,  r:44000,   atmo:0,      parent:"Jool",   a:179890000},
+  "Eeloo":  {mu:7.4410815e10, r:210000,  atmo:0,      parent:"Kerbol", a:90118820000},
+};
+
+// ─── State ───
+let state = {
+  satellites: [
+    {name:"Sat A", body:"Kerbin", pe:80,  ap:80,  inc:0, dv:3000},
+    {name:"Sat B", body:"Kerbin", pe:80,  ap:80,  inc:6, dv:1200},
+    {name:"Sat C", body:"Kerbin", pe:120, ap:120, inc:0, dv:900},
+  ],
+  targets: [
+    {name:"Keo slot",  body:"Kerbin", pe:2863.33, ap:2863.33, inc:0},
+    {name:"Mun relay", body:"Mun",    pe:100,     ap:100,     inc:0},
+    {name:"Duna scan", body:"Duna",   pe:300,     ap:300,     inc:0},
+  ],
+};
+let selPair = {s:0, t:0};
+let activeTab = "matrix";
+
+// ─── Orbital mechanics ───
+const speed = (mu, r, a) => Math.sqrt(Math.max(0, mu * (2/r - 1/a)));
+const vCirc = (mu, r) => Math.sqrt(mu / r);
+
+function makeOrbit(o, body) {
+  let rPe = body.r + (+o.pe || 0) * 1000;
+  let rAp = body.r + (+o.ap || 0) * 1000;
+  if (rAp < rPe) [rPe, rAp] = [rAp, rPe];
+  const a = (rPe + rAp) / 2;
+  return {rPe, rAp, a, e:(rAp-rPe)/(rAp+rPe), i:(+o.inc || 0) * Math.PI/180,
+    period: 2*Math.PI*Math.sqrt(a**3/body.mu),
+    vPe: speed(body.mu, rPe, a), vAp: speed(body.mu, rAp, a)};
+}
+const apsisName = (o, r) => Math.abs(r - o.rPe) < 0.5 ? "periapsis" : "apoapsis";
+
+// Same-body transfer: all apsis-to-apsis geometries × plane-change placement.
+function planSame(o1, o2, bodyName) {
+  const body = BODIES[bodyName], mu = body.mu;
+  const di = Math.abs(o2.i - o1.i);
+  const sgn = Math.sign(o2.i - o1.i);
+  const mkBurn = (vBefore, vAfter, withPlane) => {
+    const ang = withPlane ? di : 0;
+    const pro = vAfter * Math.cos(ang) - vBefore;
+    const nor = withPlane ? sgn * vAfter * Math.sin(ang) : 0;
+    return {pro, nor, dv:Math.hypot(pro, nor), plane: withPlane && di > 1e-9};
+  };
+  let best = null;
+  const consider = c => { if (!best || c.total < best.total - 1e-9) best = c; };
+  for (const rd of [o1.rPe, o1.rAp]) {
+    for (const ra of [o2.rPe, o2.rAp]) {
+      if (Math.abs(rd - ra) < 1) {
+        const b = mkBurn(speed(mu, rd, o1.a), speed(mu, ra, o2.a), true);
+        consider({kind:"same", body:bodyName, single:true, rd, ra, total:b.dv,
+          burns:[{...b, where:`shared ${apsisName(o1,rd)} · ${fmtAlt(rd,body)}`}]});
+        continue;
+      }
+      const at = (rd + ra) / 2;
+      const v1d = speed(mu, rd, o1.a), vtd = speed(mu, rd, at);
+      const vta = speed(mu, ra, at),   v2a = speed(mu, ra, o2.a);
+      const w1 = `current ${apsisName(o1,rd)} · ${fmtAlt(rd,body)}`;
+      const w2 = `transfer ${ra > rd ? "apoapsis" : "periapsis"} · ${fmtAlt(ra,body)}`;
+      for (const pcAt of [0, 1]) {
+        const b1 = mkBurn(v1d, vtd, pcAt === 0);
+        const b2 = mkBurn(vta, v2a, pcAt === 1);
+        consider({kind:"same", body:bodyName, single:false, rd, ra, at,
+          total:b1.dv + b2.dv, tof:Math.PI*Math.sqrt(at**3/mu),
+          burns:[{...b1, where:w1}, {...b2, where:w2}]});
+      }
+    }
+  }
+  return best;
+}
+
+// ─── Cross-body (patched conics) ───
+const chainUp = name => {           // [name, parent, ..., root]
+  const c = [name];
+  while (BODIES[c[c.length-1]].parent) c.push(BODIES[c[c.length-1]].parent);
+  return c;
+};
+
+// Given a chain [d0(start body), d1, ..., dk] where dk directly orbits the
+// common frame C, and vInfTop = required hyperbolic excess w.r.t. dk:
+// cascade the requirement down to v∞ w.r.t. d0.  (Prograde, coplanar approx.)
+function cascadeVinf(sideChain, vInfTop) {
+  let vInf = vInfTop;
+  for (let i = sideChain.length - 1; i >= 1; i--) {
+    const outer = BODIES[sideChain[i]], inner = BODIES[sideChain[i-1]];
+    const r = inner.a;                                  // inner body's orbit radius inside outer
+    const vReq = Math.sqrt(vInf*vInf + 2*outer.mu/r);   // speed needed at r to exit with vInf
+    vInf = Math.abs(vReq - vCirc(outer.mu, r));
+  }
+  return vInf;
+}
+
+function planCross(o1, bodyA, o2, bodyB) {
+  const chA = chainUp(bodyA), chB = chainUp(bodyB);
+  const setB = new Set(chB);
+  const C = chA.find(n => setB.has(n));                // common ancestor frame
+  const muC = BODIES[C].mu;
+  const sideA = chA.slice(0, chA.indexOf(C));          // [] if bodyA === C
+  const sideB = chB.slice(0, chB.indexOf(C));
+
+  // candidate radii in the C frame
+  const depDirect = sideA.length === 0;                // burn directly on o1 in C frame
+  const arrDirect = sideB.length === 0;
+  const depRs = depDirect ? [o1.rPe, o1.rAp] : [BODIES[sideA[sideA.length-1]].a];
+  const arrRs = arrDirect ? [o2.rPe, o2.rAp] : [BODIES[sideB[sideB.length-1]].a];
+
+  let best = null;
+  for (const rd of depRs) for (const ra of arrRs) {
+    if (Math.abs(rd - ra) < 1) continue;
+    const at = (rd + ra) / 2;
+    const vtd = speed(muC, rd, at), vta = speed(muC, ra, at);
+    const burns = [];
+    let ok = true;
+
+    // ── departure burn ──
+    if (depDirect) {
+      const pro = vtd - speed(muC, rd, o1.a);
+      burns.push({pro, nor:0, dv:Math.abs(pro),
+        where:`current ${apsisName(o1,rd)} · ${fmtAlt(rd, BODIES[bodyA])} (${bodyA})`});
+    } else {
+      const top = sideA[sideA.length-1];
+      const vInfTop = Math.abs(vtd - vCirc(muC, BODIES[top].a));
+      const vInf = cascadeVinf(sideA, vInfTop);
+      // burn at the cheaper apsis of the parking orbit (Oberth favors Pe)
+      let bBest = null;
+      for (const rb of [o1.rPe, o1.rAp]) {
+        const dv = Math.sqrt(vInf*vInf + 2*BODIES[bodyA].mu/rb) - speed(BODIES[bodyA].mu, rb, o1.a);
+        if (!bBest || dv < bBest.dv) bBest = {dv, rb};
+      }
+      burns.push({pro:bBest.dv, nor:0, dv:bBest.dv, vinf:vInf,
+        where:`ejection from ${apsisName(o1,bBest.rb)} · ${fmtAlt(bBest.rb, BODIES[bodyA])} (${bodyA})`});
+    }
+
+    // ── arrival burn ──
+    if (arrDirect) {
+      const pro = speed(muC, ra, o2.a) - vta;
+      burns.push({pro, nor:0, dv:Math.abs(pro),
+        where:`target ${apsisName(o2,ra)} · ${fmtAlt(ra, BODIES[bodyB])} (${bodyB})`});
+    } else {
+      const top = sideB[sideB.length-1];
+      const vInfTop = Math.abs(vta - vCirc(muC, BODIES[top].a));
+      const vInf = cascadeVinf(sideB, vInfTop);
+      let bBest = null;
+      for (const rb of [o2.rPe, o2.rAp]) {
+        const dv = Math.sqrt(vInf*vInf + 2*BODIES[bodyB].mu/rb) - speed(BODIES[bodyB].mu, rb, o2.a);
+        if (!bBest || dv < bBest.dv) bBest = {dv, rb};
+      }
+      burns.push({pro:-bBest.dv, nor:0, dv:bBest.dv, vinf:vInf,
+        where:`capture at target ${apsisName(o2,bBest.rb)} · ${fmtAlt(bBest.rb, BODIES[bodyB])} (${bodyB})`});
+    }
+    if (!ok) continue;
+
+    const total = burns.reduce((s,b) => s + b.dv, 0);
+    const cand = {kind:"cross", frame:C, rd, ra, at, total,
+      tof: Math.PI*Math.sqrt(at**3/muC), burns,
+      depDirect, arrDirect, o1, o2, bodyA, bodyB};
+    if (!best || total < best.total) best = cand;
+  }
+  return best;
+}
+
+function planAny(satO, tgtO) {
+  const bodyA = satO.body, bodyB = tgtO.body;
+  const o1 = makeOrbit(satO, BODIES[bodyA]);
+  const o2 = makeOrbit(tgtO, BODIES[bodyB]);
+  return bodyA === bodyB
+    ? {...planSame(o1, o2, bodyA), o1, o2, bodyA, bodyB}
+    : planCross(o1, bodyA, o2, bodyB);
+}
+
+// ─── Optimal assignment (budget-aware DP over bitmask of larger set) ───
+function bestAssignment(cost) {
+  const nS = cost.length, nT = cost[0]?.length || 0;
+  if (!nS || !nT) return null;
+  const flip = nS > nT;
+  const nA = flip ? nT : nS, nB = flip ? nS : nT;
+  if (nB > 16) return null;
+  const C = (a,b) => flip ? cost[b][a] : cost[a][b];
+  const size = 1 << nB;
+  const dp = new Float64Array(size).fill(Infinity);
+  const from = new Int8Array(size).fill(-1);
+  dp[0] = 0;
+  const pop = m => { let c=0; while(m){ m &= m-1; c++; } return c; };
+  for (let mask = 0; mask < size; mask++) {
+    if (!isFinite(dp[mask])) continue;
+    const i = pop(mask);
+    if (i >= nA) continue;
+    for (let j = 0; j < nB; j++) {
+      if (mask & (1 << j)) continue;
+      const nm = mask | (1 << j), v = dp[mask] + C(i, j);
+      if (v < dp[nm]) { dp[nm] = v; from[nm] = j; }
+    }
+  }
+  let bestMask = -1, bestVal = Infinity;
+  for (let m = 0; m < size; m++)
+    if (pop(m) === nA && dp[m] < bestVal) { bestVal = dp[m]; bestMask = m; }
+  if (bestMask < 0 || !isFinite(bestVal)) return null;
+  const pairs = [];
+  let m = bestMask;
+  for (let i = nA - 1; i >= 0; i--) {
+    const j = from[m];
+    pairs.push(flip ? [j, i] : [i, j]);
+    m &= ~(1 << j);
+  }
+  return {pairs, total: bestVal};
+}
+
+// ─── Formatting ───
+function fmtAlt(r, body) {
+  const km = (r - body.r) / 1000;
+  return km >= 10000 ? `${Math.round(km).toLocaleString()} km` : `${km.toFixed(1)} km`;
+}
+const fmtDv = dv => Math.abs(dv) >= 1000
+  ? dv.toLocaleString(undefined,{maximumFractionDigits:0}) : dv.toFixed(1);
+function fmtSigned(v, axis) {
+  if (Math.abs(v) < 0.05) return `<span class="zero">0.0</span>`;
+  const cls = v >= 0 ? "pos" : "neg";
+  const dir = axis === "pro" ? (v >= 0 ? "prograde" : "retrograde")
+                             : (v >= 0 ? "normal" : "anti-normal");
+  return `<span class="${cls}" title="${dir}">${v >= 0 ? "+" : "−"}${fmtDv(Math.abs(v))}</span>`;
+}
+function fmtTime(s) {
+  if (!isFinite(s)) return "–";
+  const d = Math.floor(s/86400), h = Math.floor(s%86400/3600),
+        m = Math.floor(s%3600/60), sec = Math.round(s%60);
+  const parts = [];
+  if (d) parts.push(d+"d");
+  if (h || d) parts.push(h+"h");
+  parts.push(m+"m", sec+"s");
+  return parts.join(" ");
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// ─── Fleet UI ───
+const $ = id => document.getElementById(id);
+const bodyOptions = sel => Object.keys(BODIES)
+  .map(n => `<option value="${n}"${n===sel?" selected":""}>${n}</option>`).join("");
+
+function renderList(containerId, arr, isSat) {
+  const box = $(containerId);
+  box.innerHTML = "";
+  arr.forEach((o, idx) => {
+    const row = document.createElement("div");
+    row.className = "orow";
+    row.innerHTML = `
+      <div class="r1">
+        <input type="text" value="${esc(o.name)}" aria-label="name">
+        <select aria-label="body">${bodyOptions(o.body)}</select>
+        <button class="del" title="remove">×</button>
+      </div>
+      <div class="r2 ${isSat ? "c4" : "c3"}">
+        <div class="fld"><label>Pe km</label><input type="number" step="any" value="${o.pe}"></div>
+        <div class="fld"><label>Ap km</label><input type="number" step="any" value="${o.ap}"></div>
+        <div class="fld"><label>Inc °</label><input type="number" step="any" value="${o.inc}"></div>
+        ${isSat ? `<div class="fld dvb"><label>Δv left</label><input type="number" step="any" value="${o.dv}"></div>` : ""}
+      </div>`;
+    const nameI = row.querySelector('input[type=text]');
+    const bodyS = row.querySelector("select");
+    const nums = row.querySelectorAll('.r2 input');
+    nameI.addEventListener("input", () => { o.name = nameI.value; recalc(false); });
+    bodyS.addEventListener("change", () => { o.body = bodyS.value; recalc(false); });
+    nums[0].addEventListener("input", () => { o.pe  = parseFloat(nums[0].value) || 0; recalc(false); });
+    nums[1].addEventListener("input", () => { o.ap  = parseFloat(nums[1].value) || 0; recalc(false); });
+    nums[2].addEventListener("input", () => { o.inc = parseFloat(nums[2].value) || 0; recalc(false); });
+    if (isSat) nums[3].addEventListener("input", () => { o.dv = parseFloat(nums[3].value) || 0; recalc(false); });
+    row.querySelector(".del").addEventListener("click", () => {
+      arr.splice(idx, 1);
+      if (isSat  && selPair.s >= arr.length) selPair.s = Math.max(0, arr.length-1);
+      if (!isSat && selPair.t >= arr.length) selPair.t = Math.max(0, arr.length-1);
+      recalc(true);
+    });
+    box.appendChild(row);
+  });
+}
+
+$("addsat").addEventListener("click", () => {
+  state.satellites.push({name:`Sat ${String.fromCharCode(65 + state.satellites.length % 26)}`,
+    body:"Kerbin", pe:80, ap:80, inc:0, dv:1000});
+  recalc(true);
+});
+$("addtgt").addEventListener("click", () => {
+  state.targets.push({name:`Target ${state.targets.length + 1}`, body:"Kerbin", pe:500, ap:500, inc:0});
+  recalc(true);
+});
+
+// ─── Matrix ───
+function renderMatrix(plans) {
+  const box = $("matrix");
+  const nS = state.satellites.length, nT = state.targets.length;
+  if (!nS || !nT) {
+    box.innerHTML = `<div class="empty">Add at least one satellite and one target to see the matrix.</div>`;
+    $("assign").textContent = "";
+    return;
+  }
+  const vals = plans.flat().map(p => p.total);
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const hue = v => 145 - 140 * (hi > lo ? (v - lo) / (hi - lo) : 0);
+
+  const constrained = plans.map((row, si) =>
+    row.map(p => p.total <= (state.satellites[si].dv || 0) ? p.total : Infinity));
+  let assign = bestAssignment(constrained);
+  let assignConstrained = true;
+  if (!assign) {
+    assign = bestAssignment(plans.map(r => r.map(p => p.total)));
+    assignConstrained = false;
+  }
+  const starred = new Set((assign?.pairs || []).map(([s,t]) => s + ":" + t));
+
+  let html = `<table class="mtx"><tr><th></th>`;
+  state.targets.forEach(t =>
+    html += `<th class="colh">${esc(t.name)}<span class="bd">${esc(t.body)}</span></th>`);
+  html += `</tr>`;
+  state.satellites.forEach((s, si) => {
+    html += `<tr><th class="rowh">${esc(s.name)}<span class="bud">${esc(s.body)} · ${fmtDv(s.dv||0)} m/s</span></th>`;
+    state.targets.forEach((t, ti) => {
+      const p = plans[si][ti];
+      const over = p.total > (s.dv || 0);
+      const sel = (si === selPair.s && ti === selPair.t) ? " sel" : "";
+      const star = starred.has(si + ":" + ti) ? `<span class="star">★</span>` : "";
+      html += `<td><button class="cell${sel}${over ? " over" : ""}" data-s="${si}" data-t="${ti}"
+        style="background:hsl(${hue(p.total).toFixed(0)},55%,30%)"
+        title="${esc(s.name)} → ${esc(t.name)}: needs ${fmtDv(p.total)}, has ${fmtDv(s.dv||0)}">
+        ${star}${fmtDv(p.total)}</button></td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</table>`;
+  box.innerHTML = html;
+
+  box.querySelectorAll(".cell").forEach(c => c.addEventListener("click", () => {
+    selPair = {s:+c.dataset.s, t:+c.dataset.t};
+    setTab("pair");
+    recalc(false);
+  }));
+
+  const an = $("assign");
+  if (!assign) { an.textContent = ""; }
+  else if (assignConstrained) {
+    an.className = "assign-note";
+    an.textContent = `Optimal assignment within budgets (${assign.pairs.length} pair${assign.pairs.length>1?"s":""}): ${fmtDv(assign.total)} m/s fleet total`;
+  } else {
+    an.className = "assign-note bad";
+    an.textContent = `No full assignment fits the Δv budgets — ★ shows the unconstrained optimum (${fmtDv(assign.total)} m/s fleet total).`;
+  }
+}
+
+// ─── Maneuver tab ───
+function renderPair(plans) {
+  const nS = state.satellites.length, nT = state.targets.length;
+  const fill = (sel, arr, cur) => {
+    sel.innerHTML = "";
+    arr.forEach((o, i) => {
+      const opt = document.createElement("option");
+      opt.value = i; opt.textContent = `${o.name} (${o.body})`; opt.selected = i === cur;
+      sel.appendChild(opt);
+    });
+  };
+  fill($("picksat"), state.satellites, selPair.s);
+  fill($("picktgt"), state.targets,    selPair.t);
+
+  const bodyEl = $("pairbody");
+  if (!nS || !nT) { bodyEl.innerHTML = `<div class="empty">Add satellites and targets first.</div>`; return; }
+
+  const sat = state.satellites[selPair.s], tgt = state.targets[selPair.t];
+  const plan = plans[selPair.s][selPair.t];
+  const {o1, o2} = plan;
+
+  let rows = "";
+  plan.burns.forEach((b, i) => {
+    rows += `<tr>
+      <td class="${i===0?'b1':'b2'}">B${i+1}</td>
+      <td>${b.where}${b.plane ? `<br><span class="note">incl. plane change</span>` : ""}
+        ${b.vinf != null ? `<br><span class="note">v∞ ${fmtDv(b.vinf)} m/s</span>` : ""}</td>
+      <td class="num">${fmtSigned(b.pro, "pro")}</td>
+      <td class="num">${fmtSigned(b.nor, "nor")}</td>
+      <td class="num"><span class="zero">0.0</span></td>
+      <td class="num"><b>${fmtDv(b.dv)}</b></td></tr>`;
+  });
+
+  const budget = sat.dv || 0;
+  const left = budget - plan.total;
+  const budgetHtml = `<span class="budget">budget ${fmtDv(budget)} m/s → after burn:
+    <b class="${left >= 0 ? "ok" : "bad"}">${left >= 0 ? fmtDv(left) + " m/s left" : fmtDv(-left) + " m/s short"}</b></span>`;
+
+  const warns = [];
+  const bodyB = BODIES[tgt.body];
+  const floorB = bodyB.r + bodyB.atmo;
+  const limB = bodyB.atmo > 0 ? "the atmosphere" : "the surface";
+  if (o2.rPe < floorB) warns.push(`Target periapsis is inside ${limB} of ${tgt.body} (${fmtAlt(floorB, bodyB)} limit).`);
+  if (plan.kind === "same") {
+    const bodyA = BODIES[sat.body];
+    if (!plan.single && Math.min(plan.rd, plan.ra) < bodyA.r + bodyA.atmo)
+      warns.push(`Transfer ellipse dips inside ${bodyA.atmo > 0 ? "the atmosphere" : "the surface"} — expect drag or lithobraking.`);
+  }
+  if (left < 0) warns.push(`This maneuver exceeds ${esc(sat.name)}'s remaining Δv.`);
+
+  const noteTxt = plan.kind === "same"
+    ? (plan.single
+        ? "Orbits share an apsis radius — one combined burn does it."
+        : `Coast between burns: ${fmtTime(plan.tof)} (half the transfer ellipse period). `)
+      + "Normal signs assume the ascending node — flip at the descending node."
+    : `Ideal Hohmann window in the ${plan.frame} frame · transfer coast ≈ ${fmtTime(plan.tof)} (excludes escape/capture legs). Inclination assumed handled by window &amp; approach geometry; add margin for corrections.`;
+
+  const stat = (o, bn) => `
+    <div><span>Body</span><span>${bn}</span></div>
+    <div><span>Semi-major axis</span><span>${(o.a/1000).toLocaleString(undefined,{maximumFractionDigits:0})} km</span></div>
+    <div><span>Eccentricity</span><span>${o.e.toFixed(4)}</span></div>
+    <div><span>Period</span><span>${fmtTime(o.period)}</span></div>
+    <div><span>Speed at Pe</span><span>${fmtDv(o.vPe)} m/s</span></div>
+    <div><span>Speed at Ap</span><span>${fmtDv(o.vAp)} m/s</span></div>`;
+
+  bodyEl.innerHTML = `
+    <div class="total"><span><span class="num">${fmtDv(plan.total)}</span> <span class="unit">m/s total Δv</span></span>${budgetHtml}</div>
+    <table class="burns">
+      <thead><tr><th>#</th><th>Node placed at</th>
+        <th class="num">Prograde</th><th class="num">Normal</th><th class="num">Radial</th>
+        <th class="num">|Δv|</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="note">${noteTxt} Radial is always 0 for apsis burns.</div>
+    ${warns.map(w => `<div class="warn">⚠ ${w}</div>`).join("")}
+    <div class="plot">
+      <svg id="svg" viewBox="0 0 700 420" role="img" aria-label="Orbit diagram"></svg>
+      <div class="legend">
+        <span><span class="swatch cur"></span>${esc(sat.name)}</span>
+        <span><span class="swatch tgt"></span>${esc(tgt.name)}</span>
+        <span><span class="swatch xfer"></span>transfer</span>
+        <span>◉ burn point</span>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat-card cur"><span class="tag">${esc(sat.name)}</span>${stat(o1, esc(sat.body))}</div>
+      <div class="stat-card tgt"><span class="tag">${esc(tgt.name)}</span>${stat(o2, esc(tgt.body))}</div>
+    </div>`;
+
+  drawDiagram(plan);
+}
+
+$("picksat").addEventListener("change", e => { selPair.s = +e.target.value; recalc(false); });
+$("picktgt").addEventListener("change", e => { selPair.t = +e.target.value; recalc(false); });
+
+// ─── Diagram ───
+const SVG_NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs) => {
+  const e = document.createElementNS(SVG_NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+};
+function drawDiagram(plan) {
+  const svg = $("svg");
+  if (!svg) return;
+  svg.innerHTML = "";
+  const W = 700, H = 420, cx = W/2, cy = H/2;
+  const {o1, o2, rd, ra} = plan;
+
+  let seed = 12;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let s = 0; s < 60; s++)
+    svg.appendChild(el("circle", {cx:rnd()*W, cy:rnd()*H, r:rnd()*1.1+0.2,
+      fill:"#3A4560", opacity:(rnd()*0.6+0.2).toFixed(2)}));
+
+  function orbitEllipse(a0, e0, apAngleDeg, stroke, scale, dash) {
+    const a = a0*scale, b = a*Math.sqrt(1-e0*e0), c = a*e0;
+    const g = el("g", {transform:`rotate(${apAngleDeg} ${cx} ${cy})`});
+    g.appendChild(el("ellipse", {cx:cx+c, cy:cy, rx:a, ry:b, fill:"none",
+      stroke, "stroke-width":2, ...(dash ? {"stroke-dasharray":"7 6"} : {})}));
+    svg.appendChild(g);
+  }
+  function marker(x, y, color, label) {
+    svg.appendChild(el("circle", {cx:x, cy:y, r:5, fill:color, stroke:"#0A0D16", "stroke-width":2}));
+    const t = el("text", {x, y:y-10, fill:color, "font-size":"12", "text-anchor":"middle",
+      "font-family":"'JetBrains Mono',monospace", "font-weight":"700"});
+    t.textContent = label;
+    svg.appendChild(t);
+  }
+  function frameLabel(txt) {
+    const t = el("text", {x:12, y:H-12, fill:"#6B7488", "font-size":"11",
+      "font-family":"'JetBrains Mono',monospace"});
+    t.textContent = txt;
+    svg.appendChild(t);
+  }
+
+  if (plan.kind === "same") {
+    const body = BODIES[plan.body];
+    const maxR = Math.max(o1.rAp, o2.rAp);
+    const scale = (Math.min(W,H)/2 - 24) / maxR;
+    orbitEllipse(o1.a, o1.e, Math.abs(rd - o1.rAp) < 0.5 ? 0 : 180, "var(--cur)", scale);
+    orbitEllipse(o2.a, o2.e, Math.abs(ra - o2.rAp) < 0.5 ? 180 : 0, "var(--tgt)", scale);
+    if (!plan.single)
+      orbitEllipse(plan.at, Math.abs(ra-rd)/(ra+rd), ra > rd ? 180 : 0, "var(--xfer)", scale, true);
+    if (body.atmo > 0)
+      svg.appendChild(el("circle", {cx, cy, r:(body.r+body.atmo)*scale,
+        fill:"none", stroke:"#2A3550", "stroke-width":1, "stroke-dasharray":"2 3"}));
+    svg.appendChild(el("circle", {cx, cy, r:Math.max(body.r*scale, 3), fill:"#20293D", stroke:"#3A4560"}));
+    if (plan.single) marker(cx + rd*scale, cy, "var(--xfer)", "B1");
+    else { marker(cx + rd*scale, cy, "var(--cur)", "B1"); marker(cx - ra*scale, cy, "var(--tgt)", "B2"); }
+    frameLabel(`${plan.body} frame · to scale`);
+  } else {
+    // cross-body: draw everything in the common ancestor frame
+    const CB = BODIES[plan.frame];
+    let maxR = Math.max(rd, ra);
+    if (plan.depDirect) maxR = Math.max(maxR, o1.rAp);
+    if (plan.arrDirect) maxR = Math.max(maxR, o2.rAp);
+    const scale = (Math.min(W,H)/2 - 24) / maxR;
+
+    // departure side (right)
+    if (plan.depDirect) {
+      orbitEllipse(o1.a, o1.e, Math.abs(rd - o1.rAp) < 0.5 ? 0 : 180, "var(--cur)", scale);
+    } else {
+      svg.appendChild(el("circle", {cx, cy, r:rd*scale, fill:"none",
+        stroke:"var(--cur)", "stroke-width":1.5, opacity:.7}));
+      svg.appendChild(el("circle", {cx:cx + rd*scale, cy, r:5, fill:"#20293D", stroke:"var(--cur)","stroke-width":1.5}));
+    }
+    // arrival side (left)
+    if (plan.arrDirect) {
+      orbitEllipse(o2.a, o2.e, Math.abs(ra - o2.rAp) < 0.5 ? 180 : 0, "var(--tgt)", scale);
+    } else {
+      svg.appendChild(el("circle", {cx, cy, r:ra*scale, fill:"none",
+        stroke:"var(--tgt)", "stroke-width":1.5, opacity:.7}));
+      svg.appendChild(el("circle", {cx:cx - ra*scale, cy, r:5, fill:"#20293D", stroke:"var(--tgt)","stroke-width":1.5}));
+    }
+    // transfer ellipse
+    orbitEllipse((rd+ra)/2, Math.abs(ra-rd)/(ra+rd), ra > rd ? 180 : 0, "var(--xfer)", scale, true);
+    // central body
+    svg.appendChild(el("circle", {cx, cy, r:Math.max(CB.r*scale, 4), fill:"#20293D", stroke:"#3A4560"}));
+    marker(cx + rd*scale, cy, "var(--cur)", "B1");
+    marker(cx - ra*scale, cy, "var(--tgt)", "B2");
+    frameLabel(`${plan.frame} frame · to scale · moons shown at burn geometry`);
+  }
+}
+
+// ─── Tabs ───
+function setTab(name) {
+  activeTab = name;
+  document.querySelectorAll(".tab").forEach(t =>
+    t.classList.toggle("active", t.dataset.tab === name));
+  $("tab-matrix").hidden = name !== "matrix";
+  $("tab-pair").hidden   = name !== "pair";
+}
+document.querySelectorAll(".tab").forEach(t =>
+  t.addEventListener("click", () => { setTab(t.dataset.tab); recalc(false); }));
+
+// ─── Save / Load ───
+$("save").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "ksp-orbits.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+$("load").addEventListener("click", () => $("loadfile").click());
+$("loadfile").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    const fallbackBody = BODIES[data.body] ? data.body : "Kerbin"; // v2 files had a global body
+    const clean = (arr, isSat) => (Array.isArray(arr) ? arr : []).map(o => ({
+      name: String(o.name ?? "Orbit"),
+      body: BODIES[o.body] ? o.body : fallbackBody,
+      pe:+o.pe || 0, ap:+o.ap || 0, inc:+o.inc || 0,
+      ...(isSat ? {dv: +o.dv || 1000} : {})}));
+    state = {satellites: clean(data.satellites, true), targets: clean(data.targets, false)};
+    selPair = {s:0, t:0};
+    recalc(true);
+  } catch (err) {
+    alert("Couldn't read that file — expected JSON with {satellites[], targets[]}.");
+  }
+  e.target.value = "";
+});
+
+// ─── Main recalc ───
+function recalc(rebuildLists) {
+  if (rebuildLists) {
+    renderList("sats", state.satellites, true);
+    renderList("tgts", state.targets, false);
+  }
+  const plans = state.satellites.map(s => state.targets.map(t => planAny(s, t)));
+  renderMatrix(plans);
+  if (activeTab === "pair") renderPair(plans);
+}
+renderList("sats", state.satellites, true);
+renderList("tgts", state.targets, false);
+recalc(false);
+</script>
+</body>
+</html>

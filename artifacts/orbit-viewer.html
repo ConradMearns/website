@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solenne System — Orbit Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060a12;
+    --panel: rgba(10, 15, 26, 0.92);
+    --line: rgba(140, 165, 200, 0.14);
+    --text: #c9d4e3;
+    --dim: #5b6a80;
+    --starlight: #e8b46a;
+    --hover: rgba(140, 165, 200, 0.07);
+    --active: rgba(232, 180, 106, 0.10);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); }
+  body {
+    font-family: "IBM Plex Mono", monospace;
+    color: var(--text);
+    font-size: 13px;
+    display: flex;
+  }
+  #canvas-wrap { flex: 1; position: relative; min-width: 0; }
+  canvas { display: block; cursor: grab; }
+  canvas.dragging { cursor: grabbing; }
+
+  /* ---------- Sidebar ---------- */
+  #sidebar {
+    width: 280px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+  }
+  #sidebar header {
+    padding: 22px 20px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  #sidebar header h1 {
+    font-family: "Instrument Serif", serif;
+    font-weight: 400;
+    font-size: 26px;
+    letter-spacing: 0.5px;
+    color: #eef3fa;
+  }
+  #sidebar header .sub {
+    margin-top: 4px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  #object-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+  #object-list::-webkit-scrollbar { width: 8px; }
+  #object-list::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 20px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    user-select: none;
+  }
+  .row:hover { background: var(--hover); }
+  .row.selected {
+    background: var(--active);
+    border-left-color: var(--starlight);
+  }
+  .row .swatch {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .row .name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .kind {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .row.moon { padding-left: 42px; }
+  .row.moon .swatch { width: 6px; height: 6px; }
+  .row.overview .swatch { border-radius: 2px; background: transparent; border: 1px solid var(--dim); }
+
+  /* ---------- Info panel ---------- */
+  #info {
+    border-top: 1px solid var(--line);
+    padding: 14px 20px;
+    min-height: 118px;
+  }
+  #info .empty { color: var(--dim); font-size: 11px; padding-top: 8px; }
+  #info h2 {
+    font-family: "Instrument Serif", serif;
+    font-weight: 400;
+    font-size: 19px;
+    color: #eef3fa;
+    margin-bottom: 8px;
+  }
+  #info dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 11px; }
+  #info dt { color: var(--dim); text-transform: uppercase; letter-spacing: 1px; font-size: 9px; padding-top: 1px; }
+  #info dd { text-align: right; }
+
+  /* ---------- Time controls ---------- */
+  #time {
+    border-top: 1px solid var(--line);
+    padding: 12px 20px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  #pause {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 11px;
+    width: 30px; height: 26px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  #pause:hover { border-color: var(--dim); }
+  #speed { flex: 1; accent-color: var(--starlight); height: 2px; }
+  #clock { font-size: 10px; color: var(--dim); min-width: 74px; text-align: right; }
+
+  /* ---------- Hint ---------- */
+  #hint {
+    position: absolute;
+    bottom: 14px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--dim);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 640px) {
+    body { flex-direction: column-reverse; }
+    #sidebar { width: 100%; height: 46%; border-right: none; border-top: 1px solid var(--line); }
+    #sidebar header { padding: 12px 16px 10px; }
+    #sidebar header h1 { font-size: 20px; }
+    #info { min-height: 0; }
+    #hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <header>
+    <h1>Solenne</h1>
+    <div class="sub">Planetary system · 1 star · 5 planets · 4 moons</div>
+  </header>
+  <nav id="object-list"></nav>
+  <div id="info"><div class="empty">Select an object to inspect it.</div></div>
+  <div id="time">
+    <button id="pause" title="Pause / resume">⏸</button>
+    <input id="speed" type="range" min="0" max="4" step="0.1" value="1" title="Simulation speed">
+    <div id="clock">T + 0 d</div>
+  </div>
+</aside>
+
+<div id="canvas-wrap">
+  <div id="hint">Drag to orbit · Scroll to zoom · Click a body to track it</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ============================================================
+   Solenne System — a small three.js orbit viewer
+   ============================================================ */
+
+const wrap = document.getElementById('canvas-wrap');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x060a12);
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 2000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+wrap.appendChild(renderer.domElement);
+
+function resize() {
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', resize);
+
+/* ---------- System definition ----------
+   distances in scene units, periods in "days" */
+const SYSTEM = {
+  name: 'Solenne',
+  star: { name: 'Solenne', kind: 'star', radius: 3.0, color: 0xffd9a0 },
+  planets: [
+    { name: 'Ember',    kind: 'planet', radius: 0.55, color: 0xc27b52, orbit: 10, period: 38,  incl: 1.5, phase: 0.8,
+      note: 'Scorched iron world' },
+    { name: 'Cerule',   kind: 'planet', radius: 0.85, color: 0x7fa8c9, orbit: 16, period: 74,  incl: -1.0, phase: 3.9,
+      note: 'Hazy carbonate seas' },
+    { name: 'Meridian', kind: 'planet', radius: 1.0,  color: 0x7fb08a, orbit: 23, period: 132, incl: 0.6, phase: 1.7,
+      note: 'Temperate, thin rings of cloud',
+      moons: [
+        { name: 'Skiff', kind: 'moon', radius: 0.22, color: 0xb8bcc4, orbit: 2.2, period: 9, incl: 4, phase: 0.3,
+          note: 'Tidally locked companion' },
+      ] },
+    { name: 'Ochreus',  kind: 'planet', radius: 1.7,  color: 0xd0a468, orbit: 32, period: 265, incl: -1.8, phase: 5.2,
+      note: 'Banded gas giant', ring: { inner: 2.2, outer: 3.4, color: 0xa98d63 },
+      moons: [
+        { name: 'Tolm', kind: 'moon', radius: 0.28, color: 0x9aa3ad, orbit: 4.4, period: 14, incl: 2, phase: 2.1,
+          note: 'Cratered highlands' },
+        { name: 'Brae', kind: 'moon', radius: 0.20, color: 0xc9b7a1, orbit: 5.8, period: 23, incl: -5, phase: 4.6,
+          note: 'Captured asteroid' },
+      ] },
+    { name: 'Pallor',   kind: 'planet', radius: 1.1,  color: 0xa9c4d8, orbit: 42, period: 430, incl: 2.4, phase: 2.6,
+      note: 'Nitrogen-frost ice world',
+      moons: [
+        { name: 'Fen', kind: 'moon', radius: 0.24, color: 0x8f9db0, orbit: 2.8, period: 12, incl: 8, phase: 1.1,
+          note: 'Subsurface brine ocean' },
+      ] },
+  ],
+};
+
+/* ---------- Lighting ---------- */
+scene.add(new THREE.AmbientLight(0x404a5c, 0.55));
+const starLight = new THREE.PointLight(0xffe0b0, 1.6, 0, 2);
+scene.add(starLight);
+
+/* ---------- Starfield ---------- */
+(function starfield() {
+  const n = 1600, pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    const v = new THREE.Vector3().randomDirection().multiplyScalar(320 + Math.random() * 260);
+    pos.set([v.x, v.y, v.z], i * 3);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const m = new THREE.PointsMaterial({ color: 0xaebdd4, size: 0.9, sizeAttenuation: true,
+    transparent: true, opacity: 0.8, depthWrite: false });
+  scene.add(new THREE.Points(g, m));
+})();
+
+/* ---------- Base-plane grid ---------- */
+const grid = new THREE.PolarGridHelper(50, 16, 10, 96, 0x24344a, 0x18222f);
+grid.material.transparent = true;
+grid.material.opacity = 0.55;
+grid.material.depthWrite = false;
+scene.add(grid);
+
+/* ---------- Helpers ---------- */
+function glowTexture(inner, outer) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, inner);
+  g.addColorStop(0.35, outer);
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+}
+function ringTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.strokeStyle = 'rgba(232,180,106,0.9)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(64, 64, 56, 0, Math.PI * 2);
+  ctx.stroke();
+  return new THREE.CanvasTexture(c);
+}
+function orbitLine(radius, color, opacity) {
+  const pts = [];
+  for (let i = 0; i <= 160; i++) {
+    const a = (i / 160) * Math.PI * 2;
+    pts.push(new THREE.Vector3(Math.cos(a) * radius, 0, Math.sin(a) * radius));
+  }
+  const g = new THREE.BufferGeometry().setFromPoints(pts);
+  const m = new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthWrite: false });
+  return new THREE.LineLoop(g, m);
+}
+
+/* ---------- Build bodies ---------- */
+const bodies = [];      // { cfg, mesh, anchor, parentBody }
+const clickable = [];   // meshes for raycasting
+
+// Star
+const starMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(SYSTEM.star.radius, 48, 32),
+  new THREE.MeshBasicMaterial({ color: SYSTEM.star.color })
+);
+scene.add(starMesh);
+const starGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: glowTexture('rgba(255,236,200,1)', 'rgba(255,180,90,0.35)'),
+  blending: THREE.AdditiveBlending, depthWrite: false, transparent: true,
+}));
+starGlow.scale.setScalar(SYSTEM.star.radius * 7);
+starMesh.add(starGlow);
+const starBody = { cfg: SYSTEM.star, mesh: starMesh, anchor: starMesh, parentBody: null, angle: 0 };
+bodies.push(starBody);
+clickable.push(starMesh);
+starMesh.userData.body = starBody;
+
+function buildOrbiter(cfg, parentGroup, parentBody, lineOpacity) {
+  const incl = new THREE.Group();
+  incl.rotation.x = THREE.MathUtils.degToRad(cfg.incl || 0);
+  parentGroup.add(incl);
+
+  incl.add(orbitLine(cfg.orbit, 0x5a728f, lineOpacity));
+
+  const anchor = new THREE.Group();
+  incl.add(anchor);
+
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(cfg.radius, 36, 24),
+    new THREE.MeshStandardMaterial({ color: cfg.color, roughness: 0.85, metalness: 0.05 })
+  );
+  anchor.add(mesh);
+
+  if (cfg.ring) {
+    const rg = new THREE.RingGeometry(cfg.ring.inner, cfg.ring.outer, 72);
+    const rm = new THREE.MeshBasicMaterial({ color: cfg.ring.color, side: THREE.DoubleSide,
+      transparent: true, opacity: 0.4, depthWrite: false });
+    const ring = new THREE.Mesh(rg, rm);
+    ring.rotation.x = Math.PI / 2 - 0.18;
+    anchor.add(ring);
+  }
+
+  const body = { cfg, mesh, anchor, parentBody, angle: cfg.phase || 0 };
+  mesh.userData.body = body;
+  bodies.push(body);
+  clickable.push(mesh);
+
+  (cfg.moons || []).forEach(mc => buildOrbiter(mc, anchor, body, 0.28));
+  return body;
+}
+SYSTEM.planets.forEach(p => buildOrbiter(p, scene, starBody, 0.5));
+
+/* ---------- Selection marker ---------- */
+const marker = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: ringTexture(), depthWrite: false, depthTest: false, transparent: true, opacity: 0.9,
+}));
+marker.visible = false;
+scene.add(marker);
+
+/* ---------- Camera controls (custom orbit) ---------- */
+const ctrl = {
+  target: new THREE.Vector3(0, 0, 0),
+  theta: Math.PI * 0.25,
+  phi: Math.PI * 0.34,      // from +Y axis
+  dist: 78,
+  wantDist: 78,
+};
+function applyCamera() {
+  const sp = Math.sin(ctrl.phi), cp = Math.cos(ctrl.phi);
+  camera.position.set(
+    ctrl.target.x + ctrl.dist * sp * Math.cos(ctrl.theta),
+    ctrl.target.y + ctrl.dist * cp,
+    ctrl.target.z + ctrl.dist * sp * Math.sin(ctrl.theta)
+  );
+  camera.lookAt(ctrl.target);
+}
+
+let dragging = false, moved = 0, px = 0, py = 0;
+renderer.domElement.addEventListener('pointerdown', e => {
+  dragging = true; moved = 0; px = e.clientX; py = e.clientY;
+  renderer.domElement.classList.add('dragging');
+  renderer.domElement.setPointerCapture(e.pointerId);
+});
+renderer.domElement.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const dx = e.clientX - px, dy = e.clientY - py;
+  px = e.clientX; py = e.clientY;
+  moved += Math.abs(dx) + Math.abs(dy);
+  ctrl.theta += dx * 0.005;
+  ctrl.phi = THREE.MathUtils.clamp(ctrl.phi - dy * 0.005, 0.05, Math.PI - 0.05);
+});
+window.addEventListener('pointerup', e => {
+  if (dragging && moved < 6) handleClick(e);
+  dragging = false;
+  renderer.domElement.classList.remove('dragging');
+});
+renderer.domElement.addEventListener('wheel', e => {
+  e.preventDefault();
+  ctrl.wantDist = THREE.MathUtils.clamp(ctrl.wantDist * Math.exp(e.deltaY * 0.0012), 1.5, 300);
+}, { passive: false });
+
+/* ---------- Picking ---------- */
+const ray = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+function handleClick(e) {
+  const r = renderer.domElement.getBoundingClientRect();
+  if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects(clickable, false);
+  if (hits.length) select(hits[0].object.userData.body);
+}
+
+/* ---------- Sidebar ---------- */
+const listEl = document.getElementById('object-list');
+const infoEl = document.getElementById('info');
+const rowsByBody = new Map();
+
+function addRow(body, extraClass) {
+  const row = document.createElement('div');
+  row.className = 'row ' + (extraClass || '');
+  const sw = document.createElement('span');
+  sw.className = 'swatch';
+  if (body) sw.style.background = '#' + body.cfg.color.toString(16).padStart(6, '0');
+  const name = document.createElement('span');
+  name.className = 'name';
+  name.textContent = body ? body.cfg.name : 'System overview';
+  const kind = document.createElement('span');
+  kind.className = 'kind';
+  kind.textContent = body ? body.cfg.kind : 'view';
+  row.append(sw, name, kind);
+  row.addEventListener('click', () => select(body));
+  listEl.appendChild(row);
+  if (body) rowsByBody.set(body, row);
+  else rowsByBody.set(null, row);
+}
+addRow(null, 'overview');
+addRow(starBody);
+bodies.forEach(b => {
+  if (b.cfg.kind === 'planet') {
+    addRow(b);
+    bodies.filter(m => m.parentBody === b).forEach(m => addRow(m, 'moon'));
+  }
+});
+
+function fmt(n) { return n % 1 === 0 ? n : n.toFixed(1); }
+function showInfo(body) {
+  if (!body) {
+    infoEl.innerHTML = '<div class="empty">Select an object to inspect it.</div>';
+    return;
+  }
+  const c = body.cfg;
+  const rows = [['Class', c.kind]];
+  if (c.kind !== 'star') {
+    rows.push(['Orbits', body.parentBody.cfg.name]);
+    rows.push(['Orbit radius', fmt(c.orbit) + ' u']);
+    rows.push(['Period', fmt(c.period) + ' d']);
+  }
+  rows.push(['Body radius', fmt(c.radius) + ' u']);
+  infoEl.innerHTML =
+    '<h2>' + c.name + '</h2>' +
+    '<dl>' + rows.map(([k, v]) => '<dt>' + k + '</dt><dd>' + v + '</dd>').join('') + '</dl>' +
+    (c.note ? '<dl style="margin-top:6px"><dt>Notes</dt><dd>' + c.note + '</dd></dl>' : '');
+}
+
+/* ---------- Selection & focus ---------- */
+let focus = null;
+const tmp = new THREE.Vector3();
+function select(body) {
+  focus = body;
+  rowsByBody.forEach((row, b) => row.classList.toggle('selected', b === focus));
+  showInfo(body);
+  marker.visible = !!body && body.cfg.kind !== 'star';
+  if (body) {
+    ctrl.wantDist = Math.max(body.cfg.radius * 7, 2.2);
+    if (body.cfg.kind === 'star') ctrl.wantDist = body.cfg.radius * 6;
+  } else {
+    ctrl.wantDist = 78;
+  }
+}
+select(null);
+rowsByBody.get(null).classList.add('selected');
+
+/* ---------- Time controls ---------- */
+const pauseBtn = document.getElementById('pause');
+const speedEl = document.getElementById('speed');
+const clockEl = document.getElementById('clock');
+let paused = false, simDays = 0;
+pauseBtn.addEventListener('click', () => {
+  paused = !paused;
+  pauseBtn.textContent = paused ? '▶' : '⏸';
+});
+
+/* ---------- Animation ---------- */
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.1);
+
+  if (!paused) {
+    const daysPerSec = 8 * parseFloat(speedEl.value);
+    simDays += daysPerSec * dt;
+    bodies.forEach(b => {
+      if (b.cfg.kind === 'star') { b.mesh.rotation.y += dt * 0.05; return; }
+      b.angle = (b.cfg.phase || 0) + (simDays / b.cfg.period) * Math.PI * 2;
+      b.anchor.position.set(Math.cos(b.angle) * b.cfg.orbit, 0, Math.sin(b.angle) * b.cfg.orbit);
+      b.mesh.rotation.y += dt * 0.4;
+    });
+    clockEl.textContent = 'T + ' + Math.floor(simDays) + ' d';
+  }
+
+  // camera follow
+  if (focus) {
+    focus.mesh.getWorldPosition(tmp);
+    ctrl.target.lerp(tmp, Math.min(1, dt * 5));
+  } else {
+    ctrl.target.lerp(tmp.set(0, 0, 0), Math.min(1, dt * 5));
+  }
+  ctrl.dist += (ctrl.wantDist - ctrl.dist) * Math.min(1, dt * 5);
+
+  if (marker.visible && focus) {
+    focus.mesh.getWorldPosition(marker.position);
+    marker.scale.setScalar(focus.cfg.radius * 3.2);
+  }
+
+  applyCamera();
+  renderer.render(scene, camera);
+}
+
+resize();
+applyCamera();
+animate();
+</script>
+</body>
+</html>
