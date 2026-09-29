@@ -1,0 +1,66 @@
+/* Shared by article-style pages (blog posts, about, list pages). Needs theme.css.
+   Tag-first: the HTML says what things are, the CSS decides how they look.
+   Page-specific styling goes in the page's own <style>, which always wins over these layers.
+
+   Page shape:
+     body > header                 masthead: site link + theme toggle
+     main > article
+       > header > h1 (+ time, deck)   the article's title (any heading level works here)
+       > p, ol, table, figure...      content
+       > section > h2                 a section label
+       > aside                        a callout
+       > footer                       closing links
+   Extras: <a data-card> link card, <div data-gallery> of figures. */
+@layer post {
+  body { max-width: 40em; margin: 0 auto; padding: 1.5em 1.2em 4em; font-size: 1.15em; line-height: 1.65; }
+  main { overflow-x: clip; }  /* the stretched headings are laid out wider than they draw */
+
+  body > header { display: flex; justify-content: space-between; align-items: center; gap: 1em; border-bottom: 3px solid var(--fg); padding-bottom: .8em; margin-bottom: 2.4em; }
+  body > header > a { display: inline-flex; align-items: center; min-height: 44px; font: .7em/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase; text-decoration: none; color: var(--dim); }
+
+  /* title-card lettering: laid out at 166% width so it wraps, then squeezed back to 100% */
+  article > header > :is(h1, h2), article section > h2 {
+    font-family: var(--font-display); font-weight: 800; text-transform: uppercase; line-height: 1;
+    width: 166.67%; transform: scaleX(.6); transform-origin: 0 0; margin: 0 0 .4em;
+  }
+  article > header > :is(h1, h2) { font-size: clamp(2.4em, 9vw, 3.6em); }
+  article section > h2 { font-size: 2.1em; color: var(--accent); }
+  article > header { margin-bottom: 1.8em; }
+  article > header > p { color: var(--dim); margin: 0; }
+  article > header time { font: .8em/1.6 var(--font-mono); letter-spacing: .05em; color: var(--dim); }
+  article section { margin-top: 2.6em; }
+  article h3 { font-size: 1.05em; margin: 1.6em 0 .3em; }
+
+  p { margin: 0 0 1.1em; }
+  ol, ul { padding-left: 1.4em; }
+  li { margin: .4em 0; }
+  code, pre { font-family: var(--font-mono); font-size: .88em; }
+  pre { overflow-x: auto; background: var(--surface); padding: .8em 1em; }
+  blockquote { border-left: 3px solid var(--accent); margin: 1.4em 0; padding: 0 0 0 1.2em; color: var(--dim); }
+
+  table { border-collapse: collapse; width: 100%; font-size: .85em; line-height: 1.5; margin: 1em 0; }
+  th, td { text-align: left; padding: .35em 1em .35em 0; border-bottom: 1px solid var(--line); }
+  th { color: var(--dim); font-weight: 400; font-size: .85em; letter-spacing: .04em; text-transform: uppercase; }
+
+  figure { margin: 0; }
+  figure a { display: block; text-decoration: none; }
+  figcaption { color: var(--dim); font-size: .8em; line-height: 1.45; margin-top: .4em; }
+  figure img, a[data-card] > img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border: 1px solid var(--line); }
+  [data-gallery] { display: grid; grid-template-columns: repeat(auto-fit, minmax(11em, 1fr)); gap: 1.2em; margin: 1.4em 0; }
+
+  a[data-card] { display: flex; gap: 1.2em; align-items: flex-start; padding: 1em 1.2em; margin: 1.6em 0; border-left: 4px solid var(--accent); background: var(--surface); text-decoration: none; }
+  a[data-card] > img { flex: 0 0 13em; width: 13em; }
+  a[data-card] > div { min-width: 0; }
+  a[data-card] small { display: block; overflow-wrap: anywhere; color: var(--dim); font: .72em/1.5 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
+  a[data-card] strong { display: block; }
+  a[data-card] span { display: block; color: var(--dim); font-size: .85em; line-height: 1.5; margin: .2em 0 .4em; }
+  a[data-card]:hover strong { color: var(--accent); }
+
+  article > aside { border-left: 4px solid var(--accent); background: var(--surface); padding: .8em 1.2em; margin: 1.4em 0; font-size: .9em; color: var(--dim); }
+  article > aside strong { color: var(--fg); }
+
+  article > footer { margin-top: 3em; padding-top: 1em; border-top: 1px solid var(--line); font-size: .9em; color: var(--dim); }
+  article > footer nav { display: flex; flex-wrap: wrap; gap: .3em 1.4em; }
+
+  @media (max-width: 36em) { a[data-card] { flex-direction: column; align-items: stretch; } a[data-card] > img { flex: none; width: 100%; } }
+}

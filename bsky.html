@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conrad's Posts</title>
+<script src="js/theme.js"></script>
+<link rel="stylesheet" href="css/theme.css">
+<style>
+  /* my own plain Bluesky posts, fetched live: no replies, reposts or quote posts */
+  body { max-width: 46em; margin: 0 auto; padding: 2em 1.2em 3em; overflow-x: clip; font: 1.05em/1.55 Georgia, serif; }
+  .st { font: 800 1em/1 "Shippori Mincho B1", "Hiragino Mincho ProN", serif; display: inline-block; transform: scaleX(.6); transform-origin: left; text-transform: uppercase; }
+  header { border-bottom: 3px solid var(--fg); margin-bottom: 2em; padding-bottom: .8em; }
+  h1.st { font-size: clamp(2.6em, 11vw, 6em); margin: 0; white-space: nowrap; }
+  header p { margin: 0; font: .75em/1.4 ui-monospace, monospace; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
+  header [data-theme-toggle] { float: right; }
+  article { display: grid; grid-template-columns: 6.5em 1fr; padding: 1em 0; border-top: 1px solid var(--line); }
+  time, .meta { color: var(--dim); font: .75em/2.2 ui-monospace, monospace; letter-spacing: .05em; }
+  .meta { margin-top: .3em; }
+  .text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .imgs { display: grid; grid-template-columns: repeat(auto-fit, minmax(9em, 1fr)); gap: .5em; margin-top: .8em; }
+  .imgs img, .card img { width: 100%; display: block; border: 1px solid var(--line); }
+  .imgs img { aspect-ratio: 1; object-fit: cover; }
+  .card { display: block; margin-top: .8em; border: 1px solid var(--line); text-decoration: none; font-size: .9em; }
+  .card div { padding: .6em .8em; }
+  .card b { display: block; }
+  .card span { color: var(--dim); }
+  #more { margin-top: 1.5em; background: none; border: 1px solid var(--fg); color: var(--fg); font: .8em/1 ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; padding: .8em 1.2em; cursor: pointer; }
+  #more:hover { color: var(--accent); border-color: var(--accent); }
+  #status { color: var(--dim); font: .8em/1.6 ui-monospace, monospace; }
+  @media (max-width: 34em) { article { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <button type="button" data-theme-toggle aria-label="Toggle light and dark mode"></button>
+  <h1 class="st"><a href="index.html" style="text-decoration:none">Posts</a></h1>
+  <p>Conrad Mearns</p>
+</header>
+
+<main>
+  <div id="list"></div>
+  <p id="status">Loading…</p>
+  <button id="more" type="button" hidden>Load more</button>
+  <noscript><p>This page loads my posts from Bluesky with JavaScript. <a href="https://bsky.app/profile/conradmearns.bsky.social">Read them there</a> instead.</p></noscript>
+</main>
+
+<script>
+  var HANDLE = "conradmearns.bsky.social", PER_PAGE = 20;
+  var API = "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed";
+  var list = document.getElementById("list"), statusEl = document.getElementById("status"), more = document.getElementById("more");
+  var cursor, done = false, busy = false;
+
+  /* only plain posts I wrote: not reposts, replies, or quote posts */
+  var OK_EMBEDS = { "app.bsky.embed.images#view": 1, "app.bsky.embed.external#view": 1, "app.bsky.embed.video#view": 1 };
+  function plain(item) {
+    var p = item.post;
+    return !item.reason && p.author.handle === HANDLE && !p.record.reply && (!p.embed || OK_EMBEDS[p.embed.$type]);
+  }
+
+  /* facets are UTF-8 byte ranges, so slice bytes rather than characters */
+  function richText(text, facets) {
+    var out = document.createDocumentFragment(), enc = new TextEncoder(), dec = new TextDecoder(), bytes = enc.encode(text), at = 0;
+    (facets || []).slice().sort(function (a, b) { return a.index.byteStart - b.index.byteStart; }).forEach(function (f) {
+      var ft = f.features[0], href;
+      if (!ft || f.index.byteStart < at) return;
+      if (ft.$type === "app.bsky.richtext.facet#link") href = ft.uri;
+      else if (ft.$type === "app.bsky.richtext.facet#mention") href = "https://bsky.app/profile/" + ft.did;
+      else if (ft.$type === "app.bsky.richtext.facet#tag") href = "https://bsky.app/hashtag/" + encodeURIComponent(ft.tag);
+      else return;
+      out.append(dec.decode(bytes.slice(at, f.index.byteStart)));
+      var a = document.createElement("a");
+      a.href = href; a.rel = "noopener"; a.textContent = dec.decode(bytes.slice(f.index.byteStart, f.index.byteEnd));
+      out.append(a); at = f.index.byteEnd;
+    });
+    out.append(dec.decode(bytes.slice(at)));
+    return out;
+  }
+
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; }
+  function safeUrl(u) { return /^https?:\/\//.test(u || "") ? u : ""; }
+
+  function render(item) {
+    var p = item.post, e = p.embed, art = el("article"), body = el("div");
+    var url = "https://bsky.app/profile/" + p.author.handle + "/post/" + p.uri.split("/").pop();
+    var when = el("time", "", p.record.createdAt.slice(0, 10).replace(/-/g, "."));
+    art.append(when, body);
+    if (p.record.text) { var t = el("p", "text"); t.append(richText(p.record.text, p.record.facets)); body.append(t); }
+    if (e && e.$type === "app.bsky.embed.images#view") {
+      var g = el("div", "imgs");
+      e.images.forEach(function (im) {
+        var a = el("a"), img = el("img");
+        a.href = safeUrl(im.fullsize); a.target = "_blank"; a.rel = "noopener";
+        img.src = safeUrl(im.thumb); img.alt = im.alt || ""; img.loading = "lazy";
+        a.append(img); g.append(a);
+      });
+      body.append(g);
+    } else if (e && e.$type === "app.bsky.embed.external#view") {
+      var c = el("a", "card"), x = e.external;
+      c.href = safeUrl(x.uri); c.rel = "noopener";
+      if (safeUrl(x.thumb)) { var im2 = el("img"); im2.src = x.thumb; im2.alt = ""; im2.loading = "lazy"; c.append(im2); }
+      var info = el("div"); info.append(el("b", "", x.title || x.uri), el("span", "", x.description || new URL(x.uri).hostname));
+      c.append(info); body.append(c);
+    } else if (e && e.$type === "app.bsky.embed.video#view") {
+      var v = el("a", "card"); v.href = url; v.rel = "noopener";
+      if (safeUrl(e.thumbnail)) { var im3 = el("img"); im3.src = e.thumbnail; im3.alt = e.alt || ""; im3.loading = "lazy"; v.append(im3); }
+      var vi = el("div"); vi.append(el("span", "", "▶ video, watch on Bluesky")); v.append(vi); body.append(v);
+    }
+    var m = el("div", "meta"), link = el("a", "", "view on Bluesky");
+    link.href = url; link.rel = "noopener";
+    m.append(link);
+    if (p.likeCount) m.append(" · ♡ " + p.likeCount);
+    if (p.repostCount) m.append(" · ↻ " + p.repostCount);
+    body.append(m);
+    return art;
+  }
+
+  /* the API returns 100 items max per call and most of my feed is other people's reposts, so keep paging until a page's worth of my own posts turns up */
+  async function load() {
+    if (busy || done) return;
+    busy = true; more.hidden = true; statusEl.textContent = "Loading…";
+    var got = 0, requests = 0;
+    try {
+      while (got < PER_PAGE && !done && requests++ < 6) {
+        var qs = "?actor=" + HANDLE + "&filter=posts_no_replies&limit=100" + (cursor ? "&cursor=" + encodeURIComponent(cursor) : "");
+        var res = await fetch(API + qs);
+        if (!res.ok) throw new Error("Bluesky answered " + res.status);
+        var data = await res.json();
+        data.feed.filter(plain).forEach(function (it) { list.append(render(it)); got++; });
+        cursor = data.cursor; done = !cursor;
+      }
+      statusEl.textContent = done ? (list.children.length ? "That's everything." : "No posts found.") : "";
+      more.hidden = done;
+    } catch (err) {
+      statusEl.textContent = "Couldn't reach Bluesky (" + err.message + "). ";
+      var a = el("a", "", "Read the posts there instead."); a.href = "https://bsky.app/profile/" + HANDLE; statusEl.append(a);
+      more.hidden = !list.children.length ? true : false;
+    }
+    busy = false;
+  }
+  more.onclick = load;
+  load();
+</script>
+</body>
+</html>

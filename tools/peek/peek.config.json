@@ -1,0 +1,42 @@
+{
+  "out": "../../peek",
+  "images": {
+    "whitepaper": {
+      "type": "pdf",
+      "src": "https://raw.githubusercontent.com/PNNL/dizzy/main/docs/whitepaper.pdf",
+      "pages": "1-2"
+    },
+    "blueprint": {
+      "type": "image",
+      "src": "https://raw.githubusercontent.com/ConradMearns/blueprint/main/docs/screenshot.png"
+    },
+    "factorio": {
+      "type": "image",
+      "src": "https://raw.githubusercontent.com/ConradMearns/breadboard-factorio-mapper/main/image.png"
+    },
+    "vibechecks": {
+      "type": "collage",
+      "pages": [
+        "/vibechecks/nl.html",
+        "/vibechecks/marginalia-v2.html",
+        "/vibechecks/xanadu-transclusion.html",
+        "/vibechecks/island-forge.html",
+        "/vibechecks/self-edit-demo.html",
+        "https://conradmearns.github.io/7m9/ecs-lisp/index.html"
+      ],
+      "wait": 3000
+    },
+    "dizzy-lab": {
+      "type": "collage",
+      "pages": [
+        "/project-dizzy-viz/fable/index.html",
+        "/project-dizzy-viz/opus/index.html",
+        "/project-dizzy-viz/sonnet5/index.html",
+        "/project-dizzy-viz/kimi-k3/index.html",
+        "/project-dizzy-viz/gpt-5-6sol/index.html",
+        "/project-dizzy-viz/glm5-2/index.html"
+      ],
+      "wait": 3500
+    }
+  }
+}

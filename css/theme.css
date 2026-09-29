@@ -1,0 +1,29 @@
+/* Shared by every page that wants the site's look: colors, links, focus, theme toggle.
+   A page becomes "its own theme" by redefining these variables in its own <style>. */
+@layer theme, post;
+@import url("https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@800&display=swap");
+
+@layer theme {
+  :root {
+    color-scheme: light;
+    --bg: #f4efe6; --fg: #16130e; --dim: #5c5649; --accent: #b8321f; --line: #16130e33; --surface: #ebe4d6;
+    --font-body: Georgia, serif;
+    --font-display: "Shippori Mincho B1", "Hiragino Mincho ProN", serif;
+    --font-mono: ui-monospace, monospace;
+  }
+  :root[data-theme=dark] {
+    color-scheme: dark;
+    --bg: #000; --fg: #d0d4e0; --dim: #8b91a8; --accent: #f07c5a; --line: #2a2e3c; --surface: #0d0e12;
+  }
+
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-body); }
+
+  a { color: inherit; text-decoration-color: color-mix(in srgb, var(--accent) 65%, transparent); text-decoration-thickness: 1px; text-underline-offset: .22em; }
+  a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  [data-theme-toggle] { background: none; border: 1px solid var(--dim); color: var(--dim); font: .75em/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; padding: .8em 1em; min-height: 44px; cursor: pointer; }
+  [data-theme-toggle]:hover { color: var(--accent); border-color: var(--accent); }
+  [data-theme-toggle] svg { display: block; width: 1.15em; height: 1.15em; }
+  :root[data-theme=dark] [data-theme-toggle] .moon, :root:not([data-theme=dark]) [data-theme-toggle] .sun { display: none; }  /* show what a click switches to */
+}

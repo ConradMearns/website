@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Island Forge, annotated — Conrad Mearns</title>
+    <script src="../js/theme.js"></script>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/notes.css">
+</head>
+<body>
+
+    <header>
+        <a href="../index.html">conrads.website</a> /
+        <a href="index.html">vibechecks</a>
+        <span class="here" aria-current="page">/ island forge</span>
+        <button type="button" data-theme-toggle></button>
+    </header>
+
+    <div class="stage">
+        <main class="notes">
+            <h1>Island Forge</h1>
+
+            <section data-view="island-forge.html#forge" data-label="Centrifuge forge">
+                <h2>A compiler for machines</h2>
+                <p>
+                    Island Forge is a vibecheck: a small editor where you wire physical parts together (batteries, motors,
+                    tanks, radiators) and a compiler works out how the whole machine will behave over time.
+                </p>
+                <p>
+                    The trick is that it doesn't simulate everything, all the time. It splits the machine into
+                    <em>islands</em> of parts that only talk to each other, works out what kind of maths each island is,
+                    and only does work when something actually changes. Scroll down and the page on the right will walk
+                    through the kinds of island it knows.
+                </p>
+                <p><small>This is the finished machine, paused. It comes back at the end.</small></p>
+            </section>
+
+            <section data-view="island-forge.html#divider" data-label="Electrical · algebraic">
+                <h2>Nothing to step</h2>
+                <p>
+                    A battery and two resistors have no stores anywhere: no capacitor, no spinning mass, nothing that
+                    remembers. So the whole island is one linear solve. It computes once, reports the equilibrium, and
+                    sleeps.
+                </p>
+                <p>
+                    Electricity here is a constraint, never a tick. Toggle the battery (the dot on its corner) and the
+                    solve counter goes up by exactly one.
+                </p>
+            </section>
+
+            <section data-view="island-forge.html#spin,run" data-label="Mechanical · linear">
+                <h2>Closed form</h2>
+                <p>
+                    Torque, inertia and drag are linear, so this island gets an exact solution, <code>eᴬᵗ</code>.
+                    Nothing is ever integrated. The curve you're watching is evaluated, not stepped.
+                </p>
+                <p>
+                    Because it's a formula, the compiler knows when the flywheel will settle before it starts, and puts
+                    that moment on the event queue up front.
+                </p>
+            </section>
+
+            <section data-view="island-forge.html#cool,run" data-label="Thermal · template (T⁴)">
+                <h2>Recognizing a shape</h2>
+                <p>
+                    A hot mass radiating into deep space is nonlinear (temperature to the fourth power), so the linear
+                    trick fails. But the structure matches a known analytic solution, so the compiler uses that instead.
+                </p>
+                <p>
+                    It finds when the temperature crosses the marked line by inverting the formula, not by watching for
+                    it.
+                </p>
+            </section>
+
+            <section data-view="island-forge.html#tankd,run" data-label="Fluid · template (Torricelli)">
+                <h2>A tank that knows its future</h2>
+                <p>
+                    Water draining through a valve follows Torricelli's law. Same idea: match the template, and
+                    "the tank is empty at t=…" is an exact event, committed before a single step is taken.
+                </p>
+                <p>
+                    Switch the valve law to linear and the island reclassifies itself as linear. It can tell.
+                </p>
+            </section>
+
+            <section data-view="island-forge.html#forge,run" data-label="Centrifuge forge · everything at once">
+                <h2>Everything at once</h2>
+                <p>
+                    One power bus feeds a motor and a heater. The motor spins a drum, the heater melts a crucible, and two
+                    signal wires carry no energy at all: drum speed drives separation, and the melt temperature is the
+                    freeze plug on the tap valve.
+                </p>
+                <p>
+                    Watch the tap island sleep at zero ticks until the plug melts, then wake, drain, and sleep again.
+                    Toggling the heater or the battery mid-run slams events into the ledger.
+                </p>
+            </section>
+
+            <section data-view="island-forge.html#blank" data-label="Blank bench">
+                <h2>The half that didn't land</h2>
+                <p>
+                    The blank bench is the editor half: place parts, bond matching ports, run signal wires, and the
+                    compiler re-partitions on every edit. The compiler is the part I'm happy with.
+                    The editing is the part that's only semi-working, so treat this as a compiler you can poke at more than
+                    a tool you can build with.
+                </p>
+                <p><small>Open the <a href="island-forge.html">full page</a> to try it yourself.</small></p>
+            </section>
+        </main>
+
+        <div class="frame">
+            <div class="screen"><iframe src="island-forge.html#forge" title="Island Forge, live" data-width="1000"></iframe></div>
+            <p><span id="label">Centrifuge forge</span> <a id="open" href="island-forge.html">Open full page →</a></p>
+        </div>
+    </div>
+
+    <script src="../js/notes.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+@layer notes {
+  /* Annotated vibecheck: notes scroll on the left, the live page sits pinned on the right.
+     Each <section data-view="page.html#state"> in .notes names what the frame shows while it is on screen.
+     Needs theme.css. Markup: see vibechecks/notes-template.html */
+  :root { --bar: 3.4rem; }
+  body { margin: 0; font-size: 1.05em; line-height: 1.6; }
+
+  body > header { position: sticky; top: 0; z-index: 5; height: var(--bar); box-sizing: border-box; display: flex; align-items: center; gap: .8em; padding: 0 1.2em; background: var(--bg); border-bottom: 1px solid var(--line); font: .75em/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+  body > header a { color: var(--dim); text-decoration: none; padding: 1em 0; white-space: nowrap; }
+  body > header a:hover { color: var(--accent); }
+  body > header [aria-current] { color: var(--fg); }
+  body > header [data-theme-toggle] { margin-left: auto; }
+
+  .stage { display: grid; grid-template-columns: minmax(17em, 1fr) 2fr; gap: 2.4em; padding: 0 1.2em; }
+
+  .notes { padding: 1.5em 0 45vh; max-width: 30em; overflow-x: clip; }   /* the stretched headings are laid out wider than they draw */
+  .notes h1 { font: 800 clamp(2.4em, 5vw, 3.4em)/1 var(--font-display); text-transform: uppercase; margin: 0 0 .3em; width: 166.67%; transform: scaleX(.6); transform-origin: 0 0; }
+  .notes h2 { font: 800 1.6em/1 var(--font-display); text-transform: uppercase; color: var(--accent); margin: 0 0 .4em; width: 166.67%; transform: scaleX(.6); transform-origin: 0 0; }
+  .notes section { min-height: 66vh; padding-top: 1.2em; opacity: .4; transition: opacity .25s; }
+  .notes section[aria-current] { opacity: 1; }
+  .notes section:first-of-type { min-height: 60vh; }
+  .notes p { margin: 0 0 1em; }
+  .notes code { font-family: var(--font-mono); font-size: .88em; }
+  .notes small { color: var(--dim); }
+
+  .frame { position: sticky; top: calc(var(--bar) + 1em); height: calc(100vh - var(--bar) - 2em); margin: 1em 0; align-self: start; display: flex; flex-direction: column; min-width: 0; }
+  .screen { flex: 1; position: relative; overflow: hidden; border: 1px solid var(--line); background: #0e131a; }
+  .screen iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; transform-origin: 0 0; }
+  .frame p { display: flex; justify-content: space-between; gap: 1em; margin: .5em 0 0; font: .75em/1.4 var(--font-mono); letter-spacing: .06em; color: var(--dim); }
+
+  @media (max-width: 52em) {
+      .stage { grid-template-columns: 1fr; gap: 0; padding: 0; }
+      .frame { order: -1; top: var(--bar); height: 46vh; margin: 0; padding: .6em 1.2em .3em; background: var(--bg); z-index: 4; }
+      .notes { padding: 1em 1.2em 55vh; max-width: none; }
+      .notes section { min-height: 60vh; }
+      body > header { letter-spacing: .06em; }
+      body > header .here { display: none; }
+  }
+}
+
+/* pages with a single view: no scroll story, so no tall sections */
+@layer notes {
+  .notes[data-single] { padding-bottom: 1em; }
+  .notes[data-single] section { min-height: 0; opacity: 1; }
+}

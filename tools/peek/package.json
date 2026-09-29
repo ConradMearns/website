@@ -1,0 +1,8 @@
+{
+  "name": "peek-images",
+  "private": true,
+  "type": "module",
+  "description": "Builds the hover-preview images in ../../peek from peek.config.json",
+  "scripts": { "build": "node make-peek.mjs" },
+  "dependencies": { "playwright-core": "^1.50.0" }
+}

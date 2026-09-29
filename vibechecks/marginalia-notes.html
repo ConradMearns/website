@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Marginalia, annotated — Conrad Mearns</title>
+    <script src="../js/theme.js"></script>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/notes.css">
+</head>
+<body>
+
+    <header>
+        <a href="../index.html">conrads.website</a> /
+        <a href="index.html">vibechecks</a>
+        <span class="here" aria-current="page">/ marginalia</span>
+        <button type="button" data-theme-toggle></button>
+    </header>
+
+    <div class="stage">
+        <main class="notes">
+            <h1>Marginalia</h1>
+            <section data-view="marginalia-v1.html" data-label="v1 · embeddings">
+                <h2>v1</h2>
+                <p>A qualitative coder that slides a window over your text, embeds each window, and scores it against a codebook. It runs in the tab, and you bring your own OpenRouter key.</p>
+            </section>
+
+            <section data-view="marginalia-v2.html" data-label="v2 · matched filters">
+                <h2>v2</h2>
+                <p>The second try: each code is a matched filter over token embeddings, with positive examples that make it fire and negative examples that subtract look-alikes. All in the browser.</p>
+            </section>
+        </main>
+
+        <div class="frame">
+            <div class="screen"><iframe src="marginalia-v1.html" title="Marginalia, live" data-width="1000"></iframe></div>
+            <p><span id="label">v1 · embeddings</span> <a id="open" href="marginalia-v1.html">Open full page →</a></p>
+        </div>
+    </div>
+
+    <script src="../js/notes.js"></script>
+</body>
+</html>

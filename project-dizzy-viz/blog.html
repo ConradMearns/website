@@ -4,9 +4,12 @@
     <meta charset='utf-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1'>
     <title>DIZZY LAB: 13 Models, One Prompt</title>
-    <link rel='stylesheet' href='../main.css'>
+    <script src="../js/theme.js"></script>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/post.css">
     <style>
         :root {
+            --yes: #15703a;
             --m-fable:   #f07c5a;
             --m-opus:    #a78bfa;
             --m-sonnet5: #5b9bd5;
@@ -22,10 +25,14 @@
             --m-kimi:   #38bdf8;
         }
 
-        .lede {
-            color: var(--muted);
-            font-size: 0.95em;
+        /* the model colors above suit a dark background; darker versions for light mode */
+        :root:not([data-theme=dark]) {
+            --m-fable: #d4502a; --m-opus: #7c5ce0; --m-sonnet5: #2f78b8; --m-fugu: #0f766e; --m-fuguviz: #15803d;
+            --m-luna: #a87a00; --m-sol: #c9317f; --m-terra: #737a8f; --m-lunapro: #8a7020; --m-solpro: #be5a8c;
+            --m-terrapro: #6b7080; --m-glm: #d9660f; --m-kimi: #0284c7;
         }
+        :root[data-theme=dark] { --yes: #4ade80; }
+
 
         .harness-tag {
             display: inline-block;
@@ -33,9 +40,9 @@
             letter-spacing: 0.05em;
             text-transform: uppercase;
             padding: 0.1em 0.5em;
-            border: 1px solid var(--border);
+            border: 1px solid var(--line);
             border-radius: 3px;
-            color: var(--muted);
+            color: var(--dim);
             margin-left: 0.5em;
         }
 
@@ -43,8 +50,8 @@
         .chart {
             margin: 1.4em 0 2em 0;
         }
-        .chart h4 {
-            color: var(--text);
+        .chart h3 {
+            color: var(--fg);
             font-weight: 400;
             font-size: 0.95em;
             letter-spacing: 0.02em;
@@ -63,14 +70,14 @@
             width: 9.5em;
             flex-shrink: 0;
             text-align: right;
-            color: var(--muted);
+            color: var(--dim);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         .bar-track {
             flex-grow: 1;
-            background: var(--hover);
+            background: var(--surface);
             border-radius: 2px;
             height: 1.15em;
             position: relative;
@@ -87,13 +94,13 @@
             flex-shrink: 0;
             width: 6.5em;
             font-size: 0.9em;
-            color: var(--text);
+            color: var(--fg);
             font-variant-numeric: tabular-nums;
         }
 
         /* ── model card ── */
         .model-card {
-            border-left: 4px solid var(--muted);
+            border-left: 4px solid var(--dim);
             padding: 1em 0 1em 1.2em;
             margin: 1.4em 0;
         }
@@ -105,8 +112,7 @@
         }
         .model-meta {
             font-size: 0.78em;
-            color: var(--muted);
-            opacity: 0.8;
+            color: var(--dim);
             margin-bottom: 0.7em;
         }
         .model-card dl {
@@ -117,25 +123,26 @@
             font-size: 0.88em;
         }
         .model-card dt {
-            color: var(--muted);
+            color: var(--dim);
             font-weight: 600;
         }
         .model-card dd {
             margin: 0;
-            color: var(--text);
+            color: var(--fg);
             opacity: 0.9;
         }
         .model-card .verdict {
             margin-top: 0.6em;
             font-size: 0.9em;
             font-style: italic;
-            color: var(--muted);
+            color: var(--dim);
         }
 
         /* ── comparison table ── */
         .cmp-table-wrap {
             overflow-x: auto;
             margin: 1.4em 0;
+            background: linear-gradient(to right, var(--bg) 30%, transparent) left / 2em 100% no-repeat local, linear-gradient(to left, var(--bg) 30%, transparent) right / 2em 100% no-repeat local, linear-gradient(to right, var(--line), transparent) left / .6em 100% no-repeat scroll, linear-gradient(to left, var(--line), transparent) right / .6em 100% no-repeat scroll;
         }
         table.cmp {
             border-collapse: collapse;
@@ -143,30 +150,21 @@
             font-size: 0.82em;
         }
         table.cmp th, table.cmp td {
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--line);
             padding: 0.5em 0.7em;
             text-align: left;
             white-space: nowrap;
         }
         table.cmp th {
-            color: var(--muted);
+            color: var(--dim);
             font-weight: 600;
             text-transform: uppercase;
             font-size: 0.85em;
             letter-spacing: 0.03em;
         }
-        table.cmp td.yes { color: #4ade80; }
-        table.cmp td.no { color: var(--muted); opacity: 0.6; }
+        table.cmp td.yes { color: var(--yes); }
+        table.cmp td.no { color: var(--dim); }
 
-        .callout {
-            border-left: 4px solid var(--accent);
-            padding: 0.8em 1.2em;
-            margin: 1.4em 0;
-            background: var(--surface);
-            font-size: 0.9em;
-            color: var(--muted);
-        }
-        .callout strong { color: var(--text); }
 
         .links-row {
             display: flex;
@@ -175,28 +173,25 @@
             margin-top: 0.5em;
         }
         .links-row a {
-            font-size: 0.82em;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 0.1em;
-            text-decoration: none;
+            font-size: 0.85em;
+            padding: 0.5em 0.2em;
         }
+        @media (max-width: 36em) { .model-card dl { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
 
-    <header style="width: full;">
-        <h1 class="stretch grow"><a href="https://conrads.website">conrads.website</a></h1>
+    <header>
+        <a href="../index.html">conrads.website</a>
+        <button type="button" data-theme-toggle aria-label="Toggle light and dark mode"></button>
     </header>
-
-    <hr />
 
     <main>
 
       <article>
         <header>
-          <h1 class="stretch grow-1">DIZZY LAB: 13 Models, One Prompt</h1>
-        </header>
-        <p class="lede">
+          <h1>DIZZY LAB: 13 Models, One Prompt</h1>
+          <p>
           I gave the same prompt — build a standalone HTML/JS visualization of a mock robot arm
           driven by a <a href="https://github.com/PNNL/dizzy">DIZZY</a>-style event-sourced system —
           to 13 different model/agent combinations, with zero other context or coaching.
@@ -207,25 +202,25 @@
           counterparts — plus single bare runs of Zhipu's GLM 5.2 and Moonshot's Kimi K3). Below is what
           came out, what it cost, and how the approaches differ.
         </p>
-      </article>
+        </header>
 
-      <div class="callout">
+      <aside>
         <strong>Update:</strong> added the <code>-pro</code> variants of GPT-5.6-luna, -sol, and -terra
         after the original 8-way comparison — same single-shot prompt, same pi harness, run from three
         fresh empty directories. GPT-5.6-sol-pro failed with a provider-side <code>Internal Server Error</code>
         on the first attempt (no output, no cost billed) and succeeded on retry; that's reflected in its
         session but not in the metrics below.
-      </div>
+      </aside>
 
-      <div class="callout">
+      <aside>
         <strong>Update:</strong> added a twelfth run — Zhipu's <strong>GLM 5.2</strong> (<code>z-ai/glm-5.2</code>
         via OpenRouter) through the same pi harness and identical single-shot prompt, from a fresh empty
         directory. Like the GPT-5.6 entries it ran genuinely single-shot (one prompt in, done); its metrics
         below are measured at the point its visualization was committed and pushed, before the blog entry
         you're reading was authored in the same session.
-      </div>
+      </aside>
 
-      <div class="callout">
+      <aside>
         <strong>Update:</strong> added a thirteenth run — Moonshot's <strong>Kimi K3</strong>
         (<code>moonshotai/kimi-k3</code> via OpenRouter) through the same pi harness and identical
         single-shot prompt. Unlike every other pi/CLI entry, this one was <em>not</em> hands-off: it
@@ -235,18 +230,16 @@
         <code>shot_modal.html</code>/<code>test_drive.html</code> driver files to screenshot and
         console-check its own output before declaring done. Turn count and cost below reflect that extra
         back-and-forth.
-      </div>
+      </aside>
 
       <!-- ═══════════════════════════════════════════ -->
       <!--               METRICS                       -->
       <!-- ═══════════════════════════════════════════ -->
 
-      <article>
-        <header>
-          <h1 class="stretch grow-1">Metrics</h1>
-        </header>
+      <section>
+        <h2>Metrics</h2>
 
-        <section>
+        <div>
           <p>
             "Turns" below counts agent (LLM) responses within the session — how many times the model
             spoke or acted before finishing. All 13 got the identical single-shot prompt from
@@ -260,7 +253,7 @@
           </p>
 
           <div class="chart">
-            <h4>Agent turns</h4>
+            <h3>Agent turns</h3>
             <div class="bar-row"><div class="bar-label">Fable 5</div><div class="bar-track"><div class="bar-fill" style="width:53.1%;background:var(--m-fable)"></div></div><div class="bar-value">60</div></div>
             <div class="bar-row"><div class="bar-label">Opus 4.8</div><div class="bar-track"><div class="bar-fill" style="width:50.4%;background:var(--m-opus)"></div></div><div class="bar-value">57</div></div>
             <div class="bar-row"><div class="bar-label">Sonnet 5</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--m-sonnet5)"></div></div><div class="bar-value">113</div></div>
@@ -277,7 +270,7 @@
           </div>
 
           <div class="chart">
-            <h4>Tool calls (bash / read / edit / write)</h4>
+            <h3>Tool calls (bash / read / edit / write)</h3>
             <div class="bar-row"><div class="bar-label">Fable 5</div><div class="bar-track"><div class="bar-fill" style="width:49.1%;background:var(--m-fable)"></div></div><div class="bar-value">28</div></div>
             <div class="bar-row"><div class="bar-label">Opus 4.8</div><div class="bar-track"><div class="bar-fill" style="width:45.6%;background:var(--m-opus)"></div></div><div class="bar-value">26</div></div>
             <div class="bar-row"><div class="bar-label">Sonnet 5</div><div class="bar-track"><div class="bar-fill" style="width:98.2%;background:var(--m-sonnet5)"></div></div><div class="bar-value">56</div></div>
@@ -294,7 +287,7 @@
           </div>
 
           <div class="chart">
-            <h4>Total tokens (input + output + cache read/write)</h4>
+            <h3>Total tokens (input + output + cache read/write)</h3>
             <div class="bar-row"><div class="bar-label">Fable 5</div><div class="bar-track"><div class="bar-fill" style="width:42.7%;background:var(--m-fable)"></div></div><div class="bar-value">4.76M</div></div>
             <div class="bar-row"><div class="bar-label">Opus 4.8</div><div class="bar-track"><div class="bar-fill" style="width:29.0%;background:var(--m-opus)"></div></div><div class="bar-value">3.23M</div></div>
             <div class="bar-row"><div class="bar-label">Sonnet 5</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--m-sonnet5)"></div></div><div class="bar-value">11.14M</div></div>
@@ -311,7 +304,7 @@
           </div>
 
           <div class="chart">
-            <h4>Cost (USD, list price)</h4>
+            <h3>Cost (USD, list price)</h3>
             <div class="bar-row"><div class="bar-label">Fable 5</div><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--m-fable)"></div></div><div class="bar-value">$19.11</div></div>
             <div class="bar-row"><div class="bar-label">Opus 4.8</div><div class="bar-track"><div class="bar-fill" style="width:25.9%;background:var(--m-opus)"></div></div><div class="bar-value">$4.94</div></div>
             <div class="bar-row"><div class="bar-label">Sonnet 5</div><div class="bar-track"><div class="bar-fill" style="width:24.2%;background:var(--m-sonnet5)"></div></div><div class="bar-value">$4.62</div></div>
@@ -328,7 +321,7 @@
           </div>
 
           <div class="chart">
-            <h4>Lines of output HTML/JS/CSS</h4>
+            <h3>Lines of output HTML/JS/CSS</h3>
             <div class="bar-row"><div class="bar-label">Fable 5</div><div class="bar-track"><div class="bar-fill" style="width:69.9%;background:var(--m-fable)"></div></div><div class="bar-value">933</div></div>
             <div class="bar-row"><div class="bar-label">Opus 4.8</div><div class="bar-track"><div class="bar-fill" style="width:58.4%;background:var(--m-opus)"></div></div><div class="bar-value">780</div></div>
             <div class="bar-row"><div class="bar-label">Sonnet 5</div><div class="bar-track"><div class="bar-fill" style="width:55.4%;background:var(--m-sonnet5)"></div></div><div class="bar-value">740</div></div>
@@ -351,20 +344,18 @@
             usual discount/premium multipliers, not 1:1 with fresh input tokens — "total tokens" above is a raw
             sum across all four buckets and is a proxy for context volume, not a linear cost driver.
           </p>
-        </section>
-      </article>
+        </div>
+      </section>
 
       <!-- ═══════════════════════════════════════════ -->
       <!--          CROSS-MODEL SUMMARY TABLE          -->
       <!-- ═══════════════════════════════════════════ -->
 
-      <article>
-        <header>
-          <h1 class="stretch grow-1">Who did what</h1>
-        </header>
+      <section>
+        <h2>Who did what</h2>
 
-        <section>
-          <div class="cmp-table-wrap">
+        <div>
+          <div class="cmp-table-wrap" tabindex="0" role="region" aria-label="Model comparison table (scrolls sideways)">
             <table class="cmp">
               <thead>
                 <tr>
@@ -411,17 +402,15 @@
             past its own output limit and burning several turns on a self-authored headless-browser test
             harness before it converged.
           </p>
-        </section>
-      </article>
+        </div>
+      </section>
 
       <!-- ═══════════════════════════════════════════ -->
       <!--            PER-MODEL NOTES                  -->
       <!-- ═══════════════════════════════════════════ -->
 
-      <article>
-        <header>
-          <h1 class="stretch grow-1">Notes per run</h1>
-        </header>
+      <section>
+        <h2>Notes per run</h2>
 
         <div class="model-card">
           <h3>Claude Fable 5 <span class="harness-tag">Claude Code</span></h3>
@@ -566,19 +555,17 @@
           <p class="verdict">Technically on par with the best of the pi cohort — real IK, a genuine queue engine with conditional policy firing and a query round-trip — but the only run that needed hand-holding to actually finish, and the most expensive pi/CLI entry as a result.</p>
         </div>
 
-      </article>
+      </section>
 
       <!-- ═══════════════════════════════════════════ -->
       <!--                LINKS                        -->
       <!-- ═══════════════════════════════════════════ -->
 
-      <article>
-        <header>
-          <h1 class="stretch grow-1">See it yourself</h1>
-        </header>
-        <section>
+      <section>
+        <h2>See it yourself</h2>
+        <div>
           <p>Live visualizations:</p>
-          <nav class="card-links links-row">
+          <nav class="links-row">
             <a href="fable/index.html">Fable 5</a>
             <a href="opus/index.html">Opus 4.8</a>
             <a href="sonnet5/index.html">Sonnet 5</a>
@@ -594,7 +581,7 @@
             <a href="kimi-k3/index.html">Kimi K3</a>
           </nav>
           <p style="margin-top:1em;">Full agent session transcripts:</p>
-          <nav class="card-links links-row">
+          <nav class="links-row">
             <a href="sessions/fable.html">Fable 5</a>
             <a href="sessions/opus.html">Opus 4.8</a>
             <a href="sessions/sonnet5.html">Sonnet 5</a>
@@ -609,12 +596,13 @@
             <a href="sessions/glm5-2.html">GLM 5.2</a>
             <a href="sessions/kimi-k3.html">Kimi K3</a>
           </nav>
-          <p class="meta" style="margin-top:1em;">
+          <p>
             Shared prompt: <a href="PROMPT.md">PROMPT.md</a> — identical text handed to every model, no other context, no follow-up coaching beyond housekeeping commands.
           </p>
-        </section>
-      </article>
+        </div>
+      </section>
 
+    </article>
     </main>
 </body>
 </html>

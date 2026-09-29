@@ -4,55 +4,78 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Conrad Mearns</title>
-<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@800&display=swap" rel="stylesheet">
-<script>
-  try { var t = localStorage.theme; } catch (e) {}
-  document.documentElement.dataset.theme = t || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-</script>
+<script src="js/theme.js"></script>
+<link rel="stylesheet" href="css/theme.css">
 <style>
   /* title-card masthead over a quiet two-column body; light/dark via data-theme */
-  :root { color-scheme: light; --bg: #f4efe6; --fg: #16130e; --dim: #6b6558; --accent: #d4402f; --line: #16130e33; }
-  :root[data-theme=dark] { color-scheme: dark; --bg: #000; --fg: #d0d4e0; --dim: #7b8196; --accent: #f07c5a; --line: #2a2e3c; }
-  body { background: var(--bg); color: var(--fg); max-width: 60em; margin: 0 auto; padding: 2em 1.2em 3em; overflow-x: clip; font: 1.05em/1.55 Georgia, serif; }
-  a { color: inherit; text-decoration-color: var(--accent); text-underline-offset: .2em; }
-  a:hover { color: var(--accent); }
+  body { max-width: 62em; margin: 0 auto; padding: 2em 1.2em 3em; overflow-x: clip; font: 1.15em/1.55 Georgia, serif; }
   .st { font: 800 1em/1 "Shippori Mincho B1", "Hiragino Mincho ProN", serif; display: inline-block; transform: scaleX(.6); transform-origin: left; text-transform: uppercase; }
-  header { border-bottom: 3px solid var(--fg); margin-bottom: 2em; padding-bottom: .8em; }
+  header { overflow: hidden; border-bottom: 3px solid var(--fg); margin-bottom: 2em; padding-bottom: .8em; }
   h1.st { font-size: clamp(3em, 13vw, 8em); margin: 0; letter-spacing: -.01em; white-space: nowrap; }
-  header p { margin: 0; font: .75em/1.4 ui-monospace, monospace; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
-  .cols { display: grid; grid-template-columns: 15em 1fr; gap: 3em; }
-  aside { position: sticky; top: 1.5em; align-self: start; font-size: .95em; }
-  h2.st { font-size: 1.6em; color: var(--accent); margin: 0 0 .4em; }
-  main h2:not(:first-child) { margin-top: 1.2em; }
-  #theme { float: right; background: none; border: 1px solid var(--dim); color: var(--dim); font: .75em/1 ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; padding: .5em .8em; cursor: pointer; }
-  #theme:hover { color: var(--accent); border-color: var(--accent); }
-  .box { border-top: 1px solid var(--dim); padding-top: 1em; margin-top: 1.2em; }
+  header p { margin: 0; font: .75em/1.4 ui-monospace, monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); }
+  .contact { margin-top: .4em; display: flex; flex-wrap: wrap; align-items: center; gap: 0 1.2em; }
+  .contact a { display: inline-flex; align-items: center; gap: .5em; padding: .55em 0; }
+  .contact svg { width: 1.15em; height: 1.15em; flex: none; }
+  .cols { display: grid; grid-template-columns: 19em 1fr; gap: 2.5em; }
+  aside { align-self: start; font-size: .92em; }
+  aside h2.st { font-size: 1.9em; margin-bottom: .4em; }
+  h2.st { font-size: 2.3em; color: var(--accent); margin: 0 0 .3em; }
+  main h2:not(:first-child) { margin-top: 2.2em; }
+  aside .box:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+  .contact [data-theme-toggle] { border: 0; min-height: 0; min-width: 44px; margin-left: -.5em; padding: .55em .6em; display: inline-flex; justify-content: center; color: inherit; cursor: pointer; }
+  .contact [data-theme-toggle] svg { width: 1.3em; height: 1.3em; }
+  .contact [data-theme-toggle]:hover { color: var(--accent); }
+  @media (max-width: 30em) { .contact { font-size: .8em; gap: 0 .7em; } .contact a { gap: .35em; } .contact [data-theme-toggle] { min-width: 36px; margin-left: -.3em; padding: .55em .4em; } }
+  @media (max-width: 24em) { .contact { font-size: .72em; gap: 0 .5em; } }
+  #posts article { padding: .7em 0; border-top: 1px solid var(--line); font-size: .95em; line-height: 1.4; }
+  #posts .imgs { display: grid; grid-template-columns: repeat(2, 1fr); gap: .4em; margin-top: .5em; }
+  #posts img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; border: 1px solid var(--line); }
+  #posts time { display: block; font: .8em/1.6 ui-monospace, monospace; letter-spacing: .05em; color: var(--dim); }
+  #posts .imgs a { display: block; }
+  #posts a { text-decoration-thickness: 1px; }
+  #posts small { color: var(--dim); }
+  .box { border-top: 1px solid var(--line); padding-top: 1em; margin-top: 1.2em; }
   p { margin: 0 0 1em; }
   ol { list-style: none; padding: 0; margin: 0; }
-  li { display: grid; grid-template-columns: 6em 1fr; padding: .7em 0; border-top: 1px solid var(--line); }
-  li b { display: block; }
-  li.hi b { color: var(--accent); }
-  li.hi { border-top-color: var(--accent); }
+  main li { display: grid; grid-template-columns: 6em 1fr; line-height: 1.65; padding: .8em 0; border-top: 1px solid var(--line); }
+  main li b { display: block; }
+  main li.hi b { color: var(--accent); }
+  main li.hi { border-top-color: var(--accent); }
   time, span { color: var(--dim); }
-  time { font: .75em/2.2 ui-monospace, monospace; letter-spacing: .05em; }
-  @media (max-width: 42em) { .cols { grid-template-columns: 1fr; gap: 1.5em; } aside { position: static; } li { grid-template-columns: 1fr; } }
+  time { font: .8em/2.1 ui-monospace, monospace; letter-spacing: .05em; }
+  #peek { position: fixed; z-index: 9; left: 0; top: 0; width: 412px; pointer-events: none; background: var(--bg); border: 2px solid var(--accent); box-shadow: 6px 6px 0 var(--fg); opacity: 0; transform: scaleY(.04); transition: opacity .15s, transform .22s cubic-bezier(.2, .9, .3, 1); }
+  #peek.on { opacity: 1; transform: none; }
+  #peek small { display: block; padding: .3em .7em; background: var(--accent); color: var(--bg); font: .7em/1.5 ui-monospace, monospace; letter-spacing: .06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #peek div { position: relative; width: 408px; height: 255px; overflow: hidden; background: #fff; }
+  #peek iframe { width: 1024px; height: 640px; border: 0; transform: scale(.398); transform-origin: 0 0; }
+  #peek img { width: 100%; height: 100%; object-fit: cover; object-position: top left; display: block; }
+  #peek div::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(transparent 0 2px, #0002 2px 3px); }
+  @media (hover: none), (max-width: 42em) { #peek { display: none; } }
+  @media (max-width: 42em) { #posts article:nth-child(n+3) { display: none; } }
+  @media (max-width: 42em) { .cols { grid-template-columns: 1fr; gap: 2em; } main { order: -1; } main li { grid-template-columns: 1fr; } #posts img { aspect-ratio: 16 / 9; } header p { letter-spacing: .1em; } aside .box:first-child { border-top: 1px solid var(--line); padding-top: 1em; } }
 </style>
 </head>
 <body>
 
 <header>
-  <button id="theme" type="button" aria-label="Toggle light and dark mode"></button>
   <h1 class="st">Conrad Mearns</h1>
-  <p>Computer scientist — tools for agents &amp; event-driven systems</p>
+  <p>Computer Technologist ~ Software Engineering &amp; event-driven systems</p>
+  <nav class="contact"><a href="mailto:conradmearns@pm.me"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2m0 4-8 5-8-5V6l8 5 8-5z"/></svg>Email</a><a href="https://github.com/ConradMearns"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a><a href="https://bsky.app/profile/conradmearns.bsky.social"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565C.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479c.815 2.736 3.713 3.66 6.383 3.364q.204-.03.415-.056q-.207.033-.415.056c-3.912.58-7.387 2.005-2.83 7.078c5.013 5.19 6.87-1.113 7.823-4.308c.953 3.195 2.05 9.271 7.733 4.308c4.267-4.308 1.172-6.498-2.74-7.078a9 9 0 0 1-.415-.056q.21.026.415.056c2.67.297 5.568-.628 6.383-3.364c.246-.828.624-5.79.624-6.478c0-.69-.139-1.861-.902-2.206c-.659-.298-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8"/></svg>Bluesky</a><button type="button" data-theme-toggle><svg viewBox="0 0 24 24" aria-hidden="true"><path class="moon" fill="currentColor" d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/><g class="sun" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></svg></button></nav>
 </header>
+
 
 <div class="cols">
   <aside>
-    <p><a href="mailto:conradmearns@pm.me">Email</a> · <a href="https://github.com/ConradMearns">GitHub</a> · <a href="https://bsky.app/profile/conradmearns.bsky.social">Bluesky</a></p>
+    <div class="box" id="posts">
+      <h2 class="st">Posts</h2>
+      <div id="feed"><small>Loading…</small></div>
+      <p style="margin-top:.8em"><a href="bsky.html">All posts →</a></p>
+    </div>
+
     <div class="box">
       <h2 class="st">Vibechecks</h2>
       <p>A quick, mostly vibe-coded test of an idea or a model. I describe it, an LLM builds it, and I see whether it holds up. Built in an evening, judged by feel. Some work, some semi-fail.</p>
-      <a href="vibechecks/">Browse all →</a>
+      <a href="vibechecks/index.html" data-peek="peek/vibechecks.jpg">Browse all →</a>
     </div>
     <p class="box"><a href="about.html">About this site</a></p>
   </aside>
@@ -60,34 +83,97 @@
   <main>
     <h2 class="st">Now</h2>
     <ol>
-      <li><time>ONGOING</time><div><b>Agentic goal ontology</b> <span>Goals, gaps and events, so an agent can reason about the work.</span> <a href="artifacts/graphs.html">Graph</a>, <a href="artifacts/evals.html">evals</a></div></li>
-      <li><time>ONGOING</time><div><b>Provenance-focused dev workspace</b> <span>Every artifact knows where it came from.</span></div></li>
-      <li><time>ONGOING</time><div><b>Building a house</b> <span>The literal kind.</span></div></li>
+      <li><time>ONGOING</time><div><b>Agentic goal ontology</b> <span>Goals, gaps and events. Likely pausing soon to focus on Cybernetics Ontologies and Classification systems first.</span> <a href="artifacts/graphs.html">Graph</a>, <a href="artifacts/evals.html">evals</a></div></li>
+      <li><time>ONGOING</time><div><b>Building a house</b> <span>I broke my photo album system - coming back soon.</span></div></li>
     </ol>
 
     <h2 class="st">Then</h2>
     <ol>
-      <li><time>2026.09</time><div><b>Vintage Ore</b> <span>Simulated prospecting strategies.</span> <a href="project-vintage-ore/index.html">Read</a>, <a href="project-vintage-ore/report/index.html">report</a>, <a href="https://github.com/ConradMearns/vintage-ore">code</a></div></li>
-      <li><time>2026.09</time><div><b>Ruin Lab</b> <span>A voxel ruins simulator: seeded weathering, structural collapse, exportable timelapses. Three.js.</span> <a href="https://github.com/ConradMearns/ruin-lab">Code</a></div></li>
-      <li><time>2026.08</time><div><b>Kerbal Space Program tools</b> <span>In orbit; made tooling instead of flights.</span> <a href="artifacts/ksp-maneuver-planner.html">Δv computer</a>, <a href="artifacts/orbit-viewer.html">orbit viewer</a></div></li>
-      <li><time>2026.07</time><div><b>DIZZY</b> <span>Architecture for redistributable systems, plus DIZZY LAB: 13 models, one prompt.</span> <a href="project-dizzy-viz/blog.html">Lab</a>, <a href="https://github.com/PNNL/dizzy">code</a>, <a href="https://github.com/PNNL/dizzy/blob/main/docs/whitepaper.pdf">whitepaper</a></div></li>
-      <li class="hi"><time>2026.06</time><div><b>ECS × LISP</b> <span>Type s-expressions, mutate a world. Wolf-and-sheep agents that sense, think and act, with beliefs you can watch, and nested mini-worlds for theory of mind.</span> <a href="https://conradmearns.github.io/7m9/ecs-lisp/index.html">Try it</a>, <a href="https://github.com/ConradMearns/7m9/tree/main/ecs-lisp">code</a></div></li>
-      <li><time>2026.06</time><div><b>Factorio mapper</b> <span>Share Factorio builds: a static zoomable web map and an in-game clip recorder.</span> <a href="https://github.com/ConradMearns/breadboard-factorio-mapper">Code</a></div></li>
-      <li><time>2022–26</time><div><b>Turncoats</b> <span>A strategy game with Monte-Carlo bots.</span> <a href="project-turncoats/index.html">Read</a>, <a href="https://conradmearns.github.io/breadboard-turncoats/fable.html">play</a></div></li>
-      <li><time>2026.05</time><div><b>Blueprint</b> <span>An infinite-canvas ER diagram editor driven by LinkML. SvelteKit, Svelte Flow.</span> <a href="https://github.com/ConradMearns/blueprint">Code</a></div></li>
+      <li><time>2026.09</time><div><b>Vintage Ore</b> <span>Simulated prospecting strategies for Vintage Story. Small Opus 5.5 and Sonnet 5.5 animation comparison.</span> <a href="project-vintage-ore/index.html" data-peek="project-vintage-ore/thumb-merged.png">Read</a>, <a href="project-vintage-ore/report/index.html">report</a>, <a href="https://github.com/ConradMearns/vintage-ore" data-peek="project-vintage-ore/thumb-report.png">code</a></div></li>
+      <li><time>2026.09</time><div><b>Ruin Lab</b> <span>A voxel ruins simulator that implements seeded weathering, structural collapse, exportable and timelapses. Three.js.</span> <a href="https://github.com/ConradMearns/ruin-lab">Code</a></div></li>
+      <li><time>2026.08</time><div><b>Kerbal Space Program tools</b> <span>Partial tutorial and tools for Kerbal Operating System mod and related mathematics for orbital flight control.</span> <a href="artifacts/ksp-maneuver-planner.html">Δv computer</a>, <a href="artifacts/orbit-viewer.html">orbit viewer</a></div></li>
+      <li><time>2026.07</time><div><b>DIZZY</b> <span>Interstitial Architecture for redistributable systems.</span> <a href="https://github.com/PNNL/dizzy" data-peek="https://pnnl.github.io/dizzy/">code</a>, <a href="https://github.com/PNNL/dizzy/blob/main/docs/whitepaper.pdf" data-peek="peek/whitepaper.jpg">whitepaper</a></div></li>
+      <!-- <li><time>2026.07</time><div><b>Vibecheck DIZZY Lab</b> <span>Interstitial Architecture for redistributable systems, plus DIZZY LAB: 13 models, one prompt.</span> <a href="project-dizzy-viz/blog.html" data-peek="peek/dizzy-lab.jpg">Lab</a>, <a href="https://github.com/PNNL/dizzy" data-peek="https://pnnl.github.io/dizzy/">code</a>, <a href="https://github.com/PNNL/dizzy/blob/main/docs/whitepaper.pdf" data-peek="peek/whitepaper.jpg">whitepaper</a></div></li> -->
+      <li class="hi"><time>2026.06</time><div><b>ECS + LISP</b> <span>Type s-expressions, mutate a world. Wolf-and-sheep agents that sense, think and act, with beliefs you can watch, and nested mini-worlds for theory of mind.</span> <a href="https://conradmearns.github.io/7m9/ecs-lisp/index.html">Try it</a>, <a href="https://github.com/ConradMearns/7m9/tree/main/ecs-lisp" data-peek="https://conradmearns.github.io/7m9/ecs-lisp/index.html">code</a></div></li>
+      <li><time>2026.06</time><div><b>Factorio mapper</b> <span>Share Factorio builds: a static zoomable web map and an in-game clip recorder.</span> <a href="https://github.com/ConradMearns/breadboard-factorio-mapper" data-peek="peek/factorio.jpg">Code</a></div></li>
+      <li><time>2026.06</time><div><b>Turncoats</b> <span>A strategy game with Monte-Carlo bots, started in 2022.</span> <a href="project-turncoats/index.html">Read</a>, <a href="https://conradmearns.github.io/breadboard-turncoats/fable.html">play</a></div></li>
+      <li><time>2026.05</time><div><b>Entity-Relation Diagram Visualizer for LinkML</b> <span>An infinite-canvas ER diagram editor driven by LinkML. SvelteKit, Svelte Flow.</span> <a href="https://github.com/ConradMearns/blueprint" data-peek="peek/blueprint.jpg">Code</a></div></li>
     </ol>
   </main>
 </div>
 
+
 <script>
-  var root = document.documentElement, btn = document.getElementById("theme");
-  function label() { btn.textContent = root.dataset.theme === "dark" ? "☀ Light" : "☾ Dark"; }
-  btn.onclick = function () {
-    root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
-    try { localStorage.theme = root.dataset.theme; } catch (e) {}
-    label();
-  };
-  label();
+  /* latest few plain Bluesky posts (mine only: no reposts, replies or quotes); see bsky.html for the full page */
+  (function () {
+    var H = "conradmearns.bsky.social", N = 5, feed = document.getElementById("feed");
+    fetch("https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=" + H + "&filter=posts_no_replies&limit=50")
+      .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+      .then(function (d) {
+        var posts = d.feed.filter(function (i) {
+          var p = i.post, t = p.embed && p.embed.$type;
+          return !i.reason && p.author.handle === H && !p.record.reply && (!t || /images|external|video/.test(t));
+        }).slice(0, N);
+        feed.replaceChildren();
+        posts.forEach(function (i) {
+          var p = i.post, art = document.createElement("article"), t = document.createElement("time"), a = document.createElement("a"), txt = p.record.text.replace(/\s+/g, " ").trim();
+          t.textContent = p.record.createdAt.slice(0, 10).replace(/-/g, ".");
+          a.href = "https://bsky.app/profile/" + H + "/post/" + p.uri.split("/").pop(); a.rel = "noopener";
+          a.textContent = txt.length > 140 ? txt.slice(0, 140).replace(/\s\S*$/, "") + "…" : txt || "(photo)";
+          art.append(t, a);
+          if (p.embed && p.embed.$type === "app.bsky.embed.images#view") {
+            var g = document.createElement("div"); g.className = "imgs";
+            p.embed.images.slice(0, 2).forEach(function (im) {
+              if (!/^https:\/\//.test(im.thumb)) return;
+              var ia = document.createElement("a"), img = document.createElement("img");
+              ia.href = a.href; ia.rel = "noopener"; img.src = im.thumb; img.alt = im.alt || ""; img.loading = "lazy";
+              ia.append(img); g.append(ia);
+            });
+            art.append(g);
+          }
+          feed.append(art);
+        });
+        if (!posts.length) feed.textContent = "Nothing recent.";
+      })
+      .catch(function () { feed.innerHTML = '<small>Couldn\u2019t load posts.</small>'; });
+  })();
+</script>
+<script>
+  /* hover preview: a tiny CRT that shows the page a link points to (own site + github.io only) */
+  (function () {
+    var canPeek = matchMedia("(hover: hover) and (min-width: 42.01em)");
+    if (!matchMedia("(hover: hover)").matches) return;
+    var box = document.createElement("div"), cap = document.createElement("small"), screen = document.createElement("div"), cur, timer;
+    box.id = "peek"; box.setAttribute("aria-hidden", "true"); box.append(cap, screen); document.body.append(box);
+    function src(a) { return a.dataset.peek || a.href; }  /* data-peek: a page URL or an image, for links that cannot be framed */
+    function ok(a) {
+      var u = new URL(src(a), location.href);
+      return /^https?:|^file:/.test(u.protocol) && (u.origin === location.origin || u.hostname.endsWith(".github.io")) && u.pathname !== location.pathname;
+    }
+    function show(a) {
+      var f;
+      if (/\.(png|jpe?g|webp|gif)$/i.test(src(a))) { f = document.createElement("img"); f.src = src(a); f.alt = ""; }
+      else { f = document.createElement("iframe"); f.src = src(a); f.tabIndex = -1; f.setAttribute("sandbox", "allow-scripts allow-same-origin"); }
+      screen.replaceChildren(f); box.classList.add("on");
+    }
+    function hide() {
+      clearTimeout(timer); box.classList.remove("on");
+      setTimeout(function () { if (!box.classList.contains("on")) screen.replaceChildren(); }, 250);
+    }
+    function move(e) {
+      var w = box.offsetWidth, h = box.offsetHeight, x = e.clientX + 24, y = e.clientY + 20;
+      if (x + w > innerWidth - 8) x = e.clientX - w - 24;
+      if (y + h > innerHeight - 8) y = innerHeight - h - 8;
+      box.style.left = Math.max(8, x) + "px"; box.style.top = Math.max(8, y) + "px";
+    }
+    document.addEventListener("mouseover", function (e) {
+      var a = e.target.closest && e.target.closest("a[href]");
+      if (a === cur) return;
+      hide(); cur = a;
+      if (a && canPeek.matches && ok(a)) { var u = new URL(a.href); cap.textContent = "▶ " + (u.origin === location.origin ? u.pathname.slice(1) : u.host + u.pathname); move(e); timer = setTimeout(show, 250, a); }
+    });
+    document.addEventListener("mousemove", function (e) { if (cur) move(e); });
+  })();
 </script>
 </body>
 </html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Self-Editing Page, annotated — Conrad Mearns</title>
+    <script src="../js/theme.js"></script>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/notes.css">
+</head>
+<body>
+
+    <header>
+        <a href="../index.html">conrads.website</a> /
+        <a href="index.html">vibechecks</a>
+        <span class="here" aria-current="page">/ self-editing page</span>
+        <button type="button" data-theme-toggle></button>
+    </header>
+
+    <div class="stage">
+        <main class="notes" data-single>
+            <h1>Self-Editing Page</h1>
+            <section data-view="self-edit-demo.html" data-label="Selection + LLM jobs">
+                <p>This page rewrites itself. Drag a rectangle over part of the document, type an instruction, and an LLM job replaces the selected fragments in place. It runs through OpenRouter, so bring a key.</p>
+            </section>
+        </main>
+
+        <div class="frame">
+            <div class="screen"><iframe src="self-edit-demo.html" title="Self-Editing Page, live" data-width="1000"></iframe></div>
+            <p><span id="label">Selection + LLM jobs</span> <a id="open" href="self-edit-demo.html">Open full page →</a></p>
+        </div>
+    </div>
+
+    <script src="../js/notes.js"></script>
+</body>
+</html>

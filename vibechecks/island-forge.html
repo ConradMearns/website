@@ -1803,7 +1803,15 @@ window.addEventListener("DOMContentLoaded", ()=>{
   $("#ioApply").addEventListener("click",applyIO);
   $("#ioClose").addEventListener("click",()=>$("#ioModal").style.display="none");
   document.querySelectorAll(".extab").forEach(b=>b.addEventListener("click",()=>loadExample(b.dataset.ex)));
-  loadExample("forge");
+  /* the page can be driven from its URL: island-forge.html#cool,run loads an example and starts it.
+     the annotated viewer (island-forge-notes.html) changes the hash as you scroll; no hash = the forge, paused */
+  function fromHash(){
+    const [k,flag]=location.hash.slice(1).split(",");
+    loadExample(EXAMPLES[k]?k:"forge");
+    if(flag==="run"){ running=true; $("#runBtn").textContent="❚❚ Pause"; }
+  }
+  fromHash();
+  addEventListener("hashchange",fromHash);
   requestAnimationFrame(t=>{ lastFrame=t; requestAnimationFrame(frame); });
 });
 
