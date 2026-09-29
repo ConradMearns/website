@@ -1,0 +1,1812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Island Forge — dynamic systems compiler</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg0:#0e131a; --bg1:#131a23; --panel:#171f2a; --panel2:#1b2431;
+  --line:#243040; --ink:#dde6ef; --mut:#8794a3; --dim:#5c6a7a;
+  --e:#f2b53c; --m:#7fd0ff; --t:#ff7a59; --f:#4fd6b0; --s:#b48cff; --x:#e8b8ff;
+  --alg:#7fd0ff; --lin:#7ee787; --tmpl:#f2b53c; --tick:#ff7a59; --fault:#ff5470;
+  --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --disp:"Space Grotesk", system-ui, sans-serif;
+}
+*{ box-sizing:border-box; }
+html,body{ height:100%; margin:0; }
+body{
+  background:var(--bg0); color:var(--ink); font-family:var(--mono); font-size:12.5px;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+button{ font-family:var(--mono); cursor:pointer; }
+input,select,textarea{ font-family:var(--mono); }
+
+/* ---------- top bar ---------- */
+#topbar{
+  display:flex; align-items:center; gap:14px; padding:8px 14px;
+  background:var(--bg1); border-bottom:1px solid var(--line); flex-wrap:wrap;
+}
+#wordmark{ font-family:var(--disp); font-weight:700; font-size:16px; letter-spacing:.4px; white-space:nowrap; }
+#wordmark b{ color:var(--e); }
+#wordmark small{ display:block; font-family:var(--mono); font-weight:400; font-size:9.5px; color:var(--dim); letter-spacing:.6px; }
+#extabs{ display:flex; gap:6px; flex-wrap:wrap; }
+.extab{
+  background:none; border:1px solid var(--line); color:var(--mut); border-radius:6px;
+  padding:4px 9px; font-size:11px;
+}
+.extab.on{ color:var(--ink); border-color:var(--e); background:#f2b53c14; }
+#transport{ margin-left:auto; display:flex; align-items:center; gap:8px; }
+#transport button{
+  background:var(--panel2); border:1px solid var(--line); color:var(--ink);
+  border-radius:6px; padding:5px 12px; font-size:12px;
+}
+#runBtn{ border-color:var(--lin) !important; color:var(--lin) !important; min-width:86px; }
+#speedSel{ background:var(--panel2); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:4px 6px; }
+#clock{ min-width:74px; text-align:right; color:var(--e); font-weight:600; }
+
+/* ---------- main columns ---------- */
+#main{ flex:1; display:flex; min-height:0; }
+#palette{
+  width:152px; background:var(--bg1); border-right:1px solid var(--line);
+  overflow-y:auto; padding:8px 8px 20px; flex-shrink:0;
+}
+.palCat{ font-size:10px; letter-spacing:1.4px; text-transform:uppercase; margin:12px 2px 5px; opacity:.9; }
+.palItem{
+  display:flex; align-items:center; gap:8px; width:100%;
+  background:var(--panel); border:1px solid var(--line); color:var(--ink);
+  border-radius:7px; padding:5px 7px; margin-bottom:5px; font-size:11px; text-align:left;
+}
+.palItem:hover{ border-color:var(--mut); background:var(--panel2); }
+.palIcon{ width:20px; height:20px; flex-shrink:0; }
+
+#centercol{ flex:1; display:flex; flex-direction:column; min-width:0; }
+#blurbBar{
+  padding:6px 14px; background:var(--bg1); border-bottom:1px solid var(--line);
+  color:var(--mut); font-size:11.5px; line-height:1.45; max-height:64px; overflow-y:auto;
+}
+#canvasWrap{ flex:1; position:relative; min-height:0; }
+#canvas{
+  width:100%; height:100%; display:block; touch-action:none;
+  background:
+    linear-gradient(#18202b 1px, transparent 1px) 0 0/26px 26px,
+    linear-gradient(90deg,#18202b 1px, transparent 1px) 0 0/26px 26px,
+    var(--bg0);
+  cursor:grab;
+}
+
+/* schematic */
+.chip{ fill:#151d27; stroke-width:1.4; }
+.comp.sel .chip{ stroke-width:2.4; filter:drop-shadow(0 0 6px #ffffff22); }
+.comp{ cursor:move; }
+.glyph{ fill:none; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.clabel{ fill:var(--dim); font-size:9px; text-anchor:middle; font-family:var(--mono); pointer-events:none; }
+.cval{ fill:var(--ink); font-size:10.5px; text-anchor:middle; font-family:var(--mono); pointer-events:none; }
+.port{ stroke-width:1.8; cursor:crosshair; }
+.port:hover{ stroke-width:3; }
+.port.pend{ fill:#fff; stroke-width:3; }
+.togdot{ cursor:pointer; }
+.wire{ fill:none; stroke-width:2.2; pointer-events:none; opacity:.9; }
+.wire.sel{ stroke-width:4; opacity:1; }
+.wireHit{ fill:none; stroke:transparent; stroke-width:14; cursor:pointer; }
+.hull rect{ pointer-events:none; }
+.hullBadge{ font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.8px; }
+.hullMoon{ font-family:var(--mono); font-size:10.5px; opacity:.95; }
+
+/* ---------- right pane ---------- */
+#rightcol{
+  width:302px; background:var(--bg1); border-left:1px solid var(--line);
+  display:flex; flex-direction:column; flex-shrink:0; min-height:0;
+}
+#ptabs{ display:flex; border-bottom:1px solid var(--line); }
+.ptab{
+  flex:1; background:none; border:none; border-bottom:2px solid transparent;
+  color:var(--mut); padding:8px 0; font-size:11px; letter-spacing:.8px; text-transform:uppercase;
+}
+.ptab.on{ color:var(--ink); border-bottom-color:var(--e); }
+#paneBody{ flex:1; overflow-y:auto; padding:10px; }
+.hint{ color:var(--mut); line-height:1.7; font-size:11.5px; }
+.inspTitle{ font-family:var(--disp); font-size:14px; font-weight:600; margin-bottom:10px; }
+.dim{ color:var(--dim); font-family:var(--mono); font-size:11px; }
+.prow{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:7px; }
+.prow label{ color:var(--mut); font-size:11px; }
+.prow input[type=number]{ width:110px; background:var(--panel2); border:1px solid var(--line); color:var(--ink); border-radius:5px; padding:4px 6px; }
+.prow select{ background:var(--panel2); border:1px solid var(--line); color:var(--ink); border-radius:5px; padding:4px; }
+button.danger{ margin-top:10px; background:none; border:1px solid var(--fault); color:var(--fault); border-radius:6px; padding:5px 10px; }
+
+/* islands — the compiler output */
+.islCard{
+  background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--mut);
+  border-radius:8px; padding:8px 10px; margin-bottom:9px;
+}
+.islHead{ display:flex; align-items:center; gap:8px; }
+.islId{ color:var(--dim); font-size:11px; }
+.badge{
+  border:1px solid; border-radius:4px; padding:1px 7px;
+  font-size:10px; font-weight:600; letter-spacing:1px;
+}
+.moon{ margin-left:auto; color:var(--ink); }
+.islNote{ color:var(--dim); font-size:10.5px; margin:5px 0 6px; line-height:1.45; }
+.srow{ display:flex; gap:8px; align-items:baseline; padding:1.5px 0; }
+.sname{ font-size:11px; }
+.sv{ margin-left:auto; font-weight:600; }
+.sunit{ color:var(--dim); font-size:10px; width:34px; }
+.islFoot{ display:flex; justify-content:space-between; color:var(--mut); font-size:10.5px; margin-top:6px; border-top:1px dashed var(--line); padding-top:5px; }
+.warnLine{ color:var(--e); font-size:10.5px; margin:3px 0; }
+.faultLine{ color:var(--fault); font-size:10.5px; margin:3px 0; }
+.predLine{ color:var(--tmpl); font-size:10.5px; margin-top:4px; }
+
+/* events */
+.evHead{ font-size:10px; letter-spacing:1.4px; text-transform:uppercase; color:var(--dim); margin:8px 0 5px; }
+.evRow{ display:flex; gap:8px; padding:2.5px 0; font-size:11px; color:var(--ink); border-bottom:1px solid #1a2330; line-height:1.5; flex-wrap:wrap; }
+.evT{ color:var(--e); min-width:52px; }
+.evI{ color:var(--dim); min-width:22px; }
+.evRow.warn{ color:var(--e); }
+.evRow.fault{ color:var(--fault); }
+.evRow.sleep{ color:var(--m); }
+.evRow.sys{ color:var(--mut); }
+.evRow.pred{ color:var(--tmpl); }
+
+/* ---------- charts ---------- */
+#charts{
+  display:flex; gap:10px; padding:8px 12px; background:var(--bg1);
+  border-top:1px solid var(--line); overflow-x:auto; min-height:110px; align-items:flex-start;
+}
+.chartWrap{ flex-shrink:0; }
+.chartLabel{ font-size:10.5px; margin-bottom:3px; }
+.chartVal{ color:var(--ink); font-weight:600; }
+canvas.chart{ width:160px; height:64px; background:var(--bg0); border:1px solid var(--line); border-radius:6px; }
+
+/* modal */
+#ioModal{ position:fixed; inset:0; background:#000a; display:none; align-items:center; justify-content:center; z-index:10; }
+#ioBox{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; width:min(560px,92vw); }
+#ioText{ width:100%; height:260px; background:var(--bg0); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:8px; font-size:11px; }
+#ioBox button{ background:var(--panel2); border:1px solid var(--line); color:var(--ink); border-radius:6px; padding:5px 12px; margin-top:10px; margin-right:8px; }
+#ioTitle{ font-family:var(--disp); font-weight:600; margin-bottom:8px; }
+
+@media (max-width:860px){
+  #palette{ width:118px; }
+  #rightcol{ width:250px; }
+}
+</style>
+</head>
+<body>
+  <div id="topbar">
+    <div id="wordmark"><b>ISLAND</b> FORGE<small>structural analysis · piecewise-analytic evolution</small></div>
+    <div id="extabs">
+      <button class="extab" data-ex="divider">Electrical</button>
+      <button class="extab" data-ex="spin">Mechanical</button>
+      <button class="extab" data-ex="cool">Thermal</button>
+      <button class="extab" data-ex="tankd">Fluid</button>
+      <button class="extab" data-ex="forge">⚙ Forge (mixed)</button>
+      <button class="extab" data-ex="blank">Blank</button>
+    </div>
+    <div id="transport">
+      <button id="importBtn">Load</button>
+      <button id="exportBtn">Save</button>
+      <select id="speedSel">
+        <option value="0.5">×0.5</option>
+        <option value="1" selected>×1</option>
+        <option value="4">×4</option>
+        <option value="16">×16</option>
+        <option value="64">×64</option>
+      </select>
+      <button id="resetBtn">↺ Reset</button>
+      <button id="runBtn">▶ Run</button>
+      <span id="clock">0.0s</span>
+    </div>
+  </div>
+  <div id="main">
+    <div id="palette"></div>
+    <div id="centercol">
+      <div id="blurbBar"><span id="blurb"></span></div>
+      <div id="canvasWrap">
+        <svg id="canvas"><g id="viewport"></g></svg>
+      </div>
+    </div>
+    <div id="rightcol">
+      <div id="ptabs">
+        <button class="ptab" data-tab="isl">Islands</button>
+        <button class="ptab" data-tab="ev">Events</button>
+        <button class="ptab" data-tab="insp">Inspect</button>
+      </div>
+      <div id="paneBody">
+        <div id="islBody"></div>
+        <div id="evBody" style="display:none"></div>
+        <div id="inspBody" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+  <div id="charts"></div>
+  <div id="ioModal"><div id="ioBox">
+    <div id="ioTitle"></div>
+    <textarea id="ioText" spellcheck="false"></textarea>
+    <div><button id="ioApply">Load system</button><button id="ioClose">Close</button></div>
+  </div></div>
+<script>
+/* ============================================================
+   ISLAND FORGE — dynamic systems compiler & solver (core)
+   Domains: e electrical · m mechanical · t thermal · f fluid · s signal
+   ============================================================ */
+"use strict";
+
+const SIGMA = 5.67e-8, GRAV = 9.81;
+
+const DOMAINS = {
+  e: { name:"Electrical", color:"#f2b53c" },
+  m: { name:"Mechanical", color:"#7fd0ff" },
+  t: { name:"Thermal",    color:"#ff7a59" },
+  f: { name:"Fluid",      color:"#4fd6b0" },
+  s: { name:"Signal",     color:"#b48cff" },
+};
+
+/* ---------- component library ----------
+   ports: {id, dom, dir?('in'|'out' for s), side:'L'|'R'|'T'|'B', k: 0..1 along side} */
+const LIB = {
+  ground:  { cat:"e", label:"Ground",  w:64, h:46,
+    ports:[{id:"p", dom:"e", side:"T", k:.5}], params:{} },
+  battery: { cat:"e", label:"Battery", w:92, h:52,
+    ports:[{id:"n", dom:"e", side:"L", k:.5},{id:"p", dom:"e", side:"R", k:.5}],
+    params:{ V:{v:12, unit:"V"}, on:{v:true, toggle:true} } },
+  isource: { cat:"e", label:"Current src", w:92, h:52,
+    ports:[{id:"n", dom:"e", side:"L", k:.5},{id:"p", dom:"e", side:"R", k:.5}],
+    params:{ I:{v:1, unit:"A"}, on:{v:true, toggle:true} } },
+  resistor:{ cat:"e", label:"Resistor", w:92, h:48,
+    ports:[{id:"a", dom:"e", side:"L", k:.5},{id:"b", dom:"e", side:"R", k:.5}],
+    params:{ R:{v:10, unit:"Ω", min:1e-6} } },
+  capacitor:{ cat:"e", label:"Capacitor", w:92, h:48, store:true,
+    ports:[{id:"p", dom:"e", side:"L", k:.5},{id:"n", dom:"e", side:"R", k:.5}],
+    params:{ C:{v:0.5, unit:"F", min:1e-9}, v0:{v:0, unit:"V"} } },
+
+  torque:  { cat:"m", label:"Torque src", w:96, h:52,
+    ports:[{id:"shaft", dom:"m", side:"R", k:.5}],
+    params:{ tau:{v:10, unit:"N·m"}, on:{v:true, toggle:true} } },
+  flywheel:{ cat:"m", label:"Flywheel", w:96, h:56, store:true,
+    ports:[{id:"shaft", dom:"m", side:"L", k:.5},{id:"w", dom:"s", dir:"out", side:"B", k:.5}],
+    params:{ J:{v:2, unit:"kg·m²", min:1e-6}, w0:{v:0, unit:"rad/s"} } },
+  bearing: { cat:"m", label:"Bearing", w:92, h:48,
+    ports:[{id:"shaft", dom:"m", side:"L", k:.5}],
+    params:{ b:{v:0.5, unit:"N·m·s", min:0} } },
+
+  heatsrc: { cat:"t", label:"Heat src", w:92, h:52,
+    ports:[{id:"out", dom:"t", side:"R", k:.5}],
+    params:{ Q:{v:500, unit:"W"}, on:{v:true, toggle:true} } },
+  tmass:   { cat:"t", label:"Thermal mass", w:104, h:56, store:true,
+    ports:[{id:"t", dom:"t", side:"L", k:.5},{id:"T", dom:"s", dir:"out", side:"B", k:.5}],
+    params:{ C:{v:5000, unit:"J/K", min:1}, T0:{v:293, unit:"K"}, Tmark:{v:373, unit:"K"} } },
+  twall:   { cat:"t", label:"Wall (R_th)", w:92, h:48,
+    ports:[{id:"a", dom:"t", side:"L", k:.5},{id:"b", dom:"t", side:"R", k:.5}],
+    params:{ Rth:{v:0.05, unit:"K/W", min:1e-6} } },
+  ambient: { cat:"t", label:"Ambient", w:92, h:48,
+    ports:[{id:"t", dom:"t", side:"L", k:.5}],
+    params:{ T:{v:293, unit:"K"} } },
+  radiator:{ cat:"t", label:"Radiator", w:96, h:52,
+    ports:[{id:"t", dom:"t", side:"L", k:.5}],
+    params:{ eps:{v:0.8, min:0, max:1}, A:{v:1, unit:"m²", min:0}, Tspace:{v:4, unit:"K"} } },
+
+  tank:    { cat:"f", label:"Tank", w:96, h:60, store:true,
+    ports:[{id:"f", dom:"f", side:"L", k:.5},{id:"lvl", dom:"s", dir:"out", side:"B", k:.5}],
+    params:{ A:{v:0.5, unit:"m²", min:1e-4}, V0:{v:1, unit:"m³", min:0}, rho:{v:1000, unit:"kg/m³", min:1} } },
+  valve:   { cat:"f", label:"Valve", w:96, h:52,
+    ports:[{id:"a", dom:"f", side:"L", k:.5},{id:"b", dom:"f", side:"R", k:.5},{id:"gate", dom:"s", dir:"in", side:"T", k:.5}],
+    params:{ k:{v:1.2e-4, min:0}, law:{v:"sqrt", opts:["sqrt","linear"]},
+             gT:{v:600, unit:"K"}, gW:{v:15, unit:"", min:1e-6} } },
+  psrc:    { cat:"f", label:"Pressure src", w:100, h:52,
+    ports:[{id:"f", dom:"f", side:"R", k:.5}],
+    params:{ p:{v:2e5, unit:"Pa"} } },
+  drain:   { cat:"f", label:"Drain", w:84, h:48,
+    ports:[{id:"f", dom:"f", side:"L", k:.5}],
+    params:{} },
+
+  motor:   { cat:"x", label:"Motor", w:100, h:60,
+    ports:[{id:"p", dom:"e", side:"L", k:.3},{id:"n", dom:"e", side:"L", k:.72},{id:"shaft", dom:"m", side:"R", k:.5}],
+    params:{ k:{v:0.4, unit:"N·m/A", min:1e-6}, Rw:{v:2, unit:"Ω", min:1e-6} } },
+  heater:  { cat:"x", label:"Heater", w:100, h:60,
+    ports:[{id:"p", dom:"e", side:"L", k:.3},{id:"n", dom:"e", side:"L", k:.72},{id:"out", dom:"t", side:"R", k:.5}],
+    params:{ R:{v:6, unit:"Ω", min:1e-6}, on:{v:true, toggle:true} } },
+  melt:    { cat:"x", label:"Melt crucible", w:116, h:66, store:true,
+    ports:[{id:"t", dom:"t", side:"L", k:.5},{id:"spin", dom:"s", dir:"in", side:"T", k:.5},{id:"T", dom:"s", dir:"out", side:"B", k:.5}],
+    params:{ C:{v:4000, unit:"J/K", min:1}, T0:{v:293, unit:"K"}, Tmelt:{v:600, unit:"K"},
+             kSep:{v:0.03, unit:"1/s", min:0}, wRef:{v:40, unit:"rad/s", min:1e-6} } },
+};
+
+const CATS = [["e","Electrical"],["m","Mechanical"],["t","Thermal"],["f","Fluid"],["x","Transducers"]];
+
+function defaultParams(type){
+  const out = {};
+  for (const [k,d] of Object.entries(LIB[type].params)) out[k] = d.v;
+  return out;
+}
+
+/* ---------- tiny linear algebra ---------- */
+function solveLin(A, b){                    // Gaussian elimination, partial pivot; null if singular
+  const n = b.length, M = A.map((r,i)=>[...r, b[i]]);
+  for (let c=0;c<n;c++){
+    let piv=c, best=Math.abs(M[c][c]);
+    for (let r=c+1;r<n;r++){ const v=Math.abs(M[r][c]); if (v>best){best=v;piv=r;} }
+    if (best < 1e-12) return null;
+    if (piv!==c){ const t=M[c]; M[c]=M[piv]; M[piv]=t; }
+    const d = M[c][c];
+    for (let r=0;r<n;r++){
+      if (r===c) continue;
+      const f = M[r][c]/d; if (f===0) continue;
+      for (let k=c;k<=n;k++) M[r][k] -= f*M[c][k];
+    }
+  }
+  return M.map((r,i)=> r[n]/r[i]);
+}
+function matMul(A,B){
+  const n=A.length, m=B[0].length, p=B.length, C=[];
+  for (let i=0;i<n;i++){ const row=new Array(m).fill(0);
+    for (let k=0;k<p;k++){ const a=A[i][k]; if(!a) continue;
+      for (let j=0;j<m;j++) row[j]+=a*B[k][j]; }
+    C.push(row); }
+  return C;
+}
+function matExp(M){                          // scaling & squaring + Taylor(14)
+  const n=M.length;
+  let norm=0; for(const r of M){ let s=0; for(const v of r) s+=Math.abs(v); norm=Math.max(norm,s); }
+  let sq=0; while (norm > 0.5){ norm/=2; sq++; if (sq>60) break; }
+  const S = M.map(r=>r.map(v=>v/Math.pow(2,sq)));
+  let E = S.map((r,i)=>r.map((_,j)=> i===j?1:0));
+  let P = E.map(r=>[...r]);
+  for (let k=1;k<=14;k++){
+    P = matMul(P,S).map(r=>r.map(v=>v/k));
+    for (let i=0;i<n;i++) for (let j=0;j<n;j++) E[i][j]+=P[i][j];
+  }
+  for (let s=0;s<sq;s++) E = matMul(E,E);
+  return E;
+}
+/* affine advance: dx = A x + b  →  x(t) = top rows of e^{[[A,b],[0,0]] t} · [x0;1] */
+function affineAdvance(A, b, x0, dt){
+  const n=x0.length, M=[];
+  for (let i=0;i<n;i++) M.push([...A[i].map(v=>v*dt), b[i]*dt]);
+  M.push(new Array(n+1).fill(0));
+  const E = matExp(M), out=new Array(n).fill(0);
+  for (let i=0;i<n;i++){ let s=E[i][n]; for(let j=0;j<n;j++) s+=E[i][j]*x0[j]; out[i]=s; }
+  return out;
+}
+
+const smooth01 = z => z<=0 ? 0 : z>=1 ? 1 : z*z*(3-2*z);
+const sigm = z => 1/(1+Math.exp(-z));
+
+/* ============================================================
+   COMPILE : doc {comps:[{id,type,x,y,params}], wires:[{a:[cid,pid], b:[cid,pid]}]}
+   ============================================================ */
+function compile(doc, prev){
+  const comps = doc.comps, byId = new Map(comps.map(c=>[c.id,c]));
+  const pk = (cid,pid)=> cid+":"+pid;
+  const portDom = (cid,pid)=>{
+    const c=byId.get(cid); if(!c) return null;
+    const p=LIB[c.type].ports.find(p=>p.id===pid); return p?p:null;
+  };
+
+  /* --- union-find over energy ports → nets --- */
+  const parent = new Map();
+  const find = k => { let r=k; while(parent.get(r)!==r) r=parent.get(r);
+    let c=k; while(parent.get(c)!==c){ const nx=parent.get(c); parent.set(c,r); c=nx; } return r; };
+  const union = (a,b)=>{ const ra=find(a), rb=find(b); if(ra!==rb) parent.set(ra,rb); };
+
+  for (const c of comps) for (const p of LIB[c.type].ports)
+    if (p.dom!=="s") parent.set(pk(c.id,p.id), pk(c.id,p.id));
+
+  const sigWires = [];
+  for (const w of doc.wires){
+    const pa=portDom(w.a[0],w.a[1]), pb=portDom(w.b[0],w.b[1]);
+    if (!pa||!pb) continue;
+    if (pa.dom==="s"||pb.dom==="s"){ sigWires.push(w); continue; }
+    if (pa.dom!==pb.dom) continue;
+    union(pk(w.a[0],w.a[1]), pk(w.b[0],w.b[1]));
+  }
+
+  const nets = new Map();  // root -> net
+  for (const c of comps) for (const p of LIB[c.type].ports){
+    if (p.dom==="s") continue;
+    const r = find(pk(c.id,p.id));
+    if (!nets.has(r)) nets.set(r, { id:r, dom:p.dom, members:[] });
+    nets.get(r).members.push({ comp:c, port:p.id });
+  }
+  const netOf = (cid,pid)=> nets.get(find(pk(cid,pid)));
+
+  /* --- islands: components joined by shared energy nets --- */
+  const ip = new Map(comps.map(c=>[c.id,c.id]));
+  const ifind = k=>{ let r=k; while(ip.get(r)!==r) r=ip.get(r); return r; };
+  const iunion=(a,b)=>{ const ra=ifind(a), rb=ifind(b); if(ra!==rb) ip.set(ra,rb); };
+  for (const net of nets.values()){
+    for (let i=1;i<net.members.length;i++)
+      iunion(net.members[0].comp.id, net.members[i].comp.id);
+    // multiple energy ports on one comp already same id
+  }
+  const islandMap = new Map();
+  for (const c of comps){
+    const r = ifind(c.id);
+    if (!islandMap.has(r)) islandMap.set(r, { comps:[], nets:[] });
+    islandMap.get(r).comps.push(c);
+  }
+  for (const net of nets.values()){
+    const isl = islandMap.get(ifind(net.members[0].comp.id));
+    isl.nets.push(net); net.island = isl;
+  }
+
+  /* --- signal routing: input port -> source descriptor --- */
+  const sigIn = new Map(); // "cid:pid" -> {comp, port}
+  for (const w of sigWires){
+    const pa=portDom(w.a[0],w.a[1]), pb=portDom(w.b[0],w.b[1]);
+    let src=null, dst=null;
+    if (pa && pa.dom==="s" && pa.dir==="out") src=w.a; else if (pa && pa.dom==="s") dst=w.a;
+    if (pb && pb.dom==="s" && pb.dir==="out") src=w.b; else if (pb && pb.dom==="s") dst=w.b;
+    if (src && dst) sigIn.set(pk(dst[0],dst[1]), { comp: byId.get(src[0]), port: src[1] });
+  }
+
+  const model = { doc, nets, islands: [], sigIn, byId, faults:[], T:0 };
+  let idx=0;
+  for (const isl of islandMap.values()){
+    isl.id = "I"+(idx++);
+    buildIsland(isl, model, prev);
+    model.islands.push(isl);
+  }
+  // stable ordering by mean x of comps
+  model.islands.sort((a,b)=>{
+    const mx = i => i.comps.reduce((s,c)=>s+c.x,0)/i.comps.length;
+    return mx(a)-mx(b);
+  });
+  model.islands.forEach((isl,i)=> isl.id = "I"+(i+1));
+  return model;
+}
+
+/* ---------- per-island structure ---------- */
+function buildIsland(isl, model, prev){
+  isl.states=[]; isl.warns=[]; isl.fault=null;
+  isl.eNets=[]; isl.mNets=[]; isl.tNets=[]; isl.fNets=[];
+  isl.branches=[]; isl.ticks=0; isl.solves=0; isl.evals=0;
+  isl.asleep=false; isl.sleepSince=0; isl.pending=[]; // predicted events
+  isl.sleepCtr=0;
+
+  const has = (net,pred)=> net.members.some(pred);
+
+  for (const net of isl.nets){
+    net.val = 0; net.fixed = null;
+    if (net.dom==="e"){
+      isl.eNets.push(net);
+      if (has(net, m=>m.comp.type==="ground")) net.fixed = 0;
+    } else if (net.dom==="m"){
+      isl.mNets.push(net);
+      net.J=0; net.bSum=0; net.tauSrcs=[]; net.motors=[]; net.fw=[];
+      for (const m of net.members){
+        const c=m.comp;
+        if (c.type==="flywheel"){ net.J+=c.params.J; net.fw.push(c); }
+        if (c.type==="bearing") net.bSum+=c.params.b;
+        if (c.type==="torque") net.tauSrcs.push(c);
+        if (c.type==="motor") net.motors.push(c);
+      }
+      if (net.J>0) isl.states.push({ kind:"w", net, scale:10, name:"ω "+net.fw.map(f=>f.id).join("+"),
+        x0: net.fw[0].params.w0||0 });
+      else if (net.tauSrcs.length && !net.bSum && !net.motors.length)
+        isl.warns.push("floppy shaft: torque with no inertia, damping, or motor — underdetermined");
+    } else if (net.dom==="t"){
+      isl.tNets.push(net);
+      net.Cth=0; net.masses=[]; net.rads=[]; net.qsrcs=[]; net.heaters=[]; net.walls=[];
+      for (const m of net.members){
+        const c=m.comp;
+        if (c.type==="tmass"||c.type==="melt"){ net.Cth+=c.params.C; net.masses.push(c); }
+        if (c.type==="radiator") net.rads.push(c);
+        if (c.type==="heatsrc") net.qsrcs.push(c);
+        if (c.type==="heater") net.heaters.push(c);
+        if (c.type==="ambient") net.fixed = c.params.T;
+      }
+      if (net.fixed===null && net.Cth>0)
+        isl.states.push({ kind:"T", net, scale:300, name:"T "+net.masses.map(m=>m.id).join("+"),
+          x0: net.masses[0].params.T0 });
+    } else if (net.dom==="f"){
+      isl.fNets.push(net);
+      net.tanks=[]; net.valves=[];
+      for (const m of net.members){
+        const c=m.comp;
+        if (c.type==="tank") net.tanks.push(c);
+        if (c.type==="drain") net.fixed = 0;
+        if (c.type==="psrc")  net.fixed = c.params.p;
+      }
+      if (net.fixed===null && net.tanks.length){
+        const t0 = net.tanks[0];
+        isl.states.push({ kind:"V", net, scale:Math.max(0.2, t0.params.V0), name:"V "+net.tanks.map(t=>t.id).join("+"),
+          x0: net.tanks.reduce((s,t)=>s+t.params.V0,0) });
+      }
+    }
+  }
+  // wall adjacency (after nets known)
+  for (const c of isl.comps){
+    if (c.type==="twall"){
+      const na = netFor(model,c.id,"a"), nb = netFor(model,c.id,"b");
+      if (na&&nb&&na!==nb){ na.walls.push({other:nb, R:c.params.Rth}); nb.walls.push({other:na, R:c.params.Rth}); }
+    }
+    if (c.type==="capacitor")
+      isl.states.push({ kind:"vc", comp:c, scale:10, name:"v "+c.id, x0:c.params.v0||0 });
+    if (c.type==="melt")
+      isl.states.push({ kind:"s", comp:c, scale:1, name:"sep "+c.id, x0:0 });
+    if (c.type==="battery"||c.type==="capacitor"||c.type==="motor") isl.branches.push(c);
+  }
+  // valves adjacency
+  for (const c of isl.comps) if (c.type==="valve"){
+    const na=netFor(model,c.id,"a"), nb=netFor(model,c.id,"b");
+    if (na&&nb) { c._na=na; c._nb=nb; na.valves.push(c); nb.valves.push(c); }
+  }
+  // electrical reference
+  if (isl.eNets.length && !isl.eNets.some(n=>n.fixed!==null)){
+    isl.eNets[0].fixed = 0;
+    isl.warns.push("floating electrical net — no ground; auto-referenced");
+  }
+
+  // carry state values from previous compile where names match
+  isl.x = isl.states.map(s=>s.x0);
+  if (prev){
+    const old = new Map();
+    for (const pi of prev.islands) pi.states.forEach((s,i)=> old.set(s.name, islandState(pi, prev.T)[i]));
+    isl.states.forEach((s,i)=>{ if (old.has(s.name)) isl.x[i]=old.get(s.name); });
+  }
+  isl.t0 = prev ? prev.T : 0;
+
+  classify(isl, model);
+}
+function netFor(model, cid, pid){
+  for (const net of model.nets.values())
+    for (const m of net.members) if (m.comp.id===cid && m.port===pid) return net;
+  return null;
+}
+
+/* ============================================================
+   ALGEBRAIC SWEEP — assign every net a value given state x
+   ============================================================ */
+function assignStates(isl, x){
+  isl.states.forEach((s,i)=>{
+    if (s.kind==="w"||s.kind==="T"||s.kind==="V") s.net.val = x[i];
+  });
+  for (const net of [...isl.tNets, ...isl.fNets, ...isl.mNets, ...isl.eNets])
+    if (net.fixed!==null) net.val = net.fixed;
+  for (const net of isl.fNets)
+    if (net.fixed===null && net.tanks.length){
+      const t=net.tanks[0];
+      net.p = t.params.rho*GRAV*Math.max(0,net.val)/t.params.A;   // pressure from volume
+    } else net.p = net.val;
+}
+
+function solveMNA(isl, x, sig){
+  const eNets = isl.eNets.filter(n=>n.fixed===null);
+  const nIdx = new Map(eNets.map((n,i)=>[n,i]));
+  const branches = isl.branches.filter(c=> c.type!=="battery" || c.params.on);
+  const N = eNets.length, B = branches.length, S = N+B;
+  isl.branchI = new Map();
+  for (const c of isl.branches) isl.branchI.set(c.id, 0);
+  if (S===0){ for(const n of isl.eNets) n.val = n.fixed??0; return true; }
+  const A = Array.from({length:S},()=>new Array(S).fill(0));
+  const rhs = new Array(S).fill(0);
+  const gi = net => net.fixed!==null ? -1 : nIdx.get(net);
+  const stampG = (na,nb,g)=>{
+    const a=gi(na), b=gi(nb);
+    if (a>=0) A[a][a]+=g; if (b>=0) A[b][b]+=g;
+    if (a>=0&&b>=0){ A[a][b]-=g; A[b][a]-=g; }
+    if (a<0&&b>=0) rhs[b]+= g*na.val;   // fixed side folds into rhs
+    if (b<0&&a>=0) rhs[a]+= g*nb.val;
+  };
+  const model = isl._model;
+  for (const c of isl.comps){
+    if (c.type==="resistor") stampG(netFor(model,c.id,"a"), netFor(model,c.id,"b"), 1/c.params.R);
+    if (c.type==="heater" && c.params.on) stampG(netFor(model,c.id,"p"), netFor(model,c.id,"n"), 1/c.params.R);
+    if (c.type==="isource" && c.params.on){
+      const np=netFor(model,c.id,"p"), nn=netFor(model,c.id,"n");
+      const a=gi(np), b=gi(nn);
+      if (a>=0) rhs[a]+=c.params.I; if (b>=0) rhs[b]-=c.params.I;
+    }
+  }
+  branches.forEach((c,j)=>{
+    const row=N+j;
+    const np = netFor(model,c.id, c.type==="motor"?"p":(c.type==="capacitor"?"p":"p"));
+    const nn = netFor(model,c.id,"n");
+    const a=gi(np), b=gi(nn);
+    // KCL: branch current i flows INTO + terminal from net (leaves net p)
+    if (a>=0) A[a][row]+=1; if (b>=0) A[b][row]-=1;
+    // constraint: Vp - Vn (- Rw i) = E
+    if (a>=0) A[row][a]+=1; else rhs[row]-= np.val;
+    if (b>=0) A[row][b]-=1; else rhs[row]+= nn.val;
+    let E=0;
+    if (c.type==="battery") E = c.params.V;
+    if (c.type==="capacitor"){
+      const st = isl.states.find(s=>s.kind==="vc"&&s.comp===c);
+      E = x[isl.states.indexOf(st)];
+    }
+    if (c.type==="motor"){
+      const shaft = netFor(model,c.id,"shaft");
+      E = c.params.k * (shaft?shaft.val:0);
+      A[row][row]-= c.params.Rw;
+    }
+    rhs[row]+= E;
+  });
+  const sol = solveLin(A, rhs);
+  if (!sol){
+    isl.fault = "overdetermined";
+    for (const n of isl.eNets) n.val = n.fixed??0;
+    return false;
+  }
+  eNets.forEach((n,i)=> n.val = sol[i]);
+  for (const n of isl.eNets) if (n.fixed!==null) n.val = n.fixed;
+  branches.forEach((c,j)=> isl.branchI.set(c.id, -sol[N+j])); // i>0 = conventional current out of + terminal (discharge)
+  return true;
+}
+
+function valveGate(c, sig){
+  const src = sig.get(c.id+":gate");
+  if (src===undefined) return 1;
+  return smooth01((src - c.params.gT)/c.params.gW + 0.5);
+}
+function valveFlow(c, pa, pb, sig){          // flow a→b
+  const g = c.params.k * valveGate(c, sig);
+  const dp = pa-pb;
+  if (c.params.law==="linear") return g*dp;
+  return g*Math.sign(dp)*Math.sqrt(Math.abs(dp));
+}
+
+function readSignals(isl, model){
+  // values of signal inputs feeding THIS island's comps (sources may live in other islands)
+  const sig = new Map();
+  for (const c of isl.comps){
+    for (const p of LIB[c.type].ports){
+      if (p.dom!=="s"||p.dir!=="in") continue;
+      const src = model.sigIn.get(c.id+":"+p.id);
+      if (!src) continue;
+      sig.set(c.id+":"+p.id, sigSourceValue(model, src));
+    }
+  }
+  return sig;
+}
+function sigSourceValue(model, src){
+  const net = netFor(model, src.comp.id, src.port==="w" ? "shaft" : (src.port==="lvl" ? "f" : "t"));
+  if (!net) return 0;
+  if (src.port==="lvl") return Math.max(0,net.val); // volume
+  return net.val;   // ω or T of the net (kept current by owning island)
+}
+
+function sweep(isl, x, model, sig){
+  assignStates(isl, x);
+  isl._model = model;
+  for (let it=0; it<4; it++){
+    if (isl.eNets.length && !solveMNA(isl, x, sig)) break;
+    // mechanical algebraic nets
+    for (const net of isl.mNets){
+      if (net.J>0 || net.fixed!==null) continue;
+      let tau=0, bEff=net.bSum;
+      for (const s of net.tauSrcs) if (s.params.on) tau+=s.params.tau;
+      for (const mtr of net.motors){
+        tau -= mtr.params.k * (isl.branchI.get(mtr.id)||0);   // winding current = -branchI
+        bEff += mtr.params.k*mtr.params.k/mtr.params.Rw;   // back-emf pseudo-damping for relaxation
+      }
+      net.val = bEff>1e-12 ? net.val + (tau - net.bSum*net.val)/(bEff) * 0.7 : 0;
+    }
+    // thermal algebraic nets — scalar Newton
+    for (const net of isl.tNets){
+      if (net.fixed!==null || net.Cth>0) continue;
+      let T = net.val || 293;
+      for (let n=0;n<3;n++){
+        let g=0, dg=0;
+        for (const w of net.walls){ g += (w.other.val-T)/w.R; dg -= 1/w.R; }
+        for (const s of net.qsrcs) if (s.params.on) g += s.params.Q;
+        for (const h of net.heaters) if (h.params.on){
+          const np=netFor(model,h.id,"p"), nn=netFor(model,h.id,"n");
+          g += Math.pow((np?np.val:0)-(nn?nn.val:0),2)/h.params.R;
+        }
+        for (const r of net.rads){
+          g  -= r.params.eps*SIGMA*r.params.A*(Math.pow(Math.max(T,0),4)-Math.pow(r.params.Tspace,4));
+          dg -= 4*r.params.eps*SIGMA*r.params.A*Math.pow(Math.max(T,0),3);
+        }
+        if (Math.abs(dg)<1e-12) break;
+        T -= g/dg;
+      }
+      net.val = T;
+    }
+    // fluid algebraic nets — scalar Newton on pressure
+    for (const net of isl.fNets){
+      if (net.fixed!==null || net.tanks.length) continue;
+      let p = net.p||0;
+      for (let n=0;n<3;n++){
+        let g=0, dg=0;
+        for (const v of net.valves){
+          const other = v._na===net ? v._nb : v._na;
+          const po = other.p;
+          const gk = v.params.k*valveGate(v,sig);
+          if (v.params.law==="linear"){ g += gk*(po-p); dg -= gk; }
+          else { const dp=po-p; g += gk*Math.sign(dp)*Math.sqrt(Math.abs(dp));
+                 dg -= gk*0.5/Math.sqrt(Math.max(Math.abs(dp),1)); }
+        }
+        if (Math.abs(dg)<1e-12) break;
+        p -= g/dg;
+      }
+      net.p = p; net.val = p;
+    }
+  }
+}
+
+/* ---------- derivative dx/dt ---------- */
+function deriv(isl, x, model, sig){
+  sweep(isl, x, model, sig);
+  const dx = new Array(isl.states.length).fill(0);
+  isl.states.forEach((s,i)=>{
+    if (s.kind==="w"){
+      const net=s.net; let tau=0;
+      for (const src of net.tauSrcs) if (src.params.on) tau+=src.params.tau;
+      tau -= net.bSum*net.val;
+      for (const mtr of net.motors) tau -= mtr.params.k*(isl.branchI.get(mtr.id)||0);
+      dx[i]=tau/net.J;
+    } else if (s.kind==="T"){
+      const net=s.net; let Q=0;
+      for (const src of net.qsrcs) if (src.params.on) Q+=src.params.Q;
+      for (const h of net.heaters) if (h.params.on){
+        const np=netFor(model,h.id,"p"), nn=netFor(model,h.id,"n");
+        Q += Math.pow((np?np.val:0)-(nn?nn.val:0),2)/h.params.R;
+      }
+      for (const w of net.walls) Q += (w.other.val - net.val)/w.R;
+      for (const r of net.rads)
+        Q -= r.params.eps*SIGMA*r.params.A*(Math.pow(Math.max(net.val,0),4)-Math.pow(r.params.Tspace,4));
+      dx[i]=Q/net.Cth;
+    } else if (s.kind==="V"){
+      const net=s.net; let q=0;
+      for (const v of net.valves){
+        const other = v._na===net ? v._nb : v._na;
+        const into = v._nb===net ? 1 : -1;   // flow defined a→b
+        q += into * valveFlow(v, v._na.p, v._nb.p, sig);
+      }
+      if (net.val<=0 && q<0) q=0;            // tank can't go negative
+      dx[i]=q;
+    } else if (s.kind==="vc"){
+      dx[i] = (isl.branchI.get(s.comp.id)||0) / -s.comp.params.C; // charging: current into + plate
+    } else if (s.kind==="s"){
+      const c=s.comp;
+      const Tnet = netFor(model,c.id,"t");
+      const T = Tnet?Tnet.val:0;
+      const w = sig.get(c.id+":spin")||0;
+      const molten = sigm((T-c.params.Tmelt)/25);
+      dx[i] = c.params.kSep * Math.pow(w/c.params.wRef,2) * molten * (1 - x[i]);
+    }
+  });
+  return dx;
+}
+
+/* ============================================================
+   CLASSIFY : algebraic → template → linear(affine test) → ticked
+   ============================================================ */
+function classify(isl, model){
+  isl._model = model;
+  const sig = readSignals(isl, model);
+  isl.sigSnapshot = sig;
+  if (isl.fault){ isl.kind="fault"; return; }
+  if (isl.states.length===0){
+    isl.kind="algebraic";
+    sweep(isl, [], model, sig); isl.solves++;
+    if (isl.fault) isl.kind="fault";
+    return;
+  }
+  if (detectTemplate(isl, model, sig)) return;
+  // structurally nonlinear parts can be dormant at the probe point (gate closed,
+  // melt cold) and fake an affine pass — veto the shortcut outright
+  const structNL = isl.comps.some(c=> c.type==="melt" || (c.type==="valve"&&c.params.law==="sqrt"));
+  if (structNL){
+    isl.kind="ticked";
+    const f0=deriv(isl, isl.x, model, sig);
+    if (Math.max(...f0.map((v,i)=>Math.abs(v)/isl.states[i].scale),0) < 1e-6){ isl.asleep=true; isl.sleepSince=isl.t0; }
+    predictEvents(isl, model);
+    return;
+  }
+  // affine probe
+  const f0 = deriv(isl, isl.x, model, sig);
+  if (isl.fault){ isl.kind="fault"; return; }
+  const n = isl.states.length;
+  const d1 = isl.states.map(s=> 0.13*s.scale*(1)), d2 = isl.states.map((s,i)=> 0.07*s.scale*((i%2)?1:-1));
+  const add=(a,b)=>a.map((v,i)=>v+b[i]);
+  const f1 = deriv(isl, add(isl.x,d1), model, sig);
+  const f2 = deriv(isl, add(isl.x,d2), model, sig);
+  const f12= deriv(isl, add(add(isl.x,d1),d2), model, sig);
+  let affine=true;
+  for (let i=0;i<n;i++){
+    const res = Math.abs(f12[i]-f1[i]-f2[i]+f0[i]);
+    const mag = Math.max(Math.abs(f0[i]),Math.abs(f1[i]),Math.abs(f2[i]),isl.states[i].scale*1e-4);
+    if (res > 1e-4*mag + 1e-9){ affine=false; break; }
+  }
+  if (affine){
+    isl.kind="linear";
+    buildAffine(isl, model, sig);
+  } else {
+    isl.kind="ticked";
+  }
+  predictEvents(isl, model);
+}
+
+function buildAffine(isl, model, sig){
+  const n=isl.states.length, A=Array.from({length:n},()=>new Array(n).fill(0));
+  const f0 = deriv(isl, isl.x, model, sig);
+  for (let j=0;j<n;j++){
+    const h = 0.05*isl.states[j].scale || 1e-3;
+    const xp=[...isl.x]; xp[j]+=h;
+    const xm=[...isl.x]; xm[j]-=h;
+    const fp=deriv(isl,xp,model,sig), fm=deriv(isl,xm,model,sig);
+    for (let i=0;i<n;i++) A[i][j]=(fp[i]-fm[i])/(2*h);
+  }
+  const b = f0.map((v,i)=> v - A[i].reduce((s,a,j)=>s+a*isl.x[j],0));
+  isl.A=A; isl.b=b;
+}
+
+function detectTemplate(isl, model, sig){
+  const types = isl.comps.map(c=>c.type);
+  const only = allowed => types.every(t=>allowed.includes(t));
+  // Torricelli: single tank net, sqrt valves (ungated) straight to p=0 nets
+  if (isl.states.length===1 && isl.states[0].kind==="V" && only(["tank","valve","drain"])){
+    const net=isl.states[0].net;
+    const ok = net.valves.length>0 && net.valves.every(v=>{
+      const other = v._na===net ? v._nb : v._na;
+      return v.params.law==="sqrt" && other.fixed===0 && !model.sigIn.has(v.id+":gate");
+    });
+    if (ok){
+      const t = net.tanks[0];
+      const c = net.valves.reduce((s,v)=>s+v.params.k,0) * Math.sqrt(t.params.rho*GRAV/t.params.A);
+      isl.kind="template"; isl.tmpl={ name:"Torricelli drain", c };
+      predictEvents(isl, model);
+      return true;
+    }
+  }
+  // Radiative cooling: single thermal net = masses + radiators only, cold sink
+  if (isl.states.length===1 && isl.states[0].kind==="T" && only(["tmass","radiator"])){
+    const net=isl.states[0].net;
+    if (net.rads.length && net.rads.every(r=>r.params.Tspace<=20) && !net.walls.length
+        && !net.qsrcs.length && !net.heaters.length){
+      const k = net.rads.reduce((s,r)=>s+r.params.eps*SIGMA*r.params.A,0)/net.Cth;
+      isl.kind="template"; isl.tmpl={ name:"Radiative cooling (T⁴)", k };
+      predictEvents(isl, model);
+      return true;
+    }
+  }
+  return false;
+}
+
+/* closed-form state at absolute time T */
+function islandState(isl, T){
+  const dt = Math.max(0, T - isl.t0);
+  if (isl.kind==="linear" && isl.A){
+    isl.evals++;
+    const xs = affineAdvance(isl.A, isl.b, isl.x, dt);
+    isl.states.forEach((s,i)=>{
+      if (s.kind==="V"&&xs[i]<0) xs[i]=0;
+      if (s.kind==="s") xs[i]=Math.min(1,Math.max(0,xs[i]));
+    });
+    return xs;
+  }
+  if (isl.kind==="template" && isl.tmpl){
+    isl.evals++;
+    if (isl.tmpl.c!==undefined){                     // torricelli
+      const r = Math.sqrt(Math.max(0,isl.x[0])) - isl.tmpl.c*dt/2;
+      return [ r>0 ? r*r : 0 ];
+    }
+    const T0=isl.x[0], k=isl.tmpl.k;                 // radiative
+    return [ T0/Math.cbrt(1+3*k*Math.pow(T0,3)*dt) ];
+  }
+  return isl.x;
+}
+
+/* ---------- event prediction (analytic islands) ---------- */
+function predictEvents(isl, model){
+  isl.pending=[];
+  if (isl.kind==="template" && isl.tmpl){
+    if (isl.tmpl.c!==undefined){
+      if (isl.tmpl.c>0 && isl.x[0]>0)
+        isl.pending.push({ t: isl.t0 + 2*Math.sqrt(isl.x[0])/isl.tmpl.c, label:"tank empty", act:"empty" });
+    } else {
+      const marks = isl.states[0].net.masses.map(m=>m.params.Tmark).filter(v=>v>0 && v<isl.x[0]);
+      for (const Tm of marks){
+        const t = (Math.pow(isl.x[0]/Tm,3)-1)/(3*isl.tmpl.k*Math.pow(isl.x[0],3));
+        isl.pending.push({ t: isl.t0+t, label:`T crosses ${Tm} K`, act:"mark" });
+      }
+    }
+  }
+  if (isl.kind==="linear" && isl.A){
+    // find settle time by log-sampling ‖dx‖
+    const sig = isl.sigSnapshot;
+    let tS=null, prev=Infinity, growing=0;
+    for (let e=-1; e<=6; e+=0.25){
+      const t=Math.pow(10,e);
+      const xs=affineAdvance(isl.A, isl.b, isl.x, t);
+      const f = deriv(isl, xs, model, sig);
+      const nrm = Math.max(...f.map((v,i)=>Math.abs(v)/isl.states[i].scale));
+      if (nrm<1e-6){ tS=t; break; }
+      if (nrm>prev*1.05) growing++; else growing=0;
+      if (growing>6){ isl.pending.push({t:Infinity, label:"unstable — diverging", act:null}); return; }
+      prev=nrm;
+    }
+    if (tS!==null) isl.pending.push({ t: isl.t0+tS, label:"settles (‖ẋ‖<ε) — island sleeps", act:"settle" });
+  }
+}
+
+/* ============================================================
+   ADVANCE — one global step to absolute time Tnew
+   ============================================================ */
+const TICK_DT = 0.02;
+function advanceModel(model, Tnew, log){
+  for (const isl of model.islands){
+    const sig = readSignals(isl, model);
+    // wake / rebase when a modulation input moved
+    let sigMoved=false;
+    for (const [k,v] of sig){
+      const old = isl.sigSnapshot ? isl.sigSnapshot.get(k) : undefined;
+      if (old===undefined || Math.abs(v-old) > 1e-3*Math.max(1,Math.abs(old))) sigMoved=true;
+    }
+    if (isl.kind==="algebraic"){
+      if (sigMoved){ sweep(isl, [], model, sig); isl.solves++; isl.sigSnapshot=sig; }
+      isl.asleep=true; continue;
+    }
+    if (isl.kind==="fault"){ continue; }
+
+    if (isl.kind==="linear" || isl.kind==="template"){
+      if (sigMoved){
+        // rebase analytic form on new inputs
+        isl.x = islandState(isl, model.T); isl.t0 = model.T; isl.sigSnapshot=sig;
+        if (isl.kind==="linear") buildAffine(isl, model, sig);
+        predictEvents(isl, model);
+        if (isl.asleep){
+          const napped = model.T - (isl.sleepSince||0);
+          isl.asleep=false;
+          if (napped>2 && log) log(isl, "woke — modulation input changed");
+        }
+      }
+      // fire predicted events crossed this step
+      for (const ev of isl.pending){
+        if (!ev.done && ev.t<=Tnew && isFinite(ev.t)){
+          ev.done=true;
+          if (log && (!isl.asleep || !ev.act)) log(isl, ev.label, ev.t);
+          if (ev.act==="empty"){ isl.x=[0]; isl.t0=ev.t; isl.asleep=true; isl.sleepSince=ev.t; }
+          if (ev.act==="settle" && !isl.asleep){ isl.asleep=true; isl.sleepSince=ev.t; }
+        }
+      }
+      const xs = islandState(isl, Tnew);
+      assignStates(isl, xs); sweep(isl, xs, model, sig);
+      isl.xNow = xs;
+      continue;
+    }
+
+    // ticked
+    if (isl.asleep){
+      const f = deriv(isl, isl.x, model, sig); isl.evals++;
+      const nrm = Math.max(...f.map((v,i)=>Math.abs(v)/isl.states[i].scale), 0);
+      if (nrm > 5e-6){ isl.asleep=false; isl.sleepCtr=0; log && log(isl, "woke — dynamics resumed"); }
+      else { isl.t0=Tnew; isl.xNow=isl.x; isl.sigSnapshot=sig; continue; }
+    }
+    isl.sigSnapshot=sig;
+    let t = isl.t0, x = isl.x, steps=0;
+    const maxSteps = 4000;
+    while (t < Tnew - 1e-9 && steps<maxSteps){
+      const h = Math.min(TICK_DT, Tnew-t);
+      x = rk4(isl, x, model, sig, h);
+      isl.states.forEach((st,i)=>{
+        if (st.kind==="V"&&x[i]<0) x[i]=0;
+        if (st.kind==="s") x[i]=Math.min(1,Math.max(0,x[i]));
+      });
+      t += h; steps++; isl.ticks++;
+    }
+    isl.x = x; isl.t0 = t; isl.xNow = x;
+    assignStates(isl, x); sweep(isl, x, model, sig);
+    // melt separation event
+    isl.states.forEach((s,i)=>{
+      if (s.kind==="s" && x[i]>=0.99 && !s.done){ s.done=true; log && log(isl, `separation complete (${s.comp.id})`); }
+    });
+    const f = deriv(isl, x, model, sig);
+    const nrm = Math.max(...f.map((v,i)=>Math.abs(v)/isl.states[i].scale), 0);
+    if (nrm < 1e-6){ isl.sleepCtr=(isl.sleepCtr||0)+1; } else isl.sleepCtr=0;
+    if (isl.sleepCtr>30 && !isl.asleep){
+      isl.asleep=true; isl.sleepSince=Tnew; isl.sleepCtr=0;
+      log && log(isl, "derivatives flat — island sleeps");
+    }
+  }
+  model.T = Tnew;
+}
+function rk4(isl, x, model, sig, h){
+  const add=(a,b,f)=>a.map((v,i)=>v+f*b[i]);
+  const k1=deriv(isl,x,model,sig);
+  const k2=deriv(isl,add(x,k1,h/2),model,sig);
+  const k3=deriv(isl,add(x,k2,h/2),model,sig);
+  const k4=deriv(isl,add(x,k3,h),model,sig);
+  return x.map((v,i)=> v + h/6*(k1[i]+2*k2[i]+2*k3[i]+k4[i]));
+}
+
+/* current display value for a state index */
+function stateNow(isl, model){
+  if (isl.kind==="linear"||isl.kind==="template") return isl.xNow || islandState(isl, model.T);
+  return isl.x;
+}
+
+/* ============================================================
+   SELF TEST (node)
+   ============================================================ */
+function selfTest(){
+  const ok=(name,cond)=>{ console.log((cond?"PASS":"FAIL")+"  "+name); if(!cond) process.exitCode=1; };
+  const mk=(comps,wires)=>({comps:comps.map(c=>({x:0,y:0,params:defaultParams(c.type),...c})), wires});
+
+  // 1. divider: 12V across 10Ω+10Ω → midpoint 6V, algebraic island
+  let d = mk([{id:"b",type:"battery"},{id:"r1",type:"resistor"},{id:"r2",type:"resistor"},{id:"g",type:"ground"}],
+    [{a:["b","p"],b:["r1","a"]},{a:["r1","b"],b:["r2","a"]},{a:["r2","b"],b:["b","n"]},{a:["b","n"],b:["g","p"]}]);
+  let m = compile(d);
+  ok("divider: one algebraic island", m.islands.length===1 && m.islands[0].kind==="algebraic");
+  const mid = netFor(m,"r1","b");
+  ok("divider: midpoint ≈ 6V ("+mid.val.toFixed(3)+")", Math.abs(mid.val-6)<1e-6);
+  const ib = m.islands[0].branchI.get("b");
+  ok("divider: battery current ≈ 0.6A ("+ib.toFixed(3)+")", Math.abs(ib-0.6)<1e-6);
+
+  // 2. RC: 12V—10Ω—0.5F—gnd → linear island, v→12
+  d = mk([{id:"b",type:"battery"},{id:"r",type:"resistor"},{id:"c",type:"capacitor"},{id:"g",type:"ground"}],
+    [{a:["b","p"],b:["r","a"]},{a:["r","b"],b:["c","p"]},{a:["c","n"],b:["b","n"]},{a:["b","n"],b:["g","p"]}]);
+  m = compile(d);
+  ok("RC: classified linear", m.islands[0].kind==="linear");
+  let xs = islandState(m.islands[0], 25); // 5τ
+  ok("RC: v(5τ) ≈ 12·(1−e⁻⁵) ("+xs[0].toFixed(3)+")", Math.abs(xs[0]-12*(1-Math.exp(-5)))<0.05);
+
+  // 3. flywheel spin-up: τ=10, J=2, b=0.5 → ω_ss=20, linear
+  d = mk([{id:"ts",type:"torque"},{id:"fw",type:"flywheel"},{id:"br",type:"bearing"}],
+    [{a:["ts","shaft"],b:["fw","shaft"]},{a:["fw","shaft"],b:["br","shaft"]}]);
+  m = compile(d);
+  ok("spin-up: linear", m.islands[0].kind==="linear");
+  xs = islandState(m.islands[0], 40); // 10τ_c
+  ok("spin-up: ω→20 ("+xs[0].toFixed(3)+")", Math.abs(xs[0]-20)<0.05);
+  ok("spin-up: settle event predicted", m.islands[0].pending.some(e=>e.act==="settle"&&isFinite(e.t)));
+
+  // 4. radiative cooling template: mass 800K + radiator
+  d = mk([{id:"tm",type:"tmass",params:{...defaultParams("tmass"),T0:800,Tmark:500}},{id:"rd",type:"radiator",params:{...defaultParams("radiator"),Tspace:4}}],
+    [{a:["tm","t"],b:["rd","t"]}]);
+  m = compile(d);
+  ok("radiative: template", m.islands[0].kind==="template" && /Radiative/.test(m.islands[0].tmpl.name));
+  const k = 0.8*SIGMA*1/5000;
+  const tX = (Math.pow(800/500,3)-1)/(3*k*Math.pow(800,3));
+  const evT = m.islands[0].pending.find(e=>e.act==="mark");
+  ok("radiative: crossing predicted t≈"+tX.toFixed(1)+"s ("+(evT?evT.t.toFixed(1):"none")+")", evT && Math.abs(evT.t-tX)<1);
+
+  // 5. torricelli tank
+  d = mk([{id:"tk",type:"tank"},{id:"v",type:"valve"},{id:"dr",type:"drain"}],
+    [{a:["tk","f"],b:["v","a"]},{a:["v","b"],b:["dr","f"]}]);
+  m = compile(d);
+  ok("tank: torricelli template", m.islands[0].kind==="template" && m.islands[0].tmpl.c!==undefined);
+  const c = 1.2e-4*Math.sqrt(1000*GRAV/0.5);
+  const tE = 2*Math.sqrt(1)/c;
+  const evE = m.islands[0].pending.find(e=>e.act==="empty");
+  ok("tank: empty predicted t≈"+tE.toFixed(0)+"s ("+(evE?evE.t.toFixed(0):"none")+")", evE && Math.abs(evE.t-tE)<1);
+
+  // 6. overdetermined: two unequal batteries in parallel → fault
+  d = mk([{id:"b1",type:"battery"},{id:"b2",type:"battery",params:{...defaultParams("battery"),V:5}},{id:"g",type:"ground"}],
+    [{a:["b1","p"],b:["b2","p"]},{a:["b1","n"],b:["b2","n"]},{a:["b1","n"],b:["g","p"]}]);
+  m = compile(d);
+  ok("parallel sources: fault flagged", m.islands[0].kind==="fault" && m.islands[0].fault==="overdetermined");
+
+  // 7. floppy shaft warning
+  d = mk([{id:"ts",type:"torque"}],[]);
+  m = compile(d);
+  ok("floppy shaft: warning", m.islands[0].warns.some(w=>/floppy/.test(w)));
+
+  // 8. forge: motor+flywheel+heater+melt on one bus → one ticked island; melt heats and separates
+  d = mk([
+    {id:"bat",type:"battery",params:{...defaultParams("battery"),V:110}},
+    {id:"g",type:"ground"},
+    {id:"mot",type:"motor"},
+    {id:"fw",type:"flywheel",params:{...defaultParams("flywheel"),J:1.5}},
+    {id:"br",type:"bearing",params:{...defaultParams("bearing"),b:0.25}},
+    {id:"htr",type:"heater",params:{...defaultParams("heater"),R:2}},
+    {id:"ml",type:"melt",params:{...defaultParams("melt"),C:2500}},
+    {id:"rad",type:"radiator",params:{...defaultParams("radiator"),eps:0.4,A:0.3}},
+  ],[
+    {a:["bat","p"],b:["mot","p"]},{a:["bat","n"],b:["mot","n"]},{a:["bat","n"],b:["g","p"]},
+    {a:["bat","p"],b:["htr","p"]},{a:["bat","n"],b:["htr","n"]},
+    {a:["mot","shaft"],b:["fw","shaft"]},{a:["fw","shaft"],b:["br","shaft"]},
+    {a:["htr","out"],b:["ml","t"]},{a:["ml","t"],b:["rad","t"]},
+    {a:["fw","w"],b:["ml","spin"]},
+  ]);
+  m = compile(d);
+  ok("forge: single island (transducers bond domains)", m.islands.length===1);
+  ok("forge: ticked (melt nonlinearity)", m.islands[0].kind==="ticked");
+  let logN=0;
+  for (let T=1; T<=240; T++) advanceModel(m, T, ()=>logN++);
+  const isl = m.islands[0];
+  const idxT = isl.states.findIndex(s=>s.kind==="T"), idxW = isl.states.findIndex(s=>s.kind==="w"), idxS = isl.states.findIndex(s=>s.kind==="s");
+  ok("forge: melt heated past Tmelt ("+isl.x[idxT].toFixed(0)+"K)", isl.x[idxT]>600);
+  ok("forge: flywheel spinning ("+isl.x[idxW].toFixed(1)+" rad/s)", isl.x[idxW]>50);
+  ok("forge: separation progressing ("+(100*isl.x[idxS]).toFixed(0)+"%)", isl.x[idxS]>0.3);
+
+  // 9. energy check on divider-ish: battery power = ΣI²R (steady)
+  d = mk([{id:"b",type:"battery"},{id:"r1",type:"resistor"},{id:"g",type:"ground"}],
+    [{a:["b","p"],b:["r1","a"]},{a:["r1","b"],b:["b","n"]},{a:["b","n"],b:["g","p"]}]);
+  m = compile(d);
+  const i1 = m.islands[0].branchI.get("b");
+  ok("power balance: V·I = I²R ("+ (12*i1).toFixed(2)+" vs "+(i1*i1*10).toFixed(2)+")", Math.abs(12*i1 - i1*i1*10)<1e-6);
+
+  // 10. ticked island sleeps: heater OFF thermal mass + wall + ambient reaches steady → asleep
+  d = mk([{id:"tm",type:"tmass",params:{...defaultParams("tmass"),T0:400,C:200}},{id:"w",type:"twall",params:{...defaultParams("twall"),Rth:0.5}},{id:"am",type:"ambient"}],
+    [{a:["tm","t"],b:["w","a"]},{a:["w","b"],b:["am","t"]}]);
+  m = compile(d);
+  ok("RC-thermal: linear", m.islands[0].kind==="linear");
+  for (let T=1;T<=1200;T+=1) advanceModel(m, T, ()=>{});
+  ok("RC-thermal: settled to ambient ("+stateNow(m.islands[0],m)[0].toFixed(1)+"K)", Math.abs(stateNow(m.islands[0],m)[0]-293)<0.5);
+  ok("RC-thermal: asleep", m.islands[0].asleep===true);
+  console.log("done.");
+}
+
+if (typeof module!=="undefined" && typeof window==="undefined" && typeof process!=="undefined" && process.argv[2]==="--test"){
+  selfTest();
+}
+
+</script>
+<script>
+/* ============================================================
+   ISLAND FORGE — editor & runtime UI
+   ============================================================ */
+"use strict";
+
+const CLS_META = {
+  algebraic:{ color:"#7fd0ff", label:"ALGEBRAIC", note:"no stores — solved once per event, then sleeps" },
+  linear:   { color:"#7ee787", label:"LINEAR",    note:"closed form via eᴬᵗ — evaluated, never ticked" },
+  template: { color:"#f2b53c", label:"TEMPLATE",  note:"matched analytic pattern — exact event times" },
+  ticked:   { color:"#ff7a59", label:"TICKED",    note:"RK4 fixed-step while awake; sleeps when ẋ→0" },
+  fault:    { color:"#ff5470", label:"FAULT",     note:"structurally unsolvable — breaker tripped" },
+};
+
+let doc = { comps:[], wires:[] };
+let model = null;
+let selected = null;          // {kind:'comp', id} | {kind:'wire', idx}
+let pendingPort = null;       // {cid, pid}
+let running = false, speed = 1, simT = 0, lastFrame = 0;
+let nextNum = 1;
+let eventsLog = [];
+const chartBufs = new Map();  // state name -> {pts:[[t,v]], color}
+let liveRefs = { compVals:new Map(), hulls:new Map(), islCards:new Map() };
+let view = { x:40, y:20, s:1 };
+
+const $ = sel => document.querySelector(sel);
+const el = (tag, attrs={}, ...kids)=>{
+  const ns = ["svg","g","rect","circle","path","line","text","polyline","defs","pattern","marker"].includes(tag);
+  const e = ns ? document.createElementNS("http://www.w3.org/2000/svg", tag) : document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs)){
+    if (k==="class") e.setAttribute("class", v);
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v);
+  }
+  for (const k of kids){ if (k==null) continue; e.append(k.nodeType?k:document.createTextNode(k)); }
+  return e;
+};
+const fmt = v =>{
+  if (v===undefined||v===null||!isFinite(v)) return "—";
+  const a=Math.abs(v);
+  if (a!==0 && (a>=1e5||a<1e-3)) return v.toExponential(2);
+  if (a>=100) return v.toFixed(1);
+  if (a>=1) return v.toFixed(2);
+  return v.toFixed(3);
+};
+const fmtT = t => { const m=Math.floor(t/60), s=t-60*m; return (m?m+"m ":"")+s.toFixed(1)+"s"; };
+
+/* ---------------- glyphs (24×24 line icons) ---------------- */
+const GLYPH = {
+  ground:"M12 4v8 M5 12h14 M8 16h8 M10.5 20h3",
+  battery:"M4 12h4 M16 12h4 M8 6v12 M12 9v6 M16 6v12 M12 9v6",
+  isource:"M12 3a9 9 0 1 0 .01 0 M8 12h8 M13 9l3 3-3 3",
+  resistor:"M2 12h4l2-5 3 10 3-10 3 10 2-5h3",
+  capacitor:"M3 12h6 M15 12h6 M9 5v14 M15 5v14",
+  torque:"M12 4a8 8 0 1 1-8 8 M4 12l-2-3 M4 12l3-1.5",
+  flywheel:"M12 3a9 9 0 1 0 .01 0 M12 8a4 4 0 1 0 .01 0 M12 1v3 M12 20v3",
+  bearing:"M3 16h18 M6 16l-2 4 M12 16l-2 4 M18 16l-2 4 M12 12a4 4 0 1 0-.01 0",
+  heatsrc:"M8 20c-2-3 1-4 0-7 M13 20c-2-3 1-4 0-7 M18 20c-2-3 1-4 0-7 M6 8a6 4 0 1 1 12 0",
+  tmass:"M5 6h14v12H5z M9 10v4 M12 9v6 M15 10v4",
+  twall:"M9 3v18 M15 3v18 M9 7l6-3 M9 13l6-3 M9 19l6-3",
+  ambient:"M12 7a5 5 0 1 0 .01 0 M12 1v2 M12 21v2 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M19 5l-2 2 M7 17l-2 2",
+  radiator:"M4 4v16 M9 4v16 M14 4v16 M19 4v16 M4 12h15",
+  tank:"M5 4v13a7 3.5 0 0 0 14 0V4 M5 4a7 3 0 0 0 14 0 M5 11a7 3 0 0 0 14 0",
+  valve:"M3 6l8 6-8 6z M21 6l-8 6 8 6z M12 12V5 M9 5h6",
+  psrc:"M12 3a9 9 0 1 0 .01 0 M12 8v8 M9 11l3-3 3 3",
+  drain:"M4 5h16 M8 5v6l4 8 4-8V5",
+  motor:"M12 2a10 10 0 1 0 .01 0 M7 16V8l5 6 5-6v8",
+  heater:"M3 12h3 M18 12h3 M6 12c1-4 3-4 4 0s3 4 4 0 3-4 4 0",
+  melt:"M4 8l3 11h10l3-11 M2 8h20 M8 5c1-2 3-2 4 0s3 2 4 0",
+};
+
+/* ============================================================
+   DOCUMENT OPS
+   ============================================================ */
+function addComp(type, x, y){
+  let id;
+  do { id = type.slice(0, type==="tmass"?2:3) + (nextNum++); } while (doc.comps.some(c=>c.id===id));
+  const c = { id, type, x: Math.round(x/10)*10, y: Math.round(y/10)*10, params: defaultParams(type) };
+  doc.comps.push(c);
+  recompile(true);
+  select({kind:"comp", id});
+  return c;
+}
+function removeSelected(){
+  if (!selected) return;
+  if (selected.kind==="comp"){
+    doc.wires = doc.wires.filter(w=> w.a[0]!==selected.id && w.b[0]!==selected.id);
+    doc.comps = doc.comps.filter(c=> c.id!==selected.id);
+  } else if (selected.kind==="wire"){
+    doc.wires.splice(selected.idx,1);
+  }
+  selected=null; pendingPort=null;
+  recompile(true);
+}
+function addWire(a, b){
+  const pa = portDef(a), pb = portDef(b);
+  if (!pa||!pb) return;
+  if (a.cid===b.cid && a.pid===b.pid) return;
+  if (pa.dom==="s"||pb.dom==="s"){
+    const src = pa.dir==="out"?a : pb.dir==="out"?b : null;
+    const dst = pa.dir==="in"?a : pb.dir==="in"?b : null;
+    if (!src||!dst){ logUi("signal wires run out → in"); return; }
+    doc.wires = doc.wires.filter(w=> !(w.b[0]===dst.cid&&w.b[1]===dst.pid) && !(w.a[0]===dst.cid&&w.a[1]===dst.pid));
+    doc.wires.push({ a:[src.cid,src.pid], b:[dst.cid,dst.pid] });
+  } else {
+    if (pa.dom!==pb.dom){ logUi(`can't bond ${DOMAINS[pa.dom].name} to ${DOMAINS[pb.dom].name}`); return; }
+    doc.wires.push({ a:[a.cid,a.pid], b:[b.cid,b.pid] });
+  }
+  recompile(true);
+}
+function portDef(ref){
+  const c = doc.comps.find(c=>c.id===ref.cid);
+  return c ? LIB[c.type].ports.find(p=>p.id===ref.pid) : null;
+}
+function portPos(c, p){
+  const L = LIB[c.type];
+  if (p.side==="L") return [c.x,           c.y + L.h*p.k];
+  if (p.side==="R") return [c.x + L.w,     c.y + L.h*p.k];
+  if (p.side==="T") return [c.x + L.w*p.k, c.y          ];
+  return               [c.x + L.w*p.k, c.y + L.h    ];
+}
+
+/* ============================================================
+   COMPILE / RESET / EVENTS
+   ============================================================ */
+function recompile(keepState){
+  const prev = keepState ? model : null;
+  model = compile(doc, prev);
+  model.T = prev ? prev.T : simT;
+  if (!prev){ simT = 0; }
+  const counts = {};
+  for (const i of model.islands) counts[i.kind]=(counts[i.kind]||0)+1;
+  pushEvent(null, `compiled ${model.islands.length} island${model.islands.length===1?"":"s"}: `+
+    Object.entries(counts).map(([k,v])=>`${v} ${k}`).join(", "), simT, "sys");
+  for (const isl of model.islands){
+    for (const w of isl.warns) pushEvent(isl, "⚠ "+w, simT, "warn");
+    if (isl.fault) pushEvent(isl, "✕ "+isl.fault+" — breaker trips, island dead", simT, "fault");
+  }
+  rebuildSVG(); rebuildIslands(); rebuildCharts(); refreshInspector();
+}
+function resetSim(){
+  running=false; $("#runBtn").textContent="▶ Run";
+  simT=0; eventsLog=[]; chartBufs.clear();
+  model=null; recompile(false);
+}
+function pushEvent(isl, label, t, cls){
+  eventsLog.unshift({ t: t??simT, isl: isl?isl.id:"·", label, cls: cls||"ev" });
+  if (eventsLog.length>120) eventsLog.length=120;
+  renderEvents();
+}
+function logUi(msg){ pushEvent(null, msg, simT, "warn"); }
+
+/* ============================================================
+   MAIN LOOP
+   ============================================================ */
+function frame(now){
+  requestAnimationFrame(frame);
+  const dtWall = Math.min(0.1, (now-lastFrame)/1000)||0; lastFrame=now;
+  if (running && model){
+    simT += dtWall*speed;
+    advanceModel(model, simT, (isl,msg,t)=>pushEvent(isl,msg,t, /woke|sleep/.test(msg)?"sleep":"ev"));
+    sampleCharts();
+  }
+  $("#clock").textContent = fmtT(simT);
+  updateLive();
+  drawCharts();
+  if (running && (frame._evT===undefined || simT-frame._evT>0.5)){ frame._evT=simT; renderEvents(); }
+}
+
+/* ============================================================
+   SVG CANVAS
+   ============================================================ */
+function svgRoot(){ return $("#canvas"); }
+function applyView(){
+  $("#viewport").setAttribute("transform", `translate(${view.x},${view.y}) scale(${view.s})`);
+}
+function rebuildSVG(){
+  const vp = $("#viewport");
+  vp.innerHTML="";
+  liveRefs.compVals.clear(); liveRefs.hulls.clear();
+  const hullG = el("g",{id:"hulls"}), wireG = el("g",{id:"wires"}), compG = el("g",{id:"comps"}), ovG = el("g",{id:"overlay"});
+  vp.append(hullG, wireG, compG, ovG);
+
+  // island hulls
+  if (model) for (const isl of model.islands){
+    let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+    for (const c of isl.comps){
+      const L=LIB[c.type];
+      x0=Math.min(x0,c.x); y0=Math.min(y0,c.y); x1=Math.max(x1,c.x+L.w); y1=Math.max(y1,c.y+L.h);
+    }
+    const meta = CLS_META[isl.kind]||CLS_META.ticked;
+    const g = el("g",{class:"hull"});
+    const r = el("rect",{x:x0-18,y:y0-30,width:x1-x0+36,height:y1-y0+48,rx:10,
+      fill:meta.color+"0b", stroke:meta.color+"66","stroke-dasharray":"5 5","stroke-width":1.2});
+    const badge = el("text",{x:x0-10,y:y0-16,class:"hullBadge",fill:meta.color}, `${isl.id} · ${meta.label}`);
+    const moon = el("text",{x:x1+26,y:y0-16,class:"hullMoon","text-anchor":"end",fill:meta.color}, "");
+    g.append(r,badge,moon); hullG.append(g);
+    liveRefs.hulls.set(isl.id,{badge,moon,meta,isl,rect:r});
+  }
+
+  // wires
+  doc.wires.forEach((w,idx)=>{
+    const ca=doc.comps.find(c=>c.id===w.a[0]), cb=doc.comps.find(c=>c.id===w.b[0]);
+    if (!ca||!cb) return;
+    const pa=LIB[ca.type].ports.find(p=>p.id===w.a[1]), pb=LIB[cb.type].ports.find(p=>p.id===w.b[1]);
+    if (!pa||!pb) return;
+    const [x1,y1]=portPos(ca,pa), [x2,y2]=portPos(cb,pb);
+    const dx=Math.max(30,Math.abs(x2-x1)*0.45);
+    const hx = s => s==="L"?-dx : s==="R"?dx : 0;
+    const hy = s => s==="T"?-dx : s==="B"?dx : 0;
+    const d=`M${x1} ${y1} C ${x1+hx(pa.side)} ${y1+hy(pa.side)}, ${x2+hx(pb.side)} ${y2+hy(pb.side)}, ${x2} ${y2}`;
+    const isSig = pa.dom==="s"||pb.dom==="s";
+    const col = DOMAINS[isSig?"s":pa.dom].color;
+    const sel = selected && selected.kind==="wire" && selected.idx===idx;
+    const hit = el("path",{d,class:"wireHit",onpointerdown:e=>{e.stopPropagation();select({kind:"wire",idx});}});
+    const vis = el("path",{d,class:"wire"+(sel?" sel":""),stroke:col,
+      "stroke-dasharray": isSig?"6 5":"none"});
+    wireG.append(hit,vis);
+  });
+
+  // components
+  for (const c of doc.comps) compG.append(renderComp(c));
+  applyView();
+}
+function renderComp(c){
+  const L = LIB[c.type];
+  const domCol = DOMAINS[L.cat==="x"?"e":L.cat] ? DOMAINS[L.cat==="x"?"e":L.cat].color : "#888";
+  const col = L.cat==="x" ? "#e8b8ff" : DOMAINS[L.cat].color;
+  const isSel = selected && selected.kind==="comp" && selected.id===c.id;
+  const g = el("g",{class:"comp"+(isSel?" sel":""), transform:`translate(${c.x},${c.y})`});
+  g.append(el("rect",{class:"chip",width:L.w,height:L.h,rx:8,stroke:col}));
+  // glyph
+  const gl = el("path",{d:GLYPH[c.type]||"", class:"glyph", stroke:col,
+    transform:`translate(${L.w/2-13},${L.h/2-16}) scale(1.05)`});
+  g.append(gl);
+  g.append(el("text",{x:L.w/2,y:L.h-5,class:"clabel"}, c.id));
+  // toggle dot for on/off sources
+  if (LIB[c.type].params.on){
+    const on = c.params.on;
+    g.append(el("circle",{cx:L.w-9,cy:9,r:4.5,class:"togdot",fill:on?col:"#333c48",stroke:col,
+      onpointerdown:e=>{ e.stopPropagation(); c.params.on=!c.params.on;
+        pushEvent(null, `${c.id} switched ${c.params.on?"ON":"OFF"}`, simT, "ev");
+        recompile(true); }}));
+  }
+  // live value
+  const lv = el("text",{x:L.w/2,y:-6,class:"cval"}, "");
+  g.append(lv); liveRefs.compVals.set(c.id, lv);
+  // ports
+  for (const p of L.ports){
+    const [px,py]=portPos(c,p);
+    const pend = pendingPort && pendingPort.cid===c.id && pendingPort.pid===p.id;
+    g.append(el("circle",{cx:px-c.x,cy:py-c.y,r:5.5,class:"port"+(pend?" pend":""),
+      fill:"#10151c", stroke:DOMAINS[p.dom].color,
+      onpointerdown:e=>{ e.stopPropagation(); onPortClick(c.id,p.id); }}));
+  }
+  // drag
+  g.addEventListener("pointerdown", e=>{
+    e.stopPropagation();
+    select({kind:"comp",id:c.id});
+    const start={x:e.clientX,y:e.clientY,cx:c.x,cy:c.y};
+    const move=ev=>{
+      c.x = Math.round((start.cx+(ev.clientX-start.x)/view.s)/10)*10;
+      c.y = Math.round((start.cy+(ev.clientY-start.y)/view.s)/10)*10;
+      rebuildSVG();
+    };
+    const up=()=>{ window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up); };
+    window.addEventListener("pointermove",move); window.addEventListener("pointerup",up);
+  });
+  return g;
+}
+function onPortClick(cid,pid){
+  if (!pendingPort){ pendingPort={cid,pid}; rebuildSVG(); return; }
+  const a=pendingPort; pendingPort=null;
+  addWire(a,{cid,pid});
+}
+function select(s){ selected=s; pendingPort=null; rebuildSVG(); refreshInspector(); }
+
+/* canvas pan/zoom + click-empty */
+function setupCanvas(){
+  const svg = svgRoot();
+  svg.addEventListener("pointerdown", e=>{
+    if (pendingPort){ pendingPort=null; rebuildSVG(); return; }
+    select(null);
+    const start={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y};
+    const move=ev=>{ view.x=start.vx+(ev.clientX-start.x); view.y=start.vy+(ev.clientY-start.y); applyView(); };
+    const up=()=>{ window.removeEventListener("pointermove",move); window.removeEventListener("pointerup",up); };
+    window.addEventListener("pointermove",move); window.addEventListener("pointerup",up);
+  });
+  svg.addEventListener("wheel", e=>{
+    e.preventDefault();
+    const k = Math.exp(-e.deltaY*0.0012);
+    const r = svg.getBoundingClientRect();
+    const mx=e.clientX-r.left, my=e.clientY-r.top;
+    view.x = mx-(mx-view.x)*k; view.y = my-(my-view.y)*k; view.s*=k;
+    view.s=Math.min(2.5,Math.max(0.35,view.s));
+    applyView();
+  },{passive:false});
+  window.addEventListener("keydown", e=>{
+    if (e.key==="Delete"||e.key==="Backspace"){
+      if (document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
+      removeSelected();
+    }
+    if (e.key==="Escape"){ pendingPort=null; rebuildSVG(); }
+  });
+}
+
+/* live per-frame overlays */
+function updateLive(){
+  if (!model) return;
+  for (const c of doc.comps){
+    const t = liveRefs.compVals.get(c.id);
+    if (t) t.textContent = displayValue(c);
+  }
+  for (const {badge,moon,isl,meta} of liveRefs.hulls.values()){
+    moon.textContent = isl.kind==="fault" ? "✕ TRIPPED"
+      : isl.asleep ? "☾ asleep" : (isl.kind==="ticked"?"⚡ ticking":"∫ closed-form");
+  }
+  // island card live fields
+  for (const [id,refs] of liveRefs.islCards){
+    const isl = model.islands.find(i=>i.id===id); if (!isl) continue;
+    const xs = stateNow(isl, model);
+    refs.states.forEach((r,i)=>{ r.textContent = fmt(xs[i]); });
+    refs.status.textContent = isl.kind==="fault" ? "breaker tripped"
+      : isl.asleep ? `asleep since ${fmtT(isl.sleepSince)}`
+      : isl.kind==="ticked" ? "integrating (RK4)"
+      : isl.kind==="algebraic" ? "at equilibrium" : "closed-form evolution";
+    refs.count.textContent = isl.kind==="ticked" ? `${isl.ticks} ticks`
+      : isl.kind==="algebraic" ? `${isl.solves} solves` : `${isl.evals} evals · 0 ticks`;
+    refs.moon.textContent = isl.asleep ? "☾" : "";
+  }
+}
+function displayValue(c){
+  const nf=(p)=>netFor(model,c.id,p);
+  try{
+    switch(c.type){
+      case "flywheel": { const n=nf("shaft"); return n?`ω ${fmt(n.val)} rad/s`:""; }
+      case "tmass":    { const n=nf("t"); return n?`${fmt(n.val)} K`:""; }
+      case "melt":     { const n=nf("t");
+        const isl=model.islands.find(i=>i.comps.includes(model.byId.get(c.id)));
+        let s=""; if (isl){ const st=isl.states.findIndex(q=>q.kind==="s"&&q.comp.id===c.id);
+          if (st>=0) s=` · sep ${(100*stateNow(isl,model)[st]).toFixed(0)}%`; }
+        return n?`${fmt(n.val)} K${s}`:""; }
+      case "tank":     { const n=nf("f"); return n?`${fmt(Math.max(0,n.val))} m³`:""; }
+      case "capacitor":{ const isl=model.islands.find(i=>i.comps.includes(model.byId.get(c.id)));
+        if (!isl) return ""; const st=isl.states.findIndex(q=>q.kind==="vc"&&q.comp.id===c.id);
+        return st>=0?`${fmt(stateNow(isl,model)[st])} V`:""; }
+      case "battery":  { const isl=model.islands.find(i=>i.comps.includes(model.byId.get(c.id)));
+        const i=isl&&isl.branchI?isl.branchI.get(c.id):0; return `${fmt(i||0)} A`; }
+      case "motor":    { const isl=model.islands.find(i=>i.comps.includes(model.byId.get(c.id)));
+        const i=isl&&isl.branchI?-(isl.branchI.get(c.id)||0):0; return `τ ${fmt(c.params.k*i)} N·m`; }
+      case "heater":   { if(!c.params.on) return "off";
+        const a=nf("p"),b=nf("n"); const dv=(a?a.val:0)-(b?b.val:0);
+        return `${fmt(dv*dv/c.params.R)} W`; }
+      case "resistor": { const a=nf("a"),b=nf("b"); return `${fmt(Math.abs((a?a.val:0)-(b?b.val:0))/c.params.R)} A`; }
+      case "valve":    { const g=valveGate(c, model.islands.find(i=>i.comps.includes(model.byId.get(c.id)))?.sigSnapshot||new Map());
+        return model.sigIn.has(c.id+":gate") ? `gate ${(g*100).toFixed(0)}%` : ""; }
+      case "ambient":  return `${fmt(c.params.T)} K`;
+      case "psrc":     return `${fmt(c.params.p)} Pa`;
+      default: return "";
+    }
+  }catch(e){ return ""; }
+}
+
+/* ============================================================
+   RIGHT PANE — inspector / islands / events
+   ============================================================ */
+function refreshInspector(){
+  const box = $("#inspBody");
+  box.innerHTML="";
+  if (!selected){
+    box.append(el("div",{class:"hint"},
+      "Nothing selected.", el("br"), el("br"),
+      "· click a palette part to place it",el("br"),
+      "· click two ports to bond them",el("br"),
+      "· dashed signal wires run out → in",el("br"),
+      "· drag canvas to pan, scroll to zoom",el("br"),
+      "· Delete removes · Esc cancels a wire"));
+    return;
+  }
+  if (selected.kind==="wire"){
+    box.append(el("div",{class:"hint"},"Wire selected — press Delete to remove."));
+    return;
+  }
+  const c = doc.comps.find(c=>c.id===selected.id);
+  if (!c) return;
+  const L=LIB[c.type];
+  box.append(el("div",{class:"inspTitle"}, L.label, el("span",{class:"dim"}," · "+c.id)));
+  for (const [k,d] of Object.entries(L.params)){
+    const row = el("div",{class:"prow"});
+    row.append(el("label",{},k + (d.unit?` (${d.unit})`:"")));
+    if (d.toggle){
+      row.append(el("input",{type:"checkbox",...(c.params[k]?{checked:""}:{}),
+        onchange:e=>{ c.params[k]=e.target.checked;
+          pushEvent(null,`${c.id} switched ${c.params[k]?"ON":"OFF"}`,simT,"ev"); recompile(true); }}));
+    } else if (d.opts){
+      const s = el("select",{onchange:e=>{ c.params[k]=e.target.value; recompile(true); }});
+      for (const o of d.opts) s.append(el("option",{value:o,...(c.params[k]===o?{selected:""}:{})},o));
+      row.append(s);
+    } else {
+      row.append(el("input",{type:"number",value:c.params[k],step:"any",
+        onchange:e=>{ let v=parseFloat(e.target.value); if(!isFinite(v)) return;
+          if (d.min!==undefined) v=Math.max(d.min,v);
+          if (d.max!==undefined) v=Math.min(d.max,v);
+          c.params[k]=v; recompile(true); }}));
+    }
+    box.append(row);
+  }
+  box.append(el("button",{class:"danger",onclick:removeSelected},"Delete part"));
+}
+
+function rebuildIslands(){
+  const box = $("#islBody"); box.innerHTML="";
+  liveRefs.islCards.clear();
+  if (!model || !model.islands.length){
+    box.append(el("div",{class:"hint"},"Empty canvas — nothing to compile. Place parts or load an example."));
+    return;
+  }
+  for (const isl of model.islands){
+    const meta = CLS_META[isl.kind]||CLS_META.ticked;
+    const card = el("div",{class:"islCard",style:`border-left-color:${meta.color}`});
+    const moon = el("span",{class:"moon"},"");
+    card.append(el("div",{class:"islHead"},
+      el("span",{class:"islId"},isl.id),
+      el("span",{class:"badge",style:`color:${meta.color};border-color:${meta.color}55;background:${meta.color}14`},
+        meta.label + (isl.tmpl?` · ${isl.tmpl.name}`:"")),
+      moon));
+    card.append(el("div",{class:"islNote"},meta.note));
+    const refs={states:[],status:null,count:null,moon};
+    for (const w of isl.warns) card.append(el("div",{class:"warnLine"},"⚠ "+w));
+    if (isl.fault) card.append(el("div",{class:"faultLine"},"✕ "+isl.fault+" — the weakest link yields: breaker trips"));
+    isl.states.forEach((s,i)=>{
+      const v = el("span",{class:"sv"},"");
+      refs.states.push(v);
+      card.append(el("div",{class:"srow"},
+        el("span",{class:"sname",style:`color:${stateColor(s)}`},s.name), v,
+        el("span",{class:"sunit"},{w:"rad/s",T:"K",V:"m³",vc:"V",s:"frac"}[s.kind]||"")));
+    });
+    const status=el("span",{class:"status"},""), count=el("span",{class:"count"},"");
+    refs.status=status; refs.count=count;
+    card.append(el("div",{class:"islFoot"},status,count));
+    for (const ev of isl.pending){
+      if (ev.done) continue;
+      card.append(el("div",{class:"predLine"},"◇ "+(isFinite(ev.t)?`t=${fmtT(ev.t)} — `:"")+ev.label));
+    }
+    box.append(card);
+    liveRefs.islCards.set(isl.id, refs);
+  }
+}
+function stateColor(s){
+  return DOMAINS[{w:"m",T:"t",V:"f",vc:"e",s:"s"}[s.kind]].color;
+}
+
+function renderEvents(){
+  const box=$("#evBody"); if(!box) return;
+  box.innerHTML="";
+  // upcoming predictions
+  if (model){
+    const preds=[];
+    for (const isl of model.islands)
+      for (const ev of isl.pending)
+        if (!ev.done && isFinite(ev.t) && ev.t>simT) preds.push({isl,ev});
+    preds.sort((a,b)=>a.ev.t-b.ev.t);
+    if (preds.length){
+      box.append(el("div",{class:"evHead"},"predicted"));
+      for (const {isl,ev} of preds)
+        box.append(el("div",{class:"evRow pred"},
+          el("span",{class:"evT"},"t="+fmtT(ev.t)), el("span",{class:"evI"},isl.id), ev.label));
+    }
+  }
+  box.append(el("div",{class:"evHead"},"ledger"));
+  for (const e of eventsLog){
+    box.append(el("div",{class:"evRow "+e.cls},
+      el("span",{class:"evT"},fmtT(e.t)), el("span",{class:"evI"},e.isl), e.label));
+  }
+}
+
+/* ============================================================
+   CHARTS
+   ============================================================ */
+function rebuildCharts(){
+  const strip=$("#charts"); strip.innerHTML="";
+  if (!model) return;
+  const names=[];
+  for (const isl of model.islands) for (const s of isl.states) names.push({s,isl});
+  for (const name of [...chartBufs.keys()])
+    if (!names.some(n=>n.s.name===name)) chartBufs.delete(name);
+  for (const {s} of names.slice(0,8)){
+    if (!chartBufs.has(s.name)) chartBufs.set(s.name,{pts:[],color:stateColor(s)});
+    const cv=el("canvas",{class:"chart","data-name":s.name,width:320,height:128});
+    const wrap=el("div",{class:"chartWrap"},
+      el("div",{class:"chartLabel",style:`color:${stateColor(s)}`},s.name,
+        el("span",{class:"chartVal","data-name":s.name}," ")), cv);
+    strip.append(wrap);
+  }
+}
+function sampleCharts(){
+  if (!model) return;
+  for (const isl of model.islands){
+    const xs=stateNow(isl,model);
+    isl.states.forEach((s,i)=>{
+      const b=chartBufs.get(s.name); if(!b) return;
+      const last=b.pts[b.pts.length-1];
+      if (!last || simT-last[0] > Math.max(0.05, speed*0.02)) b.pts.push([simT, xs[i]]);
+      if (b.pts.length>2600) b.pts=b.pts.filter((_,j)=>j%2===0);
+    });
+  }
+}
+function drawCharts(){
+  document.querySelectorAll("canvas.chart").forEach(cv=>{
+    const b=chartBufs.get(cv.dataset.name); if(!b) return;
+    const ctx=cv.getContext("2d"), W=cv.width, H=cv.height;
+    ctx.clearRect(0,0,W,H);
+    const pts=b.pts; if (pts.length<2) return;
+    let y0=Infinity,y1=-Infinity;
+    for (const [,v] of pts){ y0=Math.min(y0,v); y1=Math.max(y1,v); }
+    if (y1-y0<1e-9){ y0-=1; y1+=1; }
+    const pad=(y1-y0)*0.12; y0-=pad; y1+=pad;
+    const t0=pts[0][0], t1=pts[pts.length-1][0]||1;
+    ctx.strokeStyle="#232e3b"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,H-14); ctx.lineTo(W,H-14); ctx.stroke();
+    ctx.strokeStyle=b.color; ctx.lineWidth=2; ctx.beginPath();
+    pts.forEach(([t,v],i)=>{
+      const x=(t-t0)/Math.max(1e-9,t1-t0)*(W-4)+2;
+      const y=(1-(v-y0)/(y1-y0))*(H-20)+3;
+      i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    });
+    ctx.stroke();
+    const vEl=document.querySelector(`.chartVal[data-name="${CSS.escape(cv.dataset.name)}"]`);
+    if (vEl) vEl.textContent=" "+fmt(pts[pts.length-1][1]);
+  });
+}
+
+/* ============================================================
+   EXAMPLES
+   ============================================================ */
+const EXAMPLES = {
+  divider: { title:"Electrical · algebraic", doc:{ comps:[
+      {id:"bat1",type:"battery",x:120,y:200,params:{V:12,on:true}},
+      {id:"res1",type:"resistor",x:340,y:120,params:{R:10}},
+      {id:"res2",type:"resistor",x:340,y:280,params:{R:10}},
+      {id:"gnd1",type:"ground",x:134,y:330,params:{}},
+    ], wires:[
+      {a:["bat1","p"],b:["res1","a"]},{a:["res1","b"],b:["res2","a"]},
+      {a:["res2","b"],b:["bat1","n"]},{a:["bat1","n"],b:["gnd1","p"]},
+    ]},
+    blurb:"No stores anywhere, so the whole island is one linear solve. It computes once, reports equilibrium, and sleeps forever — electricity is a constraint, never a tick. Toggle the battery (dot on its corner) to fire an event and watch the solve counter go up by exactly one." },
+  spin: { title:"Mechanical · linear", doc:{ comps:[
+      {id:"trq1",type:"torque",x:120,y:200,params:{tau:10,on:true}},
+      {id:"fly1",type:"flywheel",x:340,y:198,params:{J:2,w0:0}},
+      {id:"brg1",type:"bearing",x:560,y:202,params:{b:0.5}},
+    ], wires:[
+      {a:["trq1","shaft"],b:["fly1","shaft"]},{a:["fly1","shaft"],b:["brg1","shaft"]},
+    ]},
+    blurb:"Torque, inertia, viscous drag: the affine probe passes, so this island gets a closed-form eᴬᵗ solution. Nothing is ever integrated — the curve you see is evaluated, and the settle time is predicted up front and pushed onto the event queue." },
+  cool: { title:"Thermal · template (T⁴)", doc:{ comps:[
+      {id:"tm1",type:"tmass",x:200,y:190,params:{C:5000,T0:900,Tmark:500}},
+      {id:"rad1",type:"radiator",x:460,y:194,params:{eps:0.8,A:1,Tspace:4}},
+    ], wires:[ {a:["tm1","t"],b:["rad1","t"]} ]},
+    blurb:"A hot mass radiating to deep space is nonlinear (T⁴), so the affine probe fails — but the structure pattern-matches a known analytic template: T(t)=T₀(1+3kT₀³t)^(−⅓). The crossing of Tmark is computed by inverting the formula, not by watching for it." },
+  tankd: { title:"Fluid · template (Torricelli)", doc:{ comps:[
+      {id:"tnk1",type:"tank",x:140,y:190,params:{A:0.5,V0:1,rho:1000}},
+      {id:"vlv1",type:"valve",x:380,y:194,params:{k:1.2e-4,law:"sqrt",gT:600,gW:15}},
+      {id:"drn1",type:"drain",x:600,y:196,params:{}},
+    ], wires:[ {a:["tnk1","f"],b:["vlv1","a"]},{a:["vlv1","b"],b:["drn1","f"]} ]},
+    blurb:"√Δp outflow matches the Torricelli template: V(t)=(√V₀−ct/2)². The tank knows its own future — 'empty at t=…' is an exact event, committed to the ledger before a single step is taken. Switch the valve law to linear and it reclassifies to LINEAR instead." },
+  forge: { title:"Centrifuge forge · everything at once", doc:{ comps:[
+      {id:"bat1",type:"battery",x:100,y:150,params:{V:110,on:true}},
+      {id:"gnd1",type:"ground",x:114,y:280,params:{}},
+      {id:"mot1",type:"motor",x:330,y:70,params:{k:0.4,Rw:2}},
+      {id:"fly1",type:"flywheel",x:540,y:70,params:{J:1.5,w0:0}},
+      {id:"brg1",type:"bearing",x:720,y:74,params:{b:0.25}},
+      {id:"htr1",type:"heater",x:330,y:240,params:{R:2,on:true}},
+      {id:"mlt1",type:"melt",x:540,y:236,params:{C:2500,T0:293,Tmelt:600,kSep:0.03,wRef:40}},
+      {id:"rad1",type:"radiator",x:750,y:242,params:{eps:0.4,A:0.3,Tspace:4}},
+      {id:"tnk1",type:"tank",x:540,y:420,params:{A:0.3,V0:0.4,rho:2800}},
+      {id:"vlv1",type:"valve",x:740,y:424,params:{k:3e-4,law:"sqrt",gT:600,gW:15}},
+      {id:"drn1",type:"drain",x:930,y:426,params:{}},
+    ], wires:[
+      {a:["bat1","p"],b:["mot1","p"]},{a:["bat1","n"],b:["mot1","n"]},{a:["bat1","n"],b:["gnd1","p"]},
+      {a:["bat1","p"],b:["htr1","p"]},{a:["bat1","n"],b:["htr1","n"]},
+      {a:["mot1","shaft"],b:["fly1","shaft"]},{a:["fly1","shaft"],b:["brg1","shaft"]},
+      {a:["htr1","out"],b:["mlt1","t"]},{a:["mlt1","t"],b:["rad1","t"]},
+      {a:["fly1","w"],b:["mlt1","spin"]},
+      {a:["mlt1","T"],b:["vlv1","gate"]},
+      {a:["tnk1","f"],b:["vlv1","a"]},{a:["vlv1","b"],b:["drn1","f"]},
+    ]},
+    blurb:"One bus feeds a motor and a heater; the motor spins a drum, the heater melts the crucible. Two dashed modulation wires cross island boundaries carrying no energy: drum ω² drives separation, and melt temperature is the freeze plug on the tap valve. Watch the tap island sleep at 0 ticks until the plug melts — then wake, drain, and sleep again. Toggle the heater or battery mid-run to slam events into the ledger." },
+  blank: { title:"Blank bench", doc:{comps:[],wires:[]},
+    blurb:"Author your own machine: place parts, bond ports of matching color, run signal wires from bottom ports into top ports. The compiler re-partitions and re-classifies on every edit." },
+};
+function loadExample(key){
+  const ex=EXAMPLES[key];
+  doc = JSON.parse(JSON.stringify(ex.doc));
+  nextNum = 1 + doc.comps.length*3;
+  selected=null; pendingPort=null; eventsLog=[]; chartBufs.clear();
+  simT=0; running=false; $("#runBtn").textContent="▶ Run";
+  view={x:40,y:20,s:1};
+  model=null; recompile(false);
+  $("#blurb").textContent = ex.blurb;
+  document.querySelectorAll(".extab").forEach(b=>b.classList.toggle("on", b.dataset.ex===key));
+}
+
+/* ============================================================
+   IMPORT / EXPORT
+   ============================================================ */
+function showIO(exporting){
+  const modal=$("#ioModal"); modal.style.display="flex";
+  const ta=$("#ioText");
+  if (exporting) ta.value = JSON.stringify(doc, null, 1);
+  else ta.value="";
+  $("#ioApply").style.display = exporting?"none":"inline-block";
+  $("#ioTitle").textContent = exporting?"Copy this JSON to save your system":"Paste system JSON";
+}
+function applyIO(){
+  try{
+    const d=JSON.parse($("#ioText").value);
+    if (!Array.isArray(d.comps)||!Array.isArray(d.wires)) throw new Error("bad shape");
+    for (const c of d.comps){ if(!LIB[c.type]) throw new Error("unknown part: "+c.type);
+      c.params = {...defaultParams(c.type), ...(c.params||{})}; }
+    doc=d; nextNum=1+doc.comps.length*3; selected=null; simT=0; chartBufs.clear(); eventsLog=[];
+    model=null; recompile(false);
+    $("#ioModal").style.display="none";
+  }catch(e){ alert("Couldn't parse: "+e.message); }
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+function buildPalette(){
+  const pal=$("#palette");
+  for (const [cat,name] of CATS){
+    const col = cat==="x"?"#e8b8ff":DOMAINS[cat].color;
+    pal.append(el("div",{class:"palCat",style:`color:${col}`},name));
+    for (const [type,L] of Object.entries(LIB)){
+      if (L.cat!==cat) continue;
+      const item=el("button",{class:"palItem",onclick:()=>{
+        const r=svgRoot().getBoundingClientRect();
+        addComp(type, (r.width/2-view.x)/view.s-40+(doc.comps.length%5)*24, (r.height/2-view.y)/view.s-30+(doc.comps.length%5)*20);
+      }});
+      const sv=el("svg",{viewBox:"0 0 24 24",class:"palIcon"});
+      sv.append(el("path",{d:GLYPH[type]||"",stroke:col,fill:"none","stroke-width":1.6,"stroke-linecap":"round","stroke-linejoin":"round"}));
+      item.append(sv, el("span",{},L.label));
+      pal.append(item);
+    }
+  }
+}
+function setupTabs(){
+  document.querySelector('.ptab[data-tab="isl"]').classList.add("on");
+  document.querySelectorAll(".ptab").forEach(b=>{
+    b.addEventListener("click",()=>{
+      document.querySelectorAll(".ptab").forEach(x=>x.classList.toggle("on",x===b));
+      $("#inspBody").style.display = b.dataset.tab==="insp"?"block":"none";
+      $("#islBody").style.display  = b.dataset.tab==="isl"?"block":"none";
+      $("#evBody").style.display   = b.dataset.tab==="ev"?"block":"none";
+    });
+  });
+}
+window.addEventListener("DOMContentLoaded", ()=>{
+  buildPalette(); setupCanvas(); setupTabs();
+  $("#runBtn").addEventListener("click",()=>{
+    running=!running; $("#runBtn").textContent=running?"❚❚ Pause":"▶ Run";
+  });
+  $("#resetBtn").addEventListener("click",resetSim);
+  $("#speedSel").addEventListener("change",e=>{ speed=parseFloat(e.target.value); });
+  $("#exportBtn").addEventListener("click",()=>showIO(true));
+  $("#importBtn").addEventListener("click",()=>showIO(false));
+  $("#ioApply").addEventListener("click",applyIO);
+  $("#ioClose").addEventListener("click",()=>$("#ioModal").style.display="none");
+  document.querySelectorAll(".extab").forEach(b=>b.addEventListener("click",()=>loadExample(b.dataset.ex)));
+  loadExample("forge");
+  requestAnimationFrame(t=>{ lastFrame=t; requestAnimationFrame(frame); });
+});
+
+</script>
+</body>
+</html>

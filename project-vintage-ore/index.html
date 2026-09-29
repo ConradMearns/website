@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <title>Project Vintage Ore — Conrad's Website</title>
+    <link rel='stylesheet' href='../main.css'>
+    <style>
+        /* ─────────  thumbnails and cards (same look as the Turncoats page)  ───────── */
+
+        .img-caption {
+            font-size: 0.8em;
+            line-height: 1.45;
+            color: var(--muted);
+            opacity: 0.85;
+            margin-top: 0.4em;
+        }
+
+        .img-row {
+            display: flex;
+            gap: 1.4em;
+            flex-wrap: wrap;
+            margin: 1.4em 0;
+        }
+
+        .img-row figure {
+            margin: 0;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .img-row figure a {
+            text-decoration: none;
+        }
+
+        .site-card {
+            border-left: 4px solid var(--accent);
+            background: var(--surface);
+            border-radius: 0 6px 6px 0;
+            padding: 1em 1.2em;
+            margin: 1.6em 0;
+            display: flex;
+            gap: 1.2em;
+            align-items: flex-start;
+        }
+
+        .site-card:hover {
+            background: var(--hover);
+        }
+
+        .site-card-thumb {
+            flex: 0 0 220px;
+            aspect-ratio: 16/9;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .img-row .site-card-thumb {
+            flex: none;
+            width: 100%;
+        }
+
+        .site-card-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .site-card-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .site-card-domain {
+            font-size: 0.75em;
+            color: var(--muted);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin: 0 0 0.15em 0;
+            opacity: 0.7;
+        }
+
+        .site-card-title {
+            font-size: 1em;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0 0 0.3em 0;
+            letter-spacing: 0.02em;
+        }
+
+        .site-card-desc {
+            font-size: 0.85em;
+            color: var(--muted);
+            line-height: 1.5;
+            margin: 0 0 0.5em 0;
+        }
+
+        .site-card-link {
+            font-size: 0.8em;
+            letter-spacing: 0.03em;
+            color: var(--accent);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.1em;
+        }
+
+        .site-card-meta {
+            font-size: 0.75em;
+            color: var(--muted);
+            opacity: 0.6;
+            margin-top: 0.4em;
+        }
+
+        @media (max-width: 560px) {
+            .site-card { flex-direction: column; }
+            .site-card-thumb { flex: none; width: 100%; }
+        }
+
+        /* ─────────  the plan and the table  ───────── */
+
+        ol.plan {
+            margin: 0.6em 0;
+            padding-left: 1.4em;
+            color: var(--muted);
+            font-size: 0.9em;
+            line-height: 1.55;
+        }
+
+        ol.plan li {
+            margin: 0.35em 0;
+        }
+
+        ol.plan strong {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .data-table {
+            border-collapse: collapse;
+            margin: 0.8em 0;
+            font-size: 0.85em;
+            line-height: 1.5;
+            width: 100%;
+            max-width: 28em;
+        }
+
+        .data-table th,
+        .data-table td {
+            text-align: left;
+            padding: 0.3em 1em 0.3em 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th {
+            color: var(--muted);
+            font-weight: 400;
+            font-size: 0.85em;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .data-table td {
+            color: var(--text);
+        }
+
+        .data-table td.num,
+        .data-table th.num {
+            text-align: right;
+            padding-right: 0;
+            font-variant-numeric: tabular-nums;
+        }
+    </style>
+</head>
+<body>
+
+    <header style="width: full;">
+        <h1 class="stretch grow"><a href="../index.html">conrads.website</a></h1>
+    </header>
+
+    <hr />
+
+    <nav>
+        <a href="https://bsky.app/profile/conradmearns.bsky.social" target="_blank">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24">
+            <path fill="currentColor" d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565C.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479c.815 2.736 3.713 3.66 6.383 3.364q.204-.03.415-.056q-.207.033-.415.056c-3.912.58-7.387 2.005-2.83 7.078c5.013 5.19 6.87-1.113 7.823-4.308c.953 3.195 2.05 9.271 7.733 4.308c4.267-4.308 1.172-6.498-2.74-7.078a9 9 0 0 1-.415-.056q.21.026.415.056c2.67.297 5.568-.628 6.383-3.364c.246-.828.624-5.79.624-6.478c0-.69-.139-1.861-.902-2.206c-.659-.298-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8"></path></svg>
+        </a>
+
+        <a href="https://github.com/ConradMearns" target="_blank">
+          <svg viewBox="0 0 16 16" aria-hidden="true" width="32" height="32"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>
+        </a>
+    </nav>
+
+    <hr />
+
+    <main>
+
+        <article>
+            <header>
+                <h1 class="stretch grow-1">Project Vintage Ore</h1>
+            </header>
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!--                 BLURB                      -->
+            <!-- ═══════════════════════════════════════════ -->
+
+            <p class="indent">
+                Vintage Story hides its metal underground, and the only tool that tells you where is the
+                prospecting pick. It gives you two things: a density reading for the spot you are standing on
+                (&ldquo;poor&rdquo;, &ldquo;decent&rdquo;, &ldquo;high&rdquo;), and a node search that counts the ore in a cube around you.
+                Everything else is up to you.
+            </p>
+
+            <p class="indent">
+                My method was a staircase: dig six blocks down, take a node search, dig one to the side, repeat.
+                It worked. I wanted to know how well.
+            </p>
+
+            <p class="indent">
+                So, naturally, I built a lab instead of mining. A server mod generates worlds and records every ore block
+                and every reading the game would give. A simulator digs tens of thousands of virtual shafts under
+                different strategies and scores each one in ore per point of tool durability. Three worlds of
+                4096&times;4096 blocks, 59 million ore blocks, about 49,000 shafts per strategy.
+            </p>
+
+            <a href="report/index.html" style="text-decoration: none;">
+            <div class="site-card">
+                <div class="site-card-thumb">
+                    <img src="thumb-report.png" alt="The Vintage Ore Survey report" loading="lazy">
+                </div>
+                <div class="site-card-body">
+                    <p class="site-card-domain">Interactive report</p>
+                    <p class="site-card-title">Vintage Ore Survey</p>
+                    <p class="site-card-desc">
+                        Pick an ore, a density reading and your world&rsquo;s node search radius, and every chart, map and
+                        recommendation updates: where the ore sits, which strategy wins, how deep to go, how far apart to dig.
+                    </p>
+                    <span class="site-card-link">&rarr; Open the report</span>
+                    <p class="site-card-meta">Data from three generated worlds</p>
+                </div>
+            </div>
+            </a>
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!--                 THE PLAN                   -->
+            <!-- ═══════════════════════════════════════════ -->
+
+            <header style="margin-top: 2em;">
+                <h1 class="stretch grow-1">The plan</h1>
+            </header>
+
+            <p class="indent">
+                For native copper with a node search radius of 6, this is what the simulations settled on:
+            </p>
+
+            <ol class="plan">
+                <li><strong>Read every ~100 blocks</strong> while exploring, until the density reading says &ldquo;decent&rdquo;.</li>
+                <li><strong>Climb.</strong> Take four compass readings 64 blocks out, step to the best, repeat.</li>
+                <li><strong>Dig a shaft and node search every 13 blocks.</strong> The cubes just touch, so nothing is missed. Count your ladders.</li>
+                <li><strong>Edge search at a hit.</strong> Halve the gap back up your shaft; the top of the ore is the highest probe that still counts it, plus 6.</li>
+                <li><strong>Tunnel toward the rising count</strong> three blocks at a time. Stop at visible ore. Give up after 120 durability.</li>
+                <li><strong>Mine the whole body,</strong> probe again, and carry on down to the stop depth.</li>
+                <li><strong>Move over and dig the next shaft.</strong> Closer than the spacing below and you are re-digging ore you already took.</li>
+            </ol>
+
+            <table class="data-table">
+                <thead>
+                    <tr><th>Ore</th><th class="num">Stop at (ladders)</th><th class="num">Shafts apart</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Copper</td><td class="num">112</td><td class="num">32</td></tr>
+                    <tr><td>Tin (cassiterite)</td><td class="num">80</td><td class="num">24</td></tr>
+                    <tr><td>Bismuthinite</td><td class="num">80</td><td class="num">20</td></tr>
+                    <tr><td>Iron (hematite)</td><td class="num">80</td><td class="num">80</td></tr>
+                </tbody>
+            </table>
+
+            <p class="indent">
+                The headline number is modest. For copper this plan mines about 26.5 ore blocks per 100 durability,
+                against 25.3 for probing every 6 blocks. Most of the value is in the decisions you make before you dig:
+                reading the surface, spacing your shafts, and not stopping at the first deposit
+                (that alone drops it to 18.6).
+            </p>
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!--             WHAT SURPRISED ME              -->
+            <!-- ═══════════════════════════════════════════ -->
+
+            <header style="margin-top: 2em;">
+                <h1 class="stretch grow-1">What surprised me</h1>
+            </header>
+
+            <p class="indent">
+                <strong>The count is a hard-edged box.</strong> A probe sees ore only within 6 blocks up or down, so the
+                highest probe that still counts ore sits exactly 6 above the top of the deposit. That turns finding the
+                ore&rsquo;s height into about four probes up your own shaft.
+            </p>
+
+            <p class="indent">
+                <strong>Being clever did not help much.</strong> I built a probabilistic model of deposit shapes to aim
+                the tunnels. It landed between 9% worse and 5% better than the simple routine. A count tells you how
+                much ore is nearby, not which way it is.
+            </p>
+
+            <p class="indent">
+                <strong>One patch is a lot of shafts.</strong> A typical &ldquo;decent&rdquo; copper patch has room for about a hundred
+                at the right spacing.
+            </p>
+
+            <p class="indent">
+                <strong>The game has a seam.</strong> For pentlandite, chromite, ilmenite and one of the coals, the ore map has
+                hard straight edges along the 512-block region borders. I think it comes from a scale setting that does not
+                divide the region size. I have not reported it.
+            </p>
+
+            <p class="indent">
+                <strong>What to distrust.</strong> The game reports node search counts as words (trace, small, medium&hellip;), not
+                numbers, but my tunnel-steering simulation used exact counts. Its direction-finding results are optimistic.
+                The edge search only needs &ldquo;ore or none&rdquo;, so it holds up. Re-running it with the real buckets is next.
+            </p>
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!--               THE ANIMATIONS               -->
+            <!-- ═══════════════════════════════════════════ -->
+
+            <header style="margin-top: 2em;">
+                <h1 class="stretch grow-1">Three animations</h1>
+            </header>
+
+            <p class="indent">
+                I asked Claude Opus and Claude Sonnet for the same thing, a p5.js animation of the finished guide,
+                then had Sonnet read both and merge them. They tell the same eight-step story and disagree about
+                almost everything else.
+            </p>
+
+            <div class="img-row">
+                <figure>
+                    <a href="anim-opus/index.html">
+                        <div class="site-card-thumb">
+                            <img src="thumb-opus.png" alt="Opus animation, the edge search scene" loading="lazy">
+                        </div>
+                        <figcaption class="img-caption"><strong>Opus.</strong> Compact and game-styled, loops on its own, and the best closing card. Counts are approximated in 2D.</figcaption>
+                    </a>
+                </figure>
+
+                <figure>
+                    <a href="anim-sonnet/index.html">
+                        <div class="site-card-thumb">
+                            <img src="thumb-sonnet.png" alt="Sonnet animation, the edge search scene" loading="lazy">
+                        </div>
+                        <figcaption class="img-caption"><strong>Sonnet.</strong> Everything computed from the game&rsquo;s rules, with a scrubber and a live durability ledger. Longer and denser.</figcaption>
+                    </a>
+                </figure>
+
+                <figure>
+                    <a href="anim-sonnet-fixed/index.html">
+                        <div class="site-card-thumb">
+                            <img src="thumb-merged.png" alt="Merged animation, a patch filled with shafts" loading="lazy">
+                        </div>
+                        <figcaption class="img-caption"><strong>Merged.</strong> Sonnet&rsquo;s core plus Opus&rsquo;s labelled edge rule, a patch filled with shafts, and a &ldquo;what loses ore&rdquo; recipe card.</figcaption>
+                    </a>
+                </figure>
+            </div>
+
+            <p class="indent">
+                Space pauses any of them; the left and right arrows change scene.
+            </p>
+
+            <!-- ═══════════════════════════════════════════ -->
+            <!--                 CREDITS                    -->
+            <!-- ═══════════════════════════════════════════ -->
+
+            <p class="indent">
+                Built with Claude Code: Opus 5.5 did the lab and the analysis, and Opus and Sonnet 5.5 each made an animation.
+                The code, the notes and how to rerun all of it are on GitHub.
+            </p>
+
+            <nav class="card-links" style="justify-content: flex-start; padding: 0; margin: 0.6em 0;">
+                <a href="https://github.com/ConradMearns/vintage-ore" target="_blank" rel="noopener">&rarr; GitHub</a>
+                <a href="report/index.html">&rarr; Report</a>
+            </nav>
+
+            <p class="meta">September 2026</p>
+
+        </article>
+
+    </main>
+
+</body>
+</html>

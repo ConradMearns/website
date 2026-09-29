@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conrad Mearns</title>
+<style>
+  /* v2c — two columns, monospace: dark, one accent, dates hang in the margin */
+  :root { --fg: #d0d4e0; --dim: #7b8196; --line: #2a2e3c; --accent: #f07c5a; }
+  body { background: #000; color: var(--fg); max-width: 60rem; margin: 3rem auto; padding: 0 1.2rem; font: 14px/1.7 ui-monospace, "IBM Plex Mono", monospace; display: grid; grid-template-columns: 16rem 1fr; gap: 3rem; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  aside { position: sticky; top: 3rem; align-self: start; }
+  h1 { font-size: 1.1rem; margin: 0 0 .5rem; color: #fff; }
+  h2 { font-size: 1em; font-weight: 400; color: var(--dim); margin: 0 0 .6rem; }
+  h2::before { content: "## "; }
+  main h2:not(:first-child) { margin-top: 2.5rem; }
+  p { margin: 0 0 .8rem; }
+  .dim { color: var(--dim); }
+  .box { border-top: 1px dashed var(--line); padding-top: 1rem; margin-top: 1.5rem; }
+  dl { display: grid; grid-template-columns: 6rem 1fr; gap: 0 1rem; margin: 0; }
+  dt { color: var(--dim); }
+  dd { margin: 0 0 1rem; }
+  dd b { color: #fff; font-weight: 600; }
+  @media (max-width: 44rem) { body { grid-template-columns: 1fr; gap: 1.5rem; margin-top: 1.5rem; } aside { position: static; } dl { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<aside>
+  <h1>conrad mearns</h1>
+  <p class="dim">computer scientist. tools for agents and event-driven systems; measuring whether they work.</p>
+  <p><a href="mailto:conradmearns@pm.me">email</a> · <a href="https://github.com/ConradMearns">github</a> · <a href="https://bsky.app/profile/conradmearns.bsky.social">bluesky</a></p>
+
+  <div class="box">
+    <h2>vibechecks</h2>
+    <p>a quick, mostly vibe-coded test of an idea or model: describe it, let an LLM build it, see if it holds. built in an evening, judged by feel. some work; some semi-fail.</p>
+    <p><a href="vibechecks/">all six →</a><br><span class="dim">latest: <a href="vibechecks/island-forge.html">island forge</a></span></p>
+  </div>
+
+  <p class="box"><a href="about.html">about this site</a></p>
+</aside>
+
+<main>
+  <h2>now</h2>
+  <dl>
+    <dt>ongoing</dt><dd><b>Agentic goal ontology</b><br>goals, gaps, and the events between them. <a href="artifacts/graphs.html">graph</a> <a href="artifacts/evals.html">evals</a></dd>
+    <dt>ongoing</dt><dd><b>Provenance-focused dev workspace</b><br>every artifact knows where it came from.</dd>
+    <dt>ongoing</dt><dd><b>Building a house</b><br>the literal kind.</dd>
+  </dl>
+
+  <h2>then</h2>
+  <dl>
+    <dt>2026-09</dt><dd><b>Vintage Ore</b><br>simulated prospecting strategies. <a href="project-vintage-ore/index.html">read</a> <a href="project-vintage-ore/report/index.html">report</a> <a href="https://github.com/ConradMearns/vintage-ore">code</a></dd>
+    <dt>2026-08</dt><dd><b>KSP tools</b><br>in orbit; made tooling instead of flights. <a href="artifacts/ksp-maneuver-planner.html">Δv computer</a> <a href="artifacts/orbit-viewer.html">orbit viewer</a></dd>
+    <dt>2026-07</dt><dd><b>DIZZY</b><br>architecture for redistributable systems; DIZZY LAB is 13 models, one prompt. <a href="project-dizzy-viz/blog.html">lab</a> <a href="https://github.com/PNNL/dizzy">code</a> <a href="https://github.com/PNNL/dizzy/blob/main/docs/whitepaper.pdf">whitepaper</a></dd>
+    <dt>2022–2026</dt><dd><b>Turncoats</b><br>strategy game with Monte-Carlo bots. <a href="project-turncoats/index.html">read</a> <a href="https://conradmearns.github.io/breadboard-turncoats/fable.html">play</a></dd>
+  </dl>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conrad Mearns</title>
+<style>
+  /* v2b — two columns, minimal CSS: paper + serif, sticky sidebar, grouped timeline */
+  :root { color-scheme: light dark; --accent: #d4623f; --dim: color-mix(in srgb, currentColor 55%, transparent); }
+  body { max-width: 58em; margin: 3em auto; padding: 0 1.2em; font: 1.05em/1.55 Georgia, serif; display: grid; grid-template-columns: 15em 1fr; gap: 3.5em; }
+  a { color: inherit; text-decoration-color: var(--accent); text-underline-offset: .2em; }
+  aside { position: sticky; top: 3em; align-self: start; }
+  h1 { font-size: 1.5em; margin: 0 0 .3em; }
+  h2 { font: 600 .8em/1 sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); margin: 0 0 1em; }
+  main h2:not(:first-child) { margin-top: 2.5em; }
+  aside p { margin: 0 0 1em; }
+  .box { border-top: 1px solid var(--dim); padding-top: 1em; margin-top: 1.5em; font-size: .9em; }
+  .box h2 { margin-bottom: .6em; }
+  ol { list-style: none; padding: 0; margin: 0; }
+  li { display: grid; grid-template-columns: 5.5em 1fr; margin-bottom: 1.2em; }
+  li time, small { color: var(--dim); font: .8em/1.9 sans-serif; }
+  li b { display: block; }
+  li span { color: var(--dim); }
+  @media (max-width: 42em) { body { grid-template-columns: 1fr; gap: 2em; margin-top: 1.5em; } aside { position: static; } li { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<aside>
+  <h1>Conrad Mearns</h1>
+  <p>Computer scientist. I build tools for agents and event-driven systems, and measure whether they work.</p>
+  <p><a href="mailto:conradmearns@pm.me">Email</a> · <a href="https://github.com/ConradMearns">GitHub</a> · <a href="https://bsky.app/profile/conradmearns.bsky.social">Bluesky</a></p>
+
+  <div class="box">
+    <h2>Vibechecks</h2>
+    <p>A quick, mostly vibe-coded test of an idea or a model. I describe it, an LLM builds it, and I see whether it holds up. Built in an evening, judged by feel. Some work, some semi-fail.</p>
+    <a href="vibechecks/">All six →</a>
+  </div>
+
+  <p class="box"><a href="about.html">About this site</a></p>
+</aside>
+
+<main>
+  <h2>Now</h2>
+  <ol>
+    <li><time>ongoing</time><div><b>Agentic goal ontology</b> <span>Goals, gaps and events, so an agent can reason about the work.</span> <a href="artifacts/graphs.html">Graph</a>, <a href="artifacts/evals.html">evals</a></div></li>
+    <li><time>ongoing</time><div><b>Provenance-focused dev workspace</b> <span>Every artifact knows where it came from.</span></div></li>
+    <li><time>ongoing</time><div><b>Building a house</b> <span>The literal kind.</span></div></li>
+  </ol>
+
+  <h2>Then</h2>
+  <ol>
+    <li><time>Sep 2026</time><div><b>Vintage Ore</b> <span>Simulated prospecting strategies for Vintage Story.</span> <a href="project-vintage-ore/index.html">Read</a>, <a href="project-vintage-ore/report/index.html">report</a>, <a href="https://github.com/ConradMearns/vintage-ore">code</a></div></li>
+    <li><time>Aug 2026</time><div><b>Kerbal Space Program tools</b> <span>Currently in orbit; produced tooling instead of flights.</span> <a href="artifacts/ksp-maneuver-planner.html">Δv computer</a>, <a href="artifacts/orbit-viewer.html">orbit viewer</a></div></li>
+    <li><time>Jul 2026</time><div><b>DIZZY</b> <span>Architecture for redistributable systems, plus DIZZY LAB: 13 models, one prompt.</span> <a href="project-dizzy-viz/blog.html">Lab</a>, <a href="https://github.com/PNNL/dizzy">code</a>, <a href="https://github.com/PNNL/dizzy/blob/main/docs/whitepaper.pdf">whitepaper</a></div></li>
+    <li><time>2022–26</time><div><b>Turncoats</b> <span>A strategy game with Monte-Carlo bots. Pass and play.</span> <a href="project-turncoats/index.html">Read</a>, <a href="https://conradmearns.github.io/breadboard-turncoats/fable.html">play</a></div></li>
+  </ol>
+</main>
+
+</body>
+</html>

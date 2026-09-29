@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direction A — Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06080c; --panel:#0b0e14; --line:#1b2130;
+  --text:#c9d0dc; --dim:#606c80; --faint:#3a4354;
+  --accent:#f07c5a; --accent-dim:#7d4433;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--text);
+  font:400 14px/1.7 "IBM Plex Mono",ui-monospace,monospace;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:50em;margin:0 auto;padding:0 1.5rem 6rem}
+a{color:var(--text);text-decoration:none;border-bottom:1px solid var(--faint)}
+a:hover{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ── masthead ── */
+.mast{padding:4rem 0 1.25rem;display:flex;align-items:flex-end;justify-content:space-between;gap:2rem;flex-wrap:wrap}
+.mast h1{font:400 clamp(2rem,7vw,3.25rem)/1 "Instrument Serif",serif;letter-spacing:-.02em}
+.mast h1 a{border:none;color:var(--text)}
+.mast h1 a:hover{color:var(--accent)}
+.mast .sub{color:var(--dim);font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+.icons{display:flex;gap:1rem;align-items:center}
+.icons a{border:none;color:var(--dim);display:flex}
+.icons a:hover{color:var(--accent)}
+.rule{border:none;border-top:1px solid var(--line)}
+.rule.heavy{border-top:1px solid var(--accent-dim)}
+
+/* ── ledger row ── */
+.row{display:grid;grid-template-columns:7.5rem 1fr;gap:1.5rem;
+     padding:1.5rem 0;border-bottom:1px solid var(--line)}
+.row:hover .key{color:var(--accent)}
+.key{color:var(--faint);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+     padding-top:.35rem;transition:color .15s}
+.val h3{font:500 15px/1.5 "IBM Plex Mono",monospace;letter-spacing:.01em;margin-bottom:.35rem}
+.val p{color:var(--dim);font-size:13.5px;line-height:1.75;max-width:44ch}
+.val p + p{margin-top:.6rem}
+.val em{font-family:"Instrument Serif",serif;font-style:italic;font-size:1.15em;color:var(--text)}
+.links{display:flex;flex-wrap:wrap;gap:.4rem 1.25rem;margin-top:.75rem;font-size:12px}
+.links a{color:var(--dim);border-bottom-color:transparent}
+.links a:hover{color:var(--accent)}
+.links a::before{content:"→ ";color:var(--faint)}
+.stamp{color:var(--faint);font-size:11px;letter-spacing:.1em;margin-top:.75rem;text-transform:uppercase}
+
+/* ── section head ── */
+.sec{display:flex;align-items:baseline;gap:1rem;padding:3.5rem 0 .25rem}
+.sec h2{font:600 11px/1 "IBM Plex Mono",monospace;letter-spacing:.24em;
+        text-transform:uppercase;color:var(--accent);white-space:nowrap}
+.sec .fill{flex:1;border-bottom:1px dashed var(--line);transform:translateY(-.25em)}
+.sec .n{color:var(--faint);font-size:11px;letter-spacing:.1em}
+
+/* ── prose block ── */
+.prose{padding:2.5rem 0;border-bottom:1px solid var(--line)}
+.prose p{color:var(--text);font-size:14px;line-height:1.85;max-width:60ch}
+.prose p + p{margin-top:1rem}
+.prose .lead{font:400 1.35rem/1.5 "Instrument Serif",serif;color:var(--text);margin-bottom:1.25rem}
+.prose ul{list-style:none;margin-top:1rem;display:flex;flex-wrap:wrap;gap:.4rem 1.5rem;font-size:12.5px}
+.prose ul a{color:var(--dim)}
+.prose .note{color:var(--faint);font-size:12px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.6rem}
+@media(max-width:34rem){
+  .row{grid-template-columns:1fr;gap:.5rem}
+  .key{padding-top:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="mast">
+    <div>
+      <h1><a href="/">conrads.website</a></h1>
+      <div class="sub">Conrad Mearns · builder, measurer, yearner</div>
+    </div>
+    <div class="icons">
+      <a href="#" title="Bluesky"><svg width="20" height="20" viewBox="0 0 24 24"><path fill="currentColor" d="M12 10.8c-1.087-2.114-4.046-6.053-6.798-7.995C2.566.944 1.561 1.266.902 1.565C.139 1.908 0 3.08 0 3.768c0 .69.378 5.65.624 6.479c.815 2.736 3.713 3.66 6.383 3.364q.204-.03.415-.056q-.207.033-.415.056c-3.912.58-7.387 2.005-2.83 7.078c5.013 5.19 6.87-1.113 7.823-4.308c.953 3.195 2.05 9.271 7.733 4.308c4.267-4.308 1.172-6.498-2.74-7.078a9 9 0 0 1-.415-.056q.21.026.415.056c2.67.297 5.568-.628 6.383-3.364c.246-.828.624-5.79.624-6.478c0-.69-.139-1.861-.902-2.206c-.659-.298-1.664-.62-4.3 1.24C16.046 4.748 13.087 8.687 12 10.8"/></svg></a>
+      <a href="#" title="GitHub"><svg width="20" height="20" viewBox="0 0 16 16"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+    </div>
+  </div>
+  <hr class="rule heavy">
+
+  <div class="prose">
+    <p class="lead">Hello!</p>
+    <p>I'm Conrad Mearns, a Computer Scientist, Technologist, Technician, builder, measurer, yearner. Here you'll find quick links to some of my favorite things on the internet — old rants, ramblings, mutterings, and utterances I've long forgotten about — experiments, toys, projects, and some multimedia may wind up here too.</p>
+    <p>Who knows how many times I've rewritten this website. I usually have a lofty vision and a free weekend, and get only as far as my work-burnout allows. For this reason I'm trying yet again to take a step back: make something kinda pretty, make something easy for myself to maintain.</p>
+    <div style="margin-top:1.75rem">
+      <div class="note">Recently inspired by</div>
+      <ul>
+        <li><a href="https://www.plantay.me/">plantay.me</a></li>
+        <li><a href="https://henry.codes/writing/it-doesnt-matter-if-it-works/">henry.codes</a></li>
+        <li><a href="https://leanrada.com/notes/vanilla-web-rewrite/">leanrada.com</a></li>
+        <li><a href="https://jordanbrennan.hashnode.dev/tac-a-new-css-methodology">jordanbrennan.hashnode.dev</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sec"><h2>What I'm Up To</h2><span class="fill"></span><span class="n">05</span></div>
+  <hr class="rule">
+
+  <div class="row">
+    <div class="key">Off-screen</div>
+    <div class="val">
+      <h3>Building a house</h3>
+      <p>The literal kind. Lumber, permits, and a great deal of dirt.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="key">Research</div>
+    <div class="val">
+      <h3>An agentic goal ontology</h3>
+      <p>A structured way to write down what a project is <em>for</em> — goals, gaps, and the events between them — so an agent can reason about the work instead of guessing at it.</p>
+      <div class="links"><a href="../artifacts/graphs.html">Goal graph</a><a href="../artifacts/evals.html">Evals</a></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="key">Building</div>
+    <div class="val">
+      <h3>A provenance-focused agentic dev workspace</h3>
+      <p>Every artifact should know where it came from. A workspace where the chain from prompt to transcript to output stays intact and inspectable.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="key">Building</div>
+    <div class="val">
+      <h3>DIZZY</h3>
+      <p>Foundations for interstitial infrastructure — an architecture methodology and toolkit for redistributable systems.</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="key">Playing</div>
+    <div class="val">
+      <h3>Kerbal Space Program</h3>
+      <p>Currently in orbit. Naturally this produced tooling rather than more flights.</p>
+      <div class="links"><a href="../artifacts/ksp-maneuver-planner.html">Δv Flight Computer</a><a href="../artifacts/orbit-viewer.html">Orbit Viewer</a></div>
+    </div>
+  </div>
+
+  <div class="sec"><h2>Current Projects</h2><span class="fill"></span><span class="n">02</span></div>
+  <hr class="rule">
+
+  <div class="row">
+    <div class="key">2024 —</div>
+    <div class="val">
+      <h3>DIZZY <span style="color:var(--faint)">· Foundations for Interstitial Infrastructure</span></h3>
+      <p>A software architecture methodology and toolkit for building redistributable systems.</p>
+      <p>DIZZY LAB: I gave 13 frontier models the same prompt — visualize an event-driven robot arm from its event log — and compared what came back. Every result, and every full session transcript, lives here.</p>
+      <div class="links"><a href="#">DIZZY LAB: 13 Models, One Prompt</a><a href="#">GitHub</a><a href="#">Whitepaper</a></div>
+      <div class="stamp">Last updated July 2026</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="key">2022 — 2026</div>
+    <div class="val">
+      <h3>Turncoats</h3>
+      <p>One of my favorite simple strategy games. In 2022 I made a crude Svelte-based functional implementation so that I could start building a Monte-Carlo based AI to play against.</p>
+      <p>Time escaped me, and life and I moved on. So recently I asked Claude to finish it up for me. The core logic was built by me — the bots and better UI were made by Fable 5. Pass and play only ;)</p>
+      <div class="links"><a href="#">Read</a><a href="#">Play</a></div>
+    </div>
+  </div>
+
+  <div class="sec"><h2>Vibechecks</h2><span class="fill"></span><span class="n">05</span></div>
+  <hr class="rule">
+
+  <div class="row">
+    <div class="key">Toys</div>
+    <div class="val">
+      <p style="margin-bottom:.9rem">Quick experiments on small fun ideas. Built fast, judged by vibes.</p>
+      <div class="links" style="flex-direction:column;gap:.5rem;font-size:13px">
+        <a href="#">Neutral Loss Spectra — interactive tutorial for GC-MS &amp; LC-MS</a>
+        <a href="#">Marginalia v1 — embedding-based qualitative coder</a>
+        <a href="#">Marginalia v2 — matched-filter qualitative coding</a>
+        <a href="#">Origins — a Xanadu-style transclusion view</a>
+        <a href="#">Self-Editing Page — selection + LLM jobs</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

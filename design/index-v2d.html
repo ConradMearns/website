@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conrad Mearns</title>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@800&display=swap" rel="stylesheet">
+<style>
+  /* v2d — dark two-column (a-ish) with title-card lettering: heavy mincho, squeezed with scaleX */
+  :root { --fg: #d0d4e0; --dim: #7b8196; --line: #2a2e3c; --accent: #f07c5a; }
+  body { background: #000; color: var(--fg); max-width: 60em; margin: 3em auto; padding: 0 1.2em; overflow-x: clip;
+         font: 1em/1.55 "Iowan Old Style", Palatino, Georgia, serif; display: grid; grid-template-columns: 16em 1fr; gap: 3em; }
+  a { color: inherit; text-decoration-color: var(--accent); text-underline-offset: .2em; }
+  a:hover { color: var(--accent); }
+  .st { font: 800 1em/1 "Shippori Mincho B1", "Hiragino Mincho ProN", serif; display: inline-block; transform: scaleX(.62); transform-origin: left; text-transform: uppercase; }
+  aside { position: sticky; top: 3em; align-self: start; }
+  h1.st { font-size: 3.4em; line-height: .95; color: #fff; margin: 0 0 .3em; }
+  h2.st { font-size: 1.7em; color: var(--accent); margin: 0 0 .5em; }
+  main h2:not(:first-child) { margin-top: 1.2em; }
+  p { margin: 0 0 1em; }
+  .dim, time { color: var(--dim); }
+  time { font: .75em/2.2 ui-monospace, monospace; letter-spacing: .05em; }
+  aside h2.st { font-size: 1.3em; }
+  .box { border-top: 1px solid var(--line); padding-top: 1em; margin-top: 1.2em; font-size: .9em; }
+  ol { list-style: none; padding: 0; margin: 0; }
+  li { display: grid; grid-template-columns: 6em 1fr; padding: .8em 0; border-top: 1px solid var(--line); }
+  li b { display: block; color: #fff; }
+  @media (max-width: 44em) { body { grid-template-columns: 1fr; gap: 1.5em; } aside { position: static; } li { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<aside>
+  <h1 class="st">Conrad<br>Mearns</h1>
+  <p class="dim">Computer scientist. Tools for agents and event-driven systems, and measuring whether they work.</p>
+  <p><a href="mailto:conradmearns@pm.me">Email</a> · <a href="https://github.com/ConradMearns">GitHub</a> · <a href="https://bsky.app/profile/conradmearns.bsky.social">Bluesky</a></p>
+
+  <div class="box">
+    <h2 class="st">Vibechecks</h2>
+    <p>A quick, mostly vibe-coded test of an idea or a model. I describe it, an LLM builds it, and I see whether it holds up. Built in an evening, judged by feel. Some work, some semi-fail.</p>
+    <a href="vibechecks/">All six →</a>
+  </div>
+  <p class="box"><a href="about.html">About this site</a></p>
+</aside>
+
+<main>
+  <h2 class="st">Now</h2>
+  <ol>
+    <li><time>ONGOING</time><div><b>Agentic goal ontology</b> <span class="dim">Goals, gaps and events, so an agent can reason about the work.</span> <a href="artifacts/graphs.html">Graph</a>, <a href="artifacts/evals.html">evals</a></div></li>
+    <li><time>ONGOING</time><div><b>Provenance-focused dev workspace</b> <span class="dim">Every artifact knows where it came from.</span></div></li>
+    <li><time>ONGOING</time><div><b>Building a house</b> <span class="dim">The literal kind.</span></div></li>
+  </ol>
+
+  <h2 class="st">Then</h2>
+  <ol>
+    <li><time>2026.09</time><div><b>Vintage Ore</b> <span class="dim">Simulated prospecting strategies.</span> <a href="project-vintage-ore/index.html">Read</a>, <a href="project-vintage-ore/report/index.html">report</a>, <a href="https://github.com/ConradMearns/vintage-ore">code</a></div></li>
+    <li><time>2026.08</time><div><b>Kerbal Space Program tools</b> <span class="dim">In orbit; made tooling instead of flights.</span> <a href="artifacts/ksp-maneuver-planner.html">Δv computer</a>, <a href="artifacts/orbit-viewer.html">orbit viewer</a></div></li>
+    <li><time>2026.07</time><div><b>DIZZY</b> <span class="dim">Architecture for redistributable systems, plus DIZZY LAB: 13 models, one prompt.</span> <a href="project-dizzy-viz/blog.html">Lab</a>, <a href="https://github.com/PNNL/dizzy">code</a>, <a href="https://github.com/PNNL/dizzy/blob/main/docs/whitepaper.pdf">whitepaper</a></div></li>
+    <li><time>2022–26</time><div><b>Turncoats</b> <span class="dim">A strategy game with Monte-Carlo bots.</span> <a href="project-turncoats/index.html">Read</a>, <a href="https://conradmearns.github.io/breadboard-turncoats/fable.html">play</a></div></li>
+  </ol>
+</main>
+
+</body>
+</html>

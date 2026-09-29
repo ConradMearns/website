@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <title>Conrad Mearns</title>
+    <link rel='stylesheet' href='main.css'>
+    <style>
+      /* v2a — the split layout, trimmed: intro on the left, timeline on the right */
+      body { margin: 0; }
+      .page { display: grid; grid-template-columns: 16em 1fr; gap: 3em; max-width: 60em; margin: 0 auto; padding: 3em 1.5em; }
+      aside { position: sticky; top: 3em; align-self: start; line-height: 1.5; }
+      aside h1 { font-size: 1.5em; margin: 0 0 .4em; }
+      aside p, .row p { color: var(--muted); font-size: .9em; margin: 0 0 1em; }
+      aside a { display: block; }
+      .row { display: grid; grid-template-columns: 6em 1fr; gap: 1em; padding: .9em 0; border-top: 1px solid var(--border); line-height: 1.45; }
+      .row time { color: var(--muted); font-size: .8em; font-family: monospace; padding-top: .2em; }
+      .row h3 { margin: 0; font-size: 1em; }
+      .row p { margin: .2em 0 .4em; font-size: .85em; }
+      .row .links a { margin-right: .9em; font-size: .8em; color: var(--accent); }
+      @media (max-width: 44em) { .page, .row { grid-template-columns: 1fr; gap: .3em; } aside { position: static; } }
+    </style>
+</head>
+<body>
+<div class="page">
+  <aside>
+    <h1>Conrad Mearns</h1>
+    <p>Computer scientist. Tools for agents, event-driven systems, and measuring whether things work.</p>
+    <a href="mailto:conradmearns@pm.me">Email</a>
+    <a href="https://github.com/ConradMearns">GitHub</a>
+    <a href="https://bsky.app/profile/conradmearns.bsky.social">Bluesky</a>
+    <p style="margin-top:2em"><a href="about.html">About this site</a></p>
+  </aside>
+
+  <div>
+    <div class="row"><time>now</time><div>
+      <h3>Agentic goal ontology</h3>
+      <p>Goals, gaps and the events between them, so an agent can reason about the work.</p>
+      <div class="links"><a href="artifacts/graphs.html">Goal graph</a><a href="artifacts/evals.html">Evals</a></div>
+    </div></div>
+    <div class="row"><time>now</time><div>
+      <h3>Building a house</h3>
+      <p>The literal kind.</p>
+    </div></div>
+    <div class="row"><time>now</time><div>
+      <h3>Provenance-focused agentic dev workspace</h3>
+      <p>Prompt to transcript to output, kept intact and inspectable.</p>
+    </div></div>
+    <div class="row"><time>ongoing</time><div>
+      <h3>Vibechecks</h3>
+      <p>A vibecheck is a quick, mostly vibe-coded test of an idea or a model: describe it, let an LLM build it, see if it holds up. Built in an evening and judged by feel, not rigor. Some work, some semi-fail.</p>
+      <div class="links"><a href="vibechecks/">All six</a><a href="vibechecks/island-forge.html">Latest: Island Forge</a></div>
+    </div></div>
+    <div class="row"><time>Sep 2026</time><div>
+      <h3>Vintage Ore</h3>
+      <p>A lab for scoring prospecting strategies in Vintage Story.</p>
+      <div class="links"><a href="project-vintage-ore/index.html">Read</a><a href="project-vintage-ore/report/index.html">Report</a><a href="project-vintage-ore/anim-sonnet-fixed/index.html">Animation</a><a href="https://github.com/ConradMearns/vintage-ore">GitHub</a></div>
+    </div></div>
+    <div class="row"><time>Aug 2026</time><div>
+      <h3>Kerbal Space Program tools</h3>
+      <p>Currently in orbit; produced tooling instead of flights.</p>
+      <div class="links"><a href="artifacts/ksp-maneuver-planner.html">Δv computer</a><a href="artifacts/orbit-viewer.html">Orbit viewer</a></div>
+    </div></div>
+    <div class="row"><time>Jul 2026</time><div>
+      <h3>DIZZY</h3>
+      <p>Architecture methodology for redistributable systems, plus DIZZY LAB: 13 models, one prompt.</p>
+      <div class="links"><a href="project-dizzy-viz/blog.html">DIZZY LAB</a><a href="https://github.com/PNNL/dizzy">GitHub</a><a href="https://github.com/PNNL/dizzy/blob/main/docs/whitepaper.pdf">Whitepaper</a></div>
+    </div></div>
+    <div class="row"><time>2022–26</time><div>
+      <h3>Turncoats</h3>
+      <p>A strategy game with Monte-Carlo bots. Pass and play.</p>
+      <div class="links"><a href="project-turncoats/index.html">Read</a><a href="https://conradmearns.github.io/breadboard-turncoats/fable.html">Play</a></div>
+    </div></div>
+  </div>
+</div>
+</body>
+</html>
