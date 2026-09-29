@@ -25,7 +25,7 @@ The script looks for one in `~/.cache/ms-playwright`; otherwise set `CHROMIUM_PA
    | `page` | screenshot of one live page | `url`, `wait` (ms) |
    | `collage` | grid of screenshots (3 columns by default) | `pages`, `cols`, `wait` |
    | `pdf` | first pages side by side, like an open paper | `src` (url or repo path), `pages` (`"1-2"`) |
-   | `image` | an existing picture, center-cropped | `src` (url) |
+   | `image` | an existing picture, cropped to fit | `src` (url), `gravity` (default `center`; `north` keeps the top of a tall page) |
 
    A `url` starting with `/` is a page of this site. The script serves the repo root itself, so
    pages that `fetch()` their own data files work. Anything else is loaded as given.

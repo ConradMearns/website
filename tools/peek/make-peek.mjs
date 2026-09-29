@@ -17,7 +17,7 @@ const work = mkdtempSync(join(tmpdir(), 'peek-'));
 mkdirSync(outDir, { recursive: true });
 
 const sh = (cmd, args) => execFileSync(cmd, args, { stdio: 'pipe' });
-const finish = (src, name) => sh('convert', [src, '-resize', `${W}x${H}^`, '-gravity', 'center', '-extent', `${W}x${H}`, '-quality', '82', join(outDir, `${name}.jpg`)]);
+const finish = (src, name, gravity = 'center') => sh('convert', [src, '-resize', `${W}x${H}^`, '-gravity', gravity, '-extent', `${W}x${H}`, '-quality', '82', join(outDir, `${name}.jpg`)]);
 
 // Site-relative page URLs ("/vibechecks/nl.html") are served from the repo root, so local pages
 // that fetch() their own data files work (they would not from file://).
@@ -81,7 +81,7 @@ const builders = {
   async image(name, o) {
     const f = join(work, `${name}.src`);
     writeFileSync(f, Buffer.from(await (await fetch(o.src)).arrayBuffer()));
-    finish(f, name);
+    finish(f, name, o.gravity);   // o.gravity: which part to keep when cropping (north for the top of a tall page)
   },
 };
 
