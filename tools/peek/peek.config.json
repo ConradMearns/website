@@ -52,6 +52,16 @@
       "type": "page",
       "url": "https://horenbergerb.github.io/caravan.html",
       "wait": 3000
+    },
+    "atchat": {
+      "type": "page",
+      "url": "/vibechecks/atchat.html",
+      "wait": 2500
+    },
+    "calgacus": {
+      "type": "page",
+      "url": "/vibechecks/calgacus.html",
+      "wait": 2500
     }
   }
 }

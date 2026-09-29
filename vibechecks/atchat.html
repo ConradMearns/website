@@ -1,0 +1,678 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>atchat</title>
+<style>
+  :root {
+    --accent: #f2c94c;
+    --bg: #111318;
+    --panel: #1a1d24;
+    --bubble-me: #2d6cdf;
+    --bubble-peer: #2a2e37;
+    --text: #e8e8ee;
+    --muted: #8a8f9c;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; }
+  #login { max-width: 420px; margin: 4rem auto; padding: 1.5rem; background: var(--panel); border-radius: 10px; }
+  #login h2 { margin-top: 0; }
+  #login label { display: block; font-size: 0.8rem; color: var(--muted); margin: 0.6rem 0 0.2rem; }
+  #login input { width: 100%; padding: 0.5rem; border-radius: 6px; border: 1px solid #333; background: #0d0f13; color: var(--text); }
+  #login button { margin-top: 1rem; width: 100%; padding: 0.6rem; border: none; border-radius: 6px; background: var(--accent); font-weight: 600; cursor: pointer; }
+  #loginError { color: #ff6b6b; font-size: 0.85rem; margin-top: 0.5rem; }
+
+  #app { display: none; height: 100vh; grid-template-columns: 260px 1fr; }
+  #app.active { display: grid; }
+
+  #sidebar { background: var(--panel); padding: 1rem; overflow-y: auto; }
+  #sidebar h3 { font-size: 0.8rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em; margin-bottom: 0.6rem; }
+  #meHandle { font-size: 0.9rem; color: var(--muted); margin-bottom: 1rem; }
+  .contact { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border-radius: 8px; cursor: pointer; margin-bottom: 0.3rem; }
+  .contact:hover { background: #22262f; }
+  .contact.selected { background: #262b36; }
+  .contact .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; background: #555; }
+  .contact .dot.green { background: #2ecc71; }
+  .contact .dot.yellow { background: var(--accent); }
+  .contact .dot.red { background: #e74c3c; }
+  .contact .name { flex: 1; font-size: 0.88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .contact .badge { font-size: 0.7rem; background: var(--accent); color: #111; border-radius: 10px; padding: 0 6px; }
+  .contact .remove { color: var(--muted); font-size: 0.75rem; visibility: hidden; }
+  .contact:hover .remove { visibility: visible; }
+  #addContactRow { display: flex; gap: 0.3rem; margin-top: 0.8rem; }
+  #addContactRow input { flex: 1; padding: 0.4rem; border-radius: 6px; border: 1px solid #333; background: #0d0f13; color: var(--text); font-size: 0.8rem; }
+  #addContactRow button { border: none; border-radius: 6px; background: #333; color: var(--text); padding: 0 0.6rem; cursor: pointer; }
+
+  #chat { display: flex; flex-direction: column; height: 100vh; }
+  #chatHeader { padding: 0.9rem 1.2rem; border-bottom: 1px solid #262b36; display: flex; align-items: center; gap: 0.6rem; }
+  #chatHeader .dot { width: 10px; height: 10px; border-radius: 50%; background: #555; }
+  #chatHeader .dot.green { background: #2ecc71; }
+  #chatHeader .dot.yellow { background: var(--accent); }
+  #chatHeader .dot.red { background: #e74c3c; }
+  #chatHeader .statusText { color: var(--muted); font-size: 0.8rem; }
+  #chatHeader button { margin-left: auto; background: none; border: 1px solid #333; color: var(--muted); border-radius: 6px; padding: 0.3rem 0.7rem; cursor: pointer; font-size: 0.75rem; }
+
+  #log { flex: 1; overflow-y: auto; padding: 1rem 1.2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+  .msg { max-width: 65%; padding: 0.5rem 0.8rem; border-radius: 14px; font-size: 0.9rem; line-height: 1.35; }
+  .msg.me { align-self: flex-end; background: var(--bubble-me); border-bottom-right-radius: 4px; }
+  .msg.peer { align-self: flex-start; background: var(--bubble-peer); border-bottom-left-radius: 4px; }
+  .msg.system { align-self: center; color: var(--muted); font-size: 0.75rem; background: none; }
+  .msg.media { padding: 0; overflow: hidden; background: none; position: relative; }
+  .msg.media img, .msg.media video { max-width: 260px; max-height: 320px; display: block; border-radius: 12px; }
+  .msg.media .countdown { position: absolute; top: 6px; right: 8px; background: rgba(0,0,0,0.6); color: #fff; font-size: 0.7rem; padding: 2px 7px; border-radius: 10px; }
+  .msg.media .openBtn { background: var(--accent); border: none; border-radius: 16px; padding: 0.55rem 1.1rem; font-weight: 600; cursor: pointer; }
+  .msg.expired-placeholder { color: var(--muted); font-style: italic; background: none; padding: 0.3rem 0; }
+
+  #compose { border-top: 1px solid #262b36; padding: 0.8rem 1.2rem; display: flex; gap: 0.5rem; align-items: center; }
+  #compose input[type=text] { flex: 1; padding: 0.6rem 0.9rem; border-radius: 20px; border: none; background: #0d0f13; color: var(--text); }
+  #compose button.icon { background: none; border: none; font-size: 1.3rem; cursor: pointer; }
+  #compose button.send { background: var(--accent); border: none; border-radius: 20px; padding: 0.5rem 1rem; font-weight: 600; cursor: pointer; }
+
+  #capture { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; flex-direction: column; gap: 0.8rem; z-index: 10; }
+  #capture.active { display: flex; }
+  #capture video { max-width: 90vw; max-height: 70vh; border-radius: 10px; background: #000; }
+  #capture .row button { padding: 0.5rem 1.1rem; border-radius: 8px; border: none; margin: 0 0.3rem; cursor: pointer; }
+  #capture .row button.primary { background: var(--accent); font-weight: 600; }
+  #capture .row button.secondary { background: #333; color: #fff; }
+  #capture .countdownLarge { color: var(--accent); font-size: 1rem; }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h2>atchat</h2>
+  <label>My handle</label>
+  <input id="myHandle" autocomplete="off">
+  <label>My app password</label>
+  <input id="myPassword" type="password" autocomplete="off">
+  <button id="loginBtn">Log in</button>
+  <div id="loginError"></div>
+</div>
+
+<div id="app">
+  <div id="sidebar">
+    <div id="meHandle"></div>
+    <h3>Address book</h3>
+    <div id="contacts"></div>
+    <div id="addContactRow">
+      <input id="newContact" placeholder="handle.bsky.social">
+      <button id="addContactBtn">+</button>
+    </div>
+  </div>
+  <div id="chat">
+    <div id="chatHeader">
+      <span class="dot" id="headerDot"></span>
+      <strong id="headerName">select a contact</strong>
+      <span class="statusText" id="headerStatus"></span>
+      <button id="forceConnectBtn">Connect now</button>
+    </div>
+    <div id="log"></div>
+    <div id="compose">
+      <button class="icon" id="photoBtn" title="Photo">📷</button>
+      <button class="icon" id="videoBtn" title="Video">🎥</button>
+      <input type="text" id="msgInput" placeholder="Message…">
+      <button class="send" id="sendBtn">Send</button>
+    </div>
+  </div>
+</div>
+
+<div id="capture">
+  <video id="captureVideo" autoplay muted playsinline></video>
+  <div class="countdownLarge" id="captureCountdown"></div>
+  <div class="row" id="captureRowPhoto">
+    <button class="primary" id="snapBtn">Capture</button>
+    <button class="secondary" id="cancelCaptureBtn">Cancel</button>
+  </div>
+  <div class="row" id="captureRowVideo" style="display:none">
+    <button class="primary" id="recordBtn">Record (max 8s)</button>
+    <button class="secondary" id="stopRecordBtn" style="display:none">Stop</button>
+    <button class="secondary" id="cancelCaptureBtn2">Cancel</button>
+  </div>
+</div>
+
+<script>
+const COLLECTION_OFFER = "com.demo.chat.offer";
+const COLLECTION_ANSWER = "com.demo.chat.answer";
+const RKEY = "self";
+const POLL_MS = 2000;
+const CALL_TIMEOUT_MS = 20000;
+const PHOTO_TTL = 6;
+const VIDEO_MAX_SECONDS = 8;
+const CHUNK_SIZE = 16 * 1024;
+const DEFAULT_CONTACTS = ["conradmearns.bsky.social", "conradmearns-gruel.bsky.social"];
+
+let me = null;
+let contacts = []; // {handle, did, pds, resolved, resolving, pc, dc, status, log:[], outbox:[], answering}
+let selected = null;
+let outboundTarget = null;
+let outboundDeadline = 0;
+let pollTimer = null;
+let mediaStream = null;
+let recorder = null;
+let recordedChunks = [];
+let captureMode = null; // 'photo' | 'video'
+let activeIncoming = null; // {id, chunks:[], meta}
+
+const $ = id => document.getElementById(id);
+
+// ---------- atproto helpers ----------
+
+async function resolveHandle(handle) {
+  const r = await fetch(`https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`);
+  if (!r.ok) throw new Error(`could not resolve ${handle}`);
+  const { did } = await r.json();
+  let pds;
+  if (did.startsWith("did:plc:")) {
+    const doc = await fetch(`https://plc.directory/${did}`).then(x => x.json());
+    pds = doc.service.find(s => s.id === "#atproto_pds").serviceEndpoint;
+  } else if (did.startsWith("did:web:")) {
+    const domain = did.slice("did:web:".length);
+    const doc = await fetch(`https://${domain}/.well-known/did.json`).then(x => x.json());
+    pds = doc.service.find(s => s.id === "#atproto_pds").serviceEndpoint;
+  } else {
+    throw new Error(`unsupported DID method: ${did}`);
+  }
+  return { did, pds };
+}
+
+async function login(handle, password) {
+  const { did, pds } = await resolveHandle(handle);
+  const r = await fetch(`${pds}/xrpc/com.atproto.server.createSession`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ identifier: handle, password })
+  });
+  if (!r.ok) throw new Error("login failed — check handle/app password");
+  const session = await r.json();
+  return { handle, did, pds, jwt: session.accessJwt };
+}
+
+async function putRecord(collection, record) {
+  const r = await fetch(`${me.pds}/xrpc/com.atproto.repo.putRecord`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${me.jwt}` },
+    body: JSON.stringify({ repo: me.did, collection, rkey: RKEY, record })
+  });
+  if (!r.ok) throw new Error(`putRecord ${collection} failed`);
+}
+
+async function getRecord(pds, did, collection) {
+  const r = await fetch(`${pds}/xrpc/com.atproto.repo.getRecord?repo=${did}&collection=${collection}&rkey=${RKEY}`);
+  if (r.status === 400 || r.status === 404) return null;
+  if (!r.ok) throw new Error(`getRecord ${collection} failed`);
+  return (await r.json()).value;
+}
+
+async function deleteRecord(collection) {
+  await fetch(`${me.pds}/xrpc/com.atproto.repo.deleteRecord`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${me.jwt}` },
+    body: JSON.stringify({ repo: me.did, collection, rkey: RKEY })
+  }).catch(() => {});
+}
+
+// ---------- outbox persistence (sessionStorage — cleared when the tab closes) ----------
+
+function outboxKey(contact) { return `atchat_outbox_${me.did}_${contact.handle}`; }
+
+function loadOutbox(contact) {
+  try { contact.outbox = JSON.parse(sessionStorage.getItem(outboxKey(contact)) || "[]"); }
+  catch { contact.outbox = []; }
+}
+function saveOutbox(contact) {
+  sessionStorage.setItem(outboxKey(contact), JSON.stringify(contact.outbox));
+}
+function queueItem(contact, item) {
+  contact.outbox.push(item);
+  saveOutbox(contact);
+  renderContacts();
+}
+
+// ---------- address book ----------
+
+function loadAddressBook() {
+  let handles;
+  try { handles = JSON.parse(localStorage.getItem("atchat_contacts_v1")); } catch { handles = null; }
+  if (!handles || !handles.length) handles = [...DEFAULT_CONTACTS];
+  for (const h of DEFAULT_CONTACTS) if (!handles.includes(h)) handles.push(h);
+  saveAddressBookHandles(handles);
+  contacts = handles.filter(h => h !== me.handle).map(h => ({
+    handle: h, did: null, pds: null, resolved: false, resolving: false,
+    pc: null, dc: null, status: "idle", log: [], outbox: [], answering: false
+  }));
+  contacts.forEach(loadOutbox);
+}
+function saveAddressBookHandles(handles) {
+  localStorage.setItem("atchat_contacts_v1", JSON.stringify(handles));
+}
+function addContact(handle) {
+  if (!handle || handle === me.handle || contacts.find(c => c.handle === handle)) return;
+  const c = { handle, did: null, pds: null, resolved: false, resolving: false, pc: null, dc: null, status: "idle", log: [], outbox: [], answering: false };
+  loadOutbox(c);
+  contacts.push(c);
+  const handles = JSON.parse(localStorage.getItem("atchat_contacts_v1") || "[]");
+  handles.push(handle);
+  saveAddressBookHandles(handles);
+  renderContacts();
+}
+function removeContact(handle) {
+  contacts = contacts.filter(c => c.handle !== handle);
+  const handles = JSON.parse(localStorage.getItem("atchat_contacts_v1") || "[]").filter(h => h !== handle);
+  saveAddressBookHandles(handles);
+  if (selected && selected.handle === handle) selected = null;
+  renderContacts(); renderChat();
+}
+
+// ---------- UI rendering ----------
+
+function statusColor(status) {
+  if (status === "connected") return "green";
+  if (["connecting", "calling", "answering", "waiting-answer"].includes(status)) return "yellow";
+  if (status === "failed") return "red";
+  return "";
+}
+
+function renderContacts() {
+  const el = $("contacts");
+  el.innerHTML = "";
+  for (const c of contacts) {
+    const row = document.createElement("div");
+    row.className = "contact" + (selected === c ? " selected" : "");
+    row.innerHTML = `
+      <span class="dot ${statusColor(c.status)}"></span>
+      <span class="name">${c.handle}</span>
+      ${c.outbox.length ? `<span class="badge">${c.outbox.length}</span>` : ""}
+      <span class="remove" data-h="${c.handle}">✕</span>
+    `;
+    row.querySelector(".name").onclick = () => { selected = c; renderContacts(); renderChat(); };
+    row.querySelector(".dot").onclick = () => { selected = c; renderContacts(); renderChat(); };
+    row.querySelector(".remove").onclick = (e) => { e.stopPropagation(); removeContact(c.handle); };
+    el.appendChild(row);
+  }
+}
+
+function renderChat() {
+  $("headerName").textContent = selected ? selected.handle : "select a contact";
+  $("headerStatus").textContent = selected ? selected.status : "";
+  $("headerDot").className = "dot " + (selected ? statusColor(selected.status) : "");
+  const log = $("log");
+  log.innerHTML = "";
+  if (selected) {
+    for (const m of selected.log) log.appendChild(renderMessage(m));
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+function renderMessage(m) {
+  const d = document.createElement("div");
+  if (m.kind === "system") { d.className = "msg system"; d.textContent = m.text; return d; }
+  if (m.kind === "text") { d.className = "msg " + m.who; d.textContent = m.text; return d; }
+  if (m.kind === "photo" || m.kind === "video") {
+    if (m.who === "me") {
+      // sender already saw it while composing — just show a sent receipt, nothing to re-open
+      d.className = "msg me";
+      d.textContent = (m.kind === "photo" ? "📷 Photo sent" : "🎥 Video sent");
+      return d;
+    }
+
+    if (m.expired) {
+      d.className = "msg expired-placeholder";
+      d.textContent = (m.kind === "photo" ? "📷 Opened" : "🎥 Opened");
+      return d;
+    }
+
+    if (!m.opened) {
+      d.className = "msg media peer";
+      const btn = document.createElement("button");
+      btn.className = "openBtn";
+      btn.textContent = (m.kind === "photo" ? "Open photo" : "Open video");
+      btn.onclick = () => { m.opened = true; m.openedAt = Date.now(); renderChat(); };
+      d.appendChild(btn);
+      return d;
+    }
+
+    // opened, not yet expired — check the true elapsed time, not a per-render counter
+    const remainingNow = Math.ceil(m.ttl - (Date.now() - m.openedAt) / 1000);
+    if (remainingNow <= 0) {
+      m.expired = true;
+      if (m.url) { URL.revokeObjectURL(m.url); m.url = null; }
+      d.className = "msg expired-placeholder";
+      d.textContent = (m.kind === "photo" ? "📷 Opened" : "🎥 Opened");
+      return d;
+    }
+
+    d.className = "msg media peer";
+    const el = m.kind === "photo" ? document.createElement("img") : document.createElement("video");
+    el.src = m.url;
+    if (m.kind === "video") { el.autoplay = true; el.playsInline = true; }
+    d.appendChild(el);
+    const cd = document.createElement("div");
+    cd.className = "countdown";
+    cd.id = "cd-" + m.id;
+    cd.textContent = remainingNow + "s";
+    d.appendChild(cd);
+
+    // one authoritative timer per message, keyed off openedAt — safe even if the
+    // whole log gets re-rendered mid-countdown (e.g. a new message arrives)
+    if (!m._tickStarted) {
+      m._tickStarted = true;
+      m._tickInterval = setInterval(() => {
+        const rem = Math.ceil(m.ttl - (Date.now() - m.openedAt) / 1000);
+        if (rem <= 0) {
+          clearInterval(m._tickInterval);
+          m.expired = true;
+          if (m.url) { URL.revokeObjectURL(m.url); m.url = null; }
+          renderChat();
+        } else {
+          const badge = document.getElementById("cd-" + m.id);
+          if (badge) badge.textContent = rem + "s";
+        }
+      }, 500);
+    }
+    return d;
+  }
+  return d;
+}
+
+function appendMessage(contact, msg) {
+  contact.log.push(msg);
+  if (selected === contact) renderChat();
+}
+
+// ---------- WebRTC ----------
+
+function waitIceComplete(pc) {
+  if (pc.iceGatheringState === "complete") return Promise.resolve();
+  return new Promise(resolve => {
+    pc.addEventListener("icegatheringstatechange", function h() {
+      if (pc.iceGatheringState === "complete") { pc.removeEventListener("icegatheringstatechange", h); resolve(); }
+    });
+  });
+}
+
+function newPeerConnection(contact) {
+  const pc = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === "connected") { /* status flips on dc open */ }
+    else if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+      contact.status = "idle"; contact.pc = null; contact.dc = null;
+      renderContacts(); if (selected === contact) renderChat();
+    }
+  };
+  return pc;
+}
+
+function wireDataChannel(contact, channel) {
+  channel.binaryType = "arraybuffer";
+  contact.dc = channel;
+  channel.onopen = () => {
+    contact.status = "connected";
+    appendMessage(contact, { kind: "system", text: "connected" });
+    renderContacts(); if (selected === contact) renderChat();
+    flushQueue(contact);
+  };
+  channel.onclose = () => {
+    contact.status = "idle"; contact.dc = null;
+    appendMessage(contact, { kind: "system", text: "disconnected" });
+    renderContacts(); if (selected === contact) renderChat();
+  };
+  channel.onmessage = e => handleIncoming(contact, e.data);
+}
+
+function handleIncoming(contact, data) {
+  if (typeof data === "string") {
+    const msg = JSON.parse(data);
+    if (msg.kind === "text") {
+      appendMessage(contact, { kind: "text", who: "peer", text: msg.text });
+    } else if (msg.kind === "media-start") {
+      activeIncoming = { id: msg.id, chunks: [], meta: msg };
+    } else if (msg.kind === "media-end" && activeIncoming) {
+      const blob = new Blob(activeIncoming.chunks, { type: activeIncoming.meta.mime });
+      const url = URL.createObjectURL(blob);
+      appendMessage(contact, {
+        kind: activeIncoming.meta.mediaType, who: "peer", url, ttl: activeIncoming.meta.ttl,
+        id: crypto.randomUUID(), opened: false, expired: false
+      });
+      activeIncoming = null;
+    }
+  } else {
+    if (activeIncoming) activeIncoming.chunks.push(data);
+  }
+}
+
+async function sendText(contact, text) {
+  if (contact.dc && contact.dc.readyState === "open") {
+    contact.dc.send(JSON.stringify({ kind: "text", text }));
+    appendMessage(contact, { kind: "text", who: "me", text });
+  } else {
+    queueItem(contact, { kind: "text", text });
+    appendMessage(contact, { kind: "system", text: "queued (not connected yet)" });
+  }
+}
+
+async function sendBlobNow(contact, kind, blob, ttl) {
+  const dc = contact.dc;
+  const buf = await blob.arrayBuffer();
+  const id = crypto.randomUUID();
+  dc.send(JSON.stringify({ kind: "media-start", id, mediaType: kind, mime: blob.type, ttl }));
+  let offset = 0;
+  while (offset < buf.byteLength) {
+    while (dc.bufferedAmount > 1_000_000) await new Promise(r => setTimeout(r, 50));
+    dc.send(buf.slice(offset, offset + CHUNK_SIZE));
+    offset += CHUNK_SIZE;
+  }
+  dc.send(JSON.stringify({ kind: "media-end", id }));
+  appendMessage(contact, { kind, who: "me", ttl, id: crypto.randomUUID() });
+}
+
+async function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+function base64ToBlob(dataUrl) {
+  return fetch(dataUrl).then(r => r.blob());
+}
+
+async function sendOrQueueMedia(contact, kind, blob, ttl) {
+  if (contact.dc && contact.dc.readyState === "open") {
+    await sendBlobNow(contact, kind, blob, ttl);
+  } else {
+    const dataUrl = await blobToBase64(blob);
+    queueItem(contact, { kind, dataUrl, ttl });
+    appendMessage(contact, { kind: "system", text: `${kind} queued (not connected yet)` });
+  }
+}
+
+async function flushQueue(contact) {
+  if (!contact.outbox.length) return;
+  const items = [...contact.outbox];
+  contact.outbox = [];
+  saveOutbox(contact);
+  renderContacts();
+  for (const item of items) {
+    if (item.kind === "text") {
+      contact.dc.send(JSON.stringify({ kind: "text", text: item.text }));
+      appendMessage(contact, { kind: "text", who: "me", text: item.text });
+    } else {
+      const blob = await base64ToBlob(item.dataUrl);
+      await sendBlobNow(contact, item.kind, blob, item.ttl);
+    }
+  }
+}
+
+// ---------- call / answer ----------
+
+async function startCall(contact) {
+  contact.status = "calling";
+  renderContacts(); if (selected === contact) renderChat();
+  const pc = newPeerConnection(contact);
+  contact.pc = pc;
+  wireDataChannel(contact, pc.createDataChannel("chat"));
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  await waitIceComplete(pc);
+  await putRecord(COLLECTION_OFFER, { $type: COLLECTION_OFFER, to: contact.did, from: me.did, sdp: pc.localDescription, createdAt: new Date().toISOString() });
+  contact.status = "waiting-answer";
+  renderContacts(); if (selected === contact) renderChat();
+}
+
+async function answerOffer(contact, offer) {
+  contact.answering = true;
+  contact.status = "answering";
+  renderContacts(); if (selected === contact) renderChat();
+  try {
+    const pc = newPeerConnection(contact);
+    contact.pc = pc;
+    pc.ondatachannel = e => wireDataChannel(contact, e.channel);
+    await pc.setRemoteDescription(offer.sdp);
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    await waitIceComplete(pc);
+    await putRecord(COLLECTION_ANSWER, { $type: COLLECTION_ANSWER, to: contact.did, from: me.did, sdp: pc.localDescription, createdAt: new Date().toISOString() });
+  } finally {
+    contact.answering = false;
+  }
+}
+
+// ---------- background polling loop ----------
+
+async function tick() {
+  for (const c of contacts) {
+    if (!c.resolved && !c.resolving) {
+      c.resolving = true;
+      resolveHandle(c.handle).then(({ did, pds }) => { c.did = did; c.pds = pds; c.resolved = true; c.resolving = false; })
+        .catch(() => { c.resolving = false; });
+      continue;
+    }
+    if (!c.resolved) continue;
+    if (c.dc && c.dc.readyState === "open") continue;
+    if (c.answering) continue;
+    try {
+      const offer = await getRecord(c.pds, c.did, COLLECTION_OFFER);
+      if (offer && offer.to === me.did) { answerOffer(c, offer); }
+    } catch { /* peer PDS unreachable or no offer — normal */ }
+  }
+
+  if (outboundTarget) {
+    const c = contacts.find(x => x.did === outboundTarget);
+    if (!c || (c.dc && c.dc.readyState === "open")) { outboundTarget = null; }
+    else if (Date.now() > outboundDeadline) {
+      await deleteRecord(COLLECTION_OFFER);
+      c.status = "idle"; c.pc = null;
+      renderContacts(); if (selected === c) renderChat();
+      outboundTarget = null;
+    } else {
+      try {
+        const answer = await getRecord(c.pds, c.did, COLLECTION_ANSWER);
+        if (answer && answer.to === me.did && c.pc) {
+          await c.pc.setRemoteDescription(answer.sdp);
+          await deleteRecord(COLLECTION_OFFER);
+          outboundTarget = null;
+        }
+      } catch { /* no answer yet */ }
+    }
+  } else {
+    const candidate = contacts.find(c => c.resolved && c.outbox.length > 0 && !(c.dc && c.dc.readyState === "open") && c.status !== "calling" && c.status !== "waiting-answer");
+    if (candidate) { outboundTarget = candidate.did; outboundDeadline = Date.now() + CALL_TIMEOUT_MS; startCall(candidate); }
+  }
+}
+
+// ---------- capture (photo / video) ----------
+
+async function openCapture(mode) {
+  captureMode = mode;
+  $("capture").classList.add("active");
+  $("captureRowPhoto").style.display = mode === "photo" ? "flex" : "none";
+  $("captureRowVideo").style.display = mode === "video" ? "flex" : "none";
+  $("captureCountdown").textContent = "";
+  mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: mode === "video" });
+  $("captureVideo").srcObject = mediaStream;
+}
+function closeCapture() {
+  $("capture").classList.remove("active");
+  if (mediaStream) { mediaStream.getTracks().forEach(t => t.stop()); mediaStream = null; }
+  if (recorder && recorder.state !== "inactive") recorder.stop();
+  recorder = null; recordedChunks = [];
+}
+$("photoBtn").onclick = () => { if (selected) openCapture("photo"); };
+$("videoBtn").onclick = () => { if (selected) openCapture("video"); };
+$("cancelCaptureBtn").onclick = closeCapture;
+$("cancelCaptureBtn2").onclick = closeCapture;
+
+$("snapBtn").onclick = () => {
+  const video = $("captureVideo");
+  const canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+  canvas.toBlob(async blob => {
+    closeCapture();
+    if (selected) await sendOrQueueMedia(selected, "photo", blob, PHOTO_TTL);
+  }, "image/jpeg", 0.85);
+};
+
+$("recordBtn").onclick = () => {
+  recordedChunks = [];
+  recorder = new MediaRecorder(mediaStream, { mimeType: "video/webm" });
+  recorder.ondataavailable = e => { if (e.data.size) recordedChunks.push(e.data); };
+  recorder.onstop = async () => {
+    const blob = new Blob(recordedChunks, { type: "video/webm" });
+    const contact = selected;
+    closeCapture();
+    if (contact) await sendOrQueueMedia(contact, "video", blob, VIDEO_MAX_SECONDS);
+  };
+  recorder.start();
+  $("recordBtn").style.display = "none";
+  $("stopRecordBtn").style.display = "inline-block";
+  let remaining = VIDEO_MAX_SECONDS;
+  $("captureCountdown").textContent = remaining + "s";
+  const timer = setInterval(() => {
+    remaining -= 1;
+    $("captureCountdown").textContent = remaining + "s";
+    if (remaining <= 0) { clearInterval(timer); if (recorder.state !== "inactive") recorder.stop(); }
+  }, 1000);
+  $("stopRecordBtn").onclick = () => { clearInterval(timer); if (recorder.state !== "inactive") recorder.stop(); };
+};
+
+// ---------- wiring ----------
+
+$("loginBtn").onclick = async () => {
+  $("loginError").textContent = "";
+  try {
+    const handle = $("myHandle").value.trim();
+    const password = $("myPassword").value;
+    me = await login(handle, password);
+    $("meHandle").textContent = me.handle;
+    loadAddressBook();
+    renderContacts(); renderChat();
+    $("login").style.display = "none";
+    $("app").classList.add("active");
+    pollTimer = setInterval(() => tick().catch(() => {}), POLL_MS);
+    tick();
+  } catch (e) {
+    $("loginError").textContent = e.message;
+  }
+};
+
+$("addContactBtn").onclick = () => {
+  const v = $("newContact").value.trim();
+  if (v) { addContact(v); $("newContact").value = ""; }
+};
+$("newContact").addEventListener("keydown", e => { if (e.key === "Enter") $("addContactBtn").click(); });
+
+$("forceConnectBtn").onclick = () => {
+  if (selected && !outboundTarget && !(selected.dc && selected.dc.readyState === "open")) {
+    selected.resolved && (outboundTarget = selected.did, outboundDeadline = Date.now() + CALL_TIMEOUT_MS, startCall(selected));
+  }
+};
+
+$("sendBtn").onclick = () => {
+  const v = $("msgInput").value;
+  if (v && selected) { sendText(selected, v); $("msgInput").value = ""; }
+};
+$("msgInput").addEventListener("keydown", e => { if (e.key === "Enter") $("sendBtn").click(); });
+</script>
+</body>
+</html>
