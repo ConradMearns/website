@@ -37,6 +37,21 @@
         "/project-dizzy-viz/glm5-2/index.html"
       ],
       "wait": 3500
+    },
+    "webring-conrad": {
+      "type": "page",
+      "url": "/index.html",
+      "wait": 3500
+    },
+    "webring-overgrown": {
+      "type": "page",
+      "url": "https://overgrown.kerp.zone/",
+      "wait": 3000
+    },
+    "webring-horenberger": {
+      "type": "page",
+      "url": "https://horenbergerb.github.io/caravan.html",
+      "wait": 3000
     }
   }
 }

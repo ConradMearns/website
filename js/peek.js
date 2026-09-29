@@ -1,6 +1,7 @@
 /* Hover preview: a tiny CRT that shows what a link points to. Needs css/peek.css.
    Shown for links to this site and *.github.io (framed live), and for any link with data-peek.
    data-peek="page-or-image": an image (png/jpg/webp/gif) or a page to frame, for targets that cannot be framed.
+   Add data-nopeek to a link to never show one (for links that redirect, say).
    Load at the end of <body>. Off on touch screens and narrow windows. */
 (function () {
   var canPeek = matchMedia("(hover: hover) and (min-width: 42.01em)");
@@ -9,6 +10,7 @@
   box.id = "peek"; box.setAttribute("aria-hidden", "true"); box.append(cap, screen); document.body.append(box);
   function src(a) { return a.dataset.peek || a.href; }  /* data-peek: a page URL or an image, for links that cannot be framed */
   function ok(a) {
+    if (a.hasAttribute("data-nopeek")) return false;
     var u = new URL(src(a), location.href);
     return /^https?:|^file:/.test(u.protocol) && (u.origin === location.origin || u.hostname.endsWith(".github.io")) && u.pathname !== location.pathname;
   }

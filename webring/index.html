@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Webrings — Conrad Mearns</title>
+    <script src="../js/theme.js"></script>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/post.css">
+    <link rel="stylesheet" href="../css/peek.css">
+    <style>
+        /* this page only */
+        .members th:first-child, .members td:first-child { text-align: right; }
+        .members td:nth-child(2) { color: var(--dim); }
+        #demo a:nth-child(1), #demo a:nth-child(3), #demo a:nth-child(4) { color: color-mix(in srgb, var(--fg) 72%, var(--bg)); }   /* prev, next and random, a little grayed */
+        #demo a:nth-child(1):hover, #demo a:nth-child(3):hover, #demo a:nth-child(4):hover { color: var(--accent); }
+        .wiki { display: flex; gap: 1.2em; align-items: flex-start; margin: 1.4em 0; padding: 1em 1.2em; border-left: 4px solid var(--accent); background: var(--surface); }
+        .wiki img { flex: 0 0 13em; width: 13em; height: auto; background: #fff; border: 1px solid var(--line); }
+        .wiki > div { min-width: 0; font-size: .95em; line-height: 1.55; }
+        .wiki small { display: block; color: var(--dim); font: .72em/1.5 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
+        .wiki b { display: block; font-size: 1.1em; }
+        .wiki .lede { color: var(--dim); margin: 0 0 .5em; }
+        .wiki p { margin: 0 0 .6em; }
+        @media (max-width: 36em) { .wiki { flex-direction: column; } .wiki img { flex: none; width: 100%; } }
+        pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+        .draft { font: .75em/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="../index.html">conrads.website</a>
+        <button type="button" data-theme-toggle></button>
+    </header>
+
+    <main>
+        <article>
+            <header>
+                <h1>Webrings</h1>
+                <p>Small rings of personal sites that link to each other.</p>
+            </header>
+
+            <p>
+                A  <a href="https://en.wikipedia.org/wiki/Webring">webring</a> is a loop of independent sites that point at one another. 
+                Every member shows a <em>previous</em> and a <em>next</em> link,
+                so you can wander from one person's corner of the internet to the next without a search engine or a feed deciding the order.
+            </p>
+
+            <section id="wrz">
+                <h2>Webring Zero</h2>
+                <p>
+                    A nameless webring. The first one I am putting together - the theme will work itself out later.
+                </p>
+                
+                <h3>Members</h3>
+                <table class="members" data-ring-table="wrz"></table>
+
+                <p>
+                    This is what a member's site shows. Pick a member to see their neighbors. The links are real, so
+                    clicking one takes you to that site, and resting on one shows a preview.
+                </p>
+                <p><label>Preview as: <select id="as"></select></label></p>
+                <div id="demo"></div>
+
+
+                <h3>To Join</h3>
+                <p>
+                    Message me with your site's address, or open a pull request that adds you to the list at the top of <a href="wrz.js">wrz.js</a>. 
+                    Then put the ring links on your site, using either of the two ways below.
+                    Replace <code>https://yoursite.example/</code> with your address exactly as it appears in the member list.
+                </p>
+
+                <h3>Plain links (no JavaScript)</h3>
+                <p>Copy this into your page wherever you like. It works everywhere and runs none of my code on your site.</p>
+<pre><code>&lt;nav aria-label="Webring Zero"&gt;
+  &lt;a href="https://conrads.website/webring/wrz.html?from=https://yoursite.example/&amp;to=prev"&gt;← previous&lt;/a&gt;
+  &lt;a href="https://conrads.website/webring/#wrz"&gt;Webring Zero&lt;/a&gt;
+  &lt;a href="https://conrads.website/webring/wrz.html?from=https://yoursite.example/&amp;to=next"&gt;next →&lt;/a&gt;
+&lt;/nav&gt;</code></pre>
+                <p>
+                    Each arrow goes through a small page (<a href="wrz.html">wrz.html</a>) that looks you up in the ring and
+                    sends the visitor on. Use <code>&amp;to=random</code> instead for a random hop.
+                </p>
+
+                <h3>One script tag</h3>
+                <p>
+                    Or let a script draw the links for you, with your neighbors' names on them. It's a plain
+                    <code>&lt;nav&gt;</code> that takes on your page's text color.
+                </p>
+<pre><code>&lt;script src="https://conrads.website/webring/wrz.js" data-from="https://yoursite.example/"&gt;&lt;/script&gt;</code></pre>
+                <p>
+                    This one loads a script from my site onto yours, so only use it if you're comfortable with that.
+                    The plain links above are the safe choice, but they won't update automatically with new members.
+                </p>
+            </section>
+        </article>
+    </main>
+
+    <script>
+        /* the definition and picture come straight from Wikipedia's summary of the Webring article */
+        fetch("https://en.wikipedia.org/api/rest_v1/page/summary/Webring").then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (d) {
+            var fig = document.getElementById("wiki"), text = document.createElement("div"), page = d.content_urls.desktop.page;
+            function el(tag, t) { var e = document.createElement(tag); if (t) e.textContent = t; return e; }
+            function a(t, href) { var x = el("a", t); x.href = href; x.rel = "noopener"; return x; }
+            var head = el("small", "From Wikipedia, the free encyclopedia"), title = el("b", d.title), desc = el("p", d.description), body = el("p", d.extract), more = el("p"), lic = el("small");
+            desc.className = "lede"; more.append(a("Read the full article on Wikipedia \u2192", page));
+            lic.append("Text under ", a("CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"));
+            text.append(head, title, desc, body, more, lic);
+            fig.replaceChildren();
+            if (d.thumbnail && /^https:\/\//.test(d.thumbnail.source)) {
+                var img = el("img"), name = decodeURIComponent(d.thumbnail.source.split("/").slice(-2, -1)[0]);
+                img.src = d.thumbnail.source; img.alt = "Diagram of how a webring works"; img.loading = "lazy";
+                fig.append(img);
+                lic.append(" \u00b7 Image: ", a(name, "https://commons.wikimedia.org/wiki/File:" + encodeURIComponent(name)));
+            }
+            fig.append(text);
+        }).catch(function () {});
+    </script>
+    <script src="wrz.js"></script>
+    <script>
+        (function () {
+            var ring = WEBRINGS.wrz, select = document.getElementById("as"), demo = document.getElementById("demo");
+            ring.ring.members.forEach(function (m, i) { var o = document.createElement("option"); o.value = i; o.textContent = m.name; select.append(o); });
+            function show() { demo.replaceChildren(ring.nav(ring.ring.members[select.value].url, { peek: true })); }
+            select.addEventListener("change", show); show();
+        })();
+    </script>
+    <script src="../js/peek.js"></script>
+</body>
+</html>

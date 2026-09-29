@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Hopping… — Webring Zero</title>
+    <script src="../js/theme.js"></script>
+    <link rel="stylesheet" href="../css/theme.css">
+    <style>body { font: 1.1em/1.6 var(--font-body); max-width: 30em; margin: 20vh auto; padding: 0 1.2em; }</style>
+</head>
+<body>
+    <!-- The redirect behind the plain-link install. Usage:
+         wrz.html?from=https://yoursite.example/&to=next    (to = next | prev | random)
+         Finds `from` in the ring (wrz.js), then sends the visitor to the neighbor. With no `from` it uses the
+         referring site. If the site isn't in the ring, it lands on the ring page instead. -->
+    <p id="msg">Hopping along Webring Zero…</p>
+    <noscript><p><a href="index.html#wrz">This needs JavaScript. Here is the ring page.</a></p></noscript>
+    <script src="wrz.js"></script>
+    <script>
+        (function () {
+            var q = new URLSearchParams(location.search), target = WEBRINGS.wrz.hop(q.get("from") || document.referrer, q.get("to") || "next");
+            if (!target) return location.replace("index.html#wrz");
+            document.getElementById("msg").textContent = "Hopping to " + target.name + "…";
+            location.replace(target.url);
+        })();
+    </script>
+</body>
+</html>
