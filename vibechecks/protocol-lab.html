@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Protocol Lab</title>
+<style>
+:root{
+  --bg:#f3f4f8;--surface:#ffffff;--surface2:#e9ecf3;--text:#161a22;--muted:#586173;--border:#d5d9e3;--accent:#3866f0;
+  --ok:#12805a;--bad:#c92a45;--warn:#a9740a;
+  --k-seed:#7c4fe0;--k-pub:#12805a;--k-priv:#c92a45;--k-sym:#a9740a;--k-data:#586173;--k-cipher:#3866f0;
+  --grid:rgba(56,102,240,.06);
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d1017;--surface:#161b25;--surface2:#1d2330;--text:#e8ebf2;--muted:#95a0b3;--border:#2a3243;--accent:#6b93ff;
+    --ok:#41d39b;--bad:#ff6b83;--warn:#f0b64a;
+    --k-seed:#b69aff;--k-pub:#41d39b;--k-priv:#ff6b83;--k-sym:#f0b64a;--k-data:#95a0b3;--k-cipher:#6b93ff;
+    --grid:rgba(107,147,255,.07);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d1017;--surface:#161b25;--surface2:#1d2330;--text:#e8ebf2;--muted:#95a0b3;--border:#2a3243;--accent:#6b93ff;
+  --ok:#41d39b;--bad:#ff6b83;--warn:#f0b64a;
+  --k-seed:#b69aff;--k-pub:#41d39b;--k-priv:#ff6b83;--k-sym:#f0b64a;--k-data:#95a0b3;--k-cipher:#6b93ff;
+  --grid:rgba(107,147,255,.07);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+.wrap{max-width:820px;margin:0 auto;padding:12px 12px 0}
+h1{font-size:17px;margin:0 0 8px;font-weight:650;letter-spacing:-.01em}
+.top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select,button,textarea{font:inherit;color:var(--text)}
+select{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;min-height:40px;flex:1 1 200px;max-width:100%}
+.sum{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px}
+.pill{font-size:12px;padding:3px 9px;border-radius:99px;border:1px solid var(--border);background:var(--surface);color:var(--muted)}
+.pill.ok{color:var(--ok);border-color:var(--ok)}
+.pill.bad{color:var(--bad);border-color:var(--bad);cursor:pointer}
+
+.stage{position:relative;padding:10px;border:1px solid var(--border);border-radius:14px;
+  background:
+   linear-gradient(var(--grid) 1px,transparent 1px) 0 0/22px 22px,
+   linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/22px 22px,
+   var(--surface2)}
+.groups{display:flex;flex-wrap:wrap;gap:10px}
+.group{flex:1 1 140px;min-width:0}
+.group.named{flex:2 1 300px;border:1px dashed var(--border);border-radius:12px;padding:6px 8px 8px}
+.gname{font-size:11.5px;color:var(--muted);margin:0 0 5px 2px}
+.cards{display:flex;gap:8px;flex-wrap:wrap}
+.card{position:relative;flex:1 1 130px;min-width:0;background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--ac);border-radius:10px;padding:7px 8px 8px}
+.chead{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
+.aname,.cname{font-weight:650}
+.who{font-size:11px;color:var(--muted);margin-left:auto;text-align:right}
+.vault{display:flex;flex-wrap:wrap;gap:5px;min-height:34px;align-content:flex-start}
+.empty{font-size:11.5px;color:var(--muted);font-style:italic}
+.bench{position:absolute;inset:0;display:grid;place-items:center;font-size:34px;opacity:0;pointer-events:none;z-index:2;
+  text-shadow:0 0 12px var(--surface),0 0 12px var(--surface)}
+.chans{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.chan{border:1px dashed var(--muted);border-radius:12px;padding:7px 9px;background:color-mix(in srgb,var(--surface) 65%,transparent)}
+.chan .vault{min-height:28px}
+.overlay{position:absolute;inset:0;pointer-events:none;z-index:6}
+
+.chip{--kc:var(--k-data);display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:2px 5px;max-width:100%;
+  font:12px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:3px 7px;border-radius:8px;
+  border:1px solid var(--kc);background:color-mix(in srgb,var(--kc) 13%,var(--surface));overflow-wrap:anywhere}
+.chip .sub{flex-basis:100%;font-size:10.5px;color:var(--muted)}
+.k-seed{--kc:var(--k-seed)}.k-pub{--kc:var(--k-pub)}.k-priv{--kc:var(--k-priv)}
+.k-sym{--kc:var(--k-sym)}.k-data{--kc:var(--k-data)}.k-cipher{--kc:var(--k-cipher)}
+.chip.seen{border-style:dashed;opacity:.72}
+.chip.seen::before{content:"👁";font-size:10px}
+.chip.pop{animation:pop .45s ease}
+.chip.fly{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;box-shadow:0 6px 18px rgba(0,0,0,.28)}
+@keyframes pop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.14)}100%{transform:scale(1);opacity:1}}
+
+.dock{position:sticky;bottom:0;margin:12px -12px 0;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));
+  background:var(--surface);border-top:1px solid var(--border);z-index:10}
+.cap{min-height:74px}
+.capline{display:flex;gap:8px;align-items:center;margin-bottom:3px}
+.badge{font-size:11.5px;font-weight:650;padding:1px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--border)}
+.stepno{font-size:11.5px;color:var(--muted)}
+.what{font-weight:600}
+.why{color:var(--muted);font-size:13px}
+.verdict{font-size:13px;margin-top:2px}
+.verdict.bad{color:var(--bad)}.verdict.ok{color:var(--ok)}
+.ctl{display:flex;gap:6px;align-items:center;margin-top:8px}
+.ctl button{min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:16px}
+.ctl button.main{background:var(--accent);border-color:var(--accent);color:#fff;flex:1 1 auto;max-width:120px}
+.ctl button:disabled{opacity:.4;cursor:default}
+.ctl .spd{font-size:13px;margin-left:auto}
+input[type=range]{width:100%;margin:8px 0 0;accent-color:var(--accent)}
+
+h2{font-size:13px;margin:16px 0 6px;color:var(--muted);font-weight:650}
+ol.steps{list-style:none;margin:0;padding:0;max-height:260px;overflow:auto;border:1px solid var(--border);border-radius:10px;background:var(--surface);position:relative}
+.steps li{display:grid;grid-template-columns:28px 1fr 22px;gap:6px;padding:7px 8px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px}
+.steps li:last-child{border-bottom:0}
+.steps li.cur{background:color-mix(in srgb,var(--accent) 14%,var(--surface))}
+.steps .n{color:var(--muted);text-align:right}
+.steps li.v-note{color:var(--muted);font-style:italic}
+.steps li.v-error .s{color:var(--bad)}.steps li.v-ok .s,.steps li.v-pass .s{color:var(--ok)}
+.steps em{color:var(--muted)}
+
+details{margin:14px 0}
+summary{cursor:pointer;font-weight:650;font-size:13px;color:var(--muted);padding:6px 0}
+textarea{width:100%;height:300px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface);
+  border:1px solid var(--border);border-radius:10px;padding:10px;resize:vertical;white-space:pre;overflow:auto}
+.runrow{display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.runrow button{min-height:40px;padding:0 16px;border-radius:10px;border:0;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
+.perr{color:var(--bad);font-size:12.5px}
+pre.ref{font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;overflow:auto;margin:6px 0}
+.spacer{height:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Protocol Lab</h1>
+  <div class="top">
+    <select id="preset" aria-label="Protocol"></select>
+  </div>
+  <div class="sum" id="sum"></div>
+
+  <div class="stage" id="stage">
+    <div class="groups" id="groups"></div>
+    <div class="chans" id="chans"></div>
+    <div class="overlay" id="overlay"></div>
+  </div>
+
+  <div class="dock">
+    <div class="cap" id="cap"></div>
+    <input type="range" id="slider" min="0" max="0" value="0" aria-label="Step">
+    <div class="ctl">
+      <button id="bStart" aria-label="Restart">⏮</button>
+      <button id="bPrev" aria-label="Previous step">‹</button>
+      <button id="bPlay" class="main" aria-label="Play">▶</button>
+      <button id="bNext" aria-label="Next step">›</button>
+      <button id="bSpd" class="spd" aria-label="Speed">1×</button>
+    </div>
+  </div>
+
+  <h2>Steps</h2>
+  <ol class="steps" id="steps"></ol>
+
+  <details id="srcBox">
+    <summary>Protocol source (edit and run)</summary>
+    <textarea id="src" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
+    <div class="runrow"><button id="bRun">Run</button><div class="perr" id="perr"></div></div>
+    <pre class="ref">actor id "Name" [group=G] [color=#hex]
+channel id "Label" member member ...   (* = public)
+
+gen who: a.pub a.priv [from x y]
+encrypt who: data with key as out
+decrypt who: cipher with key
+publish who: item -> channel
+fetch who: item &lt;- channel
+send who -> to: item via channel
+forget who: item item
+assert who has|lacks item
+note text
+
+!step   must fail (an attack that should be blocked)
+; text caption shown while the step plays
+names: x.pub + x.priv are a pair, x.key is symmetric, x.seed</pre>
+  </details>
+  <div class="spacer"></div>
+</div>
+
+<script>
+"use strict";
+/* ---------- protocols ---------- */
+const SOURCES = {
+"Alice ↔ Bob: public-key exchange": `title Alice ↔ Bob: public-key exchange
+actor alice "Alice"
+actor bob "Bob"
+actor eve "Eve"
+channel registry "Public key registry" *
+channel wire "Alice↔Bob channel (Eve is tapping it)" alice bob eve
+
+note Eve is a passive eavesdropper on the private channel.
+gen alice: alice.pub alice.priv ; Alice makes a key pair. The private half stays with her.
+gen bob: bob.pub bob.priv ; Bob does the same.
+gen eve: eve.pub eve.priv ; Eve has keys too, but nobody encrypts to her.
+publish alice: alice.pub -> registry ; Public keys are safe to publish.
+publish bob: bob.pub -> registry
+fetch alice: bob.pub <- registry ; Alice looks up Bob's public key.
+fetch bob: alice.pub <- registry
+
+note Now they talk over a new channel.
+gen alice: hello.msg ; Alice writes a message.
+encrypt alice: hello.msg with bob.pub as hello.enc ; Sealed to Bob's public key. Only bob.priv opens it.
+send alice -> bob: hello.enc via wire ; Eve sees the ciphertext go past.
+!decrypt eve: hello.enc with eve.priv ; Eve tries her own key.
+decrypt bob: hello.enc with bob.priv ; Bob's private key opens it.
+assert bob has hello.msg ; Round trip: what came out is what Alice put in.
+assert eve lacks hello.msg ; The secret never reached Eve.
+
+gen bob: reply.msg
+encrypt bob: reply.msg with alice.pub as reply.enc
+send bob -> alice: reply.enc via wire
+decrypt alice: reply.enc with alice.priv
+assert alice has reply.msg`,
+
+"Identity key, two devices, Bob": `title Identity key, two devices, Bob
+actor phone "Phone" group=Alice
+actor laptop "Laptop" group=Alice
+actor bob "Bob"
+actor eve "Eve"
+channel registry "Public registry" *
+channel pair "Device pairing link" phone laptop eve
+channel net "Network" phone laptop bob eve
+
+note Alice's identity comes from a BIP39 seed. Devices keep it sealed at rest.
+gen eve: eve.pub eve.priv ; Eve (attacker) watches every wire.
+gen phone: alice.seed ; BIP39 mnemonic.
+gen phone: uik.pub uik.priv from alice.seed ; User identity key, derived from the seed.
+gen phone: phone.key ; Device key. Never leaves this device.
+publish phone: uik.pub -> registry ; The identity public key is Alice's public name.
+encrypt phone: uik.priv with phone.key as uik.priv@phone ; The identity private key is stored sealed by the device key.
+forget phone: uik.priv alice.seed ; Plaintext wiped. The seed goes on paper.
+assert phone lacks uik.priv ; Only the sealed copy remains on the phone.
+
+note Add a second device.
+gen laptop: laptop.key ; The laptop's own device key.
+gen laptop: enroll.pub enroll.priv ; Throwaway pairing key pair.
+send laptop -> phone: enroll.pub via pair ; Eve sees this. It is only a public key.
+decrypt phone: uik.priv@phone with phone.key ; The phone unlocks its identity key.
+encrypt phone: uik.priv with enroll.pub as uik.priv@enroll ; Re-sealed for the laptop.
+forget phone: uik.priv
+send phone -> laptop: uik.priv@enroll via pair
+!decrypt eve: uik.priv@enroll with eve.priv ; Eve captured it but can't open it.
+decrypt laptop: uik.priv@enroll with enroll.priv
+encrypt laptop: uik.priv with laptop.key as uik.priv@laptop ; Stored sealed under the laptop's own device key.
+forget laptop: uik.priv enroll.priv
+assert laptop lacks uik.priv
+
+note Bob joins.
+gen bob: bob.pub bob.priv
+publish bob: bob.pub -> registry
+fetch phone: bob.pub <- registry
+fetch bob: uik.pub <- registry ; Bob looks up Alice's identity.
+gen phone: hi.msg
+encrypt phone: hi.msg with bob.pub as hi.enc
+send phone -> bob: hi.enc via net
+decrypt bob: hi.enc with bob.priv
+assert bob has hi.msg
+
+gen bob: reply.msg
+encrypt bob: reply.msg with uik.pub as reply.enc ; Sealed to Alice's identity, not to a device.
+send bob -> laptop: reply.enc via net ; Bob doesn't know or care which device.
+!decrypt eve: reply.enc with eve.priv
+decrypt laptop: uik.priv@laptop with laptop.key ; The laptop unlocks the identity key.
+decrypt laptop: reply.enc with uik.priv
+assert laptop has reply.msg
+assert eve lacks reply.msg`,
+
+"Broken example (see the errors)": `title Broken example: wrong keys
+actor alice "Alice"
+actor bob "Bob"
+channel registry "Registry" *
+channel wire "Wire" alice bob
+
+gen alice: alice.pub alice.priv
+gen bob: bob.pub bob.priv
+publish bob: bob.pub -> registry
+gen alice: hi.msg
+encrypt alice: hi.msg with bob.pub as hi.enc ; Alice never fetched bob.pub.
+fetch alice: bob.pub <- registry
+encrypt alice: hi.msg with alice.pub as hi.enc ; Sealed to herself by mistake.
+send alice -> bob: hi.enc via wire
+decrypt bob: hi.enc with bob.priv ; Bob can't open it.
+assert bob has hi.msg`
+};
+
+/* ---------- constants & helpers ---------- */
+const PALETTE=['#3f7cf0','#e0578a','#22a06b','#d9922b','#8d63e6','#1fa3a8'];
+const ICON={seed:'🌱',pub:'🔑',priv:'🗝️',sym:'🔐',data:'📄',cipher:'🔒'};
+const VICON={ok:'✓',pass:'✔',blocked:'🛡',error:'✖',note:''};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const kindOf=n=>{const s=n.split('.').pop();return s==='pub'?'pub':s==='priv'?'priv':s==='key'?'sym':s==='seed'?'seed':'data'};
+const needKey=c=>c.key.endsWith('.pub')?c.key.slice(0,-4)+'.priv':c.key;
+
+/* ---------- parser ---------- */
+function parse(src){
+  const P={title:'Untitled',actors:[],channels:[],steps:[]},errs=[];
+  src.split('\n').forEach((raw,n)=>{
+    let line=raw.trim(); if(!line||line[0]==='#') return;
+    let cap=''; const ci=line.indexOf(' ; ');
+    if(ci>=0){cap=line.slice(ci+3).trim();line=line.slice(0,ci).trim();}
+    let m;
+    if((m=line.match(/^title\s+(.+)$/))){P.title=m[1];return;}
+    if((m=line.match(/^actor\s+(\w+)\s+"([^"]*)"(.*)$/))){
+      const a={id:m[1],name:m[2],group:null,color:null};
+      (m[3].match(/\w+=\S+/g)||[]).forEach(kv=>{const i=kv.indexOf('=');const k=kv.slice(0,i),v=kv.slice(i+1);
+        if(k==='group')a.group=v.replace(/_/g,' '); if(k==='color')a.color=v;});
+      a.color=a.color||PALETTE[P.actors.length%PALETTE.length];
+      P.actors.push(a);return;
+    }
+    if((m=line.match(/^channel\s+(\w+)\s+"([^"]*)"\s*(.*)$/))){
+      const mem=m[3].trim().split(/\s+/).filter(Boolean);
+      P.channels.push({id:m[1],label:m[2],all:mem.length===0||mem.includes('*'),members:mem.filter(x=>x!=='*')});return;
+    }
+    const neg=line[0]==='!'; if(neg) line=line.slice(1);
+    const st={neg,cap,line:n+1};
+    if((m=line.match(/^note\s*(.*)$/))){st.op='note';st.text=m[1];}
+    else if((m=line.match(/^gen\s+(\w+):\s*(.+)$/))){
+      const parts=m[2].split(/\s+from\s+/);
+      Object.assign(st,{op:'gen',who:m[1],make:parts[0].trim().split(/\s+/),from:parts[1]?parts[1].trim().split(/\s+/):[]});
+    }
+    else if((m=line.match(/^encrypt\s+(\w+):\s*(\S+)\s+with\s+(\S+)\s+as\s+(\S+)$/))) Object.assign(st,{op:'encrypt',who:m[1],data:m[2],key:m[3],out:m[4]});
+    else if((m=line.match(/^decrypt\s+(\w+):\s*(\S+)\s+with\s+(\S+)$/))) Object.assign(st,{op:'decrypt',who:m[1],item:m[2],key:m[3]});
+    else if((m=line.match(/^publish\s+(\w+):\s*(\S+)\s*->\s*(\w+)$/))) Object.assign(st,{op:'publish',who:m[1],item:m[2],chan:m[3]});
+    else if((m=line.match(/^fetch\s+(\w+):\s*(\S+)\s*<-\s*(\w+)$/))) Object.assign(st,{op:'fetch',who:m[1],item:m[2],chan:m[3]});
+    else if((m=line.match(/^send\s+(\w+)\s*->\s*(\w+):\s*(\S+)\s+via\s+(\w+)$/))) Object.assign(st,{op:'send',who:m[1],to:m[2],item:m[3],chan:m[4]});
+    else if((m=line.match(/^forget\s+(\w+):\s*(.+)$/))) Object.assign(st,{op:'forget',who:m[1],items:m[2].trim().split(/\s+/)});
+    else if((m=line.match(/^assert\s+(\w+)\s+(has|lacks)\s+(\S+)$/))) Object.assign(st,{op:'assert',who:m[1],mode:m[2],item:m[3]});
+    else {errs.push({line:n+1,msg:`can't parse "${line}"`});return;}
+    P.steps.push(st);
+  });
+  const aids=new Set(P.actors.map(a=>a.id)),cids=new Set(P.channels.map(c=>c.id));
+  if(!P.actors.length) errs.push({line:0,msg:'no actors declared'});
+  P.channels.forEach(c=>c.members.forEach(x=>{if(!aids.has(x))errs.push({line:0,msg:`channel ${c.id}: unknown member "${x}"`});}));
+  P.steps.forEach(st=>{
+    [st.who,st.to].forEach(x=>{if(x&&!aids.has(x))errs.push({line:st.line,msg:`unknown actor "${x}"`});});
+    if(st.chan&&!cids.has(st.chan))errs.push({line:st.line,msg:`unknown channel "${st.chan}"`});
+  });
+  errs.sort((a,b)=>a.line-b.line);
+  return {P,errs};
+}
+
+/* ---------- symbolic engine ---------- */
+let P=null,frames=[];
+const nm=id=>{const a=P.actors.find(x=>x.id===id);return a?a.name:id};
+const chObj=id=>P.channels.find(c=>c.id===id);
+const chn=id=>chObj(id).label;
+const inCh=(ch,id)=>ch.all||ch.members.includes(id);
+
+function apply(s,st){
+  const H=s.holds[st.who]||{}, has=n=>!!H[n], A=nm(st.who);
+  const F=msg=>({ok:false,msg}), O=(fx,msg='')=>({ok:true,msg,fx});
+  switch(st.op){
+    case 'note': return O({t:'note'});
+    case 'gen':{
+      for(const f of st.from) if(!has(f)) return F(`${A} doesn't have ${f} to derive from.`);
+      for(const n of st.make) if(s.items[n]) return F(`${n} already exists.`);
+      st.make.forEach(n=>{s.items[n]={kind:kindOf(n),from:st.from};H[n]='own';});
+      return O({t:'make',actor:st.who,ins:st.from,icon:st.from.length?'⚙️':'✨'});
+    }
+    case 'encrypt':{
+      if(!has(st.data)) return F(`${A} doesn't have ${st.data} to encrypt.`);
+      if(!has(st.key)) return F(`${A} doesn't have ${st.key}. Fetch or receive it first.`);
+      const k=s.items[st.key].kind;
+      if(k!=='pub'&&k!=='sym') return F(`${st.key} can't encrypt. Use a .pub or .key item.`);
+      if(s.items[st.out]) return F(`${st.out} already exists.`);
+      s.items[st.out]={kind:'cipher',inner:st.data,key:st.key};H[st.out]='own';
+      return O({t:'make',actor:st.who,ins:[st.data,st.key],icon:'🔒'});
+    }
+    case 'decrypt':{
+      if(!has(st.item)) return F(`${A} doesn't have ${st.item}.`);
+      const c=s.items[st.item];
+      if(c.kind!=='cipher') return F(`${st.item} isn't encrypted.`);
+      if(!has(st.key)) return F(`${A} doesn't have ${st.key}.`);
+      const need=needKey(c);
+      if(st.key!==need) return F(`${st.item} is sealed with ${c.key}. Opening it needs ${need}, not ${st.key}.`);
+      H[c.inner]='own';
+      return O({t:'make',actor:st.who,ins:[st.item,st.key],icon:'🔓'});
+    }
+    case 'publish':{
+      const ch=chObj(st.chan);
+      if(!has(st.item)) return F(`${A} doesn't have ${st.item}.`);
+      if(!inCh(ch,st.who)) return F(`${A} isn't on ${ch.label}.`);
+      if(!s.chan[st.chan].includes(st.item)) s.chan[st.chan].push(st.item);
+      return O({t:'flow',item:st.item,actor:st.who,chan:st.chan,dir:'up'});
+    }
+    case 'fetch':{
+      const ch=chObj(st.chan);
+      if(!inCh(ch,st.who)) return F(`${A} isn't on ${ch.label}.`);
+      if(!s.chan[st.chan].includes(st.item)) return F(`${st.item} isn't on ${ch.label}.`);
+      H[st.item]='own';
+      return O({t:'flow',item:st.item,actor:st.who,chan:st.chan,dir:'down'});
+    }
+    case 'send':{
+      const ch=chObj(st.chan);
+      if(!has(st.item)) return F(`${A} doesn't have ${st.item}.`);
+      if(!inCh(ch,st.who)) return F(`${A} isn't on ${ch.label}.`);
+      if(!inCh(ch,st.to)) return F(`${nm(st.to)} isn't on ${ch.label}.`);
+      s.holds[st.to][st.item]='own';
+      const others=P.actors.map(a=>a.id).filter(id=>id!==st.who&&id!==st.to&&inCh(ch,id));
+      others.forEach(id=>{if(!s.holds[id][st.item]) s.holds[id][st.item]='seen';});
+      if(!s.chan[st.chan].includes(st.item)) s.chan[st.chan].push(st.item);
+      return O({t:'send',item:st.item,from:st.who,to:st.to,chan:st.chan,seen:others});
+    }
+    case 'forget':{
+      for(const n of st.items) if(!has(n)) return F(`${A} doesn't have ${n} to wipe.`);
+      st.items.forEach(n=>delete H[n]);
+      return O({t:'forget',actor:st.who,items:st.items});
+    }
+    case 'assert':{
+      const yes=has(st.item);
+      if(st.mode==='has'&&!yes) return F(`${A} is missing ${st.item}.`);
+      if(st.mode==='lacks'&&yes) return F(`${A} holds ${st.item}. It leaked.`);
+      return O({t:'assert',actor:st.who});
+    }
+  }
+  return F('unknown step');
+}
+
+function simulate(){
+  const s0={holds:{},chan:{},items:{}};
+  P.actors.forEach(a=>s0.holds[a.id]={});
+  P.channels.forEach(c=>s0.chan[c.id]=[]);
+  const out=[{state:s0,step:null,res:null,verdict:'start',msg:''}];
+  let prev=s0;
+  P.steps.forEach(st=>{
+    const s=JSON.parse(JSON.stringify(prev));
+    const res=apply(s,st);
+    let verdict,msg=res.msg;
+    if(st.op==='note') verdict='note';
+    else if(st.neg){verdict=res.ok?'error':'blocked'; if(res.ok) msg='Expected this to fail, but it worked. The protocol leaks here.';}
+    else verdict=res.ok?(st.op==='assert'?'pass':'ok'):'error';
+    out.push({state:s,step:st,res,verdict,msg});
+    prev=s;
+  });
+  return out;
+}
+
+function describe(st){
+  const a=nm(st.who);
+  switch(st.op){
+    case 'note': return st.text;
+    case 'gen': return `${a} generates ${st.make.join(', ')}${st.from.length?' from '+st.from.join(', '):''}`;
+    case 'encrypt': return `${a} encrypts ${st.data} with ${st.key} → ${st.out}`;
+    case 'decrypt': return `${a} decrypts ${st.item} with ${st.key}`;
+    case 'publish': return `${a} publishes ${st.item} to ${chn(st.chan)}`;
+    case 'fetch': return `${a} fetches ${st.item} from ${chn(st.chan)}`;
+    case 'send': return `${a} sends ${st.item} to ${nm(st.to)} over ${chn(st.chan)}`;
+    case 'forget': return `${a} wipes ${st.items.join(', ')} from memory`;
+    case 'assert': return `Check: ${a} ${st.mode==='has'?'has':'does not have'} ${st.item}`;
+  }
+  return '';
+}
+
+/* ---------- stage rendering ---------- */
+let els={},curItems={},cur=0,playing=false,speed=1,run=0,playSid=0;
+const SPEEDS=[1,2,0.5];
+const overlay=$('#overlay');
+const wait=ms=>new Promise(r=>setTimeout(r,ms/speed));
+const CANCEL={};
+
+function chip(it,name,seen){
+  const d=document.createElement('div');
+  d.className='chip k-'+it.kind+(seen?' seen':'');
+  d.dataset.item=name;
+  d.innerHTML=`<span>${ICON[it.kind]}</span><span>${esc(name)}</span>`+(it.kind==='cipher'?`<span class="sub">{ ${esc(it.inner)} } under ${esc(it.key)}</span>`:'');
+  return d;
+}
+function findChip(root,n){return [...root.querySelectorAll('.chip')].find(c=>c.dataset.item===n)}
+
+function buildStage(){
+  const G=$('#groups'),C=$('#chans');G.innerHTML='';C.innerHTML='';
+  els={actor:{},vault:{},bench:{},chan:{},chanVault:{}};
+  const byGroup={},blocks=[];
+  P.actors.forEach(a=>{
+    if(a.group){ if(!byGroup[a.group]){byGroup[a.group]={name:a.group,list:[]};blocks.push(byGroup[a.group]);} byGroup[a.group].list.push(a); }
+    else blocks.push({name:null,list:[a]});
+  });
+  blocks.forEach(b=>{
+    const g=document.createElement('div');g.className='group'+(b.name?' named':'');
+    if(b.name){const t=document.createElement('div');t.className='gname';t.textContent=b.name;g.appendChild(t);}
+    const row=document.createElement('div');row.className='cards';
+    b.list.forEach(a=>{
+      const c=document.createElement('div');c.className='card';c.style.setProperty('--ac',a.color);
+      c.innerHTML=`<div class="chead"><span class="aname">${esc(a.name)}</span></div><div class="vault"></div><div class="bench"></div>`;
+      els.actor[a.id]=c;els.vault[a.id]=c.querySelector('.vault');els.bench[a.id]=c.querySelector('.bench');
+      row.appendChild(c);
+    });
+    g.appendChild(row);G.appendChild(g);
+  });
+  P.channels.forEach(ch=>{
+    const d=document.createElement('div');d.className='chan';
+    d.innerHTML=`<div class="chead"><span>${ch.all?'🌐':'📡'}</span><span class="cname">${esc(ch.label)}</span><span class="who">${ch.all?'open to everyone':ch.members.map(nm).map(esc).join(', ')}</span></div><div class="vault"></div>`;
+    els.chan[ch.id]=d;els.chanVault[ch.id]=d.querySelector('.vault');C.appendChild(d);
+  });
+}
+
+function renderAll(state,prev){
+  curItems=state.items;
+  P.actors.forEach(a=>{
+    const v=els.vault[a.id];v.innerHTML='';
+    Object.entries(state.holds[a.id]).forEach(([n,mode])=>{
+      const c=chip(state.items[n],n,mode==='seen');
+      if(prev&&!prev.holds[a.id][n]) c.classList.add('pop');
+      v.appendChild(c);
+    });
+    if(!v.children.length) v.innerHTML='<span class="empty">empty</span>';
+  });
+  P.channels.forEach(ch=>{
+    const v=els.chanVault[ch.id];v.innerHTML='';
+    state.chan[ch.id].forEach(n=>{
+      const c=chip(state.items[n],n,false);
+      if(prev&&!prev.chan[ch.id].includes(n)) c.classList.add('pop');
+      v.appendChild(c);
+    });
+    if(!v.children.length) v.innerHTML='<span class="empty">nothing yet</span>';
+  });
+}
+
+/* ---------- animation primitives ---------- */
+function ctr(el){const r=el.getBoundingClientRect(),o=overlay.getBoundingClientRect();return {x:r.left-o.left+r.width/2,y:r.top-o.top+r.height/2}}
+function fly(name,fromEl,toEl,ms,fade){
+  const a=ctr(fromEl),b=ctr(toEl);
+  const c=chip(curItems[name],name,false);c.classList.add('fly');
+  c.style.left=a.x+'px';c.style.top=a.y+'px';overlay.appendChild(c);
+  const t0='translate(-50%,-50%)';
+  c.animate([{transform:`${t0} translate(0,0) scale(1)`,opacity:1},
+             {transform:`${t0} translate(${b.x-a.x}px,${b.y-a.y}px) scale(${fade?.5:1})`,opacity:fade?.1:1}],
+            {duration:ms/speed,easing:'ease-in-out',fill:'forwards'});
+}
+function bench(id,emoji,ms){
+  const b=els.bench[id];b.textContent=emoji;
+  b.animate([{opacity:0,transform:'scale(.4)'},{opacity:1,transform:'scale(1.2)',offset:.35},{opacity:1,transform:'scale(1)',offset:.7},{opacity:0,transform:'scale(1)'}],{duration:ms/speed});
+}
+function ring(card,color){card.animate([{boxShadow:`0 0 0 0 ${color}`},{boxShadow:`0 0 0 9px ${color}00`}],{duration:650/speed})}
+function shake(card){card.animate([{transform:'translateX(0)'},{transform:'translateX(-6px)'},{transform:'translateX(6px)'},{transform:'translateX(-4px)'},{transform:'translateX(0)'}],{duration:420/speed})}
+
+async function runFx(fr,W){
+  const st=fr.step,r=fr.res,fx=r.fx;
+  if(!r.ok){
+    const blocked=fr.verdict==='blocked',card=els.actor[st.who];
+    ring(card,blocked?'#12805a':'#c92a45');shake(card);bench(st.who,blocked?'🛡️':'✖',800);
+    await W(850);return;
+  }
+  switch(fx.t){
+    case 'note': await W(700);break;
+    case 'make':{
+      const card=els.actor[fx.actor];
+      fx.ins.forEach(n=>{const s=findChip(card,n);if(s)fly(n,s,card,450,true);});
+      await W(450);
+      ring(card,'#3866f0');bench(fx.actor,fx.icon,650);await W(650);break;
+    }
+    case 'flow':{
+      const card=els.actor[fx.actor],ce=els.chan[fx.chan];
+      if(fx.dir==='up'){const s=findChip(card,fx.item)||card;fly(fx.item,s,ce,700);}
+      else{const s=findChip(ce,fx.item)||ce;fly(fx.item,s,card,700);}
+      await W(700);break;
+    }
+    case 'send':{
+      const card=els.actor[fx.from],ce=els.chan[fx.chan],to=els.actor[fx.to];
+      fly(fx.item,findChip(card,fx.item)||card,ce,550);await W(550);
+      fx.seen.forEach(id=>bench(id,'👁️',600));
+      fly(fx.item,ce,to,550);await W(600);break;
+    }
+    case 'forget':{
+      const card=els.actor[fx.actor];
+      fx.items.forEach(n=>{const c=findChip(card,n);if(c)c.animate([{opacity:1,transform:'scale(1)'},{opacity:0,transform:'scale(.4)'}],{duration:400/speed,fill:'forwards'});});
+      bench(fx.actor,'🧹',600);await W(650);break;
+    }
+    case 'assert':{
+      const card=els.actor[fx.actor];ring(card,'#12805a');bench(fx.actor,'✔',700);await W(750);break;
+    }
+  }
+  if(fr.verdict==='error'){const card=els.actor[st.who];ring(card,'#c92a45');shake(card);bench(st.who,'✖',700);await W(750);}
+}
+
+/* ---------- caption & UI ---------- */
+function showCaption(i){
+  const cap=$('#cap');
+  if(i===0){
+    cap.innerHTML=`<div class="capline"><span class="badge">ready</span><span class="stepno">${frames.length-1} steps</span></div><div class="what">${esc(P.title)}</div><div class="why">Press ▶ to run it, or step through with ‹ ›.</div>`;
+    return;
+  }
+  const fr=frames[i],st=fr.step;
+  const v=fr.verdict;
+  const vtxt=v==='error'?`<div class="verdict bad">✖ ${esc(fr.msg)}</div>`
+    :v==='blocked'?`<div class="verdict ok">🛡 Blocked as expected: ${esc(fr.msg)}</div>`
+    :v==='pass'?`<div class="verdict ok">✔ Holds.</div>`:'';
+  cap.innerHTML=`<div class="capline"><span class="badge">${esc(st.op)}${st.neg?' (must fail)':''}</span><span class="stepno">step ${i} of ${frames.length-1}</span></div>`
+    +`<div class="what">${esc(st.op==='note'?st.text:describe(st))}</div>`
+    +(st.cap?`<div class="why">${esc(st.cap)}</div>`:'')+vtxt;
+}
+function syncUI(){
+  const N=frames.length-1;
+  $('#slider').max=N;$('#slider').value=cur;
+  $('#bPlay').textContent=playing?'⏸':'▶';
+  $('#bPrev').disabled=cur===0;$('#bNext').disabled=cur>=N;
+  $('#bSpd').textContent=speed+'×';
+  showCaption(cur);
+  const ol=$('#steps');
+  [...ol.children].forEach(li=>{
+    const on=+li.dataset.i===cur;li.classList.toggle('cur',on);
+    if(on){const t=li.offsetTop-ol.clientHeight/2+li.clientHeight/2;ol.scrollTop=Math.max(0,t);}
+  });
+}
+function stopAll(){playing=false;run++;playSid++;overlay.innerHTML='';}
+function jump(i){stopAll();cur=i;renderAll(frames[i].state,null);syncUI();}
+async function stepTo(i){
+  const my=++run;overlay.innerHTML='';
+  const fr=frames[i];
+  curItems=fr.state.items;
+  showCaption(i);
+  const W=async ms=>{await wait(ms);if(my!==run)throw CANCEL;};
+  try{await runFx(fr,W);}catch(e){if(e===CANCEL)return false;throw e;}
+  if(my!==run)return false;
+  overlay.innerHTML='';
+  cur=i;renderAll(fr.state,frames[i-1].state);syncUI();
+  return true;
+}
+async function play(){
+  if(playing){stopAll();syncUI();return;}
+  const N=frames.length-1;
+  if(cur>=N)jump(0);
+  playing=true;const sid=++playSid;syncUI();
+  while(sid===playSid&&playing&&cur<N){
+    const ok=await stepTo(cur+1);
+    if(!ok)return;
+    await wait(500);
+  }
+  if(sid===playSid){playing=false;syncUI();}
+}
+
+/* ---------- loading ---------- */
+function buildSteps(){
+  const ol=$('#steps');ol.innerHTML='';
+  frames.slice(1).forEach((fr,k)=>{
+    const i=k+1,li=document.createElement('li');
+    li.className='v-'+fr.verdict;li.dataset.i=i;
+    li.innerHTML=`<span class="n">${i}</span><span class="t">${esc(fr.step.op==='note'?fr.step.text:describe(fr.step))}${fr.step.neg?' <em>(must fail)</em>':''}</span><span class="s">${VICON[fr.verdict]}</span>`;
+    li.onclick=()=>jump(i);ol.appendChild(li);
+  });
+}
+function buildSummary(){
+  const cnt=v=>frames.filter(f=>f.verdict===v).length;
+  const e=cnt('error'),b=cnt('blocked'),p=cnt('pass');
+  $('#sum').innerHTML=(e?`<button class="pill bad" id="goErr">✖ ${e} error${e>1?'s':''}: show first</button>`:`<span class="pill ok">✔ consistent</span>`)
+    +`<span class="pill">🛡 ${b} attack${b===1?'':'s'} blocked</span><span class="pill">✔ ${p} check${p===1?'':'s'} passed</span>`;
+  const g=$('#goErr');if(g)g.onclick=()=>jump(frames.findIndex(f=>f.verdict==='error'));
+}
+function load(src){
+  const {P:np,errs}=parse(src);
+  const pe=$('#perr');
+  if(errs.length){
+    pe.innerHTML=errs.map(e=>`${e.line?'line '+e.line+': ':''}${esc(e.msg)}`).join('<br>');
+    return false;
+  }
+  pe.textContent='';
+  stopAll();P=np;frames=simulate();
+  buildStage();buildSteps();buildSummary();
+  cur=0;renderAll(frames[0].state,null);syncUI();
+  return true;
+}
+
+/* ---------- wiring ---------- */
+const sel=$('#preset');
+Object.keys(SOURCES).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;sel.appendChild(o);});
+sel.onchange=()=>{$('#src').value=SOURCES[sel.value];load(SOURCES[sel.value]);};
+$('#bRun').onclick=()=>{if(load($('#src').value)) window.scrollTo({top:0,behavior:'smooth'});};
+$('#bPlay').onclick=play;
+$('#bNext').onclick=()=>{if(cur<frames.length-1){stopAll();stepTo(cur+1);}};
+$('#bPrev').onclick=()=>{if(cur>0)jump(cur-1);};
+$('#bStart').onclick=()=>jump(0);
+$('#bSpd').onclick=()=>{speed=SPEEDS[(SPEEDS.indexOf(speed)+1)%SPEEDS.length];syncUI();};
+$('#slider').oninput=e=>jump(+e.target.value);
+
+$('#src').value=SOURCES[sel.value];
+load(SOURCES[sel.value]);
+
+/* the page can be driven from its URL: protocol-lab.html#identity,play picks a preset and can start it.
+   presets: alice-bob | identity | broken. The annotated viewer changes the hash as you scroll. */
+const HASHES=['alice-bob','identity','broken'];
+function fromHash(){
+  const [k,flag]=location.hash.slice(1).split(',');
+  const i=HASHES.indexOf(k); if(i<0)return;
+  const name=Object.keys(SOURCES)[i];
+  sel.value=name;$('#src').value=SOURCES[name];load(SOURCES[name]);
+  if(flag==='play')play();
+}
+fromHash();
+addEventListener('hashchange',fromHash);
+</script>
+</body>
+</html>

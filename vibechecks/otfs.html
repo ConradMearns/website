@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OTFS — Signals in the Delay-Doppler Domain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EDF0F4;
+    --paper-2:#E2E7EE;
+    --ink:#141A24;
+    --ink-soft:#46536A;
+    --scope:#0B1120;
+    --scope-edge:#1D2A44;
+    --phosphor:#4FD9E8;
+    --amber:#FFB454;
+    --magenta:#F06AAD;
+    --green:#7BE0A2;
+    --rule:#C3CBD8;
+    --maxw:960px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,sans-serif;
+    font-size:17px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  h1,h2,h3{font-family:"Space Grotesk",sans-serif;line-height:1.15}
+  h1{font-size:clamp(2.1rem,5.4vw,3.6rem);font-weight:700;letter-spacing:-0.02em}
+  h2{font-size:clamp(1.5rem,3.4vw,2.1rem);font-weight:700;letter-spacing:-0.01em;margin-bottom:.6rem}
+  h3{font-size:1.08rem;font-weight:500}
+  p{margin-bottom:1rem;max-width:68ch}
+  em{font-style:italic}
+  code,.mono{font-family:"IBM Plex Mono",monospace;font-size:.86em}
+  .eyebrow{
+    font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--ink-soft);display:block;margin-bottom:.7rem;
+  }
+  .eyebrow::before{content:"";display:inline-block;width:26px;height:1px;background:var(--ink-soft);vertical-align:middle;margin-right:10px}
+
+  /* hero */
+  header{padding:64px 0 26px;border-bottom:1px solid var(--rule)}
+  header .sub{color:var(--ink-soft);font-size:1.06rem;max-width:60ch;margin-top:14px}
+  .hero-scope{margin-top:30px}
+
+  section{padding:56px 0;border-bottom:1px solid var(--rule)}
+  section:last-of-type{border-bottom:none}
+
+  /* scope panels */
+  .scope{
+    background:var(--scope);
+    border:1px solid var(--scope-edge);
+    border-radius:10px;
+    padding:14px 14px 10px;
+    box-shadow:0 14px 34px -18px rgba(11,17,32,.55);
+  }
+  .scope canvas{display:block;width:100%;height:auto;border-radius:6px}
+  .scope-label{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.1em;
+    text-transform:uppercase;color:#6E82A8;padding:6px 4px 8px;
+  }
+  .scope-label .live{color:var(--phosphor)}
+  .caption{font-size:.86rem;color:var(--ink-soft);margin-top:12px;max-width:70ch}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+  @media(max-width:780px){.grid2,.grid3{grid-template-columns:1fr}}
+
+  /* controls */
+  .controls{
+    display:flex;flex-wrap:wrap;gap:18px 32px;margin:18px 0 20px;
+    padding:16px 18px;background:var(--paper-2);border:1px solid var(--rule);border-radius:10px;
+  }
+  .ctl{display:flex;flex-direction:column;gap:6px;min-width:190px;flex:1}
+  .ctl label{font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--ink-soft);display:flex;justify-content:space-between}
+  .ctl label output{color:var(--ink);font-weight:500;text-transform:none;letter-spacing:0}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--rule);border-radius:2px}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:17px;height:17px;border-radius:50%;
+    background:var(--ink);margin-top:-7px;border:3px solid var(--paper);
+    box-shadow:0 0 0 1px var(--ink);
+  }
+  input[type=range]::-moz-range-track{height:3px;background:var(--rule);border-radius:2px}
+  input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--ink);border:3px solid var(--paper);box-shadow:0 0 0 1px var(--ink)}
+  input[type=range]:focus-visible{outline:2px solid var(--phosphor);outline-offset:4px}
+  button.chip{
+    font-family:"IBM Plex Mono",monospace;font-size:.74rem;letter-spacing:.06em;
+    background:none;border:1px solid var(--ink-soft);color:var(--ink);
+    border-radius:999px;padding:6px 14px;cursor:pointer;
+  }
+  button.chip:hover{background:var(--ink);color:var(--paper)}
+  button.chip:focus-visible{outline:2px solid var(--phosphor);outline-offset:2px}
+  .chiprow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+  .verdict{
+    font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:1.05rem;
+    padding:10px 16px;border-radius:8px;display:inline-block;margin-top:6px;
+  }
+  .verdict.ok{background:#DDF3E4;color:#155A33;border:1px solid #9CD8B2}
+  .verdict.bad{background:#FBE2E2;color:#8C1F1F;border:1px solid #EBA8A8}
+
+  /* summary table */
+  table{border-collapse:collapse;width:100%;margin-top:18px;font-size:.94rem}
+  th,td{border:1px solid var(--rule);padding:9px 13px;text-align:center}
+  th{font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;background:var(--paper-2)}
+  td.yes{color:#155A33;font-weight:600}
+  td.no{color:#8C1F1F;font-weight:600}
+  td.rowhead{text-align:left;font-weight:500}
+
+  .keypoint{
+    border-left:3px solid var(--ink);padding:4px 0 4px 18px;margin:22px 0;
+    font-size:1.02rem;max-width:66ch;
+  }
+  .keypoint strong{font-family:"Space Grotesk",sans-serif}
+
+  .verdict.warn{background:#FBEFD9;color:#7A4B12;border:1px solid #E8C48E}
+  .tapbox{
+    font-family:"IBM Plex Mono",monospace;font-size:.8rem;line-height:1.7;
+    background:var(--paper-2);border:1px solid var(--rule);border-radius:8px;
+    padding:12px 16px;margin-top:12px;white-space:pre;overflow-x:auto;color:var(--ink);
+  }
+
+  footer{padding:40px 0 60px;color:var(--ink-soft);font-size:.86rem}
+  footer p{max-width:80ch}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <span class="eyebrow">Interactive explainer · Zak-OTFS</span>
+    <h1>OTFS: modulation that lives in the delay-Doppler domain</h1>
+    <p class="sub">Wi-Fi and 5G carry bits on time pulses or on sinusoids — and both fade
+    when the world moves. OTFS carries bits on a stranger object: a <em>pulsone</em>,
+    a pulse train wearing a tone. Here's why that shape refuses to fade.</p>
+    <div class="hero-scope scope">
+      <div class="scope-label"><span>Fig.0 · A pulsone in the time domain</span><span class="live">● live</span></div>
+      <canvas id="hero" width="1800" height="360"></canvas>
+    </div>
+  </div>
+</header>
+
+<section id="channel">
+  <div class="wrap">
+    <span class="eyebrow">01 · The channel</span>
+    <h2>A wireless channel is just a few echoes</h2>
+    <p>A signal leaving a base station reaches your phone along a handful of paths:
+    the direct line, a bounce off a building, a bounce off a passing truck. Each path
+    does exactly two things to the signal:</p>
+    <p><strong>Delay</strong> (τ) — a longer path arrives later. &nbsp;
+    <strong>Doppler</strong> (ν) — a moving reflector shifts the frequency, up if it
+    approaches, down if it recedes.</p>
+    <p>So instead of describing the channel as a messy time-varying filter, you can plot
+    it as a few clean spikes on a plane whose axes are <em>delay</em> and <em>Doppler</em>.
+    Buildings sit on the ν = 0 line; vehicles sit above or below it. Toggle the
+    reflectors and watch the map:</p>
+
+    <div class="controls">
+      <div class="chiprow" id="pathChips"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="scope">
+        <div class="scope-label"><span>Scene · four propagation paths</span></div>
+        <canvas id="scene" width="900" height="620"></canvas>
+      </div>
+      <div class="scope">
+        <div class="scope-label"><span>Same channel in the delay-Doppler plane</span></div>
+        <canvas id="ddmap" width="900" height="620"></canvas>
+      </div>
+    </div>
+    <p class="caption">Left: base station → phone with reflectors. Right: each path becomes one spike
+    at (τᵢ, νᵢ). Stationary reflectors land on the zero-Doppler axis; the two vehicles move in
+    opposite directions, so their Doppler shifts have opposite sign.</p>
+
+    <div class="keypoint"><strong>The whole trick of OTFS starts here:</strong> in the delay-Doppler
+    (DD) plane the channel is <em>sparse</em> — a few spikes — and those spikes drift only as fast as
+    physical objects actually move. The channel becomes something you can track and predict.</div>
+  </div>
+</section>
+
+<section id="carriers">
+  <div class="wrap">
+    <span class="eyebrow">02 · The carriers</span>
+    <h2>Three ways to carry a bit</h2>
+    <p><strong>TDM</strong> puts each symbol on a narrow time pulse — sharp in time, smeared across
+    all frequencies. <strong>FDM</strong> (the family OFDM belongs to) puts each symbol on a
+    sinusoid — sharp in frequency, smeared across all time. Heisenberg's uncertainty principle says
+    you can't be sharp in both at once… as an ordinary signal.</p>
+    <p><strong>OTFS</strong> sidesteps this by defining its carrier in the DD plane: a single
+    localized pulse at (τ₀, ν₀), repeated periodically with delay period τ<sub>p</sub> and Doppler
+    period ν<sub>p</sub> = 1/τ<sub>p</sub>. Converted to the time domain (via the inverse
+    <em>Zak transform</em>), it becomes the pulsone: a train of pulses spaced τ<sub>p</sub> apart,
+    modulated by a tone of frequency ν₀. It is "effectively" localized in time <em>and</em> frequency —
+    the uncertainty principle is satisfied by the quasi-periodic repetition, not violated.</p>
+    <div class="grid3">
+      <div class="scope">
+        <div class="scope-label"><span>TDM carrier · time pulse</span></div>
+        <canvas id="carTDM" width="560" height="300"></canvas>
+      </div>
+      <div class="scope">
+        <div class="scope-label"><span>FDM carrier · sinusoid</span></div>
+        <canvas id="carFDM" width="560" height="300"></canvas>
+      </div>
+      <div class="scope">
+        <div class="scope-label"><span>OTFS carrier · pulsone</span></div>
+        <canvas id="carOTFS" width="560" height="300"></canvas>
+      </div>
+    </div>
+    <p class="caption">All three drawn in the time domain. The pulsone inherits the pulse train's
+    time localization and the tone's frequency localization.</p>
+  </div>
+</section>
+
+<section id="lab">
+  <div class="wrap">
+    <span class="eyebrow">03 · The lab</span>
+    <h2>Drag a pulse in delay-Doppler, watch the waveform</h2>
+    <p><strong>Drag the glowing dot</strong> in the DD plane below. Moving it along the
+    delay axis slides the pulse train in time; moving it along the Doppler axis retunes the
+    modulating tone. Then pull the τ<sub>p</sub> slider to its extremes: as
+    τ<sub>p</sub> → ∞ the train collapses to a single pulse (OTFS becomes TDM), and as
+    τ<sub>p</sub> → 0 it becomes a pure tone (OTFS becomes FDM). OTFS is a whole family of
+    modulations interpolating between the two.</p>
+
+    <div class="controls">
+      <div class="ctl">
+        <label>τ₀ · delay position <output id="outT0">0.30 τp</output></label>
+        <input type="range" id="slT0" min="0.02" max="0.98" step="0.01" value="0.30">
+      </div>
+      <div class="ctl">
+        <label>ν₀ · Doppler position <output id="outN0">0.25 νp</output></label>
+        <input type="range" id="slN0" min="0.02" max="0.98" step="0.01" value="0.25">
+      </div>
+      <div class="ctl">
+        <label>τp · delay period <output id="outTp">1.0×</output></label>
+        <input type="range" id="slTp" min="-1" max="1" step="0.01" value="0">
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="scope">
+        <div class="scope-label"><span>DD plane · fundamental period 𝒟₀ (drag me)</span><span class="live">● live</span></div>
+        <canvas id="ddlab" width="900" height="620" style="touch-action:none;cursor:grab"></canvas>
+      </div>
+      <div>
+        <div class="scope" style="margin-bottom:18px">
+          <div class="scope-label"><span>Time-domain pulsone x(t)</span></div>
+          <canvas id="tdlab" width="900" height="290"></canvas>
+        </div>
+        <div class="scope">
+          <div class="scope-label"><span>Frequency-domain pulsone |X(f)|</span></div>
+          <canvas id="fdlab" width="900" height="290"></canvas>
+        </div>
+      </div>
+    </div>
+    <p class="caption">The DD pulse repeats quasi-periodically (ghost copies outside the
+    fundamental box). In time: pulses at τ₀ + nτ<sub>p</sub> under a tone of frequency ν₀. In
+    frequency: pulses at ν₀ + mν<sub>p</sub>. Slide τ<sub>p</sub> left → tone (FDM);
+    right → single pulse (TDM).</p>
+
+    <div class="keypoint"><strong>Why the channel loves this carrier:</strong> a path with delay
+    τᵢ and Doppler νᵢ simply <em>slides the DD pulse</em> to (τ₀+τᵢ, ν₀+νᵢ). Four paths → four
+    separated copies of your pulse. Nothing is smeared together — which is exactly what fading is.</div>
+  </div>
+</section>
+
+<section id="dzt">
+  <div class="wrap">
+    <span class="eyebrow">03½ · Computed, not sketched</span>
+    <h2>A real pulsone through a real channel</h2>
+    <p>Everything in this section is computed with the actual <strong>discrete Zak transform</strong>
+    (M = 32 delay bins × N = 16 Doppler bins, 512 samples per frame). A pilot symbol is placed on
+    the DD grid, converted to time by the inverse DZT (an IDFT along the Doppler axis for each
+    delay bin), pushed sample-by-sample through a three-path doubly-spread channel — exact cyclic
+    delay shifts and Doppler phase ramps — then converted back with the forward DZT.</p>
+    <p>The third path is yours. Keep its delay under τ<sub>p</sub> (= 32 bins) and every path lands
+    on its own DD cell: the receive grid <em>is</em> the channel estimate, read straight off.
+    Push its delay past 32 and it wraps around the fundamental period — first as delay ambiguity,
+    and if it lands on another path's cell, as genuine superposition: watch the computed power
+    sweep start to ripple.</p>
+
+    <div class="controls">
+      <div class="ctl">
+        <label>Pilot delay k₀ <output id="outPk">6</output></label>
+        <input type="range" id="slPk" min="0" max="31" step="1" value="6">
+      </div>
+      <div class="ctl">
+        <label>Pilot Doppler l₀ <output id="outPl">3</output></label>
+        <input type="range" id="slPl" min="0" max="15" step="1" value="3">
+      </div>
+      <div class="ctl">
+        <label>Path 3 delay (bins) <output id="outP3k">12</output></label>
+        <input type="range" id="slP3k" min="0" max="47" step="1" value="12">
+      </div>
+      <div class="ctl">
+        <label>Path 3 Doppler (bins) <output id="outP3l">−3</output></label>
+        <input type="range" id="slP3l" min="-8" max="8" step="0.25" value="-3">
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="scope">
+        <div class="scope-label"><span>TX · Re x[q] — inverse DZT of the pilot</span><span class="live">● live</span></div>
+        <canvas id="dztTx" width="900" height="270"></canvas>
+      </div>
+      <div class="scope">
+        <div class="scope-label"><span>RX · Re y[q] — after the channel</span><span class="live">● live</span></div>
+        <canvas id="dztRx" width="900" height="270"></canvas>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:18px">
+      <div class="scope">
+        <div class="scope-label"><span>RX DD grid |y_dd[k,l]| — forward DZT of y</span><span class="live">● live</span></div>
+        <canvas id="dztDD" width="900" height="480"></canvas>
+      </div>
+      <div>
+        <div class="scope" style="margin-bottom:14px">
+          <div class="scope-label"><span>Computed: received power vs pilot position (diagonal sweep)</span></div>
+          <canvas id="dztPow" width="900" height="260"></canvas>
+        </div>
+        <div id="dztVerdict" class="verdict ok">✓ Crystalline — taps resolved</div>
+        <pre class="tapbox" id="taps"></pre>
+      </div>
+    </div>
+    <p class="caption">Dots are the exact 512 samples; the curve is their band-limited (periodic
+    sinc) interpolation. The frame is treated cyclically — the mod-512 wrap is the finite stand-in
+    for the infinite quasi-periodic continuation, the same job a cyclic prefix does for OFDM. True
+    channel: h₁ = 1.0∠0.0 at (Δτ 3, Δν 0); h₂ = 0.8∠0.9 at (Δτ 7, Δν 2); h₃ = 0.7∠2.1 at your
+    setting. The tap readout is estimated purely from the receive grid — compare against those
+    values. Tap phases include the predictable e^(j2πνᵢτ₀) rotation, which shifts with the pilot
+    exactly as the paper's prediction relation says it should. Path 3's Doppler now moves in
+    quarter-bin steps — set it off-integer (say −2.75) to see the scheme's biggest practical
+    headache computed live: an off-grid Doppler smears its tap down the whole Doppler axis.</p>
+  </div>
+</section>
+
+<section id="crystal">
+  <div class="wrap">
+    <span class="eyebrow">04 · Crystallization</span>
+    <h2>The one condition that kills fading</h2>
+    <p>Fading in TDM happens when two paths share a delay but differ in Doppler: their echoes land
+    on top of each other and interfere, sometimes destructively, depending on <em>when</em> you
+    transmitted. FDM has the mirror problem for paths sharing a Doppler. In the DD plane, echoes
+    only collide if the pulse's periodic <em>replicas</em> alias into each other. That can't happen
+    as long as the box is bigger than the channel:</p>
+    <p style="font-family:'IBM Plex Mono',monospace;font-size:.95rem">
+      τ<sub>p</sub> &gt; delay spread &nbsp;&nbsp;<em>and</em>&nbsp;&nbsp; ν<sub>p</sub> &gt; Doppler spread
+    </p>
+    <p>The paper calls this the <strong>crystallization condition</strong>. Since
+    τ<sub>p</sub>·ν<sub>p</sub> = 1, it's satisfiable whenever delay spread × Doppler spread &lt; 1 —
+    and a typical cellular channel (≈5 µs × 1000 Hz) sits at 0.005, with room to spare. Try to break it:</p>
+
+    <div class="controls">
+      <div class="ctl">
+        <label>Channel delay spread <output id="outDS">0.35 τp</output></label>
+        <input type="range" id="slDS" min="0.05" max="1.6" step="0.01" value="0.35">
+      </div>
+      <div class="ctl">
+        <label>Channel Doppler spread <output id="outNS">0.40 νp</output></label>
+        <input type="range" id="slNS" min="0.05" max="1.6" step="0.01" value="0.40">
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="scope">
+        <div class="scope-label"><span>Received DD pulses vs fundamental period</span><span class="live">● live</span></div>
+        <canvas id="crys" width="900" height="620"></canvas>
+      </div>
+      <div>
+        <div class="scope" style="margin-bottom:18px">
+          <div class="scope-label"><span>Received power across symbols</span></div>
+          <canvas id="fade" width="900" height="330"></canvas>
+        </div>
+        <div id="verdict" class="verdict ok">✓ Crystalline — non-fading &amp; predictable</div>
+        <p class="caption" id="verdictText">The echo cluster fits inside the box: every path is
+        seen separately, received power is flat across all symbols, and tomorrow's response is
+        predictable from today's.</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:40px">Scorecard</h3>
+    <table aria-label="Input-output relation attributes for TDM, FDM and OTFS">
+      <tr><th>Channel</th><th>TDM</th><th>FDM</th><th>OTFS (crystalline)</th></tr>
+      <tr><td class="rowhead">Delay spread only</td><td class="yes">✓ fine</td><td class="no">✕ fades</td><td class="yes">✓ fine</td></tr>
+      <tr><td class="rowhead">Doppler spread only</td><td class="no">✕ fades</td><td class="yes">✓ fine</td><td class="yes">✓ fine</td></tr>
+      <tr><td class="rowhead">Doubly spread (the real world in motion)</td><td class="no">✕ fades</td><td class="no">✕ fades</td><td class="yes">✓ non-fading, predictable</td></tr>
+    </table>
+  </div>
+</section>
+
+<section id="notes">
+  <div class="wrap">
+    <span class="eyebrow">04½ · Engineering notes</span>
+    <h2>Three questions the diagrams raise</h2>
+
+    <h3>How does this "contain" CP-OFDM?</h3>
+    <p>(One correction to fold in: CP-OFDM is 4G LTE and 5G NR; 3G was WCDMA, a CDMA system.) The
+    claim is true in two distinct senses. First, as a <em>limiting case</em>: shrink
+    τ<sub>p</sub> → 0 and the pulsone degenerates into a single frequency-domain pulse — a
+    subcarrier. Discretely, collapse the grid to one delay bin and the inverse Zak transform
+    becomes a plain inverse DFT along the frequency axis, which is literally the OFDM modulator.
+    The cyclic prefix is OFDM's substitute for quasi-periodicity: both exist to make delay shifts
+    act <em>circularly</em>, turning the channel into a clean, invertible convolution. Second, as
+    <em>hardware compatibility</em>: the widely studied 2017 variant (MC-OTFS) is deliberately
+    built as a precoder — an inverse symplectic finite Fourier transform feeding a standard
+    CP-OFDM modulator — so multicarrier silicon runs it unchanged. Zak-OTFS (this paper) replaces
+    that two-step approximation with the exact one-step transform.</p>
+
+    <h3>How is a pulsone actually constructed?</h3>
+    <p>Continuous recipe: choose the delay period τ<sub>p</sub>, fixing ν<sub>p</sub> =
+    1/τ<sub>p</sub>; place a pulse at (τ₀, ν₀) inside 𝒟₀; extend it over the whole plane with the
+    quasi-periodic phase rule x(τ+nτ<sub>p</sub>, ν+mν<sub>p</sub>) = e^(j2πnντ<sub>p</sub>)·x(τ,ν);
+    twisted-convolve with a transmit filter w<sub>tx</sub> to enforce bandwidth B and duration T;
+    finally apply the inverse Zak transform. Out comes the pulse train modulated by a tone.
+    Discrete recipe — exactly what section 03½ runs — is almost embarrassingly small: put one
+    nonzero entry in an M×N array, then take an inverse DFT along the Doppler axis for each delay
+    bin. That's the whole inverse DZT, O(MN log N). Every one of the MN grid cells generates its
+    own pulsone; a transmitted frame is the sum of all of them, each scaled by its QAM symbol.</p>
+
+    <h3>Is channel estimation a control loop on the pulsone shape? How often does it run?</h3>
+    <p>Mostly no — and that's a feature. The shape parameters (τ<sub>p</sub>, ν<sub>p</sub>, M, N,
+    the filters) are chosen <em>once</em> so the crystallization condition holds with margin for
+    the worst delay/Doppler spread the deployment will see — the analog of picking a 5G numerology
+    (subcarrier spacing) per band and use case. That's a quasi-static outer knob, adaptable at
+    most slowly, not per-frame feedback. What runs continuously is estimation <em>for the
+    equalizer</em>: embed one pilot pulsone with a small guard region, and the receive DD grid
+    around it directly reads off the channel taps — no correlator banks, no interpolation over a
+    scattered time-frequency pilot lattice. Cadence is where the schemes really diverge. OFDM must
+    re-sound the channel within a phase-coherence time, which at vehicular speed shrinks to
+    sub-millisecond — hence reference signals in every slot. OTFS taps instead drift at the rate
+    the <em>geometry</em> changes: delays and Dopplers of physical reflectors, stable over tens to
+    hundreds of milliseconds. So one pilot per frame suffices, and between soundings the receiver
+    predicts rather than re-measures — each tap's phase evolves by the closed form
+    e^(j2πνᵢ·Δτ₀), so prediction replaces acquisition instead of approximating it.</p>
+  </div>
+</section>
+
+<section id="sysdiag">
+  <div class="wrap">
+    <span class="eyebrow">05 · System view</span>
+    <h2>End to end: agent A → channel → agent B</h2>
+    <p>Seen as a full link, OTFS only changes three things relative to an OFDM modem: the
+    transform in and out of the modulation domain (DZT instead of DFT), where the pilot lives
+    (one DD cell plus a guard, instead of a scattered time-frequency lattice), and what the
+    equalizer inverts (a 2D twisted convolution instead of one tap per subcarrier). Everything
+    else is a standard digital link.</p>
+    <div class="scope">
+      <div class="scope-label"><span>Block diagram · mod/demod chain with both feedback loops</span></div>
+      <canvas id="netdiag" width="1700" height="800"></canvas>
+    </div>
+    <p class="caption">Solid arrows: the per-frame signal path. The short dashed loop is fast but
+    cheap — the estimator reads the pilot cells straight off the receive grid, predicts each tap's
+    phase forward with the closed-form rotation, and hands the equalizer its matrix, once per
+    frame. The long dashed loop is slow — numerology (τp, M, N, filters) and link adaptation move
+    per deployment or per shift in channel statistics, never per frame. That's the full answer to
+    the control-loop question: the fast loop tunes the <em>inverse</em> of the channel; the slow
+    loop tunes the waveform.</p>
+  </div>
+</section>
+
+<section id="rate">
+  <div class="wrap">
+    <span class="eyebrow">06 · Link budget</span>
+    <h2>Maximum data rate, computed</h2>
+    <p>A frame of bandwidth B and duration T carries MN ≈ BT orthogonal pulsones — the Nyquist
+    count, exactly the same ceiling as OFDM. So gross rate is B × bits-per-symbol, and OTFS's
+    advantage is not a higher ceiling but how little it surrenders to overhead and fading margin.
+    The calculator picks τ<sub>p</sub> at the geometric-mean point of the crystallization
+    hyperbola, sizes the grid, charges the embedded pilot's guard region against the payload, and
+    compares the net rate with the Shannon bound B·log₂(1+SNR).</p>
+
+    <div class="controls">
+      <div class="ctl">
+        <label>Bandwidth B <output id="outB">—</output></label>
+        <input type="range" id="slB" min="0" max="1" step="0.001" value="0.5">
+      </div>
+      <div class="ctl">
+        <label>Frame duration T <output id="outTfr">—</output></label>
+        <input type="range" id="slTfr" min="0" max="1" step="0.001" value="0.4">
+      </div>
+      <div class="ctl">
+        <label>SNR <output id="outSNRr">15 dB</output></label>
+        <input type="range" id="slSNRr" min="0" max="30" step="1" value="15">
+      </div>
+      <div class="ctl">
+        <label>Delay spread τ_max <output id="outTau">—</output></label>
+        <input type="range" id="slTau" min="0" max="1" step="0.001" value="0.77">
+      </div>
+      <div class="ctl">
+        <label>Doppler ±ν_max <output id="outNu">—</output></label>
+        <input type="range" id="slNu" min="0" max="1" step="0.001" value="0.43">
+      </div>
+      <div class="ctl" style="min-width:260px">
+        <label>Modulation</label>
+        <div class="chiprow" id="modChips"></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <pre class="tapbox" id="rateOut" style="margin-top:0"></pre>
+        <div id="rateVerdict" class="verdict ok">✓ Crystalline with margin</div>
+      </div>
+      <div class="scope">
+        <div class="scope-label"><span>Rates</span><span class="live">● live</span></div>
+        <canvas id="rateBars" width="900" height="330"></canvas>
+      </div>
+    </div>
+    <p class="caption">Assumes code rate R = 0.75 and the standard embedded-pilot guard
+    (2k_max+1)(4l_max+1) cells. When the net modulated rate exceeds the Shannon line, the link is
+    SNR-limited — back off the constellation. When delay spread × Doppler spread approaches 1, no
+    τ<sub>p</sub> satisfies crystallization and the whole scheme (like any scheme) breaks.</p>
+  </div>
+</section>
+
+<section id="cons">
+  <div class="wrap">
+    <span class="eyebrow">07 · Where it hurts</span>
+    <h2>The honest cons list</h2>
+    <p><strong>Fractional delay-Doppler is the big one.</strong> Real reflectors don't sit on grid
+    points. An off-grid Doppler smears its tap across the entire Doppler axis (try it in
+    section 03½ — quarter-bin steps on path 3), degrading estimation and destroying the sparsity
+    the equalizer and the radar story both bank on. Mitigations — wider filters, windowing,
+    off-grid estimators, larger N — all cost overhead, complexity, or latency.</p>
+    <p><strong>PAPR.</strong> A pulsone is literally a pulse train: most of the energy in brief
+    spikes. Peak-to-average power ratio is high and grows with N, which is hostile to power
+    amplifiers; and the embedded pilot is usually power-boosted above the data, making the worst
+    peak worse. OFDM has its own PAPR problem, but decades of tricks (clipping, tone reservation)
+    are tuned for it, not for this.</p>
+    <p><strong>Pilot overhead scales with the channel.</strong> The guard region grows with delay
+    spread × Doppler spread, so the harshest channels — the ones OTFS is pitched at — are the ones
+    that eat the most payload. The calculator above makes this trade explicit.</p>
+    <p><strong>Equalizer complexity.</strong> The DD channel couples all MN symbols in a frame
+    through a 2D twisted convolution. There is no OFDM-style one-tap-per-bin inversion; you need
+    message passing, block MMSE, or iterative schemes whose cost and convergence depend on the tap
+    count staying small — which loops straight back to the fractional-Doppler problem.</p>
+    <p><strong>Latency vs Doppler resolution.</strong> The receiver must buffer a whole frame
+    before the forward DZT can run, so latency is at least T. But resolving fine Doppler
+    <em>requires</em> long T (resolution = 1/T). Low latency and sharp Doppler pull in opposite
+    directions, and URLLC-style traffic sits on the wrong end of that trade.</p>
+    <p><strong>Synchronization — genuinely two-sided.</strong> The forgiving side: a constant
+    carrier-frequency offset is indistinguishable from one extra common Doppler shift, and a fixed
+    timing offset from one extra common delay, so within the crystallization margin the channel
+    estimator absorbs both for free — where OFDM's subcarrier orthogonality shatters under CFO.
+    The unforgiving side: those offsets are absorbed only if they behave like on-grid channel
+    paths. Fractional CFO leaks exactly like fractional Doppler; oscillator phase noise (severe at
+    mmWave) is a continuously time-varying "Doppler" that smears every tap; and you still need
+    coarse frame-boundary detection before any Zak-domain processing exists to help you.</p>
+    <p><strong>Acceleration breaks stationarity.</strong> The predictability argument assumes each
+    path's ν is constant across the frame. A hard-braking vehicle has ν̇ ≠ 0, which chirps the tap
+    within a single frame — longer frames (chosen for Doppler resolution) make this worse.</p>
+    <p><strong>Ecosystem gravity.</strong> 3GPP evaluated OTFS during 5G NR study phases and kept
+    CP-OFDM; every deployed chip, test rig, and DSP toolchain speaks OFDM. MC-OTFS exists
+    precisely as a bridge over that gap, but bridges cost the performance the exact Zak version
+    was built to reclaim. MIMO and multi-user OTFS are active research rather than settled
+    engineering.</p>
+  </div>
+</section>
+
+<section id="why">
+  <div class="wrap">
+    <span class="eyebrow">08 · So what</span>
+    <h2>Why anyone cares</h2>
+    <p><strong>No fading → flat SNR.</strong> Every symbol in a packet sees the same effective
+    channel gain, so bit-error performance beats multicarrier waveforms in high-mobility channels —
+    bullet trains, drones, LEO satellites, mmWave vehicles.</p>
+    <p><strong>Predictable → cheap channel estimation.</strong> The DD channel changes at the speed
+    of physics (cars accelerating), not at the speed of phase rotation. Measure it once, predict it
+    forward, re-acquire rarely.</p>
+    <p><strong>One waveform for comms and radar.</strong> The received DD map <em>is</em> a
+    delay-Doppler radar image of the scene — Woodward's 1953 ideal of a radar question with an
+    unambiguous answer. Communication and sensing share a single transmission: the pitch for
+    6G integrated sensing-and-communication.</p>
+    <p><strong>The math is one transform.</strong> FDM is built on the Fourier transform; Zak-OTFS
+    is built on the Zak transform, which maps a time signal to a quasi-periodic function of
+    (τ, ν). The Fourier transform even factors through it: 𝓕 = 𝒵<sub>f</sub>⁻¹ ∘ 𝒵<sub>t</sub>.
+    TDM, FDM and OTFS become one picture — three corners of the same triangle of signal domains,
+    with OTFS parameterized by τ<sub>p</sub> sliding between the other two.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Built from: S. K. Mohammed, R. Hadani, A. Chockalingam, R. Calderbank,
+    “OTFS — A Mathematical Foundation for Communication and Radar Sensing in the Delay-Doppler
+    Domain” (IEEE, 2023). Sections 0–4 plots are qualitative illustrations; section 03½ is computed
+    exactly — inverse/forward discrete Zak transform, cyclic doubly-spread channel, band-limited
+    interpolation for display.</p>
+  </div>
+</footer>
+
+<script>
+"use strict";
+/* ---------- shared helpers ---------- */
+const CSS = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const COL = {
+  phosphor: "#4FD9E8", amber: "#FFB454", magenta: "#F06AAD", green: "#7BE0A2",
+  grid: "rgba(110,130,168,0.22)", gridStrong: "rgba(110,130,168,0.5)",
+  ghost: "rgba(79,217,232,0.28)", red: "#F26D6D", text: "#8FA2C6"
+};
+const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function ctxOf(id){
+  const c = document.getElementById(id);
+  return { c, g: c.getContext("2d"), W: c.width, H: c.height };
+}
+function clearScope(g, W, H){
+  g.clearRect(0,0,W,H);
+  g.fillStyle = "#0B1120";
+  g.fillRect(0,0,W,H);
+}
+function gridlines(g, W, H, nx, ny){
+  g.strokeStyle = COL.grid; g.lineWidth = 1;
+  g.beginPath();
+  for(let i=1;i<nx;i++){ const x=W*i/nx; g.moveTo(x,0); g.lineTo(x,H); }
+  for(let j=1;j<ny;j++){ const y=H*j/ny; g.moveTo(0,y); g.lineTo(W,y); }
+  g.stroke();
+}
+function trace(g, pts, color, width=2.5, glow=true){
+  if(glow){ g.shadowColor = color; g.shadowBlur = 8; }
+  g.strokeStyle = color; g.lineWidth = width;
+  g.beginPath();
+  pts.forEach((p,i)=> i? g.lineTo(p[0],p[1]) : g.moveTo(p[0],p[1]));
+  g.stroke();
+  g.shadowBlur = 0;
+}
+function label(g, txt, x, y, color=COL.text, size=20, align="left"){
+  g.fillStyle = color;
+  g.font = `${size}px "IBM Plex Mono", monospace`;
+  g.textAlign = align;
+  g.fillText(txt, x, y);
+  g.textAlign = "left";
+}
+/* pulsone sample: pulse train (gaussian bumps) x cos(2π ν0 t) */
+function pulsone(t, tau0, taup, nu0, sigma, T){
+  let env = 0;
+  const n0 = Math.floor((t - tau0)/taup);
+  for(let n=n0-1;n<=n0+2;n++){
+    const c = tau0 + n*taup;
+    if(c < -0.02*T || c > 1.02*T) continue;
+    const d = (t-c)/sigma;
+    env += Math.exp(-0.5*d*d);
+  }
+  return env * Math.cos(2*Math.PI*nu0*t);
+}
+
+/* ---------- hero: animated pulsone ---------- */
+(function(){
+  const {g,W,H} = ctxOf("hero");
+  let phase = 0;
+  function draw(){
+    clearScope(g,W,H); gridlines(g,W,H,18,4);
+    const taup=W/5.2, tau0=W*0.09, sigma=W*0.011, freq=9/W;
+    const pts=[];
+    for(let x=0;x<=W;x+=2){
+      let env=0;
+      for(let n=0;n<6;n++){
+        const c=tau0+n*taup, d=(x-c)/sigma;
+        env+=Math.exp(-0.5*d*d);
+      }
+      const y = H/2 - env*Math.cos(2*Math.PI*freq*x - phase)*H*0.4;
+      pts.push([x,y]);
+    }
+    trace(g, pts, COL.phosphor);
+    label(g,"pulse train · spacing τp", W*0.35, H-14);
+    label(g,"× tone e^{j2πν₀t}", W*0.75, 30);
+    phase += 0.06;
+    if(!prefersReduced) requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ---------- section 1: scene + DD map ---------- */
+const PATHS = [
+  {name:"Building A", tau:0.30, nu:0.00, gain:0.95, color:COL.phosphor, kind:"building", x:0.34, y:0.20},
+  {name:"Truck →",    tau:0.30, nu:-0.55, gain:0.80, color:COL.magenta, kind:"vehicle", x:0.52, y:0.62, dir:1},
+  {name:"Building B", tau:0.55, nu:0.00, gain:0.70, color:COL.amber,   kind:"building", x:0.72, y:0.16},
+  {name:"Car ←",      tau:0.78, nu:0.62, gain:0.60, color:COL.green,   kind:"vehicle", x:0.30, y:0.78, dir:-1},
+];
+PATHS.forEach(p=>p.on=true);
+
+(function(){
+  const S = ctxOf("scene"), D = ctxOf("ddmap");
+  const chipRow = document.getElementById("pathChips");
+  PATHS.forEach((p,i)=>{
+    const b=document.createElement("button");
+    b.className="chip"; b.textContent="● "+p.name; b.style.color="inherit";
+    b.setAttribute("aria-pressed","true");
+    b.addEventListener("click",()=>{
+      p.on=!p.on;
+      b.style.opacity = p.on? "1":"0.38";
+      b.setAttribute("aria-pressed", p.on);
+      draw();
+    });
+    chipRow.appendChild(b);
+  });
+
+  function drawScene(){
+    const {g,W,H}=S;
+    clearScope(g,W,H);
+    // ground
+    g.strokeStyle=COL.gridStrong; g.beginPath(); g.moveTo(0,H*0.9); g.lineTo(W,H*0.9); g.stroke();
+    const BS=[W*0.08,H*0.86], UE=[W*0.9,H*0.86];
+    // towers
+    g.strokeStyle="#DDE6F5"; g.lineWidth=3;
+    g.beginPath(); g.moveTo(BS[0],BS[1]); g.lineTo(BS[0],BS[1]-70);
+    g.moveTo(BS[0]-16,BS[1]-70); g.lineTo(BS[0]+16,BS[1]-70);
+    g.moveTo(BS[0]-16,BS[1]-70); g.lineTo(BS[0],BS[1]-92);
+    g.moveTo(BS[0]+16,BS[1]-70); g.lineTo(BS[0],BS[1]-92); g.stroke();
+    label(g,"BS",BS[0]-11,BS[1]+26,"#DDE6F5");
+    // phone
+    g.strokeRect ? 0:0;
+    g.strokeStyle="#DDE6F5"; g.strokeRect(UE[0]-12,UE[1]-46,24,44);
+    label(g,"UE",UE[0]-11,UE[1]+26,"#DDE6F5");
+
+    PATHS.forEach(p=>{
+      const rx=p.x*W, ry=p.y*H*0.9;
+      // reflector glyphs
+      g.globalAlpha = p.on?1:0.22;
+      if(p.kind==="building"){
+        g.fillStyle="rgba(143,162,198,0.25)"; g.strokeStyle=p.color; g.lineWidth=2;
+        g.fillRect(rx-26,ry-60,52,60); g.strokeRect(rx-26,ry-60,52,60);
+      } else {
+        g.fillStyle="rgba(143,162,198,0.25)"; g.strokeStyle=p.color; g.lineWidth=2;
+        g.fillRect(rx-32,ry-26,64,22); g.strokeRect(rx-32,ry-26,64,22);
+        g.beginPath(); g.arc(rx-16,ry, 8,0,7); g.arc(rx+16,ry,8,0,7); g.stroke();
+        // motion arrow
+        g.beginPath();
+        const ax = rx + p.dir*46;
+        g.moveTo(rx+p.dir*36, ry-14); g.lineTo(ax, ry-14);
+        g.lineTo(ax - p.dir*8, ry-20); g.moveTo(ax,ry-14); g.lineTo(ax-p.dir*8, ry-8);
+        g.stroke();
+      }
+      // ray
+      if(p.on){
+        g.strokeStyle=p.color; g.lineWidth=2; g.setLineDash([7,6]);
+        g.shadowColor=p.color; g.shadowBlur=5;
+        g.beginPath();
+        g.moveTo(BS[0],BS[1]-80);
+        g.lineTo(rx, p.kind==="building"? ry-30 : ry-12);
+        g.lineTo(UE[0],UE[1]-40);
+        g.stroke();
+        g.setLineDash([]); g.shadowBlur=0;
+      }
+      g.globalAlpha=1;
+    });
+  }
+
+  function drawDD(){
+    const {g,W,H}=D;
+    clearScope(g,W,H); gridlines(g,W,H,10,8);
+    const pad=64, ax0=pad, ay0=H-pad;
+    // axes
+    g.strokeStyle=COL.gridStrong; g.lineWidth=1.5;
+    g.beginPath();
+    g.moveTo(ax0,20); g.lineTo(ax0,ay0); g.lineTo(W-20,ay0); g.stroke();
+    // zero-Doppler line
+    const yZero = H*0.5;
+    g.strokeStyle="rgba(143,162,198,0.55)"; g.setLineDash([4,6]);
+    g.beginPath(); g.moveTo(ax0,yZero); g.lineTo(W-20,yZero); g.stroke(); g.setLineDash([]);
+    label(g,"delay τ →", W-190, ay0+40);
+    g.save(); g.translate(30,150); g.rotate(-Math.PI/2); label(g,"Doppler ν →",0,0); g.restore();
+    label(g,"ν = 0 (stationary)", ax0+12, yZero-12, "rgba(143,162,198,0.8)", 17);
+
+    PATHS.forEach(p=>{
+      if(!p.on) return;
+      const x = ax0 + p.tau*(W-ax0-60);
+      const y = yZero - p.nu*(H*0.36);
+      g.strokeStyle=p.color; g.lineWidth=4;
+      g.shadowColor=p.color; g.shadowBlur=10;
+      g.beginPath(); g.moveTo(x,yZero); g.lineTo(x,y); g.stroke();
+      g.beginPath(); g.arc(x, y, 7, 0, 7); g.fillStyle=p.color; g.fill();
+      g.shadowBlur=0;
+      // stem baseline marker on tau axis
+      g.fillStyle=p.color;
+      g.beginPath(); g.arc(x, yZero, 3.5, 0, 7); g.fill();
+      label(g, "h"+(PATHS.indexOf(p)+1), x+12, y+ (p.nu>=0? -8: 26), p.color, 19);
+    });
+  }
+  function draw(){ drawScene(); drawDD(); }
+  draw();
+})();
+
+/* ---------- section 2: three carriers ---------- */
+(function(){
+  const T = ctxOf("carTDM"), F = ctxOf("carFDM"), O = ctxOf("carOTFS");
+  // TDM: single pulse
+  {
+    const {g,W,H}=T; clearScope(g,W,H); gridlines(g,W,H,8,4);
+    const pts=[]; const c=W*0.32, s=W*0.02;
+    for(let x=0;x<=W;x+=2){
+      const d=(x-c)/s; pts.push([x, H*0.82 - Math.exp(-0.5*d*d)*H*0.6]);
+    }
+    trace(g,pts,COL.amber);
+    label(g,"sharp in t, smeared in f", 16, 30, COL.text, 18);
+  }
+  // FDM: sinusoid
+  {
+    const {g,W,H}=F; clearScope(g,W,H); gridlines(g,W,H,8,4);
+    const pts=[];
+    for(let x=0;x<=W;x+=2){
+      pts.push([x, H/2 - Math.sin(x*0.09)*H*0.32]);
+    }
+    trace(g,pts,COL.magenta);
+    label(g,"sharp in f, smeared in t", 16, 30, COL.text, 18);
+  }
+  // OTFS: pulsone
+  {
+    const {g,W,H}=O; clearScope(g,W,H); gridlines(g,W,H,8,4);
+    const pts=[]; const taup=W/3.4, tau0=W*0.13, s=W*0.014;
+    for(let x=0;x<=W;x+=2){
+      let env=0;
+      for(let n=0;n<4;n++){ const d=(x-(tau0+n*taup))/s; env+=Math.exp(-0.5*d*d); }
+      pts.push([x, H/2 - env*Math.cos(x*0.22)*H*0.36]);
+    }
+    trace(g,pts,COL.phosphor);
+    label(g,'"effectively" sharp in both', 16, 30, COL.text, 18);
+  }
+})();
+
+/* ---------- section 3: the lab ---------- */
+(function(){
+  const DD = ctxOf("ddlab"), TD = ctxOf("tdlab"), FD = ctxOf("fdlab");
+  const slT0=document.getElementById("slT0"), slN0=document.getElementById("slN0"), slTp=document.getElementById("slTp");
+  const outT0=document.getElementById("outT0"), outN0=document.getElementById("outN0"), outTp=document.getElementById("outTp");
+  const state = { t0:0.30, n0:0.25, tpScale:1 };
+
+  // fundamental box geometry inside DD canvas
+  function boxGeom(){
+    const {W,H}=DD;
+    return { bx:W*0.28, by:H*0.24, bw:W*0.44, bh:H*0.52 };
+  }
+
+  function drawDD(){
+    const {g,W,H}=DD; clearScope(g,W,H);
+    const {bx,by,bw,bh}=boxGeom();
+    gridlines(g,W,H,10,8);
+    // ghost replicas
+    for(let n=-1;n<=1;n++) for(let m=-1;m<=1;m++){
+      const cx = bx + (state.t0+n)*bw;
+      const cy = by + bh - (state.n0+m)*bh;
+      if(cx<-20||cx>W+20||cy<-20||cy>H+20) continue;
+      const main = (n===0 && m===0);
+      g.beginPath();
+      g.arc(cx, cy, main? 11: 8, 0, 7);
+      g.fillStyle = main? COL.phosphor : COL.ghost;
+      if(main){ g.shadowColor=COL.phosphor; g.shadowBlur=16; }
+      g.fill(); g.shadowBlur=0;
+      if(main){
+        g.strokeStyle="rgba(79,217,232,0.5)"; g.lineWidth=1;
+        g.beginPath(); g.arc(cx,cy,18,0,7); g.stroke();
+      }
+    }
+    // fundamental box on top
+    g.strokeStyle="#DDE6F5"; g.lineWidth=2;
+    g.strokeRect(bx,by,bw,bh);
+    label(g,"𝒟₀", bx+10, by+30, "#DDE6F5", 22);
+    label(g,"τp", bx+bw/2-12, by+bh+34, COL.text, 19);
+    label(g,"νp", bx-40, by+bh/2, COL.text, 19);
+    label(g,"quasi-periodic replicas", W*0.03, H-16, COL.text, 17);
+    label(g,`(τ₀, ν₀) = (${state.t0.toFixed(2)} τp, ${state.n0.toFixed(2)} νp)`, bx, by-14, COL.phosphor, 18);
+  }
+
+  function drawTD(){
+    const {g,W,H}=TD; clearScope(g,W,H); gridlines(g,W,H,12,4);
+    // pulse spacing shrinks/grows with tpScale; nominal spacing W/4
+    const taup = (W/4.4) * state.tpScale;
+    const sigma = Math.min(W*0.012, taup*0.16);
+    const tau0 = state.t0 * taup + W*0.04;
+    const freq = (0.5 + state.n0*2.2) * 0.05;   // tone frequency from ν0
+    const pts=[];
+    for(let x=0;x<=W;x+=2){
+      let env=0;
+      const n0=Math.floor((x-tau0)/taup);
+      for(let n=n0-1;n<=n0+2;n++){
+        const c=tau0+n*taup;
+        if(c<-40||c>W+40) continue;
+        const d=(x-c)/sigma; env+=Math.exp(-0.5*d*d);
+      }
+      pts.push([x, H/2 - env*Math.cos(2*Math.PI*freq*x)*H*0.38]);
+    }
+    trace(g, pts, COL.phosphor);
+    if(state.tpScale>3.1) label(g,"→ single pulse: this is TDM", W*0.55, 34, COL.amber, 19);
+    if(state.tpScale<0.34) label(g,"→ pure tone: this is FDM", W*0.58, 34, COL.magenta, 19);
+    label(g,"t →", W-64, H-14);
+  }
+
+  function drawFD(){
+    const {g,W,H}=FD; clearScope(g,W,H); gridlines(g,W,H,12,4);
+    // FD spacing = νp ∝ 1/τp
+    const nup = (W/4.4) / state.tpScale;
+    const sigma = Math.min(W*0.012, nup*0.16);
+    const f0 = state.n0*nup + W*0.04;
+    const base=H*0.86;
+    // envelope over bandwidth B
+    for(let m=-1;m<10;m++){
+      const c = f0 + m*nup;
+      if(c<-40||c>W+40) continue;
+      const bwEnv = Math.exp(-0.5*Math.pow((c-W*0.45)/(W*0.3),2));
+      const h = bwEnv*H*0.62;
+      const pts=[];
+      for(let x=c-4*sigma;x<=c+4*sigma;x+=1.5){
+        const d=(x-c)/sigma;
+        pts.push([x, base - Math.exp(-0.5*d*d)*h]);
+      }
+      trace(g, pts, COL.amber, 2.2);
+    }
+    if(state.tpScale<0.34) label(g,"→ single spike: FDM carrier", W*0.55, 34, COL.magenta, 19);
+    label(g,"f →", W-64, H-14);
+  }
+
+  function redraw(){
+    outT0.textContent = state.t0.toFixed(2)+" τp";
+    outN0.textContent = state.n0.toFixed(2)+" νp";
+    outTp.textContent = state.tpScale.toFixed(2)+"×";
+    drawDD(); drawTD(); drawFD();
+  }
+
+  slT0.addEventListener("input",()=>{state.t0=+slT0.value; redraw();});
+  slN0.addEventListener("input",()=>{state.n0=+slN0.value; redraw();});
+  slTp.addEventListener("input",()=>{state.tpScale=Math.pow(10,+slTp.value*0.62); redraw();});
+
+  // dragging on the DD canvas
+  let dragging=false;
+  function toState(ev){
+    const r=DD.c.getBoundingClientRect();
+    const px=(ev.clientX-r.left)*(DD.W/r.width);
+    const py=(ev.clientY-r.top)*(DD.H/r.height);
+    const {bx,by,bw,bh}=boxGeom();
+    state.t0=Math.min(0.98,Math.max(0.02,(px-bx)/bw));
+    state.n0=Math.min(0.98,Math.max(0.02,(by+bh-py)/bh));
+    slT0.value=state.t0; slN0.value=state.n0;
+    redraw();
+  }
+  DD.c.addEventListener("pointerdown",ev=>{dragging=true; DD.c.style.cursor="grabbing"; DD.c.setPointerCapture(ev.pointerId); toState(ev);});
+  DD.c.addEventListener("pointermove",ev=>{ if(dragging) toState(ev); });
+  DD.c.addEventListener("pointerup",()=>{dragging=false; DD.c.style.cursor="grab";});
+  redraw();
+})();
+
+/* ---------- section 4: crystallization ---------- */
+(function(){
+  const C = ctxOf("crys"), P = ctxOf("fade");
+  const slDS=document.getElementById("slDS"), slNS=document.getElementById("slNS");
+  const outDS=document.getElementById("outDS"), outNS=document.getElementById("outNS");
+  const verdict=document.getElementById("verdict"), verdictText=document.getElementById("verdictText");
+  const st={ds:0.35, ns:0.40};
+
+  // fixed echo cluster shape (relative offsets within spread)
+  const ECHOES=[[0.05,0.15],[0.05,0.85],[0.55,0.15],[0.95,0.95]];
+
+  function draw(){
+    const {g,W,H}=C; clearScope(g,W,H); gridlines(g,W,H,10,8);
+    const bx=W*0.30, by=H*0.26, bw=W*0.40, bh=H*0.48;
+    const aliased = st.ds>1 || st.ns>1;
+
+    // received-cluster rectangles for replicas
+    const clW=st.ds*bw, clH=st.ns*bh;
+    const t0=0.12, n0=0.12; // transmit pulse near box corner
+    for(let n=-1;n<=1;n++) for(let m=-1;m<=1;m++){
+      const ox=bx+(t0+n)*bw, oyTop=by+bh-(n0+m)*bh-clH;
+      const main=(n===0&&m===0);
+      g.fillStyle = main? "rgba(79,217,232,0.14)" : (aliased? "rgba(242,109,109,0.16)":"rgba(143,162,198,0.10)");
+      g.strokeStyle = main? COL.phosphor : (aliased? COL.red : "rgba(143,162,198,0.5)");
+      g.lineWidth = main?2:1.4;
+      g.fillRect(ox,oyTop,clW,clH); g.strokeRect(ox,oyTop,clW,clH);
+      // echo dots
+      ECHOES.forEach(e=>{
+        const ex=ox+e[0]*clW, ey=oyTop+clH-e[1]*clH;
+        g.beginPath(); g.arc(ex,ey, main?6:4.5, 0, 7);
+        g.fillStyle = main? COL.phosphor : (aliased? COL.red : "rgba(143,162,198,0.7)");
+        g.fill();
+      });
+    }
+    // fundamental box
+    g.strokeStyle="#DDE6F5"; g.lineWidth=2.4; g.strokeRect(bx,by,bw,bh);
+    label(g,"𝒟₀  (τp × νp)", bx+10, by-12, "#DDE6F5", 19);
+    label(g,"echo cluster = delay spread × Doppler spread", W*0.03, H-16, COL.text, 17);
+
+    drawFade(aliased);
+    outDS.textContent = st.ds.toFixed(2)+" τp";
+    outNS.textContent = st.ns.toFixed(2)+" νp";
+    if(aliased){
+      verdict.className="verdict bad";
+      verdict.textContent="✕ Aliased — replicas collide, fading returns";
+      verdictText.textContent="The cluster is bigger than the box, so replica echoes fold back onto the fundamental period. Overlapping paths can no longer be separated: gains superpose, received power ripples across symbols, and prediction breaks — exactly the TDM/FDM failure mode, reborn.";
+    } else {
+      verdict.className="verdict ok";
+      verdict.textContent="✓ Crystalline — non-fading & predictable";
+      verdictText.textContent="The echo cluster fits inside the box: every path is seen separately, received power is flat across all symbols, and the response to any future pulse is predictable from a single measurement.";
+    }
+  }
+
+  function drawFade(aliased){
+    const {g,W,H}=P; clearScope(g,W,H); gridlines(g,W,H,12,4);
+    const pts=[]; const base=H*0.5;
+    // depth of fading grows with how far past 1 the spreads go
+    const over = Math.max(0, st.ds-1) + Math.max(0, st.ns-1);
+    const depth = Math.min(0.85, over*1.15);
+    for(let x=0;x<=W;x+=3){
+      let v=1;
+      if(depth>0){
+        v = 1 - depth*(0.5+0.5*Math.sin(x*0.045)*Math.sin(x*0.013+1.3));
+        v = Math.max(0.06, v);
+      }
+      pts.push([x, base + (1-v)*H*0.42 - H*0.28]);
+    }
+    trace(g, pts, aliased? COL.red : COL.green);
+    label(g,"symbol index →", W-220, H-14);
+    label(g, aliased? "power varies symbol-to-symbol = fading":"flat: every symbol sees the same gain", 16, 32,
+      aliased? COL.red: COL.green, 18);
+  }
+
+  slDS.addEventListener("input",()=>{st.ds=+slDS.value; draw();});
+  slNS.addEventListener("input",()=>{st.ns=+slNS.value; draw();});
+  draw();
+})();
+
+/* ---------- section 3.5: exact discrete Zak transform pipeline ---------- */
+(function(){
+  const M=32, N=16, Q=M*N;
+  const TX=ctxOf("dztTx"), RX=ctxOf("dztRx"), DDm=ctxOf("dztDD"), PW=ctxOf("dztPow");
+  const slPk=document.getElementById("slPk"), slPl=document.getElementById("slPl");
+  const slP3k=document.getElementById("slP3k"), slP3l=document.getElementById("slP3l");
+  const outPk=document.getElementById("outPk"), outPl=document.getElementById("outPl");
+  const outP3k=document.getElementById("outP3k"), outP3l=document.getElementById("outP3l");
+  const tapsEl=document.getElementById("taps"), verdict=document.getElementById("dztVerdict");
+  const st={pk:6,pl:3,p3k:12,p3l:-3};
+  const FIXED=[{k:3,l:0,g:1.0,phi:0},{k:7,l:2,g:0.8,phi:0.9}];
+  function pathList(){ return [...FIXED,{k:st.p3k,l:st.p3l,g:0.7,phi:2.1}]; }
+
+  /* pilot delta at (k0,l0) on the DD grid -> exact TD samples via inverse DZT:
+     x[k0+nM] = (1/sqrt(N)) e^{j2*pi*n*l0/N}, all other samples zero */
+  function pilotTD(k0,l0){
+    const xr=new Float64Array(Q), xi=new Float64Array(Q);
+    const a=1/Math.sqrt(N);
+    for(let n=0;n<N;n++){
+      const ph=2*Math.PI*n*l0/N;
+      xr[k0+n*M]=a*Math.cos(ph); xi[k0+n*M]=a*Math.sin(ph);
+    }
+    return [xr,xi];
+  }
+  /* exact discrete doubly-spread channel: cyclic delay + Doppler phase ramp per path */
+  function applyChannel(xr,xi,paths){
+    const yr=new Float64Array(Q), yi=new Float64Array(Q);
+    for(const p of paths){
+      const hr=p.g*Math.cos(p.phi), hi=p.g*Math.sin(p.phi);
+      for(let q=0;q<Q;q++){
+        const src=((q-p.k)%Q+Q)%Q;
+        const a=xr[src], b=xi[src];
+        if(a===0 && b===0) continue;
+        const ph=2*Math.PI*p.l*(q-p.k)/Q;
+        const c=Math.cos(ph), s=Math.sin(ph);
+        const mr=a*c-b*s, mi=a*s+b*c;
+        yr[q]+=hr*mr-hi*mi; yi[q]+=hr*mi+hi*mr;
+      }
+    }
+    return [yr,yi];
+  }
+  /* forward DZT: DFT along the Doppler axis for each delay bin */
+  function dztFwd(xr,xi){
+    const dr=new Float64Array(Q), di=new Float64Array(Q); // idx = l*M+k
+    const a=1/Math.sqrt(N);
+    for(let k=0;k<M;k++) for(let l=0;l<N;l++){
+      let re=0,im=0;
+      for(let n=0;n<N;n++){
+        const ph=-2*Math.PI*n*l/N, c=Math.cos(ph), s=Math.sin(ph);
+        const u=xr[k+n*M], v=xi[k+n*M];
+        re+=u*c-v*s; im+=u*s+v*c;
+      }
+      dr[l*M+k]=a*re; di[l*M+k]=a*im;
+    }
+    return [dr,di];
+  }
+  /* band-limited (periodic sinc) interpolation of a sparse TD frame for display */
+  function interpTrace(xr,xi,px){
+    const nz=[];
+    for(let q=0;q<Q;q++) if(xr[q]*xr[q]+xi[q]*xi[q]>1e-18) nz.push(q);
+    const Xr=new Float64Array(Q), Xi=new Float64Array(Q);
+    let mx=0;
+    for(let p=0;p<Q;p++){
+      let re=0,im=0;
+      for(let t=0;t<nz.length;t++){
+        const q=nz[t];
+        const ph=-2*Math.PI*p*q/Q, c=Math.cos(ph), s=Math.sin(ph);
+        re+=xr[q]*c-xi[q]*s; im+=xr[q]*s+xi[q]*c;
+      }
+      Xr[p]=re; Xi[p]=im;
+      const m=re*re+im*im; if(m>mx)mx=m;
+    }
+    const bins=[];
+    for(let p=0;p<Q;p++) if(Xr[p]*Xr[p]+Xi[p]*Xi[p]>mx*1e-10) bins.push(p);
+    const out=new Float64Array(px);
+    for(let i=0;i<px;i++){
+      const t=i*Q/px; let re=0;
+      for(const p of bins){
+        const ps = p<=Q/2 ? p : p-Q;
+        const ph=2*Math.PI*ps*t/Q;
+        re += Xr[p]*Math.cos(ph) - Xi[p]*Math.sin(ph);
+      }
+      out[i]=re/Q;
+    }
+    return out;
+  }
+
+  function drawTime(cv, xr, xi, color, tag){
+    const {g,W,H}=cv; clearScope(g,W,H); gridlines(g,W,H,16,4);
+    const px=450, curve=interpTrace(xr,xi,px);
+    let mx=1e-12;
+    for(let q=0;q<Q;q++){ const m=Math.abs(xr[q]); if(m>mx)mx=m; }
+    for(let i=0;i<px;i++){ const m=Math.abs(curve[i]); if(m>mx)mx=m; }
+    const sy=v=>H/2 - (v/mx)*H*0.4;
+    const pts=[];
+    for(let i=0;i<px;i++) pts.push([i*W/px, sy(curve[i])]);
+    trace(g,pts,color,2);
+    // exact samples
+    g.fillStyle=color;
+    for(let q=0;q<Q;q++){
+      if(xr[q]*xr[q]+xi[q]*xi[q]<1e-18) continue;
+      g.beginPath(); g.arc(q*W/Q, sy(xr[q]), 3.4, 0, 7); g.fill();
+    }
+    label(g,tag,16,30,COL.text,18);
+    label(g,"sample q →",W-150,H-12);
+  }
+
+  function drawDDgrid(dr,di,expected){
+    const {g,W,H}=DDm; clearScope(g,W,H);
+    const pad=56, gw=(W-pad-24)/M, gh=(H-pad-24)/N;
+    let mx=1e-12;
+    for(let i=0;i<Q;i++){ const m=dr[i]*dr[i]+di[i]*di[i]; if(m>mx)mx=m; }
+    for(let k=0;k<M;k++) for(let l=0;l<N;l++){
+      const m=Math.sqrt(dr[l*M+k]*dr[l*M+k]+di[l*M+k]*di[l*M+k])/Math.sqrt(mx);
+      const x=pad+k*gw, y=24+(N-1-l)*gh;
+      g.fillStyle=`rgba(79,217,232,${(0.04+0.96*m*m).toFixed(3)})`;
+      if(m<0.02) g.fillStyle="rgba(29,42,68,0.55)";
+      g.fillRect(x+1,y+1,gw-2,gh-2);
+    }
+    // expected tap rings
+    g.strokeStyle=COL.amber; g.lineWidth=2;
+    expected.forEach(e=>{
+      const x=pad+e.k*gw, y=24+(N-1-e.l)*gh;
+      g.strokeRect(x+0.5,y+0.5,gw-1,gh-1);
+    });
+    // pilot origin ring
+    g.strokeStyle=COL.magenta;
+    g.strokeRect(pad+st.pk*gw+0.5, 24+(N-1-st.pl)*gh+0.5, gw-1, gh-1);
+    label(g,"delay bin k →", W-220, H-14);
+    g.save(); g.translate(20,H*0.55); g.rotate(-Math.PI/2); label(g,"Doppler bin l →",0,0); g.restore();
+    label(g,"magenta = pilot cell · amber = where each path should land", pad, H-14, COL.text, 16);
+  }
+
+  function powerSweep(paths){
+    /* sweep the pilot along a diagonal of the DD grid: delay-wrap collisions fade
+       with pilot Doppler, Doppler-wrap collisions fade with pilot delay — the
+       diagonal exposes both */
+    const ref=paths.reduce((s,p)=>s+p.g*p.g,0);
+    const vals=[];
+    for(let i=0;i<M;i++){
+      const [xr,xi]=pilotTD(i,(st.pl+i)%N);
+      const [yr,yi]=applyChannel(xr,xi,paths);
+      let pw=0; for(let q=0;q<Q;q++) pw+=yr[q]*yr[q]+yi[q]*yi[q];
+      vals.push(pw/ref);
+    }
+    return vals;
+  }
+
+  function drawPower(vals, faded){
+    const {g,W,H}=PW; clearScope(g,W,H); gridlines(g,W,H,8,4);
+    const sy=v=>H*0.85 - v*H*0.55;
+    // reference line at 1
+    g.strokeStyle="rgba(143,162,198,0.5)"; g.setLineDash([4,6]);
+    g.beginPath(); g.moveTo(0,sy(1)); g.lineTo(W,sy(1)); g.stroke(); g.setLineDash([]);
+    const pts=vals.map((v,i)=>[ (i+0.5)*W/M, sy(v) ]);
+    trace(g, pts, faded? COL.red: COL.green, 2.4);
+    g.fillStyle= faded? COL.red: COL.green;
+    pts.forEach(p=>{ g.beginPath(); g.arc(p[0],p[1],3.4,0,7); g.fill(); });
+    label(g,"pilot swept across the grid →", W-340, H-12);
+    label(g, faded? "power depends on where you transmit = fading" : "flat: Σ|hᵢ|², wherever the pilot sits",
+      16, 28, faded? COL.red : COL.green, 17);
+  }
+
+  function estimateTaps(dr,di){
+    let mx=0;
+    for(let i=0;i<Q;i++){ const m=dr[i]*dr[i]+di[i]*di[i]; if(m>mx)mx=m; }
+    const found=[];
+    for(let k=0;k<M;k++) for(let l=0;l<N;l++){
+      const re=dr[l*M+k], im=di[l*M+k], m=Math.sqrt(re*re+im*im);
+      if(m>Math.sqrt(mx)*0.12){
+        let dk=(k-st.pk+M)%M, dl=(l-st.pl+N)%N;
+        if(dl>N/2) dl-=N;
+        found.push({dk,dl,m,ph:Math.atan2(im,re)});
+      }
+    }
+    found.sort((a,b)=>b.m-a.m);
+    return found;
+  }
+
+  function redraw(){
+    outPk.textContent=st.pk; outPl.textContent=st.pl;
+    outP3k.textContent=st.p3k; outP3l.textContent=st.p3l;
+    const paths=pathList();
+    const [xr,xi]=pilotTD(st.pk,st.pl);
+    const [yr,yi]=applyChannel(xr,xi,paths);
+    const [dr,di]=dztFwd(yr,yi);
+
+    drawTime(TX,xr,xi,COL.phosphor,"pilot pulsone: 16 pulses spaced τp = 32 samples, tone set by l₀");
+    drawTime(RX,yr,yi,COL.amber,"= sum of 3 shifted, Doppler-rotated copies");
+
+    // expected landing cells + collision / wrap / off-grid analysis
+    const cells={}; let collided=false, wrapped=false, frac=false;
+    const expected=paths.map(p=>{
+      if(p.k>=M) wrapped=true;
+      if(Math.abs(p.l-Math.round(p.l))>1e-9) frac=true;
+      const k=(st.pk+p.k)%M, l=((st.pl+Math.round(p.l))%N+N)%N;
+      const key=k+","+l;
+      if(cells[key]) collided=true; cells[key]=true;
+      return {k,l};
+    });
+    drawDDgrid(dr,di,expected);
+
+    const sweep=powerSweep(paths);
+    let ripple=0; sweep.forEach(v=>ripple=Math.max(ripple,Math.abs(v-1)));
+    drawPower(sweep, ripple>0.02);
+
+    if(collided){
+      verdict.className="verdict bad";
+      verdict.textContent="✕ Aliased — two paths superpose on one cell: fading is back";
+    } else if(frac){
+      verdict.className="verdict warn";
+      verdict.textContent="△ Fractional Doppler — off-grid path leaks across the whole Doppler axis";
+    } else if(wrapped){
+      verdict.className="verdict warn";
+      verdict.textContent="△ Wrapped — delay > τp folds back: still non-fading, but the delay estimate is ambiguous";
+    } else {
+      verdict.className="verdict ok";
+      verdict.textContent="✓ Crystalline — every path resolved on its own cell";
+    }
+
+    const est=estimateTaps(dr,di);
+    const shown=est.slice(0,8);
+    tapsEl.textContent =
+      "taps estimated from the receive grid:\n" +
+      shown.map(t=>`  Δτ=${String(t.dk).padStart(2)} bins   Δν=${String(t.dl).padStart(3)} bins   |h|=${t.m.toFixed(3)}   ∠${t.ph>=0?"+":""}${t.ph.toFixed(2)} rad`).join("\n") +
+      (est.length>8? `\n  … +${est.length-8} more cells above threshold (leakage)` : "");
+  }
+
+  slPk.addEventListener("input",()=>{st.pk=+slPk.value; redraw();});
+  slPl.addEventListener("input",()=>{st.pl=+slPl.value; redraw();});
+  slP3k.addEventListener("input",()=>{st.p3k=+slP3k.value; redraw();});
+  slP3l.addEventListener("input",()=>{st.p3l=+slP3l.value; redraw();});
+  redraw();
+})();
+
+/* ---------- section 5: end-to-end block diagram ---------- */
+(function(){
+  const {g,W,H}=ctxOf("netdiag");
+  clearScope(g,W,H);
+  function box(x,y,w,h,lines,color){
+    g.strokeStyle=color; g.lineWidth=2;
+    g.fillStyle="rgba(29,42,68,0.6)";
+    g.beginPath();
+    if(g.roundRect) g.roundRect(x,y,w,h,9); else g.rect(x,y,w,h);
+    g.fill(); g.stroke();
+    g.fillStyle="#DDE6F5"; g.font='18px "IBM Plex Mono", monospace'; g.textAlign="center";
+    lines.forEach((t,i)=> g.fillText(t, x+w/2, y+h/2 + (i-(lines.length-1)/2)*23 + 6));
+    g.textAlign="left";
+  }
+  function arrow(pts,color,dashed){
+    g.strokeStyle=color; g.lineWidth=2;
+    if(dashed) g.setLineDash([7,6]);
+    g.beginPath(); pts.forEach((p,i)=> i? g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1])); g.stroke();
+    g.setLineDash([]);
+    const [x2,y2]=pts[pts.length-1], [x1,y1]=pts[pts.length-2];
+    const a=Math.atan2(y2-y1,x2-x1);
+    g.fillStyle=color; g.beginPath();
+    g.moveTo(x2,y2);
+    g.lineTo(x2-11*Math.cos(a-0.42), y2-11*Math.sin(a-0.42));
+    g.lineTo(x2-11*Math.cos(a+0.42), y2-11*Math.sin(a+0.42));
+    g.closePath(); g.fill();
+  }
+
+  const bw=230, gap=48, x0=30, txY=60, rxY=590, bh=92;
+  const cx = i => x0 + i*(bw+gap) + bw/2;
+  const TXB=[["bits in"],["FEC","encoder"],["QAM","mapper"],["DD framer","data + pilot","+ guard"],["inverse DZT","(IDFT per","delay bin)"],["w_tx filter","DAC · RF up"]];
+  const TXC=[COL.green,COL.text,COL.text,COL.magenta,COL.phosphor,COL.amber];
+  const RXB=[["RF down · ADC","w_rx filter"],["forward DZT"],["DD equalizer","MP / MMSE"],["QAM demapper","(LLRs)"],["FEC","decoder"],["bits out"]];
+  const RXC=[COL.amber,COL.phosphor,COL.text,COL.text,COL.text,COL.green];
+
+  label(g,"AGENT A · TRANSMIT",x0,44,COL.text,17);
+  label(g,"AGENT B · RECEIVE",x0,rxY-16,COL.text,17);
+  TXB.forEach((b,i)=>box(x0+i*(bw+gap),txY,bw,bh,b,TXC[i]));
+  RXB.forEach((b,i)=>box(x0+i*(bw+gap),rxY,bw,bh,b,RXC[i]));
+  for(let i=0;i<5;i++){
+    arrow([[x0+i*(bw+gap)+bw, txY+bh/2],[x0+(i+1)*(bw+gap), txY+bh/2]], "#8FA2C6");
+    arrow([[x0+i*(bw+gap)+bw, rxY+bh/2],[x0+(i+1)*(bw+gap), rxY+bh/2]], "#8FA2C6");
+  }
+
+  // channel
+  const chx=(W-520)/2, chy=300, chw=520, chh=100;
+  box(chx,chy,chw,chh,["doubly-spread channel h(τ,ν)","a few delays + Dopplers"],COL.amber);
+  arrow([[cx(5),txY+bh],[cx(5),chy+chh/2],[chx+chw,chy+chh/2]], COL.amber);
+  arrow([[chx,chy+chh/2],[cx(0),chy+chh/2],[cx(0),rxY]], COL.amber);
+  // impairments
+  const impX=chx+chw+40;
+  [["+ AWGN",COL.text],["+ CFO · timing offset → absorbed as common tap",COL.green],
+   ["+ fractional offsets · phase noise → leakage",COL.red],
+   ["+ acceleration ν̇(t) → chirped taps",COL.red]].forEach((t,i)=>{
+    label(g,t[0],impX,chy+16+i*26,t[1],16);
+  });
+
+  // fast loop: estimator + predictor
+  const esx=380, esy=430, esw=310, esh=80;
+  box(esx,esy,esw,esh,["channel estimator + predictor","reads pilot cells · rotates phases"],COL.magenta);
+  arrow([[cx(1),rxY],[cx(1),esy+esh]], COL.magenta, true);          // DZT -> estimator
+  arrow([[esx+esw-60,esy+esh],[esx+esw-60,rxY]], COL.magenta, true); // estimator -> equalizer
+  label(g,"fast loop · once per frame", esx+esw+18, esy+esh/2+5, COL.magenta, 16);
+
+  // slow loop
+  arrow([[esx+esw,esy+30],[W-24,esy+30],[W-24,26],[cx(3),26],[cx(3),txY]], "#8FA2C6", true);
+  label(g,"slow loop · numerology (τp, M, N) & link adaptation — per deployment, not per frame", W*0.36, 20, COL.text, 16);
+})();
+
+/* ---------- section 6: data-rate calculator ---------- */
+(function(){
+  const bars=ctxOf("rateBars");
+  const $=id=>document.getElementById(id);
+  const slB=$("slB"), slTfr=$("slTfr"), slSNR=$("slSNRr"), slTau=$("slTau"), slNu=$("slNu");
+  const outB=$("outB"), outTfr=$("outTfr"), outSNR=$("outSNRr"), outTau=$("outTau"), outNu=$("outNu");
+  const rateOut=$("rateOut"), rateVerdict=$("rateVerdict"), modChips=$("modChips");
+  const MODS=[["QPSK",2],["16-QAM",4],["64-QAM",6],["256-QAM",8],["1024-QAM",10]];
+  let bits=6;
+  MODS.forEach(m=>{
+    const b=document.createElement("button");
+    b.className="chip"; b.textContent=m[0];
+    b.setAttribute("aria-pressed", m[1]===bits);
+    b.style.opacity = m[1]===bits? "1":"0.45";
+    b.addEventListener("click",()=>{
+      bits=m[1];
+      [...modChips.children].forEach((c,i)=>{
+        c.style.opacity = MODS[i][1]===bits? "1":"0.45";
+        c.setAttribute("aria-pressed", MODS[i][1]===bits);
+      });
+      calc();
+    });
+    modChips.appendChild(b);
+  });
+
+  const fmtHz=v=> v>=1e9? (v/1e9).toFixed(2)+" GHz" : v>=1e6? (v/1e6).toFixed(1)+" MHz" : (v/1e3).toFixed(1)+" kHz";
+  const fmtRate=v=> v>=1e9? (v/1e9).toFixed(2)+" Gbps" : (v/1e6).toFixed(1)+" Mbps";
+  const fmtT=v=> v>=1e-3? (v*1e3).toFixed(2)+" ms" : (v*1e6).toFixed(0)+" µs";
+  const fmtTau=v=> v>=1e-6? (v*1e6).toFixed(2)+" µs" : (v*1e9).toFixed(0)+" ns";
+
+  function calc(){
+    const B  = 1e6*Math.pow(10, 3*+slB.value);        // 1 MHz – 1 GHz
+    const T  = 0.25e-3*Math.pow(40, +slTfr.value);    // 0.25 – 10 ms
+    const snrDb=+slSNR.value, snr=Math.pow(10,snrDb/10);
+    const tau= 0.05e-6*Math.pow(400, +slTau.value);   // 50 ns – 20 µs
+    const nu = 50*Math.pow(1000, +slNu.value);        // 50 Hz – 50 kHz one-sided
+
+    outB.textContent=fmtHz(B); outTfr.textContent=fmtT(T);
+    outSNR.textContent=snrDb+" dB"; outTau.textContent=fmtTau(tau);
+    outNu.textContent="±"+fmtHz(nu);
+
+    const spreadProd = tau*2*nu;
+    const shannon = B*Math.log2(1+snr);
+
+    if(spreadProd>=1){
+      rateVerdict.className="verdict bad";
+      rateVerdict.textContent="✕ Infeasible — delay spread × Doppler spread ≥ 1: no τp crystallizes";
+      rateOut.textContent =
+`delay spread × Doppler spread = ${spreadProd.toFixed(2)}  (must be < 1)
+no choice of τp keeps both spreads inside the
+fundamental period — this channel defeats any
+non-adaptive modulation, not just OTFS.`;
+      drawBars(0, 0, shannon, true);
+      return;
+    }
+
+    const taup=Math.sqrt(tau/(2*nu)), nup=1/taup;
+    const margin=1/Math.sqrt(spreadProd);
+    const M=Math.max(1,Math.round(B*taup)), N=Math.max(1,Math.round(T*nup));
+    const kmax=Math.max(1,Math.ceil(B*tau)), lmax=Math.max(1,Math.ceil(T*nu));
+    const guard=Math.min(M*N,(2*kmax+1)*(4*lmax+1));
+    const OH=guard/(M*N);
+    const R=0.75;
+    const gross=B*bits;
+    const net=gross*(1-OH)*R;
+
+    const snrLimited = net>shannon;
+    rateOut.textContent =
+`τp (geometric)   = ${fmtTau(taup)}    νp = ${fmtHz(nup)}
+crystal margin   = ${margin.toFixed(1)}× on each axis
+grid             = M ${M} × N ${N} = ${(M*N).toLocaleString()} symbols/frame
+pilot + guard    = ${guard.toLocaleString()} cells → ${(OH*100).toFixed(1)}% overhead
+gross (${bits} b/sym)  = ${fmtRate(gross)}
+net (R=0.75)     = ${fmtRate(net)}
+Shannon @ ${String(snrDb).padStart(2)} dB  = ${fmtRate(shannon)}`;
+
+    if(OH>0.5){
+      rateVerdict.className="verdict warn";
+      rateVerdict.textContent="△ Pilot guard is eating the frame — grow B or T";
+    } else if(snrLimited){
+      rateVerdict.className="verdict warn";
+      rateVerdict.textContent="△ SNR-limited — the constellation outruns Shannon; back off modulation";
+    } else {
+      rateVerdict.className="verdict ok";
+      rateVerdict.textContent="✓ Crystalline with "+margin.toFixed(1)+"× margin — modulation-limited";
+    }
+    drawBars(gross, net, shannon, false);
+  }
+
+  function drawBars(gross, net, shannon, infeasible){
+    const {g,W,H}=bars; clearScope(g,W,H); gridlines(g,W,H,8,3);
+    const rows=[["net", net, COL.green],["gross", gross, COL.phosphor],["Shannon", shannon, COL.amber]];
+    const mx=Math.max(1,...rows.map(r=>r[1]));
+    rows.forEach((r,i)=>{
+      const y=40+i*95, w=(W-260)*(r[1]/mx);
+      g.fillStyle=r[2]; g.globalAlpha=infeasible&&i<2?0.25:1;
+      g.fillRect(140, y, Math.max(2,w), 46);
+      g.globalAlpha=1;
+      label(g, r[0], 16, y+32, COL.text, 19);
+      label(g, r[1]>0? fmtRate(r[1]) : "—", 150+Math.max(2,w)+12, y+32, r[2], 19);
+    });
+  }
+
+  [slB,slTfr,slSNR,slTau,slNu].forEach(s=>s.addEventListener("input",calc));
+  calc();
+})();
+</script>
+</body>
+</html>

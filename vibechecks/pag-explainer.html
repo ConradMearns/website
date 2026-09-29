@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PAG — Projection-Augmented Graphs for nearest-neighbor search, explained</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,700;1,7..72,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F7FA; --ink:#16202E; --muted:#5E6B80; --rule:#D8DDE6;
+    --cobalt:#2B4CC4; --cobalt-soft:#DCE3FA;
+    --exact:#E2962A;          /* exact distance computation */
+    --skip:#AEB6C4;           /* skipped by routing test */
+    --fp:#C7455B;             /* false positive / rejected */
+    --green:#2A9C68; --green-soft:#D9F1E5;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--paper);color:var(--ink);font-family:Literata,Georgia,"Times New Roman",serif;font-size:18px;line-height:1.6}
+  body{margin:0}
+  main{max-width:760px;margin:0 auto;padding:0 20px 120px}
+  h1{font-size:2.5rem;line-height:1.1;font-weight:700;margin:56px 0 12px;letter-spacing:-.01em}
+  h2{font-size:1.65rem;line-height:1.2;font-weight:700;margin:88px 0 14px}
+  h3{font-size:1.1rem;font-weight:700;margin:32px 0 8px}
+  p{margin:0 0 18px;max-width:66ch}
+  .lede{font-size:1.2rem;color:var(--muted);max-width:60ch}
+  .meta{font-size:.9rem;color:var(--muted);margin-bottom:34px}
+  .meta a{color:var(--cobalt)}
+  a{color:var(--cobalt)}
+  em.sym{font-style:italic}
+  .fig{margin:26px 0 30px;border:1px solid var(--rule);background:#fff;border-radius:6px;overflow:hidden}
+  .fig canvas{display:block;width:100%;height:auto;background:#fff}
+  .bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:10px 14px;border-top:1px solid var(--rule);font-size:.9rem;color:var(--muted)}
+  .bar button{font:inherit;font-weight:500;color:var(--ink);background:#fff;border:1px solid var(--ink);border-radius:4px;padding:5px 14px;cursor:pointer}
+  .bar button:hover{background:var(--ink);color:#fff}
+  .bar button:focus-visible{outline:3px solid var(--cobalt);outline-offset:2px}
+  .bar label{display:flex;align-items:center;gap:8px}
+  .bar input[type=range]{accent-color:var(--cobalt);width:150px}
+  .stat{color:var(--ink)}
+  .stat b{font-weight:700}
+  .key{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+  .k-exact{background:var(--exact)} .k-skip{background:var(--skip)} .k-fp{background:var(--fp)} .k-cobalt{background:var(--cobalt)} .k-green{background:var(--green)}
+  .demands{list-style:none;padding:0;margin:20px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:6px 28px}
+  .demands li{border-top:1px solid var(--rule);padding:12px 0 14px;font-size:.95rem}
+  .demands li b{display:block;font-size:1.02rem;margin-bottom:2px}
+  .demands li span{color:var(--muted)}
+  table{border-collapse:collapse;width:100%;font-size:.88rem;margin:18px 0 8px}
+  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{font-weight:500;color:var(--muted)}
+  td.pag{background:var(--cobalt-soft)}
+  .tier{display:inline-flex;gap:2px}
+  .tier i{width:9px;height:9px;border-radius:50%;background:var(--rule);display:inline-block}
+  .tier i.on{background:var(--cobalt)}
+  .yes{color:var(--green)} .no{color:var(--fp)}
+  .eq{font-style:italic;text-align:center;margin:14px 0 22px;font-size:1.05rem}
+  .eq .frac{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;line-height:1.2;margin:0 4px}
+  .eq .frac span:first-child{border-bottom:1px solid var(--ink);padding:0 4px}
+  .callout{border-left:3px solid var(--cobalt);padding:4px 0 4px 18px;margin:22px 0;color:var(--ink)}
+  .callout p{margin-bottom:8px}
+  .cost{display:grid;grid-template-columns:110px 1fr 70px;gap:8px 12px;align-items:center;font-size:.95rem;padding:14px 16px 8px}
+  .cost .track{height:22px;background:var(--rule);border-radius:3px;position:relative;overflow:hidden}
+  .cost .fill{position:absolute;inset:0 auto 0 0;background:var(--cobalt);border-radius:3px;transition:width .35s ease}
+  .cost .fill.hnsw{background:var(--exact)}
+  .cost .fill.proj{background:var(--cobalt)}
+  .cost .fill.exact2{background:var(--exact)}
+  nav{font-size:.9rem;margin:0 0 30px;padding:14px 0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);display:flex;flex-wrap:wrap;gap:6px 22px}
+  nav a{color:var(--ink);text-decoration:none}
+  nav a:hover{text-decoration:underline}
+  footer{margin-top:80px;font-size:.9rem;color:var(--muted);border-top:1px solid var(--rule);padding-top:18px}
+  @media (max-width:640px){
+    html{font-size:16px} h1{font-size:2rem} .demands{grid-template-columns:1fr} .cost{grid-template-columns:90px 1fr 60px}
+  }
+  @media (prefers-reduced-motion:reduce){ .cost .fill{transition:none} }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Skip the distances you don't need</h1>
+<p class="lede">How the Projection-Augmented Graph makes graph-based nearest-neighbor search up to 5× faster than HNSW, while indexing faster and supporting live insertions.</p>
+<p class="meta">A visual walkthrough of <a href="https://arxiv.org/abs/2603.06660">arXiv:2603.06660</a> — Lu, Pan, Qin, Ishikawa &amp; Xiao, <em>Approximate Nearest Neighbor Search for Modern AI: A Projection-Augmented Graph Approach</em> (2026). Code: <a href="https://github.com/KejingLu-810/PAG/">github.com/KejingLu-810/PAG</a>.</p>
+
+<div class="fig">
+  <canvas id="hero" width="720" height="420" aria-label="Animated best-first search over a similarity graph"></canvas>
+  <div class="bar">
+    <button id="hero-play">Replay</button>
+    <span><span class="key k-cobalt"></span>visited node</span>
+    <span><span class="key k-exact"></span>exact distance computed</span>
+    <span class="stat">exact distances: <b id="hero-count">0</b></span>
+  </div>
+</div>
+
+<nav aria-label="Sections">
+  <a href="#sec-demands">Six demands</a>
+  <a href="#sec-graphs">How graph search works</a>
+  <a href="#sec-angle">The angle trick</a>
+  <a href="#sec-prt">PRT: routing test</a>
+  <a href="#sec-tfb">TFB: recycling false positives</a>
+  <a href="#sec-pes">PES: better edges</a>
+  <a href="#sec-cost">Where the speed comes from</a>
+  <a href="#sec-results">Results</a>
+</nav>
+
+<h2 id="sec-demands">Six things a modern vector index has to do</h2>
+<p>Most ANN benchmarks measure one thing — queries per second at a given recall, with K=10, on twenty-year-old SIFT/GIST image descriptors. The authors argue that RAG, recommender, and agent workloads are different, and list six demands. The interesting part of the paper is that it tries to hit all six at once rather than trading one for another.</p>
+<ul class="demands">
+  <li><b>D1 · Query throughput</b><span>QPS at high recall, on embeddings from current models.</span></li>
+  <li><b>D2 · Fast indexing</b><span>HNSW-style graphs are slow to build; that blocks "instant deploy" use cases.</span></li>
+  <li><b>D3 · Moderate memory</b><span>Adjustable index size, for a memory-vs-accuracy dial.</span></li>
+  <li><b>D4 · High dimensionality</b><span>1,536- and 3,072-d embeddings are normal now; some methods collapse there.</span></li>
+  <li><b>D5 · Any retrieval size K</b><span>10 for RAG, hundreds for image retrieval, thousands for recommenders.</span></li>
+  <li><b>D6 · Online insertion</b><span>Self-evolving agents keep appending memories; the index can't be rebuilt.</span></li>
+</ul>
+
+<h2 id="sec-graphs">How graph search works, and what it costs</h2>
+<p>A similarity graph connects each vector to a handful of nearby vectors. To answer a query <em class="sym">q</em>, you start somewhere, look at the current node's neighbors, compute their distances to <em class="sym">q</em>, move toward the closest ones, and repeat. That is what the animation at the top is doing.</p>
+<p>The expensive line in that loop is "compute their distances." Every neighbor of every visited node gets an exact <em class="sym">d</em>-dimensional distance computation, and with <em class="sym">d</em> = 1536 that is the whole runtime. Most of those computations are wasted: the neighbor turns out to be farther than what's already in the result list and is thrown away.</p>
+<p>Two families have tried to fix this. <b>Quantized graphs</b> (NGT-QG, SymphonyQG) replace exact distances with compressed ones everywhere — fast, but they lose recall in high dimensions and at large K, and the compressed index can be 2× the size. <b>Projection + graph</b> methods (FINGER, PEOs, KS2) keep exact vectors but run a cheap probabilistic test first to decide whether a neighbor deserves an exact distance. PAG belongs to the second family, but builds the test into graph construction rather than bolting it on afterward.</p>
+
+<h2 id="sec-angle">The angle trick</h2>
+<p>Here is the geometry everything rests on. Say the search is sitting at node <em class="sym">u</em>, considering its neighbor <em class="sym">w</em>, and the query (or the node being inserted) is <em class="sym">v</em>. Whether <em class="sym">w</em> is closer to <em class="sym">v</em> than some threshold depends only on the angle <em class="sym">α</em> between the two vectors <em class="sym">w − u</em> and <em class="sym">v − u</em>, because the edge lengths are already stored. So the question becomes: can we estimate cos <em class="sym">α</em> without a full inner product?</p>
+<p>PAG keeps a set of random reference directions. For each edge <em class="sym">w − u</em> it precomputes the closest reference direction <em class="sym">r*</em> and the angle <em class="sym">β</em> to it. At query time it computes, once, the angle <em class="sym">θ</em> between <em class="sym">v − u</em> and every reference direction — cheap, because the projection structure is built from small subspaces and runs in AVX-512. The paper's Theorem 3.1 says that in high dimensions</p>
+<p class="eq">cos <em>θ</em> ≈ cos <em>α</em> · cos <em>β</em> &nbsp;&nbsp;so&nbsp;&nbsp; cos <em>α</em> ≈ <span class="frac"><span>cos <em>θ</em></span><span>cos <em>β</em></span></span></p>
+<p>with Gaussian error whose variance shrinks as you use more subspaces (<em class="sym">L</em>). Drag <em class="sym">v</em> below and watch the estimate track the true value. The random reference direction is the dashed line. In two dimensions the estimate carries a visible bias, because the part of <em class="sym">v − u</em> perpendicular to the edge still projects onto <em class="sym">r*</em>; in hundreds of dimensions that perpendicular contribution averages to nearly zero, which is the content of the theorem.</p>
+
+<div class="fig">
+  <canvas id="angle" width="720" height="380" aria-label="Interactive angle estimation diagram"></canvas>
+  <div class="bar">
+    <span>Drag <b>v</b> to move it</span>
+    <label>threshold τ <input id="tau" type="range" min="-1" max="1" step="0.01" value="0.4"><span id="tau-val">0.40</span></label>
+    <span class="stat" id="angle-stat"></span>
+  </div>
+</div>
+
+<h2 id="sec-prt">PRT: the probabilistic routing test</h2>
+<p>The routing test is now a one-liner. For a neighbor <em class="sym">w<sub>i</sub></em> of the current node,</p>
+<p class="eq">PRT = <span class="frac"><span>cos <em>θ<sub>i</sub></em></span><span>cos <em>β<sub>i</sub></em></span></span> − <em>τ<sub>i</sub></em></p>
+<p>and only neighbors with a positive score get an exact distance. The threshold <em class="sym">τ<sub>i</sub></em> is the cosine that <em class="sym">w<sub>i</sub></em> would need in order to beat the current worst result <em class="sym">z<sub>max</sub></em>; it comes straight from the law of cosines using stored edge lengths. The test is <em>asymmetric</em> on purpose: it compares an approximate value against an exact one and only needs to say which is larger. If the true cosine clears the threshold, the test passes with probability at least ½; if it doesn't, the test fails with probability approaching 1 as the projection set grows.</p>
+<p>Below, the same graph, the same query, the same entry point. Left: plain best-first search. Right: with the routing test. Skipped neighbors are shown as grey ticks. One caveat the toy makes visible: in two dimensions a graph walk rarely wastes a distance computation, so the test can only skip about a quarter of them here. In 1,500 dimensions distances concentrate — almost every neighbor of the current node is roughly as far from the query as the node itself — and the paper measures fewer than 20% of candidates passing the test. The curse of dimensionality is exactly what makes the trick pay off.</p>
+
+<div class="fig">
+  <canvas id="race" width="720" height="380" aria-label="Side-by-side search with and without routing test"></canvas>
+  <div class="bar">
+    <button id="race-play">Replay</button>
+    <span><span class="key k-exact"></span>exact distance</span>
+    <span><span class="key k-skip"></span>skipped by PRT</span>
+    <span><span class="key k-fp"></span>false positive</span>
+    <span class="stat">without: <b id="race-a">0</b> &nbsp; with PRT: <b id="race-b">0</b></span>
+  </div>
+</div>
+
+<h2 id="sec-tfb">TFB: recycling false positives</h2>
+<p>A false positive is a neighbor that passed the test, got its exact distance computed, and still wasn't good enough to enter the result list. Earlier methods (PEOs, KS2) just discarded it — the distance was paid for and thrown away. The Test Feedback Buffer notices something from the Gaussian result above: a false positive is, with high probability, only slightly worse than the threshold. As the search proceeds and the threshold loosens (the result set isn't full yet, or the working window moves), that node may become good enough. So keep it.</p>
+<p>TFB splits the search into rounds over a small working set <em class="sym">W</em> (size max{10, K}) rather than one big priority queue:</p>
+<div class="callout">
+  <p>During a round, nodes ejected from <em class="sym">W</em> go into ring <em class="sym">R<sub>T</sub></em>; false positives go into ring <em class="sym">R<sub>F</sub></em>.</p>
+  <p>At the end of the round, <em class="sym">W</em> is flushed into the result list <em class="sym">R<sub>L</sub></em>, the two rings are merged and sorted, the best refill <em class="sym">W</em>, the rest go back to <em class="sym">R<sub>T</sub></em>, and <em class="sym">R<sub>F</sub></em> is cleared.</p>
+</div>
+<p>In the toy below, a round visits the nodes that were in <em class="sym">W</em> when it began; nodes that enter mid-round are visited in later rounds if they survive the refill.</p>
+<p>Two payoffs: the threshold <em class="sym">τ</em> is set from the furthest node in the small window <em class="sym">W</em>, so it tightens incrementally instead of jumping to the worst of a huge queue, and every exact distance you paid for gets a second chance to be used. Step through a few rounds:</p>
+
+<div class="fig">
+  <canvas id="tfb" width="720" height="330" aria-label="Test feedback buffer rounds"></canvas>
+  <div class="bar">
+    <button id="tfb-step">Step</button>
+    <button id="tfb-reset">Reset</button>
+    <span class="stat" id="tfb-log">Press Step to visit the first node in W.</span>
+  </div>
+</div>
+
+<h2 id="sec-pes">PES: finding edges RobustPrune misses</h2>
+<p>Graph indexes decide edges with a rule called RobustPrune. When inserting <em class="sym">v</em>, you search for its nearest nodes, prune them into an out-neighbor list <em class="sym">N<sub>out</sub>(v)</em>, and then only those out-neighbors are considered for edges pointing <em>into</em> <em class="sym">v</em>. That candidate pool is small, and on some real datasets nodes end up with tiny in-degree and become nearly unreachable — one reason HNSW underperforms on certain modern embeddings.</p>
+<p>PAG widens the pool to every node visited during the insertion search, which is far larger, without paying RobustPrune's cost on each. The Probabilistic Edge Selection test asks: does <em class="sym">u</em> have any out-neighbor that is already closer to <em class="sym">v</em> than <em class="sym">u</em> itself? If it does, the edge <em class="sym">u → v</em> is redundant. If it doesn't, <em class="sym">u → v</em> is a promising in-edge. The check reuses the same cos <em class="sym">θ</em>/cos <em class="sym">β</em> values PRT already computed, with a different threshold <em class="sym">δ<sub>i</sub></em>:</p>
+<p class="eq">PES(<em>u</em>, <em>v</em>) = max<sub><em>i</em></sub> ( <span class="frac"><span>cos <em>θ<sub>i</sub></em></span><span>cos <em>β<sub>i</sub></em></span></span> − <em>δ<sub>i</sub></em> )</p>
+<p>Because <em class="sym">τ<sub>i</sub> − δ<sub>i</sub></em> is a precomputable constant, PES costs O(1) per neighbor on top of PRT. Edges that PES flags go into a "PES set" and are confirmed by real RobustPrune later, in batches — which is also how online insertion stays cheap.</p>
+
+<p>The toy below uses a deliberately sparse graph (out-degree 2) to mimic the poorly connected regions the paper is worried about; on a well-connected 2-D graph PES finds little, because a walk toward <em class="sym">v</em> almost always leaves behind a node with a closer neighbor.</p>
+
+<div class="fig">
+  <canvas id="pes" width="720" height="380" aria-label="Probabilistic edge selection adding in-neighbors"></canvas>
+  <div class="bar">
+    <button id="pes-play">Replay</button>
+    <span><span class="key k-green"></span>out-neighbors of v</span>
+    <span><span class="key k-cobalt"></span>other visited nodes</span>
+    <span class="stat">in-degree of v — RobustPrune only: <b id="pes-a">0</b> &nbsp; with PES: <b id="pes-b">0</b></span>
+  </div>
+</div>
+
+<h2 id="sec-cost">Where the speedup comes from</h2>
+<p>Searching an HNSW graph costs about O(<em class="sym">n′d</em>): <em class="sym">n′</em> visited nodes, each paying a full <em class="sym">d</em>-dimensional distance. PAG costs O(<em class="sym">n′L</em> + <em class="sym">γ n′d</em>): a cheap <em class="sym">L</em>-dimensional projection lookup for every candidate, and a full distance only for the fraction <em class="sym">γ</em> that pass. The paper reports <em class="sym">γ</em> typically below 0.2, and recommends <em class="sym">L</em> ≈ √<em class="sym">d</em>. Move the sliders to see why high dimensionality helps PAG rather than hurting it.</p>
+
+<div class="fig">
+  <div class="cost">
+    <span>HNSW</span><div class="track"><div class="fill hnsw" id="c-hnsw" style="width:100%"></div></div><span id="c-hnsw-v">1536</span>
+    <span>PAG</span><div class="track"><div class="fill proj" id="c-proj"></div><div class="fill exact2" id="c-exact"></div></div><span id="c-pag-v"></span>
+  </div>
+  <div class="bar">
+    <label>d <input id="s-d" type="range" min="128" max="3072" step="64" value="1536"><span id="s-d-v">1536</span></label>
+    <label>L <input id="s-l" type="range" min="8" max="256" step="8" value="64"><span id="s-l-v">64</span></label>
+    <label>γ <input id="s-g" type="range" min="0.05" max="0.5" step="0.01" value="0.15"><span id="s-g-v">0.15</span></label>
+    <span class="stat">per-candidate cost ratio: <b id="c-ratio"></b></span>
+  </div>
+</div>
+
+<h2 id="sec-results">Results</h2>
+<p>Six post-2023 datasets (OpenAI text-embedding-3 at 1,536 and 3,072 dims, CLIP food images, CoCa text-to-image with out-of-distribution queries, MiniLM Amazon reviews, DINOv2 satellite imagery at 56M vectors) plus legacy GloVe and DEEP100M. Default K=100, single search thread. Two configurations: <b>PAG-Base</b> tuned for throughput, <b>PAG-Lite</b> tuned for indexing speed and memory.</p>
+<p>The headline numbers: PAG-Base is up to 5× faster than HNSW at equal recall and wins on every modern dataset except the high-recall end of WoltFood; it builds its index in 20–40% of HNSW's time at the same or larger construction budget; and the gap widens as dimensionality or K grows, exactly where quantized graphs (SymQG) fall over. PAG-Lite lands near quantization methods on build time and memory while still beating HNSW on QPS. In the ablation, TFB reduces indexing time and improves search on its own; PES adds search quality at almost no indexing cost.</p>
+<p>The paper's own summary table, tiers from the authors' experiments (4 dots = best):</p>
+<table>
+  <thead><tr><th></th><th>HNSW</th><th>Vamana</th><th>IVFPQ-FS</th><th>ScaNN</th><th>RaBitQ+</th><th>SymQG</th><th>HNSW+KS2</th><th>PAG-Base</th><th>PAG-Lite</th></tr></thead>
+  <tbody id="tiers"></tbody>
+</table>
+
+<h3>Honest caveats</h3>
+<p>The gains are largest where distance computations dominate: high-<em class="sym">d</em>, large K, dense semantic embeddings. On sparse, low-dimensional legacy data (SIFT, GIST at K≤100) SymQG's quantization still wins. The theory is asymptotic — it needs many subspaces and many projection vectors per subspace — though the authors note moderate values work in practice, and the KS2 paper gives finite-sample guarantees for the single-neighbor case. Memory is "moderate," not small: PAG-Base uses somewhat more than HNSW on low-dimensional data, and the projection table adds O(<em class="sym">nML</em>) on top of the vectors and edges.</p>
+
+<h3>If you only remember three things</h3>
+<p>Distance computations, not graph hops, are what an ANN search pays for. A cheap random-projection angle estimate compared asymmetrically against an exact threshold can skip most of them with a probabilistic guarantee. And the same estimate, with a different threshold, tells you which edges your graph is missing — so the test becomes a building block of the index, not a plug-in on top of it.</p>
+
+<footer>Made as a study aid for the paper above. Animations are toy 2-D simulations of the described algorithms, not the authors' implementation; the tier table and reported numbers are from the paper.</footer>
+</main>
+
+<script>
+(() => {
+'use strict';
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = {ink:css('--ink'),muted:css('--muted'),rule:css('--rule'),cobalt:css('--cobalt'),exact:css('--exact'),skip:css('--skip'),fp:css('--fp'),green:css('--green'),soft:css('--cobalt-soft')};
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const FONT = '14px Literata, Georgia, serif';
+
+/* ---------- seeded random + shared point cloud ---------- */
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function gauss(r){ return Math.sqrt(-2*Math.log(1-r()))*Math.cos(2*Math.PI*r()); }
+const dist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
+
+function makeCloud(seed, W, H, n, dense, maxDeg){
+  const r = rng(seed), pts = [];
+  const centers = [[.22,.4],[.55,.7],[.75,.3],[.45,.3],[.85,.75]];
+  while (pts.length < n){
+    const c = centers[Math.floor(r()*centers.length)];
+    const x = c[0]*W + gauss(r)*W*0.09, y = c[1]*H + gauss(r)*H*0.13;
+    if (x>24 && x<W-24 && y>24 && y<H-24) pts.push({x,y,id:pts.length});
+  }
+  // kNN + RobustPrune-style diversification, max out-degree 5
+  const M = maxDeg || 5;
+  for (const p of pts){
+    const cand = pts.filter(q=>q!==p).sort((a,b)=>dist(p,a)-dist(p,b)).slice(0,14);
+    if (dense){ p.out = cand.slice(0,12).map(q=>q.id); continue; }
+    const keep = [];
+    for (const u of cand){
+      if (keep.length >= M) break;
+      if (!keep.some(w => dist(w,u) < dist(p,u))) keep.push(u);
+    }
+    p.out = keep.map(q=>q.id);
+  }
+  return pts;
+}
+
+/* Best-first search generator. useTest => PRT gating with noisy cosine estimate. */
+function* search(pts, q, entry, ef, useTest, noise, r){
+  const d = new Map(); const seen = new Set([entry]);
+  const D = i => { if(!d.has(i)) d.set(i, dist(pts[i], q)); return d.get(i); };
+  D(entry);
+  let results = [entry]; let cands = [entry]; let visited = new Set();
+  yield {t:'dist', w:entry};
+  while (cands.length){
+    cands.sort((a,b)=>D(a)-D(b));
+    const u = cands.shift();
+    if (results.length >= ef && D(u) > D(results[results.length-1])) break;
+    visited.add(u);
+    yield {t:'visit', u};
+    const pu = pts[u];
+    for (const w of pu.out){
+      if (seen.has(w)) continue; seen.add(w);
+      const pw = pts[w];
+      let pass = true;
+      if (useTest && results.length >= 3){
+        const zmax = D(results[results.length-1]);
+        const uw = dist(pu,pw), uv = dist(pu,q);
+        const tau = (uw*uw + uv*uv - zmax*zmax) / (2*uv*uw);     // Eq. 5
+        const cosA = ((pw.x-pu.x)*(q.x-pu.x)+(pw.y-pu.y)*(q.y-pu.y))/(uw*uv);
+        const est = cosA + gauss(r)*noise;                          // cosθ/cosβ ≈ cosα + noise
+        pass = est >= tau;
+      }
+      if (!pass){ yield {t:'skip', u, w}; continue; }
+      const dw = D(w);
+      yield {t:'dist', u, w};
+      if (results.length < ef || dw < D(results[results.length-1])){
+        results.push(w); results.sort((a,b)=>D(a)-D(b)); if (results.length>ef) results.pop();
+        cands.push(w); yield {t:'push', w};
+      } else yield {t:'fp', w};
+    }
+  }
+  yield {t:'done', results};
+}
+
+/* ---------- generic animated search renderer ---------- */
+function searchScene(canvas, opts){
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pts = opts.pts, q = opts.q;
+  const panels = opts.panels; // [{useTest, ox, ow, label, counter}]
+  let anim = null;
+  function reset(){
+    for (const p of panels){ p.gen = search(pts, q, opts.entry, opts.ef, p.useTest, 0.08, rng(7)); p.visited=new Set(); p.pushed=new Set(); p.fx=[]; p.done=null; p.count=0; p.skips=0; p.cur=null; }
+  }
+  function drawPanel(p, now){
+    const sx = x => p.ox + x * (p.ow / W);
+    ctx.save(); ctx.beginPath(); ctx.rect(p.ox,0,p.ow,H); ctx.clip();
+    ctx.lineWidth = 1; ctx.strokeStyle = C.rule;
+    for (const a of pts) for (const b of a.out) if (b > a.id){ ctx.beginPath(); ctx.moveTo(sx(a.x),a.y); ctx.lineTo(sx(pts[b].x),pts[b].y); ctx.stroke(); }
+    // transient effects
+    p.fx = p.fx.filter(f => now - f.t0 < f.life);
+    for (const f of p.fx){
+      const k = 1 - (now-f.t0)/f.life;
+      if (f.kind==='dist'){ ctx.strokeStyle=C.exact; ctx.globalAlpha=0.25+0.75*k; ctx.lineWidth=2.2; ctx.beginPath(); ctx.moveTo(sx(q.x),q.y); ctx.lineTo(sx(f.w.x),f.w.y); ctx.stroke(); }
+      if (f.kind==='skip'){ ctx.strokeStyle=C.skip; ctx.globalAlpha=k; ctx.lineWidth=2; const x=sx(f.w.x),y=f.w.y; ctx.beginPath(); ctx.moveTo(x-5,y-5); ctx.lineTo(x+5,y+5); ctx.moveTo(x+5,y-5); ctx.lineTo(x-5,y+5); ctx.stroke(); }
+      if (f.kind==='fp'){ ctx.strokeStyle=C.fp; ctx.globalAlpha=k; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(sx(f.w.x),f.w.y,8,0,7); ctx.stroke(); }
+      ctx.globalAlpha=1;
+    }
+    for (const a of pts){
+      const x = sx(a.x), y = a.y;
+      ctx.beginPath(); ctx.arc(x,y,3.2,0,7);
+      if (p.visited.has(a.id)){ ctx.fillStyle=C.cobalt; ctx.fill(); }
+      else if (p.pushed.has(a.id)){ ctx.fillStyle='#fff'; ctx.fill(); ctx.strokeStyle=C.cobalt; ctx.lineWidth=1.5; ctx.stroke(); }
+      else { ctx.fillStyle=C.skip; ctx.fill(); }
+    }
+    if (p.cur!=null){ const a=pts[p.cur]; ctx.strokeStyle=C.cobalt; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(sx(a.x),a.y,8,0,7); ctx.stroke(); }
+    if (p.done){ ctx.strokeStyle=C.green; ctx.lineWidth=2; for (const i of p.done){ const a=pts[i]; ctx.beginPath(); ctx.arc(sx(a.x),a.y,7,0,7); ctx.stroke(); } }
+    // query
+    ctx.fillStyle=C.ink; ctx.beginPath(); ctx.arc(sx(q.x),q.y,5,0,7); ctx.fill();
+    ctx.font=FONT; ctx.fillStyle=C.ink; ctx.fillText('q', sx(q.x)+9, q.y+5);
+    if (p.label){ ctx.fillStyle=C.muted; ctx.fillText(p.label, p.ox+14, 22); }
+    ctx.restore();
+  }
+  function frame(now){
+    ctx.clearRect(0,0,W,H);
+    if (panels.length>1){ ctx.strokeStyle=C.rule; ctx.beginPath(); ctx.moveTo(W/2,0); ctx.lineTo(W/2,H); ctx.stroke(); }
+    for (const p of panels) drawPanel(p, now);
+    for (const p of panels) if (p.counter) p.counter.textContent = p.count;
+    if (opts.extra) opts.extra(panels);
+  }
+  function step(){
+    let alive=false;
+    for (const p of panels){
+      if (p.done) continue;
+      const e = p.gen.next().value; if (!e) continue; alive=true;
+      const now = performance.now();
+      if (e.t==='visit'){ p.visited.add(e.u); p.cur=e.u; }
+      if (e.t==='dist'){ p.count++; p.fx.push({kind:'dist', w:pts[e.w], t0:now, life:900}); }
+      if (e.t==='skip'){ p.skips++; p.fx.push({kind:'skip', w:pts[e.w], t0:now, life:700}); }
+      if (e.t==='fp'){ p.fx.push({kind:'fp', w:pts[e.w], t0:now, life:900}); }
+      if (e.t==='push'){ p.pushed.add(e.w); }
+      if (e.t==='done'){ p.done=e.results; p.cur=null; }
+    }
+    return alive;
+  }
+  function play(){
+    if (anim) cancelAnimationFrame(anim);
+    reset();
+    if (reduced){ while(step()){} frame(performance.now()); return; }
+    let last = 0; const dt = opts.dt || 90;
+    const loop = now => { if (now - last > dt){ last = now; if (!step()){ frame(now); anim = null; return; } } frame(now); anim = requestAnimationFrame(loop); };
+    anim = requestAnimationFrame(loop);
+  }
+  reset(); frame(0);
+  return {play};
+}
+
+/* ---------- hero ---------- */
+{
+  const cv = document.getElementById('hero');
+  const pts = makeCloud(11, cv.width, cv.height, 110);
+  const q = {x:610, y:120};
+  const entry = pts.reduce((b,a)=>dist(a,q)>dist(pts[b],q)?a.id:b,0);
+  const scene = searchScene(cv, {pts, q, entry, ef:8, dt:110, panels:[{useTest:false, ox:0, ow:cv.width, counter:document.getElementById('hero-count')}]});
+  document.getElementById('hero-play').onclick = scene.play;
+  const io = new IntersectionObserver(es => { if (es[0].isIntersecting){ scene.play(); io.disconnect(); } });
+  io.observe(cv);
+}
+
+/* ---------- side-by-side race ---------- */
+{
+  const cv = document.getElementById('race');
+  const pts = makeCloud(23, cv.width, cv.height, 160, true);
+  const q = {x:120, y:330};
+  const entry = pts.reduce((b,a)=>dist(a,q)>dist(pts[b],q)?a.id:b,0);
+  const scene = searchScene(cv, {pts, q, entry, ef:8, dt:90, panels:[
+    {useTest:false, ox:0, ow:cv.width/2, label:'plain best-first', counter:document.getElementById('race-a')},
+    {useTest:true, ox:cv.width/2, ow:cv.width/2, label:'with PRT', counter:document.getElementById('race-b')}]});
+  document.getElementById('race-play').onclick = scene.play;
+  const io = new IntersectionObserver(es => { if (es[0].isIntersecting){ scene.play(); io.disconnect(); } }, {threshold:.5});
+  io.observe(cv);
+}
+
+/* ---------- angle diagram ---------- */
+{
+  const cv = document.getElementById('angle'), ctx = cv.getContext('2d');
+  const u = {x:250, y:210}; const w = {x:520, y:150}; let v = {x:330, y:60};
+  const beta = 0.30; // angle between edge and its nearest reference direction (fixed for the toy)
+  const tauEl = document.getElementById('tau'), tauVal = document.getElementById('tau-val'), stat = document.getElementById('angle-stat');
+  const ang = (a,b) => Math.atan2(a.y-b.y, a.x-b.x);
+  function arc(cx,cy,r,a0,a1,color,label){
+    ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.beginPath();
+    let s=a0,e=a1; if (e<s){ [s,e]=[e,s]; } if (e-s>Math.PI){ [s,e]=[e,s+2*Math.PI]; }
+    ctx.arc(cx,cy,r,s,e); ctx.stroke();
+    const m=(s+e)/2; ctx.fillStyle=color; ctx.font='italic 15px Literata, Georgia, serif'; ctx.fillText(label, cx+Math.cos(m)*(r+14)-4, cy+Math.sin(m)*(r+14)+5);
+  }
+  function vec(from, to, color, dash){ ctx.strokeStyle=color; ctx.lineWidth=2; ctx.setLineDash(dash||[]); ctx.beginPath(); ctx.moveTo(from.x,from.y); ctx.lineTo(to.x,to.y); ctx.stroke(); ctx.setLineDash([]);
+    const a=Math.atan2(to.y-from.y,to.x-from.x); ctx.fillStyle=color; ctx.beginPath(); ctx.moveTo(to.x,to.y); ctx.lineTo(to.x-9*Math.cos(a-.4),to.y-9*Math.sin(a-.4)); ctx.lineTo(to.x-9*Math.cos(a+.4),to.y-9*Math.sin(a+.4)); ctx.fill(); }
+  function dot(p,label,fill){ ctx.fillStyle=fill||C.ink; ctx.beginPath(); ctx.arc(p.x,p.y,5,0,7); ctx.fill(); ctx.font='italic 16px Literata, Georgia, serif'; ctx.fillStyle=C.ink; ctx.fillText(label, p.x+9, p.y-8); }
+  function draw(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    const aw = ang(w,u), av = ang(v,u), ar = aw - beta;                 // reference direction r*
+    const alpha = Math.atan2(Math.sin(av-aw), Math.cos(av-aw));
+    const theta = av - ar;
+    const cosA = Math.cos(alpha), est = Math.cos(theta)/Math.cos(beta);
+    const tau = parseFloat(tauEl.value);
+    const r = {x:u.x+Math.cos(ar)*300, y:u.y+Math.sin(ar)*300};
+    vec(u, r, C.muted, [6,5]);
+    ctx.fillStyle=C.muted; ctx.font='italic 15px Literata, Georgia, serif'; ctx.fillText('r*  (reference direction)', r.x-60, r.y-10);
+    vec(u, w, C.cobalt); vec(u, v, C.exact);
+    arc(u.x,u.y,54, aw, av, C.exact, 'α');
+    arc(u.x,u.y,84, aw, ar, C.cobalt, 'β');
+    arc(u.x,u.y,112, ar, av, C.muted, 'θ');
+    dot(u,'u'); dot(w,'w',C.cobalt); dot(v,'v',C.exact);
+    ctx.fillStyle=C.exact; ctx.beginPath(); ctx.arc(v.x,v.y,14,0,7); ctx.globalAlpha=.18; ctx.fill(); ctx.globalAlpha=1;
+    const pass = est >= tau;
+    ctx.font=FONT; ctx.fillStyle=C.ink;
+    ctx.fillText(`true cos α = ${cosA.toFixed(2)}`, 20, cv.height-54);
+    ctx.fillText(`estimate cos θ / cos β = ${est.toFixed(2)}`, 20, cv.height-32);
+    ctx.fillStyle = pass ? C.green : C.fp;
+    ctx.fillText(pass ? `≥ τ  → PRT passes: compute exact ‖w − v‖` : `< τ  → PRT fails: skip w`, 20, cv.height-10);
+    stat.textContent = `error ${(est-cosA>=0?'+':'')}${(est-cosA).toFixed(2)}`;
+  }
+  tauEl.oninput = () => { tauVal.textContent = parseFloat(tauEl.value).toFixed(2); draw(); };
+  let drag=false;
+  const pos = e => { const b=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:(t.clientX-b.left)*cv.width/b.width, y:(t.clientY-b.top)*cv.height/b.height}; };
+  const down = e => { const p=pos(e); if (dist(p,v)<30){ drag=true; e.preventDefault(); } };
+  const move = e => { if(!drag) return; const p=pos(e); v={x:Math.min(cv.width-20,Math.max(20,p.x)), y:Math.min(cv.height-80,Math.max(20,p.y))}; draw(); e.preventDefault(); };
+  cv.addEventListener('mousedown',down); cv.addEventListener('mousemove',move); addEventListener('mouseup',()=>drag=false);
+  cv.addEventListener('touchstart',down,{passive:false}); cv.addEventListener('touchmove',move,{passive:false}); addEventListener('touchend',()=>drag=false);
+  cv.style.cursor='grab';
+  draw();
+}
+
+/* ---------- TFB rounds ---------- */
+{
+  const cv = document.getElementById('tfb'), ctx = cv.getContext('2d'), log = document.getElementById('tfb-log');
+  const b = 4, K = 6; let r, S;
+  function reset(){ r = rng(5); S = {round:1, W:[], RT:[], RF:[], RL:[], hist:[], flash:[], budget:[]};
+    for (let i=0;i<b;i++) S.W.push({d: 40+Math.round(r()*30), v:false}); S.W.sort((a,c)=>a.d-c.d); S.budget=S.W.slice(); S.hist.push(zmax()); log.textContent='Press Step to visit the first node in W.'; draw(); }
+  const zmax = () => Math.max(...S.W.map(n=>n.d));
+  function step(){
+    S.flash=[];
+    const nxt = S.budget.find(n=>!n.v && S.W.includes(n));
+    if (nxt){
+      nxt.v=true; let msg=`Visited ${nxt.d}: neighbors passing PRT —`;
+      const k = 2 + (r()<0.5?1:0);
+      for (let i=0;i<k;i++){
+        const d = Math.round(nxt.d*(0.72+r()*0.5));
+        if (d < zmax()){ S.W.push({d,v:false}); S.W.sort((a,c)=>a.d-c.d); const ej=S.W.pop(); S.RT.push(ej); S.flash.push({set:'W',d}); msg+=` ${d} enters W, ejecting ${ej.d} to R_T;`; }
+        else { S.RF.push({d,v:false}); S.flash.push({set:'RF',d}); msg+=` ${d} is a false positive, to R_F;`; }
+      }
+      S.hist.push(zmax()); log.textContent=msg;
+    } else {
+      S.RL = S.RL.concat(S.W).sort((a,c)=>a.d-c.d).slice(0,K);
+      const merged = S.RF.concat(S.RT).sort((a,c)=>a.d-c.d);
+      const reused = merged.slice(0,b).filter(n => S.RF.includes(n)).length;
+      S.W = merged.slice(0,b); S.RT = merged.slice(b); S.RF=[]; S.round++; S.budget=S.W.slice();
+      S.hist.push(zmax());
+      log.textContent=`Round ${S.round-1} over: W flushed to R_L, rings merged and sorted, W refilled with the best ${b}, the rest back to R_T. ${reused} former false positive${reused===1?'':'s'} got a second chance. z_max is now ${zmax()}.`;
+    }
+    draw();
+  }
+  function col(x, title, arr, cap, hi, max){
+    ctx.font=FONT; ctx.fillStyle=C.muted; ctx.fillText(title, x, 26);
+    const rows = Math.max(arr.length, cap||0), shown = Math.min(rows, max);
+    for (let i=0;i<shown;i++){
+      const y = 40+i*34, it = arr[i];
+      ctx.strokeStyle=C.rule; ctx.lineWidth=1; ctx.strokeRect(x,y,110,26);
+      if (!it) continue;
+      const fl = S.flash.find(f=>f.set===hi && f.d===it.d);
+      ctx.fillStyle = it.v ? C.cobalt : (fl ? (hi==='RF'?C.fp:C.exact) : '#fff');
+      ctx.fillRect(x+1,y+1,108,24);
+      ctx.fillStyle = it.v ? '#fff' : C.ink; ctx.fillText(String(it.d), x+10, y+18);
+      if (it.v){ ctx.fillText('visited', x+52, y+18); }
+    }
+    if (arr.length>max){ ctx.fillStyle=C.muted; ctx.fillText(`+${arr.length-max} more`, x+4, 40+shown*34+16); }
+  }
+  function draw(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    col(20, `W  (round ${S.round}, z_max ${zmax()})`, S.W, b, 'W', 8);
+    col(180, 'R_T  ejected', S.RT, null, 'RT', 8);
+    col(340, 'R_F  false positives', S.RF, null, 'RF', 8);
+    col(500, `R_L  results (top ${K})`, S.RL, K, 'RL', 8);
+  }
+  document.getElementById('tfb-step').onclick=step; document.getElementById('tfb-reset').onclick=reset; reset();
+}
+
+/* ---------- PES ---------- */
+{
+  const cv = document.getElementById('pes'), ctx = cv.getContext('2d');
+  const W=cv.width, H=cv.height;
+  const pts = makeCloud(31, W, H, 110, false, 2);
+  const v = {x:600, y:170, id:-1};
+  const aEl=document.getElementById('pes-a'), bEl=document.getElementById('pes-b');
+  // run a full search instantly to get visited set and candidates
+  let visited=[], results=[];
+  for (const e of search(pts, v, 0, 20, false, 0, rng(1))){ if (e.t==='visit') visited.push(e.u); if (e.t==='done') results=e.results; }
+  const out = []; for (const i of results){ if (out.length>=4) break; if (!out.some(w=>dist(pts[w],pts[i])<dist(v,pts[i]))) out.push(i); }
+  const robust = u => { const pu=pts[u], duv=dist(pu,v); return !pu.out.some(w => dist(pts[w],v)<=duv && dist(pts[w],pu)<=duv); };
+  const rest = visited.filter(u=>!out.includes(u));
+  const steps = [];
+  out.forEach(u => steps.push({kind:'rp', u, ok:robust(u)}));
+  rest.forEach(u => { const pu=pts[u], duv=dist(pu,v); const sEmpty = !pu.out.some(w=>dist(pts[w],v)<=duv); steps.push({kind:'pes', u, ok:sEmpty}); });
+  let idx=0, inA=0, inB=0, edges=[], probe=null, anim=null;
+  function arrow(a,b,color,dash){ ctx.strokeStyle=color; ctx.lineWidth=2; ctx.setLineDash(dash||[]); ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); ctx.setLineDash([]);
+    const an=Math.atan2(b.y-a.y,b.x-a.x), t={x:b.x-Math.cos(an)*9,y:b.y-Math.sin(an)*9}; ctx.fillStyle=color; ctx.beginPath(); ctx.moveTo(t.x,t.y); ctx.lineTo(t.x-8*Math.cos(an-.45),t.y-8*Math.sin(an-.45)); ctx.lineTo(t.x-8*Math.cos(an+.45),t.y-8*Math.sin(an+.45)); ctx.fill(); }
+  function draw(phaseText){
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle=C.rule; ctx.lineWidth=1;
+    for (const a of pts) for (const b of a.out) if (b>a.id){ ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(pts[b].x,pts[b].y); ctx.stroke(); }
+    for (const i of out) arrow(v, pts[i], C.green);
+    for (const e of edges) arrow(pts[e.u], v, e.kind==='pes'?C.cobalt:C.green);
+    if (probe){ const pu=pts[probe.u]; ctx.strokeStyle=probe.ok?C.ink:C.fp; ctx.setLineDash([4,4]); ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(pu.x,pu.y); ctx.lineTo(v.x,v.y); ctx.stroke(); ctx.setLineDash([]);
+      if (!probe.ok){ const duv=dist(pu,v); for (const w of pu.out) if (dist(pts[w],v)<=duv){ ctx.strokeStyle=C.fp; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(pu.x,pu.y); ctx.lineTo(pts[w].x,pts[w].y); ctx.stroke(); } } }
+    for (const a of pts){ ctx.beginPath(); ctx.arc(a.x,a.y,3.2,0,7);
+      ctx.fillStyle = out.includes(a.id)?C.green : visited.includes(a.id)?C.cobalt : C.skip; ctx.fill(); }
+    if (probe){ const pu=pts[probe.u]; ctx.strokeStyle=C.ink; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(pu.x,pu.y,8,0,7); ctx.stroke(); }
+    ctx.fillStyle=C.ink; ctx.beginPath(); ctx.arc(v.x,v.y,6,0,7); ctx.fill(); ctx.font='italic 16px Literata, Georgia, serif'; ctx.fillText('v', v.x+10, v.y-8);
+    ctx.font=FONT; ctx.fillStyle=C.muted; ctx.fillText(phaseText||'', 14, 22);
+    aEl.textContent=inA; bEl.textContent=inB;
+  }
+  function play(){
+    if (anim) clearTimeout(anim);
+    idx=0; inA=0; inB=0; edges=[]; probe=null;
+    const tick = () => {
+      if (idx>=steps.length){ probe=null; draw('done — blue arrows are in-edges only PES found'); return; }
+      const s=steps[idx++]; probe=s;
+      const txt = s.kind==='rp' ? 'Phase 1 · RobustPrune over out-neighbors of v only' : 'Phase 2 · PES over all visited nodes: does u have a neighbor closer to v than u?';
+      draw(txt + (s.ok ? '  no → keep u→v' : '  yes (red) → redundant'));
+      if (s.ok){ edges.push(s); if (s.kind==='rp'){ inA++; inB++; } else inB++; }
+      anim = setTimeout(tick, reduced?0:(s.kind==='rp'?700:380));
+    };
+    tick();
+  }
+  document.getElementById('pes-play').onclick=play;
+  draw('press Replay');
+  const io = new IntersectionObserver(es => { if (es[0].isIntersecting){ play(); io.disconnect(); } }, {threshold:.5}); io.observe(cv);
+}
+
+/* ---------- cost model ---------- */
+{
+  const g = id => document.getElementById(id);
+  const upd = () => {
+    const d=+g('s-d').value, L=+g('s-l').value, gm=+g('s-g').value;
+    g('s-d-v').textContent=d; g('s-l-v').textContent=L; g('s-g-v').textContent=gm.toFixed(2);
+    const pag = L + gm*d; const proj = L/d*100, ex = gm*100;
+    g('c-hnsw-v').textContent=d; g('c-pag-v').textContent=Math.round(pag);
+    g('c-proj').style.width=proj+'%'; g('c-exact').style.left=proj+'%'; g('c-exact').style.width=ex+'%';
+    g('c-ratio').textContent=(d/pag).toFixed(1)+'× cheaper';
+  };
+  ['s-d','s-l','s-g'].forEach(id=>g(id).oninput=upd); upd();
+}
+
+/* ---------- tier table ---------- */
+{
+  const rows = [
+    ['D1 QPS–recall',[2,2,1,1,1,3,3,4,3]],
+    ['D2 Indexing time',[1,1,3,3,3,2,1,2,4]],
+    ['D3 Memory (search)',[3,3,4,4,4,1,2,3,4]],
+    ['D4 High-dim scalability',['y','y','y','y','y','n','y','y','y']],
+    ['D5 Retrieval-size robustness',['y','y','y','y','y','n','y','y','y']],
+    ['D6 Online insertion',['y','y','y','y','y','n','n','y','y']],
+  ];
+  const tb = document.getElementById('tiers');
+  for (const [name, vals] of rows){
+    const tr=document.createElement('tr'); tr.innerHTML=`<th>${name}</th>`+vals.map((v,i)=>{
+      const cls = i>=7?' class="pag"':'';
+      if (typeof v==='number') return `<td${cls}><span class="tier" title="Tier ${v} of 4">${[1,2,3,4].map(k=>`<i class="${k<=v?'on':''}"></i>`).join('')}</span></td>`;
+      return `<td${cls}><span class="${v==='y'?'yes':'no'}">${v==='y'?'yes':'no'}</span></td>`; }).join('');
+    tb.appendChild(tr);
+  }
+}
+})();
+</script>
+</body>
+</html>

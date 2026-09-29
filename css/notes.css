@@ -11,6 +11,7 @@
   body > header [aria-current] { color: var(--fg); }
   body > header [data-theme-toggle] { margin-left: auto; }
 
+  .stage > * { min-width: 0; }   /* long lines in the notes must not stretch the page */
   .stage { display: grid; grid-template-columns: minmax(17em, 1fr) 2fr; gap: 2.4em; padding: 0 1.2em; }
 
   .notes { padding: 1.5em 0 45vh; max-width: 30em; overflow-x: clip; }   /* the stretched headings are laid out wider than they draw */
@@ -22,6 +23,10 @@
   .notes p { margin: 0 0 1em; }
   .notes code { font-family: var(--font-mono); font-size: .88em; }
   .notes small { color: var(--dim); }
+  .notes .who { margin: 0 0 .3em; font: .72em/1.5 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--dim); }
+  .notes blockquote { margin: 0 0 1em; padding: 0 0 0 1em; border-left: 3px solid var(--accent); }
+  .notes pre { margin: 0 0 1em; padding: .7em .9em; background: var(--surface); white-space: pre-wrap; overflow-wrap: anywhere; font: .8em/1.5 var(--font-mono); }
+  .notes ul, .notes ol { margin: 0 0 1em; padding-left: 1.3em; }
 
   .frame { position: sticky; top: calc(var(--bar) + 1em); height: calc(100vh - var(--bar) - 2em); margin: 1em 0; align-self: start; display: flex; flex-direction: column; min-width: 0; }
   .screen { flex: 1; position: relative; overflow: hidden; border: 1px solid var(--line); background: #0e131a; }

@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gerstner waves in WebGL2 and WebGPU</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<style>
+:root {
+  --paper: #edf2f2;
+  --ink: #11232c;
+  --muted: #4c626d;
+  --rule: #c3d2d5;
+  --sea: #1d5c70;
+  --brass: #9a6412;
+  --code-bg: #e0e9ea;
+  --panel: #e4ecec;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0a1a21; --ink: #d6e3e5; --muted: #8fa6ae; --rule: #213841;
+    --sea: #72b6c7; --brass: #e1b262; --code-bg: #0f252d; --panel: #0e2129;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0a1a21; --ink: #d6e3e5; --muted: #8fa6ae; --rule: #213841;
+  --sea: #72b6c7; --brass: #e1b262; --code-bg: #0f252d; --panel: #0e2129;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: "Newsreader", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  font-optical-sizing: auto; font-size: 1.1875rem; line-height: 1.62;
+}
+img, canvas { max-width: 100%; }
+
+/* Hero: the ocean itself */
+.stage {
+  position: relative; height: min(80vh, 760px); min-height: 440px;
+  background: linear-gradient(to bottom, #6f95b4 0%, #a9c2cf 38%, #dbe6e6 62%, #dbe6e6 100%);
+  overflow: hidden; touch-action: pan-y; cursor: grab;
+}
+.stage:active { cursor: grabbing; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage-text {
+  position: absolute; left: clamp(1.25rem, 5vw, 4.5rem); top: clamp(1.5rem, 6vh, 4rem);
+  max-width: 34rem; color: #0e2430; pointer-events: none;
+}
+.stage h1 {
+  font-size: clamp(3rem, 9vw, 7.25rem); font-weight: 300; line-height: .92;
+  letter-spacing: -0.025em; margin: 0 0 .9rem; font-variation-settings: "opsz" 72;
+}
+.stage-text p { margin: 0; font-size: clamp(1.05rem, 2vw, 1.3rem); line-height: 1.4; max-width: 26rem; }
+.status {
+  position: absolute; right: clamp(1rem, 3vw, 2rem); bottom: 1rem; margin: 0;
+  font-size: .95rem; color: #e8f0f1; text-shadow: 0 1px 2px rgba(0,20,30,.6); pointer-events: none;
+}
+
+/* Control bench */
+.bench { border-bottom: 1px solid var(--rule); background: var(--panel); }
+.bench-inner { max-width: 70rem; margin: 0 auto; padding: 1.5rem clamp(1.25rem, 4vw, 2.5rem) 1.75rem; }
+.bench-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .75rem 2rem; }
+.bench h2 { font-size: 1.5rem; font-weight: 500; margin: 0; }
+.bench-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; font-size: 1rem; }
+.bench fieldset { border: 0; padding: 0; margin: 0; display: flex; gap: 1rem; align-items: center; }
+.bench legend { float: left; margin-right: .75rem; color: var(--muted); }
+button {
+  font: inherit; font-size: 1rem; color: var(--paper); background: var(--sea);
+  border: 0; border-radius: 3px; padding: .35rem .9rem; cursor: pointer;
+}
+button:focus-visible, input:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.waves { display: grid; gap: .25rem; margin-top: 1.25rem; }
+.wave-row {
+  display: grid; grid-template-columns: 5rem repeat(3, minmax(0, 1fr)); gap: .5rem 1.5rem;
+  align-items: center; padding: .55rem 0; border-top: 1px solid var(--rule); font-size: 1rem;
+}
+.wave-name { font-style: italic; color: var(--muted); }
+.wave-row label, .cam { display: grid; grid-template-columns: 1fr auto; gap: .1rem .5rem; align-items: center; }
+.wave-row label span, .cam span { color: var(--muted); font-size: .92rem; }
+.wave-row input, .cam input { grid-column: 1 / -1; width: 100%; accent-color: var(--sea); }
+output { font-variant-numeric: tabular-nums; }
+.bench-foot { display: flex; flex-wrap: wrap; gap: 1rem 3rem; align-items: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--rule); font-size: 1rem; }
+.cam { min-width: 16rem; }
+.budget { margin: 0; }
+.budget output { font-weight: 600; }
+.warn { color: var(--brass); }
+
+/* Article */
+article { max-width: 70rem; margin: 0 auto; padding: 3.5rem clamp(1.25rem, 4vw, 2.5rem) 5rem; }
+.col { max-width: 40rem; }
+article h2 {
+  font-size: clamp(1.6rem, 3vw, 2.1rem); font-weight: 500; line-height: 1.15;
+  margin: 3.75rem 0 1rem; letter-spacing: -0.01em;
+}
+article h2 .n { color: var(--sea); font-weight: 300; margin-right: .5rem; }
+article h3 { font-size: 1.25rem; font-weight: 600; margin: 2rem 0 .5rem; }
+article p, article li { max-width: 40rem; }
+.lede { font-size: 1.35rem; line-height: 1.5; color: var(--ink); }
+a { color: var(--sea); text-underline-offset: .15em; }
+code { font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: .82em; }
+p code, li code { background: var(--code-bg); padding: .05em .3em; border-radius: 2px; }
+pre {
+  max-width: 52rem; overflow-x: auto; background: var(--code-bg); border-left: 3px solid var(--sea);
+  padding: 1rem 1.25rem; margin: 1.25rem 0 1.5rem; line-height: 1.5; font-size: 1.05rem;
+}
+pre code { font-size: .78rem; white-space: pre; }
+.eq { max-width: 40rem; overflow-x: auto; margin: 1.25rem 0; padding: .25rem 0; font-size: 1.15rem; }
+.eq math { font-size: 1.15em; }
+figure { margin: 2rem 0; max-width: 52rem; }
+figcaption { font-size: 1rem; color: var(--muted); margin-top: .6rem; max-width: 40rem; line-height: 1.45; }
+.fig-ctl { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; align-items: center; font-size: 1rem; margin-top: .75rem; }
+.fig-ctl input { width: min(18rem, 60vw); accent-color: var(--sea); }
+#trochoid { width: 100%; height: 240px; display: block; background: var(--code-bg); }
+.note { border-left: 3px solid var(--brass); padding: .1rem 0 .1rem 1rem; margin: 1.5rem 0; max-width: 40rem; }
+.note p { margin: .4rem 0; }
+details { max-width: 52rem; margin: 1rem 0 1.5rem; }
+summary { cursor: pointer; color: var(--sea); font-size: 1.05rem; }
+details pre { margin-top: .75rem; }
+.tbl-wrap { overflow-x: auto; max-width: 40rem; margin: 1.25rem 0; }
+table { border-collapse: collapse; font-size: 1rem; min-width: 30rem; }
+th, td { text-align: left; padding: .35rem 1rem .35rem 0; border-bottom: 1px solid var(--rule); }
+th { font-weight: 600; }
+td code { background: none; padding: 0; }
+.live { font-size: 1rem; color: var(--muted); }
+.live output { color: var(--ink); font-weight: 600; }
+footer { max-width: 70rem; margin: 0 auto; padding: 0 clamp(1.25rem, 4vw, 2.5rem) 4rem; color: var(--muted); font-size: 1rem; }
+
+@media (max-width: 760px) {
+  .wave-row { grid-template-columns: 1fr 1fr 1fr; }
+  .wave-name { grid-column: 1 / -1; }
+  .stage { height: 70vh; min-height: 380px; }
+}
+@media (max-width: 480px) {
+  .wave-row { grid-template-columns: 1fr; gap: .4rem; }
+}
+</style>
+</head>
+<body>
+
+<header class="stage" id="stage">
+  <canvas id="ocean" aria-label="Animated ocean surface made of four summed Gerstner waves"></canvas>
+  <div class="stage-text">
+    <h1>Gerstner waves</h1>
+    <p>An ocean in one vertex shader, written twice: once for WebGL2, once for WebGPU. Drag to look around.</p>
+  </div>
+  <p class="status" id="status" aria-live="polite">Starting renderer…</p>
+</header>
+
+<section class="bench" aria-labelledby="bench-h">
+  <div class="bench-inner">
+    <div class="bench-head">
+      <h2 id="bench-h">Tune the sea</h2>
+      <div class="bench-actions">
+        <button id="play" type="button">Pause</button>
+        <fieldset>
+          <legend>Renderer</legend>
+          <label><input type="radio" name="backend" value="webgpu"> WebGPU</label>
+          <label><input type="radio" name="backend" value="webgl2"> WebGL2</label>
+        </fieldset>
+      </div>
+    </div>
+    <div class="waves" id="wave-rows"></div>
+    <div class="bench-foot">
+      <p class="budget">Total steepness <output id="sum">0</output> <span id="sum-note"></span></p>
+      <label class="cam"><span>Camera distance</span><output id="dist-out">45 m</output>
+        <input type="range" id="dist" min="12" max="140" step="1" value="45"></label>
+    </div>
+  </div>
+</section>
+
+<article>
+<div class="col">
+<p class="lede">A sine wave moves every point of the water straight up and down. A Gerstner wave moves every point in a circle. That one change sharpens the crests, flattens the troughs, and turns a rubber sheet into something that reads as swell.</p>
+<p>František Josef Gerstner published the solution in 1802. It is an exact solution of the nonlinear equations for deep-water waves, it has a closed form, and it costs a handful of <code>sin</code> and <code>cos</code> per vertex. That combination is why it has been the workhorse of real-time water since GPU Gems Chapter 1 in 2004, and it is still the first thing to reach for before an FFT ocean.</p>
+<p>This tutorial builds the demo above from scratch. We'll derive the displacement, get exact normals without finite differences, sum several waves safely, find foam from the Jacobian, and write the whole thing in GLSL for WebGL2 and WGSL for WebGPU. Every shader listing on this page is pulled from the source strings that are running in the header, so what you read is what you see.</p>
+</div>
+
+<h2><span class="n">1</span>From a sine to a trochoid</h2>
+<div class="col">
+<p>Start in one dimension. The familiar travelling sine wave only moves points vertically:</p>
+<div class="eq" data-tex>y = a \sin(kx - \omega t)</div>
+<p>Gerstner instead gives each particle a rest position <span class="m">x_0</span> and lets it orbit around that position:</p>
+<div class="eq" data-tex>\begin{aligned} x &amp;= x_0 + a\cos\theta \\ y &amp;= a\sin\theta \end{aligned} \qquad \theta = k\,(x_0 - c\,t)</div>
+<p>At the crest (<span class="m">\sin\theta = 1</span>) particles are moving forward with the wave and bunch together; in the trough they move backward and spread apart. You can see the bunching directly from how much the horizontal spacing is squeezed:</p>
+<div class="eq" data-tex>\frac{\partial x}{\partial x_0} = 1 - ka\,\sin\theta</div>
+<p>When <span class="m">ka</span> reaches 1 the spacing at the crest hits zero and the crest becomes a cusp. Past 1 it goes negative and the curve loops over itself. Push the slider past 1 to see it.</p>
+</div>
+
+<figure>
+  <canvas id="trochoid" aria-label="Particles orbiting circles, tracing a Gerstner wave compared with a sine of the same amplitude"></canvas>
+  <div class="fig-ctl">
+    <label for="fig-s">Steepness <span class="m">ka</span></label>
+    <input id="fig-s" type="range" min="0" max="1.3" step="0.01" value="0.6">
+    <output id="fig-s-out">0.60</output>
+    <span id="fig-note" class="warn"></span>
+  </div>
+  <figcaption>Solid line: the Gerstner surface. Dashed line: a sine of the same amplitude. Each dot orbits its own circle; the surface is simply the curve the dots draw together.</figcaption>
+</figure>
+
+<h2><span class="n">2</span>Parameters that mean something</h2>
+<div class="col">
+<p>Three numbers describe a wave, and choosing them well saves a lot of slider-fiddling later.</p>
+<p><strong>Wavelength</strong> <span class="m">L</span> gives the wavenumber <span class="m">k</span>. <strong>Speed</strong> should not be a free parameter at all. In deep water, gravity waves obey the dispersion relation <span class="m">\omega^2 = gk</span>, so the phase speed follows from the wavelength. Long waves outrun short ones, which is a big part of why a sum of waves never looks like a looping texture.</p>
+<div class="eq" data-tex>k = \frac{2\pi}{L}, \qquad c = \sqrt{\frac{g}{k}}, \qquad a = \frac{s}{k}</div>
+<p><strong>Steepness</strong> <span class="m">s = ka</span> replaces amplitude as the thing you set. It is dimensionless, it controls the crest shape directly, and the amplitude scales with wavelength for free: a 60 m swell and a 6 m chop at the same steepness look like the same wave at different scales.</p>
+</div>
+<div class="note">
+<p>Real ocean waves break well before a cusp. The Stokes limit is a height-to-wavelength ratio of roughly 1/7, which is <span class="m">s \approx 0.44</span>. Keep each wave below about 0.5 for a plausible sea; go higher for a stylised one.</p>
+</div>
+
+<h2><span class="n">3</span>Into two dimensions</h2>
+<div class="col">
+<p>Give the wave a unit direction <span class="m">\mathbf{D} = (D_x, D_z)</span> on the horizontal plane. The phase now depends on how far along that direction a point sits, and the orbit's horizontal part points along <span class="m">\mathbf{D}</span>:</p>
+<div class="eq" data-tex>\theta = k\,(\mathbf{D}\cdot\mathbf{p} - c\,t), \qquad P(\mathbf{p}) = \begin{pmatrix} p_x + D_x\, a\cos\theta \\ a\sin\theta \\ p_z + D_z\, a\cos\theta \end{pmatrix}</div>
+<p>Here <span class="m">\mathbf{p} = (p_x, p_z)</span> is the vertex's rest position on a flat grid and <span class="m">y</span> is up. In the shaders <span class="m">\mathbf{D}</span> is a <code>vec2</code>, so <span class="m">D_z</span> is written <code>d.y</code>.</p>
+</div>
+
+<h2><span class="n">4</span>Exact normals</h2>
+<div class="col">
+<p>Because <span class="m">P</span> is a closed-form function of the grid coordinates, its tangent vectors are just its partial derivatives. No neighbour sampling, no finite-difference noise:</p>
+<div class="eq" data-tex>T = \frac{\partial P}{\partial p_x} = \begin{pmatrix} 1 - D_x^2\, s\sin\theta \\ D_x\, s\cos\theta \\ -D_x D_z\, s\sin\theta \end{pmatrix}, \qquad B = \frac{\partial P}{\partial p_z} = \begin{pmatrix} -D_x D_z\, s\sin\theta \\ D_z\, s\cos\theta \\ 1 - D_z^2\, s\sin\theta \end{pmatrix}</div>
+<div class="eq" data-tex>N = \frac{B \times T}{\lVert B \times T \rVert}</div>
+<p>The order of the cross product matters: with <span class="m">y</span> up and a flat sheet, <span class="m">T = (1,0,0)</span> and <span class="m">B = (0,0,1)</span>, and <span class="m">B \times T = (0,1,0)</span> points up. Notice that every <span class="m">a</span> became an <span class="m">s</span>: differentiating <span class="m">\theta</span> brings out a factor of <span class="m">k</span>, and <span class="m">ka = s</span>.</p>
+</div>
+
+<h2><span class="n">5</span>Summing waves, and the steepness budget</h2>
+<div class="col">
+<p>One wave looks like a corrugated roof. The sea is a sum. Displacements add, and because differentiation is linear the tangent contributions add too, on top of the flat sheet's <span class="m">(1,0,0)</span> and <span class="m">(0,0,1)</span>:</p>
+<div class="eq" data-tex>P = \begin{pmatrix}p_x\\0\\p_z\end{pmatrix} + \sum_i \Delta P_i, \qquad T = \begin{pmatrix}1\\0\\0\end{pmatrix} + \sum_i \Delta T_i, \qquad B = \begin{pmatrix}0\\0\\1\end{pmatrix} + \sum_i \Delta B_i</div>
+<p>The catch: where several crests line up, their compressions add. If the total steepness stays within budget, the surface cannot fold, no matter how the crests align:</p>
+<div class="eq" data-tex>\sum_i s_i \le 1</div>
+<p>The panel above the article tracks this sum for you. Exceeding it doesn't guarantee a loop; it only means one becomes possible where enough crests meet.</p>
+<h3>Foam from the Jacobian</h3>
+<p>The horizontal part of the mapping from grid to surface has a Jacobian determinant:</p>
+<div class="eq" data-tex>J = T_x B_z - T_z B_x</div>
+<p>It is 1 on a flat sheet, drops below 1 where water is squeezed together, and reaches 0 exactly where the surface folds. Compressed water at a sharp crest is where whitecaps form, so <span class="m">J</span> is a physically motivated foam mask that comes out of numbers we've already computed. The demo whitens everything below about 0.5.</p>
+<h3>Choosing waves that look like a sea</h3>
+<p>Pick one dominant swell direction and scatter the others within roughly 30 to 60 degrees of it. Use wavelengths with awkward ratios (60, 31, 17, 9.5 in the demo) so their crests don't realign on a short period. Give longer waves more steepness than short ones.</p>
+</div>
+
+<h2><span class="n">6</span>The mesh</h2>
+<div class="col">
+<p>The vertex buffer holds nothing but 2D rest positions. Height, horizontal offset, normal, and foam all come from the shader, so the same buffer serves both APIs and never has to be updated.</p>
+<p>A uniform grid wastes vertices far from the camera and starves the near field. The demo squeezes the grid toward the centre with <span class="m">x = E\,u\,(0.25 + 0.75u^2)</span> for <span class="m">u \in [-1, 1]</span>, giving about 0.3 m spacing under the camera and about 3 m at the 250 m edge. The rule of thumb for any wave you keep: at least four to eight vertices per wavelength wherever it's visible, or it will alias into crawling noise.</p>
+</div>
+<pre><code data-src="buildGrid"></code></pre>
+
+<h2><span class="n">7</span>WebGL2</h2>
+<div class="col">
+<p>The vertex shader is the heart of the tutorial. <code>gerstner()</code> returns one wave's displacement and accumulates its tangent contributions through <code>inout</code> parameters; <code>main()</code> sums four of them, packed as <code>vec4(direction.x, direction.y, steepness, wavelength)</code>.</p>
+</div>
+<pre><code data-src="glslVertex"></code></pre>
+<div class="col">
+<p>The fragment shader shades with the normal, the view direction, and the foam mask. Section 9 walks through it.</p>
+</div>
+<pre><code data-src="glslFragment"></code></pre>
+<div class="col">
+<p>On the JavaScript side there is very little to do: upload the grid once, then each frame set five uniforms and issue one <code>drawElements</code>. The grid has over 148,000 vertices, so the index buffer needs <code>Uint32Array</code> and <code>gl.UNSIGNED_INT</code>, which WebGL2 supports without an extension.</p>
+</div>
+<details>
+  <summary>Show the WebGL2 renderer class</summary>
+  <pre><code data-src="GLRenderer"></code></pre>
+</details>
+
+<h2><span class="n">8</span>WebGPU</h2>
+<div class="col">
+<p>The WGSL is a line-by-line port. The one structural difference is that WGSL has no <code>inout</code>, so the tangent accumulators are passed as <code>ptr&lt;function, vec3f&gt;</code> and updated with <code>*tangent += …</code>. Uniforms live in a single struct bound at group 0.</p>
+</div>
+<pre><code data-src="wgsl"></code></pre>
+<div class="col">
+<p>WGSL's uniform layout rules are strict, so it's worth writing the byte offsets down once. Packing time into <code>camPos.w</code> keeps everything in 16-byte rows with no padding surprises:</p>
+</div>
+<div class="tbl-wrap">
+<table>
+  <thead><tr><th>Field</th><th>WGSL type</th><th>Byte offset</th><th>Float index</th></tr></thead>
+  <tbody>
+    <tr><td><code>viewProj</code></td><td><code>mat4x4f</code></td><td>0</td><td>0 to 15</td></tr>
+    <tr><td><code>camPos</code> (w = time)</td><td><code>vec4f</code></td><td>64</td><td>16 to 19</td></tr>
+    <tr><td><code>sunDir</code></td><td><code>vec4f</code></td><td>80</td><td>20 to 23</td></tr>
+    <tr><td><code>waves</code></td><td><code>array&lt;vec4f, 4&gt;</code></td><td>96</td><td>24 to 39</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="col">
+<p>The other trap is depth range. WebGL clip space runs <span class="m">z</span> from −1 to 1; WebGPU runs it from 0 to 1. Reusing a GL projection matrix in WebGPU clips away the near half of your scene. The demo builds the matrix with a flag:</p>
+</div>
+<pre><code data-src="perspective"></code></pre>
+<div class="col">
+<p>The renderer creates a pipeline with a single <code>float32x2</code> vertex attribute, a depth buffer, and 4× MSAA, then records one render pass per frame.</p>
+</div>
+<details>
+  <summary>Show the WebGPU renderer class</summary>
+  <pre><code data-src="GPURenderer"></code></pre>
+</details>
+
+<h2><span class="n">9</span>Shading the surface</h2>
+<div class="col">
+<p>The shading model is deliberately small, and every term earns its place:</p>
+<ul>
+  <li><strong>Fresnel.</strong> Water reflects about 2% of light head-on and nearly all of it at grazing angles. Schlick's approximation with <span class="m">F_0 = 0.02</span> blends between the water's body colour and the reflected sky. This one term does most of the work of making it read as water.</li>
+  <li><strong>Sky reflection.</strong> A two-colour gradient indexed by the reflected ray's height. The ray's <span class="m">y</span> is mirrored with <code>abs()</code> so steep back-facing slopes don't reflect a nonexistent sky below the horizon.</li>
+  <li><strong>Body colour.</strong> Deep blue-green in troughs, brighter teal toward crests, plus a scatter term when the sun is behind a crest. It's a cheap stand-in for light passing through thin water.</li>
+  <li><strong>Sun glint.</strong> A very tight Blinn-Phong highlight. The exact normals from section 4 are what make it sparkle along crest edges instead of smearing.</li>
+  <li><strong>Foam and fog.</strong> The Jacobian mask from section 5, and squared-exponential fog toward the horizon colour. The page behind the canvas is a CSS gradient that ends in that same colour, which hides the edge of the finite grid.</li>
+</ul>
+</div>
+
+<h2><span class="n">10</span>Asking the ocean for its height</h2>
+<div class="col">
+<p>Sooner or later you want a boat to float. On the CPU this is less obvious than it looks: because points move sideways, the vertex that ends up above world position <span class="m">\mathbf{q}</span> did not start at <span class="m">\mathbf{q}</span>. You need the rest position <span class="m">\mathbf{p}</span> whose displaced position lands on <span class="m">\mathbf{q}</span>.</p>
+<p>Fixed-point iteration solves it: guess <span class="m">\mathbf{p} = \mathbf{q}</span>, subtract the horizontal displacement at the guess, repeat. When the steepness budget holds, each step shrinks the error by a factor of at least <span class="m">\sum s_i</span>, so a few iterations are plenty.</p>
+</div>
+<pre><code data-src="displace"></code></pre>
+<pre><code data-src="heightAt"></code></pre>
+<div class="col">
+<p>Because the inverse is iterative, check it the way you'd check any inverse: run the result forward again and measure how far it lands from where you asked. The readout below does that at a point 12 m in front of the origin, live, against whatever waves you've dialled in.</p>
+<p class="live">Surface height there: <output id="h-out">…</output>. Round-trip miss after 4 iterations: <output id="rt-out">…</output>.</p>
+<p>Push the total steepness above 1 and watch the miss grow: the iteration stops being a contraction exactly where the surface can fold.</p>
+<p>Keep the CPU wave list identical to the GPU one, including any distance-based fading you add later, or your boat will float on a different ocean from the one on screen.</p>
+</div>
+
+<h2><span class="n">11</span>Pitfalls and next steps</h2>
+<div class="col">
+<ul>
+  <li><strong>Time precision.</strong> After a few hours, <code>k * c * t</code> in 32-bit floats loses enough precision that waves visibly stutter. Compute each wave's phase <span class="m">k c t \bmod 2\pi</span> on the CPU in double precision and pass that instead of raw time.</li>
+  <li><strong>Zero-length directions.</strong> <code>normalize(vec2(0))</code> is NaN, and one NaN wave blanks the whole mesh. Validate directions before upload.</li>
+  <li><strong>Distant aliasing.</strong> Short waves become shimmering noise far from the camera where the grid is coarse. Fade their steepness to zero with distance (in the vertex shader and in your CPU query).</li>
+  <li><strong>More waves.</strong> Four is a teaching number. Move them into a uniform block or a WebGPU storage buffer and sum 16 to 64 with directions and wavelengths drawn from a spectrum.</li>
+  <li><strong>Normal maps.</strong> Geometry carries the swell; small ripples belong in a scrolling normal map blended with the analytic normal.</li>
+  <li><strong>FFT oceans.</strong> Tessendorf's method uses this same horizontal displacement idea, but drives thousands of waves from a statistical spectrum with an inverse FFT. Everything in this tutorial (steepness, the Jacobian foam, the height query) carries over.</li>
+</ul>
+<p>For further reading, Mark Finch's "Effective Water Simulation from Physical Models" (GPU Gems, 2004) is the classic real-time treatment, and Jerry Tessendorf's "Simulating Ocean Water" course notes are the next step up.</p>
+</div>
+</article>
+
+<footer>
+  <p>Everything on this page, including the shaders, runs from the single file you're viewing. Use your browser's view-source to read it end to end.</p>
+</footer>
+
+<script>
+'use strict';
+
+/* ---------------------------------------------------------------
+   Shader sources. These strings are compiled by the demo AND
+   printed into the tutorial, so the two can never drift apart.
+---------------------------------------------------------------- */
+const SRC = {};
+
+SRC.glslVertex = `#version 300 es
+precision highp float;
+
+in vec2 aGrid;              // rest position on the flat grid (x, z)
+
+uniform mat4 uViewProj;
+uniform float uTime;
+uniform vec4 uWaves[4];     // (dir.x, dir.y, steepness, wavelength)
+
+out vec3 vWorld;
+out vec3 vNormal;
+out float vFold;            // Jacobian determinant, for foam
+
+const float PI = 3.14159265;
+const float G = 9.81;
+
+vec3 gerstner(vec4 w, vec2 p, inout vec3 tangent, inout vec3 binormal) {
+  float s = w.z;                       // steepness = k * a
+  float k = 2.0 * PI / w.w;            // wavenumber
+  float c = sqrt(G / k);               // deep-water phase speed
+  vec2 d = normalize(w.xy);
+  float f = k * (dot(d, p) - c * uTime);
+  float a = s / k;                     // amplitude
+  float sf = sin(f);
+  float cf = cos(f);
+
+  tangent  += vec3(-d.x * d.x * s * sf, d.x * s * cf, -d.x * d.y * s * sf);
+  binormal += vec3(-d.x * d.y * s * sf, d.y * s * cf, -d.y * d.y * s * sf);
+
+  return vec3(d.x * a * cf, a * sf, d.y * a * cf);
+}
+
+void main() {
+  vec3 p = vec3(aGrid.x, 0.0, aGrid.y);
+  vec3 t = vec3(1.0, 0.0, 0.0);
+  vec3 b = vec3(0.0, 0.0, 1.0);
+
+  for (int i = 0; i < 4; i++) {
+    p += gerstner(uWaves[i], aGrid, t, b);
+  }
+
+  vNormal = normalize(cross(b, t));
+  vFold = t.x * b.z - t.z * b.x;
+  vWorld = p;
+  gl_Position = uViewProj * vec4(p, 1.0);
+}`;
+
+SRC.glslFragment = `#version 300 es
+precision highp float;
+
+in vec3 vWorld;
+in vec3 vNormal;
+in float vFold;
+
+uniform vec3 uCamPos;
+uniform vec3 uSunDir;       // unit vector pointing toward the sun
+
+out vec4 outColor;
+
+const vec3 HORIZON = vec3(0.86, 0.90, 0.90);
+const vec3 ZENITH  = vec3(0.45, 0.60, 0.72);
+
+vec3 sky(vec3 d) {
+  return mix(HORIZON, ZENITH, sqrt(clamp(d.y, 0.0, 1.0)));
+}
+
+void main() {
+  vec3 n = normalize(vNormal);
+  vec3 toCam = uCamPos - vWorld;
+  float dist = length(toCam);
+  vec3 v = toCam / dist;
+
+  // Schlick Fresnel, F0 = 0.02 for water
+  float ndv = max(dot(n, v), 0.0);
+  float fresnel = 0.02 + 0.98 * pow(1.0 - ndv, 5.0);
+
+  vec3 r = reflect(-v, n);
+  r.y = abs(r.y);
+  vec3 reflected = sky(r);
+
+  // Body colour: darker in troughs, lighter and backlit at crests
+  float crest = clamp(vWorld.y * 0.15 + 0.5, 0.0, 1.0);
+  vec3 body = mix(vec3(0.02, 0.10, 0.14), vec3(0.06, 0.32, 0.34), crest * crest);
+  float scatter = pow(max(dot(v, -uSunDir), 0.0), 4.0) * crest;
+  body += vec3(0.05, 0.25, 0.20) * scatter;
+
+  vec3 col = mix(body, reflected, fresnel);
+
+  // Sun glint
+  vec3 h = normalize(uSunDir + v);
+  col += vec3(1.0, 0.92, 0.80) * pow(max(dot(n, h), 0.0), 600.0) * 4.0;
+
+  // Foam where the surface is compressed (Jacobian < ~0.5)
+  float foam = 1.0 - smoothstep(0.15, 0.55, vFold);
+  col = mix(col, vec3(0.92, 0.95, 0.95), foam * 0.8);
+
+  // Squared-exponential fog toward the horizon colour
+  float fog = 1.0 - exp(-pow(dist * 0.011, 2.0));
+  col = mix(col, HORIZON, fog);
+
+  outColor = vec4(col, 1.0);
+}`;
+
+SRC.wgsl = `struct Uniforms {
+  viewProj: mat4x4f,
+  camPos: vec4f,            // xyz = camera, w = time
+  sunDir: vec4f,            // xyz = unit vector toward the sun
+  waves: array<vec4f, 4>,   // (dir.x, dir.y, steepness, wavelength)
+};
+
+@group(0) @binding(0) var<uniform> u: Uniforms;
+
+const PI = 3.14159265;
+const G = 9.81;
+const HORIZON = vec3f(0.86, 0.90, 0.90);
+const ZENITH = vec3f(0.45, 0.60, 0.72);
+
+struct VOut {
+  @builtin(position) clip: vec4f,
+  @location(0) world: vec3f,
+  @location(1) normal: vec3f,
+  @location(2) fold: f32,
+};
+
+fn gerstner(w: vec4f, p: vec2f, time: f32,
+            tangent: ptr<function, vec3f>,
+            binormal: ptr<function, vec3f>) -> vec3f {
+  let s = w.z;
+  let k = 2.0 * PI / w.w;
+  let c = sqrt(G / k);
+  let d = normalize(w.xy);
+  let f = k * (dot(d, p) - c * time);
+  let a = s / k;
+  let sf = sin(f);
+  let cf = cos(f);
+
+  *tangent  += vec3f(-d.x * d.x * s * sf, d.x * s * cf, -d.x * d.y * s * sf);
+  *binormal += vec3f(-d.x * d.y * s * sf, d.y * s * cf, -d.y * d.y * s * sf);
+
+  return vec3f(d.x * a * cf, a * sf, d.y * a * cf);
+}
+
+@vertex
+fn vs(@location(0) grid: vec2f) -> VOut {
+  var p = vec3f(grid.x, 0.0, grid.y);
+  var t = vec3f(1.0, 0.0, 0.0);
+  var b = vec3f(0.0, 0.0, 1.0);
+
+  for (var i = 0; i < 4; i++) {
+    p += gerstner(u.waves[i], grid, u.camPos.w, &t, &b);
+  }
+
+  var o: VOut;
+  o.clip = u.viewProj * vec4f(p, 1.0);
+  o.world = p;
+  o.normal = normalize(cross(b, t));
+  o.fold = t.x * b.z - t.z * b.x;
+  return o;
+}
+
+fn sky(d: vec3f) -> vec3f {
+  return mix(HORIZON, ZENITH, sqrt(clamp(d.y, 0.0, 1.0)));
+}
+
+@fragment
+fn fs(frag: VOut) -> @location(0) vec4f {
+  let n = normalize(frag.normal);
+  let toCam = u.camPos.xyz - frag.world;
+  let dist = length(toCam);
+  let v = toCam / dist;
+  let sun = u.sunDir.xyz;
+
+  let ndv = max(dot(n, v), 0.0);
+  let fresnel = 0.02 + 0.98 * pow(1.0 - ndv, 5.0);
+
+  var r = reflect(-v, n);
+  r.y = abs(r.y);
+  let reflected = sky(r);
+
+  let crest = clamp(frag.world.y * 0.15 + 0.5, 0.0, 1.0);
+  var body = mix(vec3f(0.02, 0.10, 0.14), vec3f(0.06, 0.32, 0.34), crest * crest);
+  let scatter = pow(max(dot(v, -sun), 0.0), 4.0) * crest;
+  body += vec3f(0.05, 0.25, 0.20) * scatter;
+
+  var col = mix(body, reflected, fresnel);
+
+  let h = normalize(sun + v);
+  col += vec3f(1.0, 0.92, 0.80) * pow(max(dot(n, h), 0.0), 600.0) * 4.0;
+
+  let foam = 1.0 - smoothstep(0.15, 0.55, frag.fold);
+  col = mix(col, vec3f(0.92, 0.95, 0.95), foam * 0.8);
+
+  let fog = 1.0 - exp(-pow(dist * 0.011, 2.0));
+  col = mix(col, HORIZON, fog);
+
+  return vec4f(col, 1.0);
+}`;
+
+/* ---------------------------------------------------------------
+   Shared scene state
+---------------------------------------------------------------- */
+const waves = [
+  { angle: 80,  length: 60,  steep: 0.22 },
+  { angle: 108, length: 31,  steep: 0.18 },
+  { angle: 55,  length: 17,  steep: 0.14 },
+  { angle: 138, length: 9.5, steep: 0.10 },
+];
+const SUN = (() => { const v = [0.25, 0.22, -1]; const l = Math.hypot(...v); return v.map(x => x / l); })();
+const camera = { yaw: 0.35, pitch: 0.14, dist: 45 };
+
+function packWaves(out, offset) {
+  waves.forEach((w, i) => {
+    const r = w.angle * Math.PI / 180;
+    out[offset + i * 4]     = Math.cos(r);
+    out[offset + i * 4 + 1] = Math.sin(r);
+    out[offset + i * 4 + 2] = w.steep;
+    out[offset + i * 4 + 3] = w.length;
+  });
+}
+
+function buildGrid(n, extent) {
+  // Rest positions only. Denser near the centre, sparser at the edge.
+  const squeeze = u => extent * u * (0.25 + 0.75 * u * u);
+  const verts = new Float32Array((n + 1) * (n + 1) * 2);
+  let o = 0;
+  for (let j = 0; j <= n; j++) {
+    const z = squeeze(j / n * 2 - 1);
+    for (let i = 0; i <= n; i++) {
+      verts[o++] = squeeze(i / n * 2 - 1);
+      verts[o++] = z;
+    }
+  }
+  const idx = new Uint32Array(n * n * 6);
+  o = 0;
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const a = j * (n + 1) + i, b = a + 1, c = a + n + 1, d = c + 1;
+      idx[o++] = a; idx[o++] = c; idx[o++] = b;
+      idx[o++] = b; idx[o++] = c; idx[o++] = d;
+    }
+  }
+  return { verts, idx, count: idx.length };
+}
+
+/* ---------------------------------------------------------------
+   Matrices (column-major, like both GLSL and WGSL expect)
+---------------------------------------------------------------- */
+function perspective(fovy, aspect, near, far, zeroToOne) {
+  const f = 1 / Math.tan(fovy / 2);
+  const m = new Float32Array(16);
+  m[0] = f / aspect;
+  m[5] = f;
+  m[11] = -1;
+  if (zeroToOne) {          // WebGPU: clip z in [0, 1]
+    m[10] = far / (near - far);
+    m[14] = far * near / (near - far);
+  } else {                  // WebGL: clip z in [-1, 1]
+    m[10] = (far + near) / (near - far);
+    m[14] = 2 * far * near / (near - far);
+  }
+  return m;
+}
+
+function lookAt(eye, target, up) {
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const norm = a => { const l = Math.hypot(a[0], a[1], a[2]); return [a[0] / l, a[1] / l, a[2] / l]; };
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const z = norm(sub(eye, target));
+  const x = norm(cross(up, z));
+  const y = cross(z, x);
+  return new Float32Array([
+    x[0], y[0], z[0], 0,
+    x[1], y[1], z[1], 0,
+    x[2], y[2], z[2], 0,
+    -dot(x, eye), -dot(y, eye), -dot(z, eye), 1,
+  ]);
+}
+
+function mul(a, b) {
+  const o = new Float32Array(16);
+  for (let c = 0; c < 4; c++)
+    for (let r = 0; r < 4; r++) {
+      let s = 0;
+      for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k];
+      o[c * 4 + r] = s;
+    }
+  return o;
+}
+
+/* ---------------------------------------------------------------
+   WebGL2 renderer
+---------------------------------------------------------------- */
+class GLRenderer {
+  constructor(canvas, mesh) {
+    const gl = canvas.getContext('webgl2', { antialias: true, alpha: true, premultipliedAlpha: true });
+    if (!gl) throw new Error('WebGL2 is not available in this browser.');
+    this.name = 'WebGL2';
+    this.zeroToOne = false;
+    this.canvas = canvas;
+    this.gl = gl;
+
+    const compile = (type, src) => {
+      const sh = gl.createShader(type);
+      gl.shaderSource(sh, src);
+      gl.compileShader(sh);
+      if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(sh));
+      return sh;
+    };
+    const prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, SRC.glslVertex));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, SRC.glslFragment));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+    this.prog = prog;
+
+    // Geometry: one vec2 attribute, 32-bit indices
+    this.vao = gl.createVertexArray();
+    gl.bindVertexArray(this.vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, mesh.verts, gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'aGrid');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.idx, gl.STATIC_DRAW);
+    gl.bindVertexArray(null);
+    this.count = mesh.count;
+
+    this.u = {};
+    for (const name of ['uViewProj', 'uTime', 'uWaves', 'uCamPos', 'uSunDir'])
+      this.u[name] = gl.getUniformLocation(prog, name);
+    this.waveData = new Float32Array(16);
+    gl.enable(gl.DEPTH_TEST);
+  }
+
+  render(frame) {
+    const gl = this.gl;
+    gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    gl.useProgram(this.prog);
+    gl.uniformMatrix4fv(this.u.uViewProj, false, frame.viewProj);
+    gl.uniform1f(this.u.uTime, frame.time);
+    gl.uniform3fv(this.u.uCamPos, frame.camPos);
+    gl.uniform3fv(this.u.uSunDir, SUN);
+    packWaves(this.waveData, 0);
+    gl.uniform4fv(this.u.uWaves, this.waveData);
+
+    gl.bindVertexArray(this.vao);
+    gl.drawElements(gl.TRIANGLES, this.count, gl.UNSIGNED_INT, 0);
+  }
+
+  destroy() {
+    const ext = this.gl.getExtension('WEBGL_lose_context');
+    if (ext) ext.loseContext();
+  }
+}
+
+/* ---------------------------------------------------------------
+   WebGPU renderer
+---------------------------------------------------------------- */
+class GPURenderer {
+  static async create(canvas, mesh) {
+    if (!navigator.gpu) throw new Error('WebGPU is not available in this browser.');
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) throw new Error('No WebGPU adapter was found.');
+    const device = await adapter.requestDevice();
+    return new GPURenderer(canvas, mesh, device);
+  }
+
+  constructor(canvas, mesh, device) {
+    this.name = 'WebGPU';
+    this.zeroToOne = true;
+    this.canvas = canvas;
+    this.device = device;
+    this.format = navigator.gpu.getPreferredCanvasFormat();
+    this.ctx = canvas.getContext('webgpu');
+    this.ctx.configure({ device, format: this.format, alphaMode: 'premultiplied' });
+
+    const module = device.createShaderModule({ code: SRC.wgsl });
+    this.pipeline = device.createRenderPipeline({
+      layout: 'auto',
+      vertex: {
+        module, entryPoint: 'vs',
+        buffers: [{ arrayStride: 8, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x2' }] }],
+      },
+      fragment: { module, entryPoint: 'fs', targets: [{ format: this.format }] },
+      primitive: { topology: 'triangle-list' },
+      depthStencil: { format: 'depth24plus', depthWriteEnabled: true, depthCompare: 'less' },
+      multisample: { count: 4 },
+    });
+
+    const upload = (data, usage) => {
+      const buf = device.createBuffer({ size: data.byteLength, usage: usage | GPUBufferUsage.COPY_DST });
+      device.queue.writeBuffer(buf, 0, data);
+      return buf;
+    };
+    this.vbuf = upload(mesh.verts, GPUBufferUsage.VERTEX);
+    this.ibuf = upload(mesh.idx, GPUBufferUsage.INDEX);
+    this.count = mesh.count;
+
+    // 160 bytes: mat4 (64) + camPos (16) + sunDir (16) + 4 waves (64)
+    this.uData = new Float32Array(40);
+    this.ubuf = device.createBuffer({ size: 160, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+    this.bindGroup = device.createBindGroup({
+      layout: this.pipeline.getBindGroupLayout(0),
+      entries: [{ binding: 0, resource: { buffer: this.ubuf } }],
+    });
+    this.size = [0, 0];
+  }
+
+  ensureTargets() {
+    const w = this.canvas.width, h = this.canvas.height;
+    if (w === this.size[0] && h === this.size[1]) return;
+    if (this.depth) { this.depth.destroy(); this.msaa.destroy(); }
+    const make = format => this.device.createTexture({
+      size: [w, h], format, sampleCount: 4, usage: GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+    this.depth = make('depth24plus');
+    this.msaa = make(this.format);
+    this.size = [w, h];
+  }
+
+  render(frame) {
+    this.ensureTargets();
+    const d = this.uData;
+    d.set(frame.viewProj, 0);
+    d.set(frame.camPos, 16);
+    d[19] = frame.time;
+    d.set(SUN, 20);
+    packWaves(d, 24);
+    this.device.queue.writeBuffer(this.ubuf, 0, d);
+
+    const enc = this.device.createCommandEncoder();
+    const pass = enc.beginRenderPass({
+      colorAttachments: [{
+        view: this.msaa.createView(),
+        resolveTarget: this.ctx.getCurrentTexture().createView(),
+        clearValue: { r: 0, g: 0, b: 0, a: 0 },
+        loadOp: 'clear', storeOp: 'discard',
+      }],
+      depthStencilAttachment: {
+        view: this.depth.createView(),
+        depthClearValue: 1, depthLoadOp: 'clear', depthStoreOp: 'discard',
+      },
+    });
+    pass.setPipeline(this.pipeline);
+    pass.setBindGroup(0, this.bindGroup);
+    pass.setVertexBuffer(0, this.vbuf);
+    pass.setIndexBuffer(this.ibuf, 'uint32');
+    pass.drawIndexed(this.count);
+    pass.end();
+    this.device.queue.submit([enc.finish()]);
+  }
+
+  destroy() {
+    this.ctx.unconfigure();
+    this.device.destroy();
+  }
+}
+
+/* ---------------------------------------------------------------
+   CPU-side queries (section 10)
+---------------------------------------------------------------- */
+function displace(x, z, t) {
+  // Same math as the vertex shader, summed over every wave.
+  let dx = 0, y = 0, dz = 0;
+  for (const w of waves) {
+    const r = w.angle * Math.PI / 180;
+    const Dx = Math.cos(r), Dz = Math.sin(r);
+    const k = 2 * Math.PI / w.length;
+    const c = Math.sqrt(9.81 / k);
+    const f = k * (Dx * x + Dz * z - c * t);
+    const a = w.steep / k;
+    dx += Dx * a * Math.cos(f);
+    y  += a * Math.sin(f);
+    dz += Dz * a * Math.cos(f);
+  }
+  return [dx, y, dz];
+}
+
+function heightAt(qx, qz, t, iterations = 4) {
+  // Find rest position p such that p + horizontal(displace(p)) = q.
+  let px = qx, pz = qz;
+  for (let i = 0; i < iterations; i++) {
+    const [dx, , dz] = displace(px, pz, t);
+    px = qx - dx;
+    pz = qz - dz;
+  }
+  const [dx, y, dz] = displace(px, pz, t);
+  // Round trip: where does p actually land?
+  const miss = Math.hypot(px + dx - qx, pz + dz - qz);
+  return { y, miss };
+}
+
+/* ---------------------------------------------------------------
+   Page wiring
+---------------------------------------------------------------- */
+const mesh = buildGrid(384, 250);
+const stage = document.getElementById('stage');
+const statusEl = document.getElementById('status');
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let renderer = null;
+let playing = !reduceMotion;
+let simTime = 12;
+let stageVisible = true;
+let switching = 0;
+
+async function startBackend(kind) {
+  const token = ++switching;
+  if (renderer) { renderer.destroy(); renderer = null; }
+  const old = document.getElementById('ocean');
+  const canvas = document.createElement('canvas');
+  canvas.id = 'ocean';
+  canvas.setAttribute('aria-label', old.getAttribute('aria-label'));
+  old.replaceWith(canvas);
+  sizeCanvas(canvas);
+  try {
+    const r = kind === 'webgpu' ? await GPURenderer.create(canvas, mesh) : new GLRenderer(canvas, mesh);
+    if (token !== switching) { r.destroy(); return; }
+    renderer = r;
+    statusEl.textContent = 'Rendering with ' + r.name;
+    setRadio(kind);
+  } catch (err) {
+    if (token !== switching) return;
+    console.error(err);
+    if (kind === 'webgpu') {
+      statusEl.textContent = 'WebGPU failed to start, using WebGL2';
+      return startBackend('webgl2');
+    }
+    statusEl.textContent = 'This browser can’t run WebGL2 or WebGPU, so the demo is off. The tutorial still works.';
+  }
+}
+
+function setRadio(kind) {
+  document.querySelectorAll('input[name=backend]').forEach(r => { r.checked = r.value === kind; });
+}
+
+function sizeCanvas(canvas) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = Math.max(1, Math.round(canvas.clientWidth * dpr));
+  const h = Math.max(1, Math.round(canvas.clientHeight * dpr));
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  if (playing) simTime += dt;
+  if (renderer && stageVisible) {
+    const canvas = renderer.canvas;
+    sizeCanvas(canvas);
+    const target = [0, 1.5, 0];
+    const cp = Math.cos(camera.pitch);
+    const eye = [
+      target[0] + camera.dist * cp * Math.sin(camera.yaw),
+      target[1] + camera.dist * Math.sin(camera.pitch),
+      target[2] + camera.dist * cp * Math.cos(camera.yaw),
+    ];
+    const proj = perspective(55 * Math.PI / 180, canvas.width / canvas.height, 0.5, 900, renderer.zeroToOne);
+    const viewProj = mul(proj, lookAt(eye, target, [0, 1, 0]));
+    try {
+      renderer.render({ viewProj, camPos: eye, time: simTime });
+    } catch (err) {
+      console.error(err);
+      statusEl.textContent = 'Rendering stopped: ' + err.message;
+      renderer = null;
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+// Orbit by dragging
+let drag = null;
+stage.addEventListener('pointerdown', e => {
+  drag = { x: e.clientX, y: e.clientY, yaw: camera.yaw, pitch: camera.pitch, touch: e.pointerType === 'touch' };
+  stage.setPointerCapture(e.pointerId);
+});
+stage.addEventListener('pointermove', e => {
+  if (!drag) return;
+  camera.yaw = drag.yaw - (e.clientX - drag.x) * 0.005;
+  if (!drag.touch) camera.pitch = Math.min(1.2, Math.max(0.03, drag.pitch + (e.clientY - drag.y) * 0.004));
+});
+const endDrag = () => { drag = null; };
+stage.addEventListener('pointerup', endDrag);
+stage.addEventListener('pointercancel', endDrag);
+
+new IntersectionObserver(entries => { stageVisible = entries[0].isIntersecting; }).observe(stage);
+
+// Controls
+const playBtn = document.getElementById('play');
+function syncPlay() { playBtn.textContent = playing ? 'Pause' : 'Play'; }
+playBtn.addEventListener('click', () => { playing = !playing; syncPlay(); });
+syncPlay();
+
+document.querySelectorAll('input[name=backend]').forEach(r => {
+  if (r.value === 'webgpu' && !navigator.gpu) { r.disabled = true; r.parentElement.title = 'WebGPU is not available in this browser'; }
+  r.addEventListener('change', () => { if (r.checked) startBackend(r.value); });
+});
+
+const dist = document.getElementById('dist');
+const distOut = document.getElementById('dist-out');
+dist.addEventListener('input', () => { camera.dist = +dist.value; distOut.textContent = dist.value + ' m'; });
+
+const rows = document.getElementById('wave-rows');
+const sumOut = document.getElementById('sum');
+const sumNote = document.getElementById('sum-note');
+function updateSum() {
+  const s = waves.reduce((acc, w) => acc + w.steep, 0);
+  sumOut.textContent = s.toFixed(2);
+  sumNote.textContent = s > 1 ? 'Over budget: crests can fold where they align.' : 'Within budget: the surface can’t fold.';
+  sumNote.className = s > 1 ? 'warn' : '';
+}
+waves.forEach((w, i) => {
+  const row = document.createElement('div');
+  row.className = 'wave-row';
+  const name = document.createElement('span');
+  name.className = 'wave-name';
+  name.textContent = 'Wave ' + (i + 1);
+  row.append(name);
+  const fields = [
+    { key: 'angle',  label: 'Direction',  min: 0, max: 360, step: 1,    fmt: v => Math.round(v) + '°' },
+    { key: 'length', label: 'Wavelength', min: 2, max: 120, step: 0.5,  fmt: v => (+v).toFixed(1) + ' m' },
+    { key: 'steep',  label: 'Steepness',  min: 0, max: 1,   step: 0.01, fmt: v => (+v).toFixed(2) },
+  ];
+  for (const f of fields) {
+    const label = document.createElement('label');
+    const span = document.createElement('span');
+    span.textContent = f.label;
+    const out = document.createElement('output');
+    out.textContent = f.fmt(w[f.key]);
+    const input = document.createElement('input');
+    Object.assign(input, { type: 'range', min: f.min, max: f.max, step: f.step, value: w[f.key] });
+    input.setAttribute('aria-label', 'Wave ' + (i + 1) + ' ' + f.label.toLowerCase());
+    input.addEventListener('input', () => {
+      w[f.key] = +input.value;
+      out.textContent = f.fmt(input.value);
+      updateSum();
+    });
+    label.append(span, out, input);
+    row.append(label);
+  }
+  rows.append(row);
+});
+updateSum();
+
+// Live CPU height query + round-trip check
+const hOut = document.getElementById('h-out');
+const rtOut = document.getElementById('rt-out');
+setInterval(() => {
+  const { y, miss } = heightAt(0, 12, simTime);
+  hOut.textContent = (y >= 0 ? '+' : '−') + Math.abs(y).toFixed(2) + ' m';
+  rtOut.textContent = miss < 1e-4 ? miss.toExponential(1) + ' m' : miss.toFixed(4) + ' m';
+}, 200);
+
+/* ---------------------------------------------------------------
+   Figure 1: the 1D trochoid
+---------------------------------------------------------------- */
+const fig = document.getElementById('trochoid');
+const figS = document.getElementById('fig-s');
+const figOut = document.getElementById('fig-s-out');
+const figNote = document.getElementById('fig-note');
+let figVisible = false;
+let figPhase = 0;
+
+function drawTrochoid() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const W = fig.clientWidth, H = fig.clientHeight;
+  if (fig.width !== Math.round(W * dpr)) { fig.width = Math.round(W * dpr); fig.height = Math.round(H * dpr); }
+  const g = fig.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  const css = getComputedStyle(document.documentElement);
+  const ink = css.getPropertyValue('--ink').trim();
+  const sea = css.getPropertyValue('--sea').trim();
+  const muted = css.getPropertyValue('--muted').trim();
+  const rule = css.getPropertyValue('--rule').trim();
+
+  const s = +figS.value;
+  const L = 1, k = 2 * Math.PI / L, a = s / k;
+  const span = 2.5;                       // wavelengths across the canvas
+  const scale = Math.min(W / span, H / 0.55);
+  const x0px = (W - span * scale) / 2;
+  const sx = x => x0px + x * scale;
+  const sy = y => H / 2 - y * scale;
+
+  g.lineWidth = 1;
+  g.strokeStyle = rule;
+  g.beginPath(); g.moveTo(0, sy(0)); g.lineTo(W, sy(0)); g.stroke();
+
+  // Sine for comparison
+  g.setLineDash([5, 5]);
+  g.strokeStyle = muted;
+  g.beginPath();
+  for (let x = -0.2; x <= span + 0.2; x += 0.004) {
+    const y = a * Math.sin(k * x - figPhase);
+    x === -0.2 ? g.moveTo(sx(x), sy(y)) : g.lineTo(sx(x), sy(y));
+  }
+  g.stroke();
+  g.setLineDash([]);
+
+  // Gerstner surface
+  g.strokeStyle = sea;
+  g.lineWidth = 2.25;
+  g.beginPath();
+  let first = true;
+  for (let x0 = -0.4; x0 <= span + 0.4; x0 += 0.002) {
+    const th = k * x0 - figPhase;
+    const X = x0 + a * Math.cos(th), Y = a * Math.sin(th);
+    first ? g.moveTo(sx(X), sy(Y)) : g.lineTo(sx(X), sy(Y));
+    first = false;
+  }
+  g.stroke();
+
+  // Particles and their orbits
+  for (let x0 = 0.125; x0 < span; x0 += 0.25) {
+    const th = k * x0 - figPhase;
+    g.strokeStyle = rule;
+    g.lineWidth = 1;
+    g.beginPath(); g.arc(sx(x0), sy(0), a * scale, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = ink;
+    g.beginPath(); g.arc(sx(x0 + a * Math.cos(th)), sy(a * Math.sin(th)), 3.5, 0, Math.PI * 2); g.fill();
+  }
+}
+
+function syncFig() {
+  const s = +figS.value;
+  figOut.textContent = s.toFixed(2);
+  figNote.textContent = s > 1 ? 'The surface loops over itself.' : (s === 1 ? 'A cusp: zero spacing at the crest.' : '');
+  drawTrochoid();
+}
+figS.addEventListener('input', syncFig);
+new IntersectionObserver(e => { figVisible = e[0].isIntersecting; }).observe(fig);
+(function figLoop(now) {
+  if (figVisible && !reduceMotion) { figPhase = (now / 1000) * 1.6; drawTrochoid(); }
+  requestAnimationFrame(figLoop);
+})(0);
+window.addEventListener('resize', drawTrochoid);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawTrochoid);
+syncFig();
+
+/* ---------------------------------------------------------------
+   Fill code listings from the live sources
+---------------------------------------------------------------- */
+const listings = {
+  glslVertex: SRC.glslVertex,
+  glslFragment: SRC.glslFragment,
+  wgsl: SRC.wgsl,
+  buildGrid: buildGrid.toString(),
+  perspective: perspective.toString(),
+  GLRenderer: GLRenderer.toString(),
+  GPURenderer: GPURenderer.toString(),
+  displace: displace.toString(),
+  heightAt: heightAt.toString(),
+};
+document.querySelectorAll('code[data-src]').forEach(el => { el.textContent = listings[el.dataset.src]; });
+
+/* ---------------------------------------------------------------
+   Math: KaTeX rendered to native MathML (no stylesheet needed)
+---------------------------------------------------------------- */
+window.addEventListener('load', () => {
+  if (!window.katex) return;
+  const opts = display => ({ output: 'mathml', displayMode: display, throwOnError: false });
+  document.querySelectorAll('.eq[data-tex]').forEach(el => katex.render(el.textContent, el, opts(true)));
+  document.querySelectorAll('.m').forEach(el => katex.render(el.textContent, el, opts(false)));
+});
+
+// Go
+startBackend(navigator.gpu ? 'webgpu' : 'webgl2');
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

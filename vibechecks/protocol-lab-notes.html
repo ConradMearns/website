@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Protocol Lab, annotated — Conrad Mearns</title>
+    <script src="../js/theme.js"></script>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/notes.css">
+</head>
+<body>
+
+    <header>
+        <a href="../index.html">conrads.website</a> /
+        <a href="index.html">vibechecks</a>
+        <span class="here" aria-current="page">/ protocol lab</span>
+        <button type="button" data-theme-toggle></button>
+    </header>
+
+    <div class="stage">
+        <main class="notes">
+            <h1>Protocol Lab</h1>
+
+            <section data-view="protocol-lab.html#alice-bob" data-label="Alice ↔ Bob">
+                <h2>The ask</h2>
+                <p class="who">Me, to Claude</p>
+                <blockquote>
+                    <p>
+                        Let's make simulator / animation suite for some encryption protocols I want working on. The goal is to have a simple
+                        code structure you and I can write to describe a series of steps and actions taken, and the product should be an
+                        animation that displays the steps. For example, one such protocol would be a simple exchange of private/public key
+                        pairs between Alice and Bob. They publish public keys to a global knowledge base or channel - then they can
+                        communicate accordingly through a new channel. We'd need to show how the keys are used to decrypt each message.
+                        A more complex example may be a user who first generated a key with bip39, they make a UserIdentityKey and a Device
+                        key, they encrypt the UIDK with the DIDK and publish the UIDK - the UIDK private key is stored in their device,
+                        encrypted with the device key. They can share their user private key with other devices they own - then we add more
+                        to show how they communicate to Bob etc
+                    </p>
+                </blockquote>
+            </section>
+
+            <section data-view="protocol-lab.html#alice-bob" data-label="Alice ↔ Bob">
+                <h2>What came back</h2>
+                <p class="who">Claude</p>
+                <p>Engine works as intended: both real protocols validate clean, and the broken one surfaces exactly the three bugs. Publishing.</p>
+                <p>
+                    First version is published as Protocol Lab. You describe a protocol as plain text, one step per line, and it plays it
+                    back as an animation.
+                </p>
+<pre>gen alice: alice.pub alice.priv
+publish alice: alice.pub -&gt; registry
+fetch bob: alice.pub &lt;- registry
+encrypt bob: hi.msg with alice.pub as hi.enc
+send bob -&gt; alice: hi.enc via wire
+!decrypt eve: hi.enc with eve.priv    ; "!" = must fail
+decrypt alice: hi.enc with alice.priv
+assert alice has hi.msg               ; the round-trip check</pre>
+            </section>
+
+            <section data-view="protocol-lab.html#alice-bob,play" data-label="Playback">
+                <h2>Playback</h2>
+                <p>
+                    Actors hold vaults of keys and messages, and channels sit between them. Items fly around, and ciphertexts show what
+                    they're sealed under. You can play, step, scrub, and change speed.
+                </p>
+            </section>
+
+            <section data-view="protocol-lab.html#alice-bob" data-label="Symbolic, not real crypto">
+                <h2>Symbolic, not real crypto</h2>
+                <p>
+                    Each step is checked against who actually holds what, so a wrong key, a missing fetch, or a leaked secret shows up as a
+                    concrete error. That's the round-trip feedback you want.
+                </p>
+            </section>
+
+            <section data-view="protocol-lab.html#alice-bob,play" data-label="Preset: Alice ↔ Bob">
+                <h2>Presets: Alice ↔ Bob</h2>
+                <p>Alice ↔ Bob with Eve tapping the wire.</p>
+            </section>
+
+            <section data-view="protocol-lab.html#identity,play" data-label="Preset: identity key, two devices, Bob">
+                <h2>Presets: the identity</h2>
+                <p>
+                    Your BIP39 → UIK → device key flow, with a second device enrolled and Bob talking to the identity.
+                </p>
+            </section>
+
+            <section data-view="protocol-lab.html#broken" data-label="Preset: the broken one">
+                <h2>Presets: the broken one</h2>
+                <p>A deliberately broken protocol, so you can see the errors.</p>
+            </section>
+
+            <section data-view="protocol-lab.html#alice-bob" data-label="Editing">
+                <h2>Editing</h2>
+                <p>The source is editable and re-runnable from the page.</p>
+            </section>
+
+            <section data-view="protocol-lab.html#identity" data-label="Identity flow">
+                <h2>Two decisions</h2>
+                <p>
+                    Two decisions I made on the identity flow, so tell me if they're wrong. The device key is symmetric (it seals
+                    <code>uik.priv</code> at rest). The second device enrolls with a throwaway keypair.
+                </p>
+            </section>
+
+            <section data-view="protocol-lab.html#alice-bob" data-label="Alice ↔ Bob">
+                <h2>What next</h2>
+                <p>
+                    Next things I'd add: signatures, ratcheting or session keys, and a "recover from seed" flow. If you'd rather write
+                    protocols in Python as Dizzy commands, the same engine could take that as input.
+                </p>
+                <p><small>Open the <a href="protocol-lab.html">full page</a> to write your own.</small></p>
+            </section>
+        </main>
+
+        <div class="frame">
+            <div class="screen"><iframe src="protocol-lab.html#alice-bob" title="Protocol Lab, live" data-width="1000"></iframe></div>
+            <p><span id="label">Alice ↔ Bob</span> <a id="open" href="protocol-lab.html">Open full page →</a></p>
+        </div>
+    </div>
+
+    <script src="../js/notes.js"></script>
+</body>
+</html>
