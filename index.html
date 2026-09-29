@@ -6,6 +6,7 @@
 <title>Conrad Mearns</title>
 <script src="js/theme.js"></script>
 <link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="css/peek.css">
 <style>
   /* title-card masthead over a quiet two-column body; light/dark via data-theme */
   body { max-width: 62em; margin: 0 auto; padding: 2em 1.2em 3em; overflow-x: clip; font: 1.15em/1.55 Georgia, serif; }
@@ -32,6 +33,7 @@
   #posts img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; border: 1px solid var(--line); }
   #posts time { display: block; font: .8em/1.6 ui-monospace, monospace; letter-spacing: .05em; color: var(--dim); }
   #posts .imgs a { display: block; }
+  #posts a.t { white-space: pre-line; overflow-wrap: anywhere; }
   #posts a { text-decoration-thickness: 1px; }
   #posts small { color: var(--dim); }
   .box { border-top: 1px solid var(--line); padding-top: 1em; margin-top: 1.2em; }
@@ -43,14 +45,6 @@
   main li.hi { border-top-color: var(--accent); }
   time, span { color: var(--dim); }
   time { font: .8em/2.1 ui-monospace, monospace; letter-spacing: .05em; }
-  #peek { position: fixed; z-index: 9; left: 0; top: 0; width: 412px; pointer-events: none; background: var(--bg); border: 2px solid var(--accent); box-shadow: 6px 6px 0 var(--fg); opacity: 0; transform: scaleY(.04); transition: opacity .15s, transform .22s cubic-bezier(.2, .9, .3, 1); }
-  #peek.on { opacity: 1; transform: none; }
-  #peek small { display: block; padding: .3em .7em; background: var(--accent); color: var(--bg); font: .7em/1.5 ui-monospace, monospace; letter-spacing: .06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #peek div { position: relative; width: 408px; height: 255px; overflow: hidden; background: #fff; }
-  #peek iframe { width: 1024px; height: 640px; border: 0; transform: scale(.398); transform-origin: 0 0; }
-  #peek img { width: 100%; height: 100%; object-fit: cover; object-position: top left; display: block; }
-  #peek div::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(transparent 0 2px, #0002 2px 3px); }
-  @media (hover: none), (max-width: 42em) { #peek { display: none; } }
   @media (max-width: 42em) { #posts article:nth-child(n+3) { display: none; } }
   @media (max-width: 42em) { .cols { grid-template-columns: 1fr; gap: 2em; } main { order: -1; } main li { grid-template-columns: 1fr; } #posts img { aspect-ratio: 16 / 9; } header p { letter-spacing: .1em; } aside .box:first-child { border-top: 1px solid var(--line); padding-top: 1em; } }
 </style>
@@ -116,10 +110,10 @@
         }).slice(0, N);
         feed.replaceChildren();
         posts.forEach(function (i) {
-          var p = i.post, art = document.createElement("article"), t = document.createElement("time"), a = document.createElement("a"), txt = p.record.text.replace(/\s+/g, " ").trim();
+          var p = i.post, art = document.createElement("article"), t = document.createElement("time"), a = document.createElement("a"), txt = p.record.text.trim();
           t.textContent = p.record.createdAt.slice(0, 10).replace(/-/g, ".");
           a.href = "https://bsky.app/profile/" + H + "/post/" + p.uri.split("/").pop(); a.rel = "noopener";
-          a.textContent = txt.length > 140 ? txt.slice(0, 140).replace(/\s\S*$/, "") + "…" : txt || "(photo)";
+          a.className = "t"; a.textContent = txt || "(photo)";
           art.append(t, a);
           if (p.embed && p.embed.$type === "app.bsky.embed.images#view") {
             var g = document.createElement("div"); g.className = "imgs";
@@ -138,42 +132,6 @@
       .catch(function () { feed.innerHTML = '<small>Couldn\u2019t load posts.</small>'; });
   })();
 </script>
-<script>
-  /* hover preview: a tiny CRT that shows the page a link points to (own site + github.io only) */
-  (function () {
-    var canPeek = matchMedia("(hover: hover) and (min-width: 42.01em)");
-    if (!matchMedia("(hover: hover)").matches) return;
-    var box = document.createElement("div"), cap = document.createElement("small"), screen = document.createElement("div"), cur, timer;
-    box.id = "peek"; box.setAttribute("aria-hidden", "true"); box.append(cap, screen); document.body.append(box);
-    function src(a) { return a.dataset.peek || a.href; }  /* data-peek: a page URL or an image, for links that cannot be framed */
-    function ok(a) {
-      var u = new URL(src(a), location.href);
-      return /^https?:|^file:/.test(u.protocol) && (u.origin === location.origin || u.hostname.endsWith(".github.io")) && u.pathname !== location.pathname;
-    }
-    function show(a) {
-      var f;
-      if (/\.(png|jpe?g|webp|gif)$/i.test(src(a))) { f = document.createElement("img"); f.src = src(a); f.alt = ""; }
-      else { f = document.createElement("iframe"); f.src = src(a); f.tabIndex = -1; f.setAttribute("sandbox", "allow-scripts allow-same-origin"); }
-      screen.replaceChildren(f); box.classList.add("on");
-    }
-    function hide() {
-      clearTimeout(timer); box.classList.remove("on");
-      setTimeout(function () { if (!box.classList.contains("on")) screen.replaceChildren(); }, 250);
-    }
-    function move(e) {
-      var w = box.offsetWidth, h = box.offsetHeight, x = e.clientX + 24, y = e.clientY + 20;
-      if (x + w > innerWidth - 8) x = e.clientX - w - 24;
-      if (y + h > innerHeight - 8) y = innerHeight - h - 8;
-      box.style.left = Math.max(8, x) + "px"; box.style.top = Math.max(8, y) + "px";
-    }
-    document.addEventListener("mouseover", function (e) {
-      var a = e.target.closest && e.target.closest("a[href]");
-      if (a === cur) return;
-      hide(); cur = a;
-      if (a && canPeek.matches && ok(a)) { var u = new URL(a.href); cap.textContent = "▶ " + (u.origin === location.origin ? u.pathname.slice(1) : u.host + u.pathname); move(e); timer = setTimeout(show, 250, a); }
-    });
-    document.addEventListener("mousemove", function (e) { if (cur) move(e); });
-  })();
-</script>
+<script src="js/peek.js"></script>
 </body>
 </html>
