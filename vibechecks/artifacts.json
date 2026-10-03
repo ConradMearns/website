@@ -1,15 +1,29 @@
 {
-  "synced": "2026-10-02",
+  "synced": "2026-10-03",
   "latest": {
-    "title": "Disk World Generator",
-    "slug": "disk-world-generator",
-    "artifact_id": "15emgJwRv58GNagNPY8msS",
-    "version": "1790963481-bba3",
-    "updated_utc": "2026-10-02T17:51:21Z"
+    "title": "Goals: Facts and Common Ground",
+    "slug": "goals-common-ground",
+    "artifact_id": "HXA9Jnind8oXvuhUwDhoHF",
+    "version": "1791001372-441f",
+    "updated_utc": "2026-10-03T04:22:52Z"
   },
   "how_to_check": "Ask Claude to list your artifacts. Anything whose id is not below, or whose version differs from the one recorded here, is new or changed. Versions start with a unix timestamp, so updated_utc is exact; the artifact list itself only shows the day.",
   "generation_note": "generation is null for artifacts made on claude.ai: the page carries no model, effort or cost. For Claude Code ones it comes from the local session transcripts under ~/.claude/projects.",
   "artifacts": [
+    {
+      "title": "Goals: Facts and Common Ground",
+      "slug": "goals-common-ground",
+      "url": "https://claude.ai/artifact/HXA9Jnind8oXvuhUwDhoHF",
+      "artifact_id": "HXA9Jnind8oXvuhUwDhoHF",
+      "version": "1791001372-441f",
+      "updated_utc": "2026-10-03T04:22:52Z",
+      "status": "pulled",
+      "page": "vibechecks/goals-common-ground.html",
+      "notes": "vibechecks/goals-common-ground-notes.html",
+      "source": "claude.ai",
+      "bytes": 159565,
+      "generation": null
+    },
     {
       "title": "Disk World: Generator",
       "slug": "disk-world-generator",

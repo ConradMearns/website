@@ -1,0 +1,1482 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Goals, facts and common ground: a research notebook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --paper:#F2F4F1; --panel:#FAFBF9; --ink:#1A2233; --muted:#566173; --line:#CBD2CC; --grid:rgba(26,34,51,.055);
+  --c-org:#0F766E; --c-second:#4338CA; --c-soft:#A85A0B; --c-complex:#4D7C0F; --c-cog:#BE185D;
+  --c-safety:#B91C1C; --c-ai:#0369A1; --c-social:#7E22CE; --c-hist:#57534E; --c-origins:#64748B;
+  --serif:'Newsreader',Georgia,'Times New Roman',serif;
+  --sans:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#11161E; --panel:#19202B; --ink:#E6EAF0; --muted:#98A3B4; --line:#2B3442; --grid:rgba(230,234,240,.05);
+    --c-org:#2DD4BF; --c-second:#A5B4FC; --c-soft:#F0B24A; --c-complex:#A3D65C; --c-cog:#F472B6;
+    --c-safety:#F87171; --c-ai:#60A5FA; --c-social:#C99BFF; --c-hist:#B4ADA6; --c-origins:#94A3B8;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11161E; --panel:#19202B; --ink:#E6EAF0; --muted:#98A3B4; --line:#2B3442; --grid:rgba(230,234,240,.05);
+  --c-org:#2DD4BF; --c-second:#A5B4FC; --c-soft:#F0B24A; --c-complex:#A3D65C; --c-cog:#F472B6;
+  --c-safety:#F87171; --c-ai:#60A5FA; --c-social:#C99BFF; --c-hist:#B4ADA6; --c-origins:#94A3B8;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:auto;scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px);scroll-behavior:smooth}
+body{
+  margin:0;background-color:var(--paper);color:var(--ink);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;
+  font-family:var(--serif);font-size:18px;line-height:1.55;
+  -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--c-ai);outline-offset:2px;border-radius:4px}
+
+/* header */
+.top{padding:clamp(28px,6vw,64px) 0 clamp(12px,2vw,20px)}
+h1{font-weight:400;font-size:clamp(46px,9vw,104px);line-height:.95;letter-spacing:-.025em;margin:0 0 .18em}
+.lede{max-width:44rem;font-size:clamp(18px,2.2vw,22px);color:var(--muted);margin:0}
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;gap:clamp(14px,3vw,30px);overflow-x:auto;font-family:var(--sans);font-size:15px;font-weight:500;scrollbar-width:none}
+.nav a{padding:14px 0;text-decoration:none;color:var(--muted);white-space:nowrap;border-bottom:2px solid transparent}
+.nav a:hover,.nav a.on{color:var(--ink);border-bottom-color:var(--ink)}
+section{padding:clamp(36px,6vw,72px) 0 0}
+h2{font-weight:600;font-size:clamp(28px,4vw,42px);line-height:1.1;letter-spacing:-.015em;margin:0 0 .3em}
+.sub{font-family:var(--sans);font-size:15px;color:var(--muted);max-width:46rem;margin:0 0 24px}
+
+/* map */
+.mapgrid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(20px,3vw,40px);align-items:start}
+.mapsvg{width:100%;height:auto;display:block}
+.node{cursor:pointer}
+.node circle.n{stroke-width:2;transition:stroke-width .15s,fill .15s}
+.node.sel circle.n{stroke-width:5}
+.node text{font-family:var(--sans);fill:var(--ink);pointer-events:none}
+.node .l{font-size:17px;font-weight:600;text-anchor:middle}
+.node .cnt{font-size:13px;fill:var(--muted);text-anchor:middle}
+.spoke{stroke:var(--line);stroke-width:1.5;fill:none}
+.xlink{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:5 6;fill:none;opacity:.35;transition:opacity .15s}
+.xlink.hi{opacity:.95;stroke-width:2.5}
+.mapsvg.has-sel .node:not(.sel):not(.rel){opacity:.5}
+.center circle{fill:var(--ink)}
+.center text{fill:var(--paper);font-family:var(--serif);text-anchor:middle}
+.tree{display:none;list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--ink)}
+.tree li{margin:0 0 8px}
+.tree .root{font-family:var(--serif);font-size:18px;margin:0 0 12px -14px;padding-left:14px;font-weight:600}
+.tree button{width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--c);border-radius:6px;padding:10px 12px;cursor:pointer;font-family:var(--sans)}
+.tree button[aria-pressed=true]{background:color-mix(in srgb,var(--c) 14%,var(--panel));border-color:var(--c)}
+.tree b{display:block;font-size:16px}
+.tree span{font-size:13.5px;color:var(--muted);line-height:1.35;display:block}
+@media(max-width:820px){
+  .mapgrid{grid-template-columns:1fr}
+  .mapsvg{display:none}
+  .tree{display:block}
+}
+.panel{background:var(--panel);border:1px solid var(--line);border-top:6px solid var(--c,var(--ink));border-radius:6px;padding:clamp(16px,3vw,28px);position:sticky;top:76px;max-height:calc(100vh - 96px);overflow:auto}
+@media(max-width:820px){.panel{position:static;max-height:none}}
+.panel h3{font-size:clamp(24px,3vw,32px);line-height:1.1;margin:0 0 6px;font-weight:600}
+.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--sans);font-size:14px;color:var(--muted);margin:0 0 14px}
+.stats b{color:var(--ink);font-weight:600}
+.panel p{margin:0 0 14px}
+.panel h4{font-family:var(--sans);font-size:14px;font-weight:600;margin:20px 0 8px;color:var(--c)}
+.ideas{margin:0;padding:0;list-style:none}
+.ideas li{margin:0 0 8px;font-size:16.5px;line-height:1.45}
+.ideas b{font-weight:600}
+.arg{margin:0 0 10px;font-size:16px;line-height:1.45;border-left:3px solid var(--line);padding-left:12px}
+.arg i{font-style:normal;font-family:var(--sans);font-size:13.5px;font-weight:600;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--sans);font-size:13.5px;background:color-mix(in srgb,var(--c,var(--muted)) 12%,var(--panel));border:1px solid color-mix(in srgb,var(--c,var(--muted)) 40%,var(--line));border-radius:99px;padding:3px 10px;line-height:1.35}
+.chip small{color:var(--muted);font-size:12px}
+button.chip{cursor:pointer}
+.start li{margin:0 0 6px;font-size:16px;line-height:1.4}
+.start{margin:0;padding:0;list-style:none}
+.start em{font-style:italic}
+.start span{font-family:var(--sans);font-size:13px;color:var(--muted)}
+.rel-list{margin:0;padding:0;list-style:none}
+.rel-list li{font-size:15.5px;line-height:1.4;margin:0 0 8px}
+.rel-list button{background:none;border:0;padding:0;cursor:pointer;font-family:var(--sans);font-weight:600;font-size:14.5px;color:var(--c);text-decoration:underline;text-underline-offset:3px}
+
+/* timeline */
+.scroller{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.tl{display:block;min-width:960px;width:100%;height:auto}
+.tl text{font-family:var(--sans);fill:var(--ink)}
+.tl .yr{font-size:11.5px;fill:var(--muted)}
+.tl .rl{font-size:13px;font-weight:600}
+.tl .band{font-size:12px;fill:var(--muted)}
+.tl .dot{cursor:pointer}
+.tl .dot:focus-visible{outline:none;stroke:var(--ink);stroke-width:3}
+.tlinfo{font-family:var(--sans);font-size:15px;min-height:3.2em;padding:12px 2px 0;color:var(--muted)}
+.tlinfo b{color:var(--ink);font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--sans);font-size:13px;color:var(--muted);margin:10px 0 0}
+.legend svg{vertical-align:-3px;margin-right:5px}
+
+/* debates */
+.deb{border-top:1px solid var(--line)}
+.deb:last-of-type{border-bottom:1px solid var(--line)}
+.deb summary{list-style:none;cursor:pointer;padding:16px 0;display:flex;gap:14px;align-items:baseline;justify-content:space-between}
+.deb summary::-webkit-details-marker{display:none}
+.deb summary strong{font-size:clamp(20px,2.6vw,26px);font-weight:600;line-height:1.2}
+.deb summary .tags{display:flex;gap:5px;flex:none}
+.deb summary .tags i{width:11px;height:11px;border-radius:50%;background:var(--c);display:block}
+.deb summary::after{content:"+";font-family:var(--sans);font-size:24px;line-height:1;color:var(--muted);flex:none;width:20px;text-align:right}
+.deb[open] summary::after{content:"\2212"}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0 0 6px}
+.vs>div{padding:4px 22px 6px 0}
+.vs>div+div{padding:4px 0 6px 22px;border-left:2px solid var(--ink)}
+.vs h5{font-family:var(--sans);font-size:14px;font-weight:600;margin:0 0 4px}
+.vs p{margin:0 0 8px;font-size:16.5px;line-height:1.5}
+.vs .who{font-family:var(--sans);font-size:13.5px;color:var(--muted)}
+.stand{font-size:16.5px;margin:6px 0 20px;padding:10px 14px;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:6px}
+.stand b{font-family:var(--sans);font-size:14px}
+@media(max-width:700px){
+  .deb summary .tags{display:none}
+  .vs{grid-template-columns:1fr}
+  .vs>div,.vs>div+div{padding:4px 0 6px 0;border-left:0}
+  .vs>div+div{border-top:2px solid var(--ink);padding-top:12px;margin-top:8px}
+}
+
+/* reading */
+.paths{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.paths button{font-family:var(--sans);font-size:14.5px;font-weight:500;background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:7px 14px;cursor:pointer}
+.paths button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.pathbox{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 20px;margin:0 0 32px}
+.pathbox ol{margin:0;padding-left:24px}
+.pathbox li{margin:6px 0;font-size:16.5px}
+.pathbox li span{font-family:var(--sans);font-size:13.5px;color:var(--muted)}
+.filters{display:flex;flex-direction:column;gap:10px;margin:0 0 18px;font-family:var(--sans)}
+.frow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.frow>label{font-size:13.5px;color:var(--muted);width:64px;flex:none}
+.fb{font-size:13.5px;background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:4px 11px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.fb i{width:9px;height:9px;border-radius:50%;background:var(--c);display:block}
+.fb[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+input[type=search]{font:inherit;font-family:var(--sans);font-size:15px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);width:min(100%,340px)}
+.count{font-family:var(--sans);font-size:13.5px;color:var(--muted);margin:0 0 6px}
+.rrow{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:4px 16px;padding:12px 0;border-top:1px solid var(--line)}
+.rrow .y{font-family:var(--sans);font-size:14px;color:var(--muted);padding-top:3px}
+.rrow .t{font-size:18px;line-height:1.3;font-style:italic;font-weight:400}
+.rrow .a{font-family:var(--sans);font-size:14px;color:var(--muted)}
+.rrow .nt{font-size:15.5px;line-height:1.4;margin-top:2px}
+.rrow .meta{display:flex;flex-direction:column;gap:5px;align-items:flex-end;font-family:var(--sans);font-size:12.5px;color:var(--muted);text-align:right}
+.rrow .dots{display:flex;gap:4px}
+.rrow .dots i{width:10px;height:10px;border-radius:50%;background:var(--c);display:block}
+.empty{padding:24px 0;font-family:var(--sans);color:var(--muted)}
+@media(max-width:640px){
+  .rrow{grid-template-columns:1fr}
+  .rrow .meta{flex-direction:row;align-items:center;text-align:left;gap:10px;flex-wrap:wrap}
+  .frow>label{width:100%}
+}
+
+/* people */
+.prow{display:grid;grid-template-columns:minmax(150px,1.1fr) 92px minmax(0,2.6fr) 150px;gap:4px 16px;padding:10px 0;border-top:1px solid var(--line);font-size:16.5px;line-height:1.4}
+.prow .n{font-weight:600}
+.prow .d,.prow .b{font-family:var(--sans);font-size:13.5px;color:var(--muted)}
+.prow .b{display:flex;gap:6px;flex-wrap:wrap}
+.prow .b span{display:inline-flex;gap:5px;align-items:center}
+.prow .b i{width:9px;height:9px;border-radius:50%;background:var(--c);display:block}
+@media(max-width:760px){.prow{grid-template-columns:1fr}.prow .d{display:inline}}
+
+footer{padding:56px 0 64px;font-family:var(--sans);font-size:13.5px;color:var(--muted);max-width:46rem}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+
+/* ===== goals track additions ===== */
+[hidden]{display:none!important}
+:root{--ev-strong:#2F7D4F;--ev-moderate:#1D6FA5;--ev-mixed:#A86A10;--ev-contested:#B91C1C;--ev-practitioner:#6B7280;--ev-emerging:#7E3FBF}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ev-strong:#6FCF97;--ev-moderate:#6DB6F0;--ev-mixed:#F0B24A;--ev-contested:#F87171;--ev-practitioner:#A3ACB9;--ev-emerging:#C99BFF}}
+:root[data-theme="dark"]{--ev-strong:#6FCF97;--ev-moderate:#6DB6F0;--ev-mixed:#F0B24A;--ev-contested:#F87171;--ev-practitioner:#A3ACB9;--ev-emerging:#C99BFF}
+
+.ctrl{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin:22px 0 0}
+.seg{display:inline-flex;border:1.5px solid var(--ink);border-radius:10px;overflow:hidden;font-family:var(--sans);font-size:14px;max-width:100%}
+.seg button{background:transparent;border:0;padding:9px 13px;cursor:pointer;font-weight:500;white-space:nowrap}
+.seg button+button{border-left:1.5px solid var(--ink)}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+@media(max-width:420px){.seg button{padding:9px 9px;font-size:13px}}
+.diff{font-family:var(--sans);font-size:14.5px;line-height:1.45;color:var(--muted);max-width:54rem;margin:14px 0 0;padding:8px 12px;border-left:5px solid #FDE047;background:color-mix(in srgb,#FDE047 12%,transparent)}
+.diff b{color:var(--ink);font-weight:600}
+.sw{display:inline-flex;gap:8px;align-items:center;background:none;border:0;padding:14px 0;cursor:pointer;font-family:var(--sans);font-size:15px;font-weight:500;color:var(--muted);white-space:nowrap;border-bottom:2px solid transparent}
+.sw .trk{width:34px;height:20px;border-radius:99px;border:1.5px solid var(--ink);position:relative;flex:none;transition:background .15s}
+.sw .trk::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:var(--ink);transition:transform .15s}
+.sw[aria-checked=true] .trk{background:#FDE047}
+.sw[aria-checked=true] .trk::after{transform:translateX(14px);background:#3A2E00}
+.sw[aria-checked=true]{color:var(--ink)}
+.newpill{display:inline-block;font-family:var(--sans);font-size:11.5px;font-weight:600;background:#FDE047;color:#3A2E00;border-radius:99px;padding:1px 8px;margin-left:8px;vertical-align:middle;line-height:1.6;white-space:nowrap}
+.adds{background:color-mix(in srgb,#FDE047 15%,transparent);border-left:4px solid #FDE047;padding:8px 12px;margin:0 0 14px;font-size:16px;line-height:1.45}
+.adds b{font-family:var(--sans);font-size:13.5px;font-weight:600}
+.grows{font-family:var(--sans);font-size:14px;color:var(--muted);margin:0 0 12px}
+.grows button{background:none;border:0;padding:0;font:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer;color:var(--ink)}
+body[data-mode=both] .mapgrid,body[data-mode=new] .mapgrid{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+@media(max-width:820px){body[data-mode=both] .mapgrid,body[data-mode=new] .mapgrid{grid-template-columns:1fr}}
+.mapsvg .grow{stroke:var(--ink);stroke-width:3;opacity:.45}
+.mapsvg .xlink{opacity:.22}
+.mapsvg .xlink.hi{opacity:.95}
+.mapsvg .xlink.nl{stroke:var(--ink)}
+.node.newn .l{font-size:14.5px}
+.mapsvg .node.ctx:not(.sel):not(.rel){opacity:.3}
+.mapsvg .spoke.ctxs{opacity:.35}
+.tree .pillrow{display:inline-block}
+.sq{border-radius:2px!important}
+.rrow .flag{font-style:italic}
+
+/* goal loop */
+.loopgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(20px,3vw,40px);align-items:start}
+@media(max-width:820px){.loopgrid{grid-template-columns:1fr}}
+.loopsvg{width:100%;height:auto;display:block;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.lbox{cursor:pointer}
+.lbox rect,.lbox circle{fill:var(--panel);stroke:var(--ink);stroke-width:2;transition:fill .15s}
+.lbox text{font-family:var(--sans);fill:var(--ink);text-anchor:middle;pointer-events:none}
+.lbox .lt{font-size:15px;font-weight:600}
+.lbox .ls{font-size:12px;fill:var(--muted)}
+.lbox.on rect,.lbox.on circle{fill:var(--ink)}
+.lbox.on text{fill:var(--paper)}
+.lbox.on .ls{fill:var(--paper);opacity:.8}
+.lbox:focus-visible{outline:none}
+.lbox:focus-visible rect,.lbox:focus-visible circle{stroke:var(--c-ai);stroke-width:4}
+.lp{fill:none;stroke:var(--muted);stroke-width:2}
+.lo{font-family:var(--sans);font-size:12px;fill:var(--muted);text-anchor:middle;pointer-events:none}
+.ld{background:var(--panel);border:1px solid var(--line);border-top:6px solid var(--ink);border-radius:6px;padding:clamp(16px,3vw,24px)}
+.ld h3{font-size:clamp(21px,2.6vw,26px);line-height:1.15;margin:0 0 6px;font-weight:600}
+.ld p{margin:0 0 10px;font-size:16.5px;line-height:1.5}
+.ld .brk{padding:8px 12px;border-left:4px solid var(--ink);background:color-mix(in srgb,var(--ink) 6%,transparent)}
+.ld h4{font-family:var(--sans);font-size:14px;font-weight:600;margin:16px 0 4px}
+.lever{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:8px 0;border-top:1px solid var(--line);font-size:16px;line-height:1.4}
+.lever small{grid-column:1/-1;font-family:var(--sans);font-size:13px;color:var(--muted)}
+.ev{font-family:var(--sans);font-size:12px;font-weight:600;border:1.5px solid var(--e);color:var(--e);border-radius:99px;padding:1px 9px;white-space:nowrap;align-self:start}
+.ev-strong{--e:var(--ev-strong)}.ev-moderate{--e:var(--ev-moderate)}.ev-mixed{--e:var(--ev-mixed)}.ev-contested{--e:var(--ev-contested)}.ev-practitioner{--e:var(--ev-practitioner)}.ev-emerging{--e:var(--ev-emerging)}
+.ask{margin:0 0 4px;padding-left:18px;font-size:16px}
+.evkey{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--sans);font-size:13px;color:var(--muted);margin:14px 0 0}
+.evkey span{display:inline-flex;gap:6px;align-items:center}
+.ladder{margin:30px 0 0;max-width:46rem}
+.ladder h3{font-size:clamp(20px,2.4vw,24px);margin:0 0 4px;font-weight:600}
+.ladder .rung{margin:0 0 0 0;padding:10px 14px;border:1.5px solid var(--ink);background:var(--panel);font-size:16.5px;line-height:1.4}
+.ladder .rung:nth-of-type(2){margin-left:clamp(12px,4vw,36px)}
+.ladder .rung:nth-of-type(3){margin-left:clamp(24px,8vw,72px)}
+.ladder .rung+.rung{margin-top:-1.5px}
+.ladder .rung b{font-family:var(--sans);font-size:14px;font-weight:600}
+.ladder .cap{font-family:var(--sans);font-size:14px;color:var(--muted);margin:10px 0 0}
+
+/* identity chain */
+.chain{list-style:none;margin:0;padding:0;counter-reset:s}
+.chain li{display:grid;grid-template-columns:40px minmax(0,1fr);gap:0 16px;padding:0 0 26px;position:relative}
+.chain li::before{counter-increment:s;content:counter(s);width:40px;height:40px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-family:var(--sans);font-weight:600;position:relative;z-index:1}
+.chain li::after{content:"";position:absolute;left:19px;top:40px;bottom:0;width:2px;background:var(--ink)}
+.chain li:last-child::after{display:none}
+.chain .body{grid-column:2}
+.chain h3{font-size:clamp(20px,2.6vw,26px);margin:2px 0 4px;font-weight:600;line-height:1.2}
+.chain p{margin:0 0 8px;font-size:17px;max-width:46rem}
+.chain .src,.chain .fail{font-family:var(--sans);font-size:14px;line-height:1.45;color:var(--muted);max-width:46rem;margin-bottom:4px}
+.chain .fail{color:var(--ink)}
+.chain b{font-weight:600}
+.read{max-width:46rem;padding:12px 16px;border-left:5px solid #FDE047;background:color-mix(in srgb,#FDE047 12%,transparent);font-size:17px;margin:4px 0 0}
+.read b{font-family:var(--sans);font-size:14px}
+
+/* alignment techniques */
+.four{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel);margin:0 0 20px}
+.four>div{padding:14px 16px;border-left:1px solid var(--line)}
+.four>div:first-child{border-left:0}
+.four h4{margin:0 0 4px;font-family:var(--sans);font-size:15px;font-weight:600}
+.four p{margin:0;font-size:15.5px;line-height:1.4}
+@media(max-width:900px){.four{grid-template-columns:1fr 1fr}.four>div:nth-child(3){border-left:0}.four>div:nth-child(n+3){border-top:1px solid var(--line)}}
+@media(max-width:560px){.four{grid-template-columns:1fr}.four>div{border-left:0;border-top:1px solid var(--line)}.four>div:first-child{border-top:0}}
+.callout{max-width:46rem;padding:10px 14px;border-left:5px solid #FDE047;background:color-mix(in srgb,#FDE047 12%,transparent);font-size:17px;margin:0 0 20px}
+.tech{border-top:1px solid var(--line);padding:14px 0}
+.tech h3{font-size:clamp(19px,2.4vw,22px);margin:0 0 6px;font-weight:600;line-height:1.25}
+.tech .tags{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px;align-items:center}
+.tech p{margin:0 0 6px;font-size:16.5px;line-height:1.5;max-width:50rem}
+.tech p b{font-family:var(--sans);font-size:13.5px;font-weight:600}
+.tech .lp2{font-style:italic;color:var(--muted)}
+.caveat{font-family:var(--sans);font-size:14px;color:var(--muted);max-width:46rem;margin:14px 0 0}
+
+
+
+/* ===== notebook additions ===== */
+.hstats{display:flex;flex-wrap:wrap;gap:6px 22px;margin:22px 0 0;font-family:var(--sans);font-size:14.5px;color:var(--muted)}
+.hstats b{color:var(--ink);font-weight:600}
+.qn{font-family:var(--sans);font-size:13px;font-weight:600;color:var(--paper);background:var(--ink);border-radius:99px;min-width:26px;height:26px;display:inline-grid;place-items:center;margin-right:12px;flex:none;vertical-align:middle}
+.deb summary strong{display:flex;align-items:baseline}
+.ans{font-size:17px;line-height:1.55;max-width:50rem;margin:0 0 10px}
+.mini{font-family:var(--sans);font-size:13.5px;font-weight:600;margin:14px 0 4px;color:var(--muted)}
+.srcs,.opens{margin:0 0 6px;padding:0;list-style:none;max-width:50rem}
+.srcs li{font-size:15.5px;line-height:1.4;margin:0 0 4px}
+.srcs li span{font-family:var(--sans);font-size:13px;color:var(--muted)}
+.opens li{font-size:16px;line-height:1.45;margin:0 0 5px;padding-left:16px;position:relative}
+.opens li::before{content:"";position:absolute;left:0;top:.7em;width:7px;height:2px;background:var(--ink)}
+.deb[open]{padding-bottom:12px}
+.lnk{background:none;border:0;padding:0;font:inherit;cursor:pointer;text-align:left;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px;color:var(--ink)}
+.lnk:hover{text-decoration-color:var(--ink)}
+.lnk i{font-style:italic}
+.cmbar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:0 0 18px}
+.node.cn .l{font-size:14px}
+.node.cn .cnt{display:none}
+.cbadge{pointer-events:none}
+.panel .pk{display:inline-block;font-family:var(--sans);font-size:11.5px;font-weight:600;border:1.5px solid var(--ink);border-radius:99px;padding:0 8px;margin-left:8px;vertical-align:middle;line-height:1.6}
+.panel .kv{font-size:16.5px;line-height:1.5;margin:0 0 10px}
+.panel .kv b{font-family:var(--sans);font-size:13.5px;font-weight:600}
+
+/* layers */
+.fgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(20px,3vw,40px);align-items:start}
+@media(max-width:820px){.fgrid{grid-template-columns:1fr}}
+.water{font-family:var(--sans);font-size:12.5px;color:var(--muted);margin:0 0 6px}
+.layers{display:grid;gap:0}
+.layer{text-align:left;background:var(--panel);border:1.5px solid var(--ink);padding:12px 14px;cursor:pointer;font-family:var(--sans);margin-top:-1.5px;display:block}
+.layer b{font-size:15.5px;display:block}
+.layer span{font-size:13.5px;color:var(--muted);line-height:1.35;display:block;font-family:var(--serif)}
+.layer[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.layer[aria-pressed=true] span{color:var(--paper);opacity:.85}
+.layer:nth-child(2){margin-left:clamp(10px,3vw,28px)}
+.layer:nth-child(3){margin-left:clamp(20px,6vw,56px)}
+.layer:nth-child(4){margin-left:clamp(30px,9vw,84px)}
+.layers .line{border-top:2px dashed var(--c-ai);margin:8px 0 8px;position:relative}
+.layers .line::after{content:"what is argued above, what is at stake below";position:absolute;right:0;top:-1.55em;font-family:var(--sans);font-size:11.5px;color:var(--muted);background:var(--paper)}
+.mech{border-top:1px solid var(--line);padding:12px 0;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,2fr);gap:4px 22px}
+.mech h3{font-size:19px;margin:0;font-weight:600;line-height:1.25}
+.mech p{margin:0 0 6px;font-size:16.5px;line-height:1.5}
+.mech .it{font-style:italic;color:var(--muted)}
+.mech .tg{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-family:var(--sans);font-size:13px;color:var(--muted);margin-bottom:4px}
+@media(max-width:760px){.mech{grid-template-columns:1fr}}
+
+/* loops */
+.tabsbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.tabsbar button{font-family:var(--sans);font-size:14.5px;font-weight:500;background:var(--panel);border:1.5px solid var(--ink);border-radius:99px;padding:7px 15px;cursor:pointer}
+.tabsbar button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.cycnote{font-family:var(--sans);font-size:13.5px;color:var(--muted);margin:8px 0 0;max-width:34rem}
+.ld .lens{margin:0 0 10px;font-size:16.5px;line-height:1.5}
+.ld .lens b{font-family:var(--sans);font-size:13.5px;font-weight:600}
+
+/* needs ladder */
+.ladder3{max-width:44rem;border:1.5px solid var(--ink);background:var(--panel)}
+.ladder3 .tier{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px;padding:12px 14px;align-items:center}
+.ladder3 .tier+.arr+.tier{border-top:0}
+.ladder3 .lab{font-family:var(--sans);font-size:13.5px;font-weight:600}
+.ladder3 .arr{display:flex;justify-content:space-between;font-family:var(--sans);font-size:13px;color:var(--muted);padding:0 14px 0 124px;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);background:color-mix(in srgb,var(--ink) 4%,transparent)}
+.ladder3 .chips{margin:0}
+@media(max-width:560px){.ladder3 .tier{grid-template-columns:1fr;gap:4px}.ladder3 .arr{padding-left:14px}}
+.cap{font-family:var(--sans);font-size:14px;color:var(--muted);max-width:44rem;margin:10px 0 0}
+.chain .q{font-style:italic}
+.qrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 16px;padding:9px 0;border-top:1px solid var(--line);font-size:17px;line-height:1.4}
+.qrow small{font-family:var(--sans);font-size:13px;color:var(--muted);text-align:right;align-self:center}
+@media(max-width:600px){.qrow{grid-template-columns:1fr}.qrow small{text-align:left}}
+.pit{max-width:46rem;margin:18px 0 0;padding:0;list-style:none}
+.pit li{font-size:16.5px;line-height:1.45;margin:0 0 6px;padding-left:16px;position:relative}
+.pit li::before{content:"";position:absolute;left:0;top:.7em;width:7px;height:2px;background:var(--c-safety)}
+
+/* coding */
+.pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;border:1.5px solid var(--ink);background:var(--panel);margin:0 0 26px}
+.stage{padding:12px 14px;border-left:1.5px solid var(--ink);position:relative}
+.stage:first-child{border-left:0}
+.stage h4{margin:0 0 4px;font-family:var(--sans);font-size:15px;font-weight:600}
+.stage p{margin:0;font-size:14.5px;line-height:1.4}
+.stage:not(:last-child)::after{content:"→";position:absolute;right:-9px;top:10px;background:var(--panel);font-family:var(--sans);font-weight:700;line-height:1;z-index:1}
+@media(max-width:900px){.pipe{grid-template-columns:1fr}.stage{border-left:0;border-top:1.5px solid var(--ink)}.stage:first-child{border-top:0}.stage:not(:last-child)::after{content:"↓";right:14px;top:auto;bottom:-9px}}
+.code{display:grid;grid-template-columns:minmax(120px,.8fr) minmax(0,3fr);gap:2px 18px;padding:10px 0;border-top:1px solid var(--line);font-size:16px;line-height:1.45}
+.code h3{margin:0;font-size:18px;font-weight:600}
+.code p{margin:0 0 3px}
+.code .nw,.code .ex{font-size:15px;color:var(--muted)}
+.code b{font-family:var(--sans);font-size:12.5px;font-weight:600}
+@media(max-width:700px){.code{grid-template-columns:1fr}}
+.mxwrap{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--panel);margin:0 0 12px}
+table.mx{border-collapse:collapse;width:100%;min-width:480px;font-family:var(--sans);font-size:14px}
+table.mx th,table.mx td{padding:6px 8px;text-align:center;border-bottom:1px solid var(--line)}
+table.mx th{font-weight:600;font-size:13px;background:color-mix(in srgb,var(--ink) 5%,transparent)}
+table.mx td:first-child,table.mx th:first-child{text-align:left}
+.cell{width:34px;height:30px;border:1.5px solid var(--ink);background:var(--panel);border-radius:6px;cursor:pointer;font-family:var(--sans);font-size:15px;line-height:1}
+.cell[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+.cell[disabled]{opacity:.3;cursor:default}
+.mxout{font-family:var(--sans);font-size:15px;line-height:1.5;max-width:46rem}
+.mxout b{font-weight:600}
+.mxout .cl{font-family:var(--serif);font-size:18px;padding:8px 12px;margin:8px 0;border-left:5px solid #FDE047;background:color-mix(in srgb,#FDE047 12%,transparent)}
+.satsvg{width:100%;max-width:520px;height:auto;display:block}
+.satsvg text{font-family:var(--sans);fill:var(--muted);font-size:11px}
+
+/* priorities */
+.prgrid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(20px,3vw,36px);align-items:start;margin:0 0 28px}
+@media(max-width:820px){.prgrid{grid-template-columns:1fr}}
+.psvg{width:100%;height:auto;display:block;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.psvg text{font-family:var(--sans);fill:var(--ink);text-anchor:middle}
+.psvg .s{font-size:11.5px;fill:var(--muted)}
+.psvg rect.b{fill:var(--panel);stroke:var(--ink);stroke-width:2}
+.hq{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 16px;font-family:var(--sans)}
+.hq h3{margin:0 0 8px;font-family:var(--serif);font-size:20px;font-weight:600}
+.hq .w{display:grid;grid-template-columns:110px minmax(0,1fr) 20px;gap:8px;align-items:center;font-size:14px;margin:0 0 6px}
+.hq input[type=range]{width:100%;accent-color:var(--ink)}
+.hq .bar{display:grid;grid-template-columns:130px minmax(0,1fr) 34px;gap:8px;align-items:center;font-size:13.5px;margin:6px 0}
+.hq .bar div{height:12px;background:var(--ink);border-radius:2px}
+.hq .rk{font-size:13.5px;color:var(--muted);margin:10px 0 0;line-height:1.45}
+.hq .rk b{color:var(--ink)}
+.mrow{display:grid;grid-template-columns:minmax(120px,1fr) minmax(0,2fr) minmax(0,1.6fr);gap:4px 18px;padding:10px 0;border-top:1px solid var(--line);font-size:16px;line-height:1.45}
+.mrow h3{margin:0;font-size:18px;font-weight:600}
+.mrow p{margin:0}
+.mrow .wk{color:var(--muted)}
+@media(max-width:760px){.mrow{grid-template-columns:1fr}}
+
+/* open questions */
+.oqs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media(max-width:760px){.oqs{grid-template-columns:1fr}}
+.oq{background:var(--panel);border:1px solid var(--line);border-top:5px solid var(--ink);border-radius:6px;padding:14px 16px}
+.oq h3{margin:0 0 6px;font-size:19px;font-weight:600;line-height:1.25}
+.oq p{margin:0 0 8px;font-size:16px;line-height:1.5}
+.oq .test{padding:7px 10px;border-left:4px solid #FDE047;background:color-mix(in srgb,#FDE047 12%,transparent)}
+.oq .test b{font-family:var(--sans);font-size:13px}
+
+.sh{font-size:clamp(21px,2.6vw,26px);font-weight:600;margin:38px 0 10px;line-height:1.2}
+
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <h1>Goals, facts and common ground</h1>
+    <p class="lede">A research notebook that follows one line of questioning: why some people meet their goals, how identity grows out of goals, why arguments turn into fights over facts, and how people with different goals can find common ground. Each question gets a short answer, its sources, and what is still open.</p>
+    <div class="hstats" id="hstats"></div>
+  </div>
+</header>
+
+<nav class="nav" aria-label="Sections">
+  <div class="wrap">
+    <a href="#questions">Questions</a><a href="#map">Concept map</a><a href="#facts">Identity and facts</a><a href="#loops">Loops</a><a href="#needs">Needs and interviews</a><a href="#coding">Coding</a><a href="#priorities">Priorities</a><a href="#align">Aligning people</a><a href="#debates">Debates</a><a href="#reading">Reading</a><a href="#open">Open questions</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<section id="questions">
+  <h2>The questions</h2>
+  <p class="sub">In the order they came up. Each opens to a short answer, the sources behind it, and what is still unresolved. Select a source to find it in the reading list.</p>
+  <div class="filters" id="qf"></div>
+  <div id="qs"></div>
+</section>
+
+<section id="map">
+  <h2>What the ontology covers, and what it might be missing</h2>
+  <p class="sub">Goals and actions sit at the center, with strategy, identity and a world model around them. The hatched outer nodes, marked with a yellow plus, are candidates from other fields that bear on why facts move identity. Switch between the ontology as described and the version with candidates.</p>
+  <div class="cmbar"><div class="seg" id="cmseg" role="group" aria-label="Choose what to show"><button data-m="core" aria-pressed="false">As described</button><button data-m="all" aria-pressed="true">With candidate additions</button></div></div>
+  <div class="mapgrid">
+    <div>
+      <svg class="mapsvg" id="cmsvg" viewBox="0 0 960 960" role="group" aria-label="Concept map around goals and actions"></svg>
+      <ul class="tree" id="cmtree"></ul>
+    </div>
+    <aside class="panel" id="cmpanel" aria-live="polite"></aside>
+  </div>
+</section>
+
+<section id="facts">
+  <h2>Identity and facts</h2>
+  <p class="sub">How identity is assembled from goals, and why arguments about it so often become arguments about facts. The chain is a synthesis. The layers and mechanisms draw on the research cited in the questions above.</p>
+  <h3 class="sh">How identity forms from goals</h3>
+  <ol class="chain" id="chain"></ol>
+  <div class="read"><b>One reading, not a finding.</b> The goal hierarchy supplies the reference, symbols carry it between people, boundaries define who shares it, and sanctions correct deviation. On this view, alignment work has to touch the reference (shared goals), the carrier (symbols) or the boundary (contact), not only the argument.</div>
+  <h3 class="sh">What a loaded claim is made of</h3>
+  <p class="sub">A claim such as “the country is being invaded,” or “the crisis is a hoax,” bundles four layers. People tend to argue the top one, but much of what is at stake sits below it. Choose a layer.</p>
+  <div class="fgrid">
+    <div><div class="layers" id="layers"></div></div>
+    <div id="layerdetail" aria-live="polite"></div>
+  </div>
+  <h3 class="sh">Why construed facts get picked up</h3>
+  <div id="mech"></div>
+  <h3 class="sh">Candidate common ground</h3>
+  <div class="chips"><span class="chip">Care for people close to you</span><span class="chip">Safety</span><span class="chip">Fairness</span><span class="chip">Autonomy</span><span class="chip">Relatedness</span></div>
+  <p class="cap">Benevolence, meaning care for close others, ranks near the top in Schwartz’s value surveys across cultures. Self-determination theory lists autonomy, competence and relatedness. Moral foundations work suggests care and fairness are endorsed across the spectrum but weighted differently, though that theory is contested. Tradition ranks low on average, yet the tradition versus openness-to-change axis is where political groups tend to differ most. The divergence is over whose circle counts and which risks matter.</p>
+</section>
+
+<section id="loops">
+  <h2>Two loops: pursuing goals, and creating them</h2>
+  <p class="sub">The goal loop explains why pursuit stalls. The creation cycle asks where goals come from, which planners and goal models take as given. Evidence labels are my rough summary, not a systematic review.</p>
+  <div class="tabsbar" id="ltabs" role="group" aria-label="Choose a loop"><button data-t="loop" aria-pressed="true">Goal loop</button><button data-t="cycle" aria-pressed="false">Goal-creation cycle</button></div>
+  <div class="paths" id="lbtns" role="group" aria-label="Parts of the loop"></div>
+  <div class="loopgrid">
+    <div><svg class="loopsvg" id="lsvg" viewBox="0 0 520 290" role="group" aria-label="Loop diagram"></svg><p class="cycnote" id="lnote"></p></div>
+    <div id="ldetail" aria-live="polite"></div>
+  </div>
+  <div class="evkey">
+    <span><span class="ev ev-strong">strong</span> many studies or a meta-analysis</span>
+    <span><span class="ev ev-moderate">moderate</span> replicated, modest or context-dependent</span>
+    <span><span class="ev ev-mixed">mixed</span> conflicting results</span>
+    <span><span class="ev ev-contested">contested</span> replications disputed</span>
+    <span><span class="ev ev-emerging">emerging</span> few studies so far</span>
+    <span><span class="ev ev-practitioner">practitioner</span> widely used, little controlled evidence</span>
+  </div>
+</section>
+
+<section id="needs">
+  <h2>Needs, wants and interviewing for obstacles</h2>
+  <p class="sub">Several fields converge on one move: ask why to climb from a stated want to the need behind it, and ask how else to come back down to other ways of meeting it.</p>
+  <div class="ladder3">
+    <div class="tier"><span class="lab">Need</span><div class="chips"><span class="chip">Stay healthy and keep the family safe</span></div></div>
+    <div class="arr"><span>why? ↑</span><span>↓ how else?</span></div>
+    <div class="tier"><span class="lab">Want or goal</span><div class="chips"><span class="chip">Stay warm</span></div></div>
+    <div class="arr"><span>why? ↑</span><span>↓ how else?</span></div>
+    <div class="tier"><span class="lab">Satisfiers</span><div class="chips"><span class="chip">Build a fire</span><span class="chip">Wear a coat</span><span class="chip">Buy blankets</span><span class="chip">Share a shelter</span></div></div>
+  </div>
+  <p class="cap">People can share the need and the want while using different satisfiers. Conflicts tend to appear between satisfiers (a smoky fire) more than between needs, which is why common ground is often found one level up.</p>
+  <h3 class="sh">A six-step interview sequence</h3>
+  <p class="sub">My synthesis of the methods behind the questions below, not a validated protocol. With several parties, interview each separately first, map interests side by side, look for shared needs with compatible satisfiers, and apply objective criteria.</p>
+  <ol class="chain" id="steps"></ol>
+  <h3 class="sh">Question bank</h3>
+  <div class="filters" id="qbf"></div>
+  <div id="qb"></div>
+  <h3 class="sh">Pitfalls</h3>
+  <ul class="pit">
+    <li>Leading questions and your own frame can manufacture goals, and power asymmetry distorts what people say.</li>
+    <li>“Why” can invite justification, so “what” and “how” questions often work better.</li>
+    <li>Stated wants are weak evidence: wanting and liking come apart, people mispredict what will satisfy them, and they often confabulate their reasons.</li>
+    <li>Coaching has moderate effects in meta-analyses, but GROW, nonviolent communication and jobs-to-be-done have thin controlled evidence.</li>
+  </ul>
+</section>
+
+<section id="coding">
+  <h2>Coding interviews, and measuring a shared need</h2>
+  <p class="sub">A goal ontology is already a codebook, so structured coding fits. The pipeline is a design sketch. The matrix is an interactive illustration with invented data.</p>
+  <h3 class="sh">A pipeline for AI-assisted coding</h3>
+  <div class="pipe" id="pipe"></div>
+  <h3 class="sh">A starter codebook</h3>
+  <p class="sub">Core codes come from the goals-and-actions ontology. Additions come from the research above and capture beliefs, trust and values that the core misses.</p>
+  <div class="filters" id="codef"></div>
+  <div id="codes"></div>
+  <h3 class="sh">Showing community around a shared need</h3>
+  <p class="sub">Suppose everyone is trying to stay warm and building fires. Keep the need and the satisfier on separate levels, count people, and tick cells to watch the measures change.</p>
+  <div class="mxwrap" id="mxtable"></div>
+  <div class="mxout" id="mxout"></div>
+  <p class="cap">Also worth reporting: importance times gap, conflicts between satisfiers (smoke against clean air), and saturation. Publishing the overlap creates common knowledge, which helps people coordinate. A convenience sample cannot estimate prevalence.</p>
+  <svg class="satsvg" id="satsvg" viewBox="0 0 520 150" role="img" aria-label="Illustrative saturation chart: new codes per added participant fall as participants are added"></svg>
+</section>
+
+<section id="priorities">
+  <h2>Priorities in a loop</h2>
+  <p class="sub">The House of Quality as a matrix, and what changes when problems feed back into wants. Hang the graph on needs, with wants and features as satisfiers, so the roots stay stable while features churn.</p>
+  <div class="prgrid">
+    <svg class="psvg" viewBox="0 0 560 280" role="img" aria-label="Loop: needs anchor wants, wants map to features, features produce problems, and problems feed back to wants">
+      <defs><marker id="ahp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" style="fill:var(--muted)"/></marker></defs>
+      <path class="lp" d="M240 58 L112 136" marker-end="url(#ahp)"/>
+      <path class="lp" d="M154 166 H206" marker-end="url(#ahp)"/>
+      <path class="lp" d="M350 166 H402" marker-end="url(#ahp)"/>
+      <path class="lp" d="M476 192 V248 H84 V196" marker-end="url(#ahp)"/>
+      <path d="M210 138 L280 106 L350 138" style="fill:none;stroke:var(--ink);stroke-width:2"/>
+      <text class="s" x="280" y="98">roof: feature conflicts</text>
+      <rect class="b" x="200" y="12" width="160" height="46" rx="8"/><text x="280" y="33" style="font-weight:600;font-size:15px">Needs</text><text class="s" x="280" y="49">stable root</text>
+      <rect class="b" x="14" y="140" width="140" height="52" rx="8"/><text x="84" y="163" style="font-weight:600;font-size:15px">Wants</text><text class="s" x="84" y="180">stated and scored</text>
+      <rect class="b" x="210" y="140" width="140" height="52" rx="8"/><text x="280" y="163" style="font-weight:600;font-size:15px">Features</text><text class="s" x="280" y="180">satisfiers you build</text>
+      <rect class="b" x="406" y="140" width="140" height="52" rx="8"/><text x="476" y="163" style="font-weight:600;font-size:15px">Problems</text><text class="s" x="476" y="180">bugs, new pain</text>
+      <text class="s" x="280" y="268">pain points reveal wants nobody stated</text>
+    </svg>
+    <div class="hq" id="hq"></div>
+  </div>
+  <h3 class="sh">Related methods</h3>
+  <div id="methods"></div>
+  <h3 class="sh">Cautions for looped priorities</h3>
+  <ul class="pit">
+    <li>Fixed-point priorities can reflect graph structure, such as hub nodes, more than real importance.</li>
+    <li>Recursion over noisy inputs creates false precision, so use ranks or intervals and test sensitivity.</li>
+    <li>Use damped updates, since aggressive updating can oscillate or run away.</li>
+    <li>Take importance from behavior (usage, tickets) and trade-off surveys, not from self-rating.</li>
+  </ul>
+</section>
+
+<section id="align">
+  <h2>Aligning people: what exists beyond listening</h2>
+  <p class="sub">Reflective listening, where one person speaks and the other repeats without adding, is one technique among many. Sorting techniques by what they change shows where it fits and what else is available.</p>
+  <div class="four">
+    <div><h4>Channel</h4><p>Can each side speak and be heard? Listening, motivational interviewing.</p></div>
+    <div><h4>Model</h4><p>What does each side believe about the facts and about the other side? Corrections, canvassing, prebunking.</p></div>
+    <div><h4>Reference</h4><p>What is each side trying to achieve, and is any goal shared? Common tasks, interest-based negotiation.</p></div>
+    <div><h4>Structure</h4><p>How does the group decide, and what gets amplified? Deliberation, bridging, facilitated methods.</p></div>
+  </div>
+  <div class="callout"><b>Where listening sits.</b> Reflective listening repairs the channel. It usually has to come first, but repairing the channel does not by itself change what anyone is trying to achieve.</div>
+  <div class="filters" id="techf"></div>
+  <div id="tech"></div>
+  <p class="caveat">Every lever here works in both directions. The knowledge of goals, identity and channels that supports alignment also supports manipulation, and the difference is largely transparency and consent. Influence operations, including the Russian concept of reflexive control, pull the same levers without consent.</p>
+</section>
+
+<section id="debates">
+  <h2>Arguments and rebuttals</h2>
+  <p class="sub">Open disputes that cut across the questions, with both sides at their strongest and a note on where things stand.</p>
+  <div id="debs"></div>
+</section>
+
+<section id="reading">
+  <h2>Reading</h2>
+  <p class="sub">Curated, not exhaustive, and cited largely from memory. Level runs from accessible to specialist. Check editions and dates before citing; works marked “check details” are the ones I am least sure of.</p>
+  <div class="filters" id="filters"></div>
+  <p class="count" id="rcount"></p>
+  <div id="rlist"></div>
+</section>
+
+<section id="open">
+  <h2>Open questions</h2>
+  <p class="sub">These are my synthesis of where the research leaves gaps, not findings. Each comes with a way to test it.</p>
+  <div class="oqs" id="oqs"></div>
+</section>
+
+<footer>
+  Most citations come from memory, with one web check on the origin of the action, motivation and inspiration idea, so titles, years and attributions are worth verifying before you rely on them. The concept map, claim layers, identity chain, codebook, interview sequence and open questions are my own syntheses, and the evidence labels are rough. The matrix and the saturation chart use invented data for illustration.
+</footer>
+</main>
+
+<script>
+const R2=[
+["fikes71","STRIPS: A New Approach to the Application of Theorem Proving to Problem Solving","Richard Fikes & Nils Nilsson",1971,"paper",3,["g1","ai"],"The planner that made goals, preconditions and effects the vocabulary of robot planning."],
+["bratman87","Intention, Plans, and Practical Reason","Michael Bratman",1987,"book",3,["g1","ai"],"The philosophy behind BDI agents: intentions as commitments that structure planning."],
+["toulmin58","The Uses of Argument","Stephen Toulmin",1958,"book",2,["g1","soft"],"The claim, warrant and evidence model behind assurance cases."],
+["dardenne93","Goal-Directed Requirements Acquisition","Anne Dardenne, Axel van Lamsweerde & Stephen Fickas",1993,"paper",3,["g1"],"The original KAOS paper."],
+["chung00","Non-Functional Requirements in Software Engineering","Lawrence Chung, Brian Nixon, Eric Yu & John Mylopoulos",2000,"book",3,["g1"],"The NFR framework: softgoals with make, help, hurt and break links."],
+["yu97","Towards Modelling and Reasoning Support for Early-Phase Requirements Engineering","Eric Yu",1997,"paper",3,["g1","org"],"The i* framework: actors, dependencies and intentions."],
+["kelly98","Arguing Safety: A Systematic Approach to Managing Safety Cases","Tim Kelly",1998,"paper",3,["g1","safety"],"University of York doctoral thesis, where GSN comes from."],
+["kw04","The Goal Structuring Notation: A Safety Argument Notation","Tim Kelly & Rob Weaver",2004,"paper",2,["g1","safety"],"The short introduction to GSN."],
+["vl09","Requirements Engineering: From System Goals to UML Models to Software Specifications","Axel van Lamsweerde",2009,"book",3,["g1"],"The full KAOS method, with obstacle and conflict analysis."],
+["keeney92","Value-Focused Thinking: A Path to Creative Decision Making","Ralph Keeney",1992,"book",2,["g1"],"Fundamental versus means objectives, and how to build a means–ends network."],
+["orkin06","Three States and a Plan: The A.I. of F.E.A.R.","Jeff Orkin",2006,"paper",2,["g1","ai"],"Goal-oriented action planning in a shipped game; the usual GOAP reference."],
+["rao95","BDI Agents: From Theory to Practice","Anand Rao & Michael Georgeff",1995,"paper",3,["g1","ai"],"Beliefs, desires and intentions as an agent architecture."],
+["kgfp09","Temporal-Logic-Based Reactive Mission and Motion Planning","Hadas Kress-Gazit, Georgios Fainekos & George Pappas",2009,"paper",3,["g1"],"Robot missions written as temporal-logic specifications and turned into controllers."],
+["co18","Behavior Trees in Robotics and AI: An Introduction","Michele Colledanchise & Petter Ögren",2018,"book",2,["g1","ai"],"Behavior trees as a modular structure for pursuing goals."],
+["ngr00","Algorithms for Inverse Reinforcement Learning","Andrew Ng & Stuart Russell",2000,"paper",3,["g1","ai"],"Inferring the goal behind observed behavior."],
+["chm16","Cooperative Inverse Reinforcement Learning","Dylan Hadfield-Menell and co-authors",2016,"paper",3,["g1","ai"],"A human and a machine, where the machine is unsure of the human’s goal."],
+["leveson11b","The Use of Safety Cases in Certification and Regulation","Nancy Leveson",2011,"paper",2,["g1","safety"],"The argument that safety cases invite confirmation bias."],
+["nimrod09","The Nimrod Review","Charles Haddon-Cave",2009,"paper",2,["g1","safety"],"Inquiry into the loss of an RAF aircraft that judged the safety case exercise a failure."],
+["br20","Assurance 2.0: A Manifesto","Robin Bloomfield & John Rushby",2020,"paper",2,["g1","safety"],"Proposes defeaters and confidence assessment for assurance cases."],
+["heider46","Attitudes and Cognitive Organization","Fritz Heider",1946,"paper",2,["g1","g3"],"Balance theory: which signed relations among people and things are stable."],
+["ch56","Structural Balance: A Generalization of Heider’s Theory","Dorwin Cartwright & Frank Harary",1956,"paper",3,["g1","g3"],"Signed graphs and the formal test for balance."],
+["dung95","On the Acceptability of Arguments and Its Fundamental Role in Nonmonotonic Reasoning, Logic Programming and n-Person Games","Phan Minh Dung",1995,"paper",3,["g1"],"Abstract argumentation: which sets of claims survive attacks."],
+["abj00","Error and Attack Tolerance of Complex Networks","Réka Albert, Hawoong Jeong & Albert-László Barabási",2000,"paper",2,["g1","complex"],"Which nodes hold a network together, and what happens when they are removed."],
+
+["mgp60","Plans and the Structure of Behavior","George Miller, Eugene Galanter & Karl Pribram",1960,"book",2,["g2","origins"],"The TOTE unit: a cybernetic model of plans."],
+["powers73","Behavior: The Control of Perception","William T. Powers",1973,"book",3,["g2","cog"],"Behavior as control of perception, with a hierarchy of reference levels."],
+["bandura77","Self-Efficacy: Toward a Unifying Theory of Behavioral Change","Albert Bandura",1977,"paper",2,["g2"],"Belief in one’s own capacity to act as a driver of persistence."],
+["cs98","On the Self-Regulation of Behavior","Charles Carver & Michael Scheier",1998,"book",2,["g2"],"Self-regulation as feedback loops, with goals from “be” to “do” to motor control."],
+["ll02","Building a Practically Useful Theory of Goal Setting and Task Motivation: A 35-Year Odyssey","Edwin Locke & Gary Latham",2002,"paper",2,["g2"],"The summary statement of goal-setting theory."],
+["kruglanski02","A Theory of Goal Systems","Arie Kruglanski and co-authors",2002,"paper",3,["g2"],"Goals and means as networks: multifinality, equifinality and shielding."],
+["dr00","The “What” and “Why” of Goal Pursuits: Human Needs and the Self-Determination of Behavior","Edward Deci & Richard Ryan",2000,"paper",2,["g2"],"Autonomy, competence and relatedness as the needs behind goals."],
+["gs06","Implementation Intentions and Goal Achievement: A Meta-Analysis of Effects and Processes","Peter Gollwitzer & Paschal Sheeran",2006,"paper",2,["g2"],"The evidence base for if–then planning."],
+["og09","Goals Gone Wild: The Systematic Side Effects of Overprescribing Goal Setting","Lisa Ordóñez, Maurice Schweitzer, Adam Galinsky & Max Bazerman",2009,"paper",1,["g2"],"The best-known critique of goal-setting."],
+["lally10","How Are Habits Formed: Modelling Habit Formation in the Real World","Phillippa Lally and co-authors",2010,"paper",1,["g2"],"Source of the 66-day median and the wide spread."],
+["wr16","Psychology of Habit","Wendy Wood & Dennis Rünger",2016,"paper",2,["g2"],"Habits as context-triggered responses, and how they differ from goals."],
+["harkin16","Does Monitoring Goal Progress Promote Goal Attainment? A Meta-Analysis of the Experimental Evidence","Benjamin Harkin and co-authors",2016,"paper",2,["g2"],"Monitoring helps, more so when it is recorded or reported."],
+["dgg16","Situational Strategies for Self-Control","Angela Duckworth, Tamar Gendler & James Gross",2016,"paper",1,["g2"],"Shaping the situation as a route to self-control."],
+["mi17","What’s So Great About Self-Control? Examining the Importance of Effortful Self-Control and Temptation in Predicting Real-Life Depletion and Goal Attainment","Marina Milyavskaya & Michael Inzlicht",2017,"paper",2,["g2"],"People with good self-control report fewer temptations."],
+["hagger16","A Multilab Preregistered Replication of the Ego-Depletion Effect","Martin Hagger and co-authors",2016,"paper",2,["g2"],"Found an effect near zero."],
+["cte17","Much Ado About Grit: A Meta-Analytic Synthesis of the Grit Literature","Marcus Credé, Michael Tynan & Peter Harms",2017,"paper",2,["g2"],"Grit overlaps heavily with conscientiousness."],
+["ms13","Scarcity: Why Having Too Little Means So Much","Sendhil Mullainathan & Eldar Shafir",2013,"book",1,["g2"],"How shortage of money or time taxes attention; parts are disputed."],
+["oettingen14","Rethinking Positive Thinking: Inside the New Science of Motivation","Gabriele Oettingen",2014,"book",1,["g2"],"Mental contrasting and the WOOP method."],
+["kl09","Immunity to Change","Robert Kegan & Lisa Lahey",2009,"book",1,["g2","g4"],"Hidden competing commitments. A practitioner framework with little trial evidence."],
+["rumelt11","Good Strategy/Bad Strategy","Richard Rumelt",2011,"book",1,["g2"],"Diagnosis, guiding policy and coherent action."],
+["flyvbjerg06","From Nobel Prize to Project Management: Getting Risks Right","Bent Flyvbjerg",2006,"paper",2,["g2"],"Reference-class forecasting as a cure for optimistic plans."],
+["deyoung15","Cybernetic Big Five Theory","Colin DeYoung",2015,"paper",3,["g2","cog"],"Personality as individual differences in goal-directed control."],
+["osinga07","Science, Strategy and War: The Strategic Theory of John Boyd","Frans Osinga",2007,"book",3,["g2"],"Boyd’s OODA loop in its full cybernetic and complexity context."],
+["gtd01","Getting Things Done","David Allen",2001,"book",1,["g2"],"Popular practitioner method for tasks; consistent with the research, not itself evidence."],
+["clear18","Atomic Habits","James Clear",2018,"book",1,["g2"],"Popular practitioner book on habits; ideas track the research, the book is not evidence."],
+["doerr18","Measure What Matters","John Doerr",2018,"book",1,["g2"],"OKRs from the practitioner side; little controlled evidence."],
+
+["durkheim12","The Elementary Forms of Religious Life","Émile Durkheim",1912,"book",3,["g3","social"],"Totems as the group’s symbol of itself."],
+["mead34","Mind, Self, and Society","George Herbert Mead",1934,"book",3,["g3","social"],"The self arises through symbolically mediated interaction."],
+["bateson36","Naven","Gregory Bateson",1936,"book",3,["g3","social"],"Where schismogenesis is introduced."],
+["burke50","A Rhetoric of Motives","Kenneth Burke",1950,"book",3,["g3","g4"],"Identification as the core of persuasion."],
+["goffman59","The Presentation of Self in Everyday Life","Erving Goffman",1959,"book",1,["g3"],"Identity as performance for an audience."],
+["goffman63","Stigma: Notes on the Management of Spoiled Identity","Erving Goffman",1963,"book",2,["g3"],"How categories applied by others shape the self."],
+["edelman64","The Symbolic Uses of Politics","Murray Edelman",1964,"book",2,["g3","g4"],"Political symbols as reassurance, mobilization and loyalty tests."],
+["erikson68","Identity: Youth and Crisis","Erik Erikson",1968,"book",2,["g3"],"Identity formation and identity crisis."],
+["sb69","Laws of Form","George Spencer-Brown",1969,"book",3,["g3","second"],"Draw a distinction: the calculus behind identity as boundary."],
+["tajfel79","An Integrative Theory of Intergroup Conflict","Henri Tajfel & John Turner",1979,"paper",2,["g3"],"Social identity theory in its standard statement."],
+["anderson83","Imagined Communities","Benedict Anderson",1983,"book",2,["g3"],"Nations as communities held together by shared symbols and media."],
+["bourdieu84","Distinction: A Social Critique of the Judgement of Taste","Pierre Bourdieu",1984,"book",3,["g3"],"Taste as a marker of class boundaries. French original 1979."],
+["hacking95","The Looping Effects of Human Kinds","Ian Hacking",1995,"paper",2,["g3"],"How classifying people changes the people classified."],
+["markus86","Possible Selves","Hazel Markus & Paula Nurius",1986,"paper",2,["g3","g2"],"Goals organized around who a person might become."],
+["mcadams01","The Psychology of Life Stories","Dan McAdams",2001,"paper",2,["g3"],"Identity as an evolving narrative."],
+["higgins87","Self-Discrepancy: A Theory Relating Self and Affect","E. Tory Higgins",1987,"paper",2,["g3","g2"],"Actual, ideal and ought selves, and the distress from gaps between them."],
+["burke91","Identity Processes and Social Stress","Peter Burke",1991,"paper",3,["g3","g2"],"Identity control theory: a standard, a comparator and behavior that restores match."],
+["bs09","Identity Theory","Peter Burke & Jan Stets",2009,"book",3,["g3","g2"],"The full statement of identity control theory."],
+["iannaccone92","Sacrifice and Stigma: Reducing Free-Riding in Cults, Communes, and Other Collectives","Laurence Iannaccone",1992,"paper",2,["g3"],"Costly demands as a screen against free riders."],
+["lm02","The Study of Boundaries in the Social Sciences","Michèle Lamont & Virág Molnár",2002,"paper",2,["g3"],"Symbolic and social boundaries, and how groups draw them."],
+["akerlof00","Economics and Identity","George Akerlof & Rachel Kranton",2000,"paper",2,["g3"],"Identity as norms and payoffs attached to social categories."],
+["bc00","Beyond “Identity”","Rogers Brubaker & Frederick Cooper",2000,"paper",2,["g3"],"Why the word does too many jobs, and what to use instead."],
+["lorde84","Sister Outsider","Audre Lorde",1984,"book",2,["g3"],"Essays on simultaneous identities and difference."],
+["crenshaw91","Mapping the Margins: Intersectionality, Identity Politics, and Violence Against Women of Color","Kimberlé Crenshaw",1991,"paper",2,["g3"],"Overlapping identities and how institutions treat them."],
+["schwartz92","Universals in the Content and Structure of Values","Shalom Schwartz",1992,"paper",2,["g3","g4"],"A map of basic values showing which are compatible and which conflict."],
+["kahan12","The Polarizing Impact of Science Literacy and Numeracy on Perceived Climate Change Risks","Dan Kahan and co-authors",2012,"paper",1,["g3","g4"],"The standard reference for identity-protective cognition."],
+["vbp18","The Partisan Brain: An Identity-Based Model of Political Belief","Jay Van Bavel & Andrea Pereira",2018,"paper",2,["g3","g4"],"Political belief as an expression of group identity."],
+["finkel20","Political Sectarianism in America","Eli Finkel and co-authors",2020,"paper",1,["g3","g4"],"Othering, aversion and moralization as the parts of polarization."],
+["mason18","Uncivil Agreement: How Politics Became Our Identity","Lilliana Mason",2018,"book",1,["g3"],"How aligned identities intensify partisan hostility."],
+
+["allport54","The Nature of Prejudice","Gordon Allport",1954,"book",2,["g4","g3"],"The contact hypothesis and its conditions."],
+["rogers57","Active Listening","Carl Rogers & Richard Farson",1957,"paper",1,["g4"],"The classic short statement: listen for meaning and reflect it back."],
+["sherif61","Intergroup Conflict and Cooperation: The Robbers Cave Experiment","Muzafer Sherif and co-authors",1961,"book",2,["g4","g3"],"Superordinate goals as a way to reduce group hostility."],
+["cm63","A Behavioral Theory of the Firm","Richard Cyert & James March",1963,"book",3,["g4","org"],"Organizations as coalitions with conflicting goals, resolved locally and in sequence."],
+["kerr75","On the Folly of Rewarding A, While Hoping for B","Steven Kerr",1975,"paper",1,["g4","org"],"How incentives pull people away from the goals an organization states."],
+["fu81","Getting to Yes","Roger Fisher & William Ury",1981,"book",1,["g4"],"Interest-based negotiation."],
+["msb94","Fighting for Your Marriage","Howard Markman, Scott Stanley & Susan Blumberg",1994,"book",1,["g4"],"Source of the speaker–listener technique, the structured form of mirroring."],
+["pt06","A Meta-Analytic Test of Intergroup Contact Theory","Thomas Pettigrew & Linda Tropp",2006,"paper",2,["g4","g3"],"Contact typically reduces prejudice across hundreds of studies."],
+["mr13","Motivational Interviewing: Helping People Change (3rd ed.)","William Miller & Stephen Rollnick",2013,"book",2,["g4"],"The standard text; first edition 1991."],
+["wardle17","Information Disorder: Toward an Interdisciplinary Framework for Research and Policy Making","Claire Wardle & Hossein Derakhshan",2017,"paper",1,["g4"],"Misinformation, disinformation and malinformation."],
+["nr10","When Corrections Fail: The Persistence of Political Misperceptions","Brendan Nyhan & Jason Reifler",2010,"paper",2,["g4"],"The original backfire-effect paper."],
+["wp19","The Elusive Backfire Effect: Mass Attitudes’ Steadfast Factual Adherence","Thomas Wood & Ethan Porter",2019,"paper",2,["g4"],"Finds backfire to be rare."],
+["bk16","Durably Reducing Transphobia: A Field Experiment on Door-to-Door Canvassing","David Broockman & Joshua Kalla",2016,"paper",1,["g4"],"The deep canvassing field experiment."],
+["kb18","The Minimal Persuasive Effects of Campaign Contact in General Elections: Evidence from 49 Field Experiments","Joshua Kalla & David Broockman",2018,"paper",2,["g4"],"Ordinary campaign contact has near-zero effects."],
+["kb20","Reducing Exclusionary Attitudes Through Interpersonal Conversation: Evidence from Three Field Experiments","Joshua Kalla & David Broockman",2020,"paper",2,["g4"],"Further deep canvassing field experiments."],
+["ovadya23","Bridging Systems: Open Problems for Countering Destructive Divisiveness Across Ranking, Recommenders, and Governance","Aviv Ovadya & Luke Thorburn",2023,"paper",2,["g4"],"Ranking that rewards agreement across divides."],
+["itz17","I Am Aware of My Inconsistencies but Can Tolerate Them: The Effect of High Quality Listening on Speakers’ Attitude Ambivalence","Guy Itzchakov, Avraham Kluger & Dotan Castro",2017,"paper",2,["g4"],"High-quality listening and how speakers hold their own views."],
+["ki22","The Power of Listening at Work","Avraham Kluger & Guy Itzchakov",2022,"paper",1,["g4"],"A review of the listening literature."],
+["weger14","The Relative Effectiveness of Active Listening in Initial Interactions","Harry Weger and co-authors",2014,"paper",2,["g4"],"Found paraphrasing no better than simple acknowledgment at conveying understanding.",1],
+["lowe21","Types of Contact: A Field Experiment on Collaborative and Adversarial Caste Integration","Matthew Lowe",2021,"paper",2,["g4","g3"],"Cooperating on a team reduced prejudice; competing across teams did not."],
+["paluck19","The Contact Hypothesis Re-Evaluated","Elizabeth Levy Paluck, Seth Green & Donald Green",2019,"paper",2,["g4","g3"],"Reviews the field evidence and what it does and does not show."],
+["mb20","Exaggerated Meta-Perceptions Predict Intergroup Hostility Between American Political Partisans","Samantha Moore-Berg and co-authors",2020,"paper",2,["g4","g3"],"Each side overestimates the other’s hostility."],
+["voelkel24","Megastudy Testing 25 Treatments to Reduce Antidemocratic Attitudes and Partisan Animosity","Jan Voelkel and co-authors",2024,"paper",2,["g4","g3"],"Compares many short interventions in a single design.",1],
+["pr19","Lazy, Not Biased: Susceptibility to Partisan Fake News Is Better Explained by Lack of Reasoning Than by Motivated Reasoning","Gordon Pennycook & David Rand",2019,"paper",2,["g4","g3"],"The main challenge to the identity-protective account."],
+["pennycook21","Shifting Attention to Accuracy Can Reduce Misinformation Online","Gordon Pennycook and co-authors",2021,"paper",2,["g4"],"Accuracy prompts and sharing."],
+["roozenbeek22","Psychological Inoculation Improves Resilience Against Misinformation on Social Media","Jon Roozenbeek and co-authors",2022,"paper",2,["g4"],"Prebunking tested on video platforms."],
+["bail18","Exposure to Opposing Views on Social Media Can Increase Political Polarization","Christopher Bail and co-authors",2018,"paper",2,["g4","g3"],"A field experiment against the simple echo-chamber story."],
+["guess23","How Do Social Media Feed Algorithms Affect Attitudes and Behavior in an Election Campaign?","Andrew Guess and co-authors",2023,"paper",2,["g4"],"One of the 2020 election studies with Meta."],
+["benkler18","Network Propaganda: Manipulation, Disinformation, and Radicalization in American Politics","Yochai Benkler, Robert Faris & Hal Roberts",2018,"book",2,["g4"],"Network analysis of the 2016 US election media ecosystem."],
+["mercier20","Not Born Yesterday: The Science of Who We Trust and What We Believe","Hugo Mercier",2020,"book",1,["g4","g3"],"The case that people are less gullible than assumed."],
+["budak24","Misunderstanding the Harms of Online Misinformation","Ceren Budak and co-authors",2024,"paper",2,["g4"],"Argues the effects of misinformation are overstated."],
+["rid20","Active Measures: The Secret History of Disinformation and Political Warfare","Thomas Rid",2020,"book",1,["g4","hist"],"A history of disinformation as state practice."],
+["thomas04","Russia’s Reflexive Control Theory and the Military","Timothy Thomas",2004,"paper",3,["g4","hist"],"Reflexive control as a concept in Russian military thought."],
+["lefebvre82","Algebra of Conscience","Vladimir Lefebvre",1982,"book",3,["g4","second"],"A formal model of agents who model one another; often cited as a source of reflexive control.",1],
+["costello24","Durably Reducing Conspiracy Beliefs Through Dialogues with AI","Thomas Costello, Gordon Pennycook & David Rand",2024,"paper",2,["g4","ai"],"Chatbot conversations reduced conspiracy belief for months."],
+["tessler24","AI Can Help Humans Find Common Ground in Democratic Deliberation","Michael Tessler and co-authors",2024,"paper",2,["g4","ai"],"The “Habermas Machine”: AI-drafted group statements."],
+["mouffe05","On the Political","Chantal Mouffe",2005,"book",2,["g4","soft"],"Agonism: turning enemies into adversaries."]
+];
+const D2=[
+ {t:"Do goals help, or do they backfire?",b:["g2","g1"],
+  A:{h:"Goal-setting theory",p:"Specific, challenging goals, with commitment and feedback, raise performance more reliably than vague “do your best” goals. Decades of lab and field studies support this.",w:"Locke and Latham"},
+  Bx:{h:"“Goals gone wild”",p:"Goals narrow attention, encourage cutting corners, erode intrinsic motivation and reward risk-taking. Overprescribing them is like overprescribing a drug.",w:"Ordóñez, Schweitzer, Galinsky, Bazerman"},
+  s:"Both are partly right. The gap is between a goal as the reference for a feedback loop, which works, and a goal as a target tied to rewards, which invites gaming (Goodhart’s law). The same design question faces any goal graph: what counts as evidence that a goal is met, and who can game it?"},
+ {t:"Willpower, habit or circumstance?",b:["g2"],
+  A:{h:"Individual capacity",p:"People differ in self-control, grit and conscientiousness, and those differences predict outcomes. Building willpower and habits is the lever.",w:"Baumeister, early grit research, popular habit books"},
+  Bx:{h:"Situation and structure",p:"Apparent self-control is often avoided temptation, stable cues and slack. Shortage of money, time and sleep taxes planning. Fix the situation and behavior follows.",w:"Milyavskaya and Inzlicht, Wood, Mullainathan and Shafir"},
+  s:"The best-replicated findings favor the middle: if–then plans, progress monitoring and context design. Ego depletion largely failed replication, grit overlaps heavily with conscientiousness, and some scarcity findings are contested. Advice that amounts to “try harder” has the weakest support."},
+ {t:"What kind of thing is identity?",b:["g3","g2","g1"],
+  A:{h:"A standard to be controlled",p:"Identity is a set of meanings held as a reference. People act to keep how others see them, and how they see themselves, matched to it, and identity threats trigger corrective action.",w:"Burke and Stets, Carver and Scheier"},
+  Bx:{h:"A story or a relation, not a set-point",p:"Identity is retold to different audiences and often ascribed by others. Treating it as a fixed reference misses how it shifts, and the single word covers categorization, self-understanding and group feeling.",w:"McAdams, Hacking, Brubaker and Cooper"},
+  s:"Unresolved. Brubaker and Cooper recommend replacing the one word with separate concepts, which is one way of reading the two camps as describing different things. Goal models such as KAOS and GSN have no node for identity at all; i* actors and roles come closest."},
+ {t:"Identity-protective or just lazy?",b:["g3","g4"],
+  A:{h:"Motivated reasoning",p:"People process political facts to protect their standing in their group, and more analytic people can do it more skillfully.",w:"Kahan, Van Bavel and Pereira"},
+  Bx:{h:"Lazy, not biased",p:"Susceptibility to false claims is better explained by not stopping to think than by defending the group, and nudges toward accuracy help.",w:"Pennycook and Rand"},
+  s:"Live. Both find real effects; the dispute is how much work identity does compared with inattention. It matters for remedies: if identity drives belief, facts do little; if inattention does, small nudges may work."},
+ {t:"Do corrections backfire?",b:["g4"],
+  A:{h:"Backfire",p:"Correcting a false belief can entrench it among people whose identity is tied to it.",w:"Nyhan and Reifler (2010)"},
+  Bx:{h:"Corrections work, modestly",p:"Across many topics people generally update toward the facts when corrected, and backfire is rare.",w:"Wood and Porter (2019) and later replications"},
+  s:"The general backfire effect has mostly not replicated, and corrections usually move beliefs a little. But change on facts often does not carry over to attitudes or votes, which is the gap identity-based accounts point to."},
+ {t:"Does listening change minds?",b:["g4"],
+  A:{h:"Listening matters",p:"High-quality listening lowers defensiveness and increases attitude clarity, and workplace studies link it to better relationships. Deep canvassing pairs listening with narratives and shows durable shifts.",w:"Rogers, Itzchakov and Kluger, Broockman and Kalla"},
+  Bx:{h:"Skeptics",p:"Paraphrasing on its own may add little beyond simple acknowledgment, since what people register is sincere attention. Rapport is not persuasion, and ordinary campaign contact has near-zero effects.",w:"Weger and colleagues, Kalla and Broockman (2018)"},
+  s:"Reflective listening is best read as channel repair: it makes the next exchange possible and makes people feel heard. Whether goals then move depends on what is added: a story, shared stakes, a task in common. It is necessary in many settings and sufficient in few."},
+ {t:"Are echo chambers driving polarization?",b:["g4","g3"],
+  A:{h:"Filter bubbles",p:"Recommendation feeds sort people into like-minded streams, and exposure to only one side drives polarization.",w:"Pariser, Sunstein"},
+  Bx:{h:"Exposure is not the cause",p:"Many people do meet opposing views, and a field experiment found that following opposing accounts increased polarization for some. Changing feed algorithms in a 2020 election study left attitudes largely unchanged.",w:"Bail and colleagues, Guess and colleagues"},
+  s:"The 2020 studies covered one platform, one election and a few months, so they limit the claim but do not close the question. The identity account predicts this pattern: exposure alone does not move people whose identity is at stake, and hostile exposure can harden it (schismogenesis)."},
+ {t:"Is disinformation a cause or a symptom?",b:["g4"],
+  A:{h:"Supply-side view",p:"Coordinated campaigns, partisan media ecosystems and engagement-driven platforms produce and amplify falsehood, with real political effects.",w:"Wardle and Derakhshan, Benkler and colleagues, Rid"},
+  Bx:{h:"Demand-side view",p:"People are not gullible. Most false-news sharing comes from a small, already committed group, and beliefs follow existing identity and distrust.",w:"Mercier, Budak and colleagues"},
+  s:"Both can hold. Supply may matter most at the margins and in crises, while demand explains why the audience is receptive. Remedies differ: moderation and transparency target supply, trust-building and identity-aware messaging target demand."},
+ {t:"Consensus or managed disagreement?",b:["g4","soft","org"],
+  A:{h:"Aim for shared goals",p:"Legitimate decisions need agreement reached through reasoned dialogue among equals. Aligning goals is the point.",w:"Habermas, deliberative democrats"},
+  Bx:{h:"Aim for adversaries, not enemies",p:"Politics is irreducibly conflictual. The task is to turn antagonism into agonism, where opponents contest without denying each other’s legitimacy. Forced consensus hides power.",w:"Mouffe; Checkland (accommodation, not consensus)"},
+  s:"Ashby’s law adds a cybernetic argument for the second view: a group that removes all variety loses its ability to respond to change. A workable middle is shared procedures and a few shared superordinate goals, with disagreement kept open elsewhere. Checkland’s accommodation is an example: a version of the situation that conflicting parties can live with."},
+ {t:"Are safety cases argument or theater?",b:["g1","safety"],
+  A:{h:"Assurance cases",p:"A structured argument with explicit claims, context and evidence makes safety reasoning reviewable and forces a system’s goals to be stated.",w:"Kelly, Bloomfield and Rushby"},
+  Bx:{h:"The theater critique",p:"Cases invite confirmation bias, turn into paperwork, and gave false comfort in the loss of a Nimrod aircraft. Better to analyze hazards directly and enforce constraints.",w:"Haddon-Cave (Nimrod Review), Leveson"},
+  s:"Assurance 2.0 responds with explicit defeaters and confidence assessment. One design lesson for any goal graph: make it easy to challenge and hard to merely decorate, since evidence that can be re-run is harder to fake than evidence that is cited."}
+];
+const LOOP=[
+ {k:"ref",name:"Reference: the goal, and who you take yourself to be",role:"The state the loop tries to hold. In this tradition the top of the hierarchy is identity and values, which set the goals below them.",breaks:"No clear target, several targets that collide, or a target that belongs to someone else.",
+  levers:[["Specific, challenging goals with commitment","strong","Locke and Latham (2002)"],["Goals held for your own reasons","moderate","Deci and Ryan (2000)"],["Goals that fit the self you want to be","moderate","Carver and Scheier; Markus and Nurius"],["Fewer goals, with conflicts made explicit","moderate","Kruglanski and colleagues (2002)"],["Naming competing commitments","practitioner","Kegan and Lahey (2009)"]],
+  ask:["Could someone else tell, from your description, whether the goal was met?","Is there another goal that wins whenever the two collide?"]},
+ {k:"perc",name:"Perception: seeing where you actually are",role:"Sensing the current state and how it is changing.",breaks:"No feedback, feedback that arrives too late, or a measure that drifts away from the goal.",
+  levers:[["Recording progress, especially in writing or shared with others","moderate","Harkin and colleagues (2016)"],["Outside-view estimates instead of gut estimates","moderate","Kahneman and Lovallo; Flyvbjerg (2006)"],["Habit and task trackers, streak counters","practitioner","Little direct trial evidence; whether streaks help or backfire is largely untested"],["Measures that resist gaming","practitioner","Goodhart’s law; Kerr (1975)"]],
+  ask:["How soon after acting do you find out whether it worked?","Could the number improve while the goal gets worse?"]},
+ {k:"comp",name:"Comparator: noticing the gap without quitting",role:"Turning a difference into a signal rather than a verdict.",breaks:"The gap is not noticed, or it is read as failure and the loop shuts down.",
+  levers:[["Mental contrasting with an if–then plan (WOOP)","moderate","Oettingen (2014)"],["Planning for lapses in advance","moderate","Marlatt and Gordon (1985)"],["Self-compassion after a miss","emerging","Small experiments so far"]],
+  ask:["What do you do in the first hour after missing?","Does one miss end the streak and the attempt?"]},
+ {k:"act",name:"Action: plans, habits and strategy",role:"What you do about the gap.",breaks:"The intention never meets a trigger, or the plan goes after the wrong obstacle.",
+  levers:[["If–then plans that tie an action to a cue","strong","Gollwitzer and Sheeran (2006)"],["Repetition in a stable context, so the cue triggers the act","moderate","Wood and Rünger (2016); Lally and colleagues (2010)"],["Diagnose, pick a guiding policy, coordinate actions","practitioner","Rumelt (2011)"],["Next-action lists and a regular review","practitioner","Allen (2001)"],["Fast observe–orient–decide–act cycles","practitioner","Boyd; Osinga (2007)"]],
+  ask:["Is there a named cue that starts the action?","Does the plan go after the biggest obstacle or the easiest one?"]},
+ {k:"world",name:"World: the disturbances",role:"Everything that pushes the state away from the goal: temptation, other people, shortage, shocks.",breaks:"Disturbances are stronger or more frequent than the loop can correct.",
+  levers:[["Change the situation: remove temptations, add friction or cues","moderate","Duckworth and colleagues (2016); Milyavskaya and Inzlicht (2017)"],["Commitment devices and accountability partners","moderate","Bryan, Karlan and Nelson (2010)"],["Temptation bundling","mixed","Milkman and colleagues (2014); early gains faded"],["Reduce shortage of time, money and sleep","contested","Mullainathan and Shafir (2013); the cognitive-bandwidth findings are disputed"]],
+  ask:["Which disturbance wins most often, and can it be removed instead of resisted?","What in your circumstances makes any plan harder to follow?"]}
+];
+const CHAIN=[
+ {h:"Goals harden into commitments",p:"A goal that is pursued long enough, and shared with others, becomes a commitment that the person defends. Several goals coexist, and some are the person’s own while others are ascribed by other people.",src:"Carver and Scheier; Markus and Nurius; Higgins",fail:"The reference gets stuck: people defend goals after the world has changed, and goals set by others can feel like their own."},
+ {h:"Commitments compress into identity",p:"“The kind of person who…” packages many goals into one self-description. It is cheaper to hold and to act on than a list, and it lets other people predict what the person will do.",src:"Burke and Stets; McAdams; Akerlof and Kranton",fail:"A threat to one goal feels like a threat to the self, so criticism triggers defense instead of revision."},
+ {h:"Identity is shared through symbols",p:"Words, dress, flags, food and rituals become pointers to a whole bundle of goals and values. A symbol lets a group coordinate without restating what it wants.",src:"Mead; Durkheim; Burke; Edelman",fail:"The pointer detaches from the bundle: people defend the symbol whether or not it still stands for the goals."},
+ {h:"Symbols draw boundaries",p:"Shared symbols separate insiders from outsiders. Costly or hard-to-fake markers screen out free riders, and taste and language mark status.",src:"Tajfel and Turner; Bourdieu; Iannaccone; Lamont and Molnár",fail:"Minimal cues are enough to produce favoritism, and boundaries can be redrawn quickly by whoever controls the symbols."},
+ {h:"Boundaries regulate behavior",p:"Groups keep members near their shared reference through approval and shunning, and evidence that threatens it is processed defensively. Between groups, each side’s reaction to the other can feed the split.",src:"Kahan; Van Bavel and Pereira; Bateson on schismogenesis; Akerlof and Kranton",fail:"Influence campaigns aim here: attach a claim to a group symbol and it inherits the group’s defenses. Reflexive control is the deliberate version."}
+];
+const TECH=[
+ ["Reflective listening (mirroring)",["channel"],"One person speaks; the other restates what they heard and checks it, adding nothing. Versions include Rogers’s active listening, the speaker–listener technique from PREP, Imago dialogue and listening circles.","moderate","Makes people feel understood and lowers defensiveness in workplace and lab studies. Whether paraphrase itself is the active ingredient, or sincere attention, is disputed.","On its own it does not move goals, it can feel mechanical, and it can be used as a tactic.","A round-trip test on the channel: the message goes out, comes back restated, and the sender checks it against what they meant."],
+ ["Motivational interviewing",["channel","reference"],"Open questions, affirmations, reflections and summaries that help the person voice their own reasons for change.","moderate","Many trials, mostly in health behavior, with small to moderate effects.","Assumes some ambivalence and willingness to talk. Little direct evidence on political goals.","Works on the person’s own reference instead of supplying one."],
+ ["Deep canvassing",["model","channel"],"Long, nonjudgmental conversations: the canvasser listens, shares a personal story and asks about the other person’s experience.","moderate","Field experiments show attitude shifts on some issues that lasted for months.","Expensive per conversation, issue-specific, and effects on votes are not established.","Changes a person’s model of the out-group through a lived example instead of an argument."],
+ ["Correcting misperceptions of the other side",["model"],"Show people that the other side is less extreme or hostile than they assume.","moderate","Exaggerated meta-perceptions are well documented, and a large 2024 test found several corrections reduced animosity.","Effects on behavior and on support for democratic norms are smaller and may fade.","Repairs the model of the other, a common source of error in identity conflict."],
+ ["Cooperative contact and shared goals",["reference"],"People from different groups work on a common task with equal status and institutional backing.","strong","Meta-analyses of contact find reduced prejudice. Robbers Cave and a caste-integration field experiment show the role of shared goals.","Contact without cooperation or equal status can fail. Durable effects on behavior are less well shown.","Creates a shared reference, so the groups’ loops point the same way."],
+ ["Interest-based negotiation",["reference","structure"],"Move from stated positions to underlying interests, invent options for mutual gain, and use objective criteria.","moderate","Long-standing in negotiation research, with good evidence for integrative outcomes in experiments.","Struggles with power gaps, low trust and sacred values that cannot be traded.","Searches for goals that are compatible beneath goals that look opposed."],
+ ["Structured dialogue and deliberation",["structure","channel"],"Citizens’ assemblies, deliberative polls and facilitated dialogue give groups rules, information and time.","moderate","Participants gain knowledge and often shift opinions, and some assemblies have shaped policy.","Small samples, self-selection and uneven uptake by decision-makers.","Builds a decision structure that can hold disagreement."],
+ ["Bridging and consensus mapping",["structure"],"Ranking systems surface statements approved by people who usually disagree (Polis, Community Notes).","emerging","Platform data and early studies, mostly observational.","Can be gamed, works best on well-defined claims, and depends on platform adoption.","Changes what gets amplified so that agreement, not outrage, is what spreads."],
+ ["AI-mediated dialogue",["channel","structure"],"Chatbots that respond to a person’s specific claims, or that draft group statements many members accept.","emerging","2024 online experiments: a reduction in conspiracy belief of roughly one fifth that lasted two months, and group statements that people rated highly.","Online samples, single research teams and unknown effects at scale. The same tools can be used for persuasion without consent.","A conversational partner in Pask’s sense, and also a new channel for influence."],
+ ["Prebunking and accuracy prompts",["model"],"Warn people about manipulation tactics in advance, or nudge them to consider accuracy before sharing.","moderate","Online experiments and some field studies show small improvements in spotting manipulation.","Effects are small and may decay. They reduce susceptibility instead of aligning goals.","Trains the sensor to reject bad input."],
+ ["Facilitated systems methods",["structure","reference"],"Team Syntegrity, Soft Systems Methodology and interactive planning give a group a structured process and models to argue over.","practitioner","Mostly case studies and practitioner reports.","Need willing participants and time, and rarely have controlled evaluation.","Cybernetic methods designed for exactly this problem, and ancestors of much of the list above."]
+];
+
+/* ================= NOTEBOOK: new data ================= */
+const TAGS=[["goal-models","Goal models"],["efficacy","Goal pursuit"],["identity","Identity and symbols"],["alignment","Aligning people"],["facts","Facts and belief"],["ontology","Beyond goals and actions"],["cycle","Action and goal creation"],["interviews","Needs and interviews"],["coding","Coding and measurement"],["priorities","Priorities and loops"]];
+const TAGC={"goal-models":"--c-ai","efficacy":"--c-org","identity":"--c-social","alignment":"--c-soft","facts":"--c-safety","ontology":"--c-cog","cycle":"--c-complex","interviews":"--c-second","coding":"--c-hist","priorities":"--c-origins"};
+const TAGN={};TAGS.forEach(t=>{TAGN[t[0]]=t[1];});
+
+/* [id,title,author,year,kind,level,[tags],note,verify?] */
+const RN=[
+["caplan07","The Myth of the Rational Voter","Bryan Caplan",2007,"book",1,["facts"],"Rational irrationality: false beliefs cost voters little, so they indulge them."],
+["campbell14","Solution Aversion: On the Relation Between Ideology and Motivated Disbelief","Troy Campbell & Aaron Kay",2014,"paper",2,["facts"],"People doubt facts whose proposed solutions threaten their ideology."],
+["bullock15","Partisan Bias in Factual Beliefs about Politics","John Bullock, Alan Gerber, Seth Hill & Gregory Huber",2015,"paper",2,["facts"],"Accuracy incentives shrink partisan gaps in reported facts."],
+["prior15","You Cannot Be Serious: The Impact of Accuracy Incentives on Partisan Bias in Reports of Economic Perceptions","Markus Prior, Gaurav Sood & Kabir Khanna",2015,"paper",2,["facts"],"A second study finding that incentives shrink partisan gaps."],
+["berinsky18","Telling the Truth about Believing the Lies? Evidence for the Limited Prevalence of Expressive Survey Responding","Adam Berinsky",2018,"paper",2,["facts"],"Argues that for political rumors, expressive responding is limited.",1],
+["gaines07","Same Facts, Different Interpretations: Partisan Motivation and Opinion on Iraq","Brian Gaines and co-authors",2007,"paper",2,["facts"],"Partisans accepted similar facts and read them differently."],
+["zaller92","The Nature and Origins of Mass Opinion","John Zaller",1992,"book",3,["facts","ontology"],"How elite cues and accepted messages shape public opinion."],
+["lenz12","Follow the Leader? How Voters Respond to Politicians’ Policies and Performance","Gabriel Lenz",2012,"book",2,["facts","ontology"],"Voters often adopt positions from the leaders they prefer."],
+["hopkins19","The Muted Consequences of Correct Information about Immigration","Daniel Hopkins, John Sides & Jack Citrin",2019,"paper",2,["facts"],"Correct statistics changed beliefs but barely changed attitudes."],
+["kubin21","Personal Experiences Bridge Moral and Political Divides Better Than Facts","Emily Kubin, Curtis Puryear, Chelsea Schein & Kurt Gray",2021,"paper",1,["facts","alignment"],"Personal stories raise respect across divides more than facts do."],
+["feinberg15","From Gulf to Bridge: When Do Moral Arguments Facilitate Political Influence?","Matthew Feinberg & Robb Willer",2015,"paper",2,["facts","alignment"],"Moral reframing in the audience’s values; replications are mixed."],
+["graham13","Moral Foundations Theory: The Pragmatic Validity of Moral Pluralism","Jesse Graham and co-authors",2013,"paper",2,["facts","identity"],"Moral foundations as a map of what groups weight differently; contested."],
+["haidt12","The Righteous Mind","Jonathan Haidt",2012,"book",1,["identity","facts"],"Moral intuitions and group loyalty; contested on details."],
+["kenrick10","Renovating the Pyramid of Needs: Contemporary Extensions Built upon Ancient Foundations","Douglas Kenrick, Vladas Griskevicius, Steven Neuberg & Mark Schaller",2010,"paper",2,["interviews","ontology"],"Fundamental motives, including care for kin, in an evolutionary frame."],
+["benabou16","Mindful Economics: The Production, Consumption, and Value of Beliefs","Roland Bénabou & Jean Tirole",2016,"paper",2,["ontology","facts"],"Beliefs as assets people hold for comfort, identity and motivation."],
+["akerlof82","The Economic Consequences of Cognitive Dissonance","George Akerlof & William Dickens",1982,"paper",2,["ontology","facts"],"People choose beliefs partly for how they feel about their own choices."],
+["nguyen20","Echo Chambers and Epistemic Bubbles","C. Thi Nguyen",2020,"paper",2,["ontology","facts"],"An echo chamber discredits outsiders, a bubble merely omits them."],
+["tetlock03","Thinking the Unthinkable: Sacred Values and Taboo Cognitions","Philip Tetlock",2003,"paper",2,["ontology"],"Why some trade-offs are refused rather than weighed."],
+["ginges07","Sacred Bounds on Rational Resolution of Violent Political Conflict","Jeremy Ginges, Scott Atran, Douglas Medin & Khalil Shikaki",2007,"paper",2,["ontology","alignment"],"Material incentives can backfire when a value is held as sacred."],
+["bicchieri06","The Grammar of Society: The Nature and Dynamics of Social Norms","Cristina Bicchieri",2006,"book",2,["ontology"],"Norms as expectations about what others do and expect."],
+["korsgaard96","The Sources of Normativity","Christine Korsgaard",1996,"book",3,["ontology","identity"],"Obligation as grounded in practical identities."],
+["weber22","Economy and Society","Max Weber",1922,"book",3,["ontology"],"Social action as goal-rational, value-rational, affectual or traditional."],
+["kuran95","Private Truths, Public Lies: The Social Consequences of Preference Falsification","Timur Kuran",1995,"book",2,["ontology","facts"],"People publicly state what they privately doubt."],
+["lakoff80","Metaphors We Live By","George Lakoff & Mark Johnson",1980,"book",1,["ontology","facts"],"Metaphor as a structure of thought."],
+["gallie56","Essentially Contested Concepts","W. B. Gallie",1956,"paper",2,["ontology","facts"],"Some concepts are inherently disputed, not just vague."],
+["schank77","Scripts, Plans, Goals and Understanding","Roger Schank & Robert Abelson",1977,"book",3,["ontology"],"Scripts and goals as the units of understanding stories."],
+["centola18","How Behavior Spreads: The Science of Complex Contagions","Damon Centola",2018,"book",2,["ontology","identity"],"Some behaviors need reinforcement from several contacts to spread."],
+["lukes74","Power: A Radical View","Steven Lukes",1974,"book",2,["ontology","identity"],"Power includes shaping what people want."],
+["mutz18","Status Threat, Not Economic Hardship, Explains the 2016 Presidential Vote","Diana Mutz",2018,"paper",2,["ontology","identity"],"An argument that perceived status threat drove vote choice; disputed."],
+["elster83","Sour Grapes: Studies in the Subversion of Rationality","Jon Elster",1983,"book",2,["ontology"],"Preferences adapt to what seems possible."],
+["nisbett77","Telling More Than We Can Know: Verbal Reports on Mental Processes","Richard Nisbett & Timothy Wilson",1977,"paper",2,["ontology","interviews"],"People often cannot report the real causes of their behavior."],
+["hg87","Thought Contents and Cognitive Functioning in Motivational versus Volitional States of Mind","Heinz Heckhausen & Peter Gollwitzer",1987,"paper",3,["cycle"],"Origin of the Rubicon model of action phases."],
+["zimmerman00","Attaining Self-Regulation: A Social Cognitive Perspective","Barry Zimmerman",2000,"paper",2,["cycle","efficacy"],"Forethought, performance and self-reflection as a cycle."],
+["amabile11","The Progress Principle","Teresa Amabile & Steven Kramer",2011,"book",1,["cycle","efficacy"],"Small wins and daily inner work life."],
+["dimidjian06","Randomized Trial of Behavioral Activation, Cognitive Therapy, and Antidepressant Medication in the Acute Treatment of Adults with Major Depression","Sona Dimidjian and co-authors",2006,"paper",3,["cycle"],"A trial in which behavioral activation performed comparably to the alternatives."],
+["richards16","Cost and Outcome of Behavioural Activation versus Cognitive Behavioural Therapy for Depression (COBRA)","David Richards and co-authors",2016,"paper",2,["cycle"],"Behavioral activation was non-inferior to CBT in a large trial."],
+["thrash03","Inspiration as a Psychological Construct","Todd Thrash & Andrew Elliot",2003,"paper",2,["cycle"],"Inspiration as evocation, transcendence and approach motivation."],
+["luck98","Motivated Behaviour for Goal Adoption","Michael Luck & Mark d’Inverno",1998,"paper",3,["cycle","ontology"],"Motivations as standing drives that generate goals in agents.",1],
+["klenk13","Goal-Driven Autonomy for Responding to Unexpected Events in Strategy Simulations","Matthew Klenk, Matthew Molineaux & David Aha",2013,"paper",3,["cycle"],"Agents that detect surprise, explain it and form new goals."],
+["oudeyer07","What Is Intrinsic Motivation? A Typology of Computational Approaches","Pierre-Yves Oudeyer & Frédéric Kaplan",2007,"paper",2,["cycle"],"Curiosity and learning progress as sources of agent goals."],
+["forestier22","Intrinsically Motivated Goal Exploration Processes with Automatic Curriculum Learning","Sébastien Forestier and co-authors",2022,"paper",3,["cycle"],"Agents that invent and select their own goals."],
+["wagenmakers16","Registered Replication Report: Strack, Martin, & Stepper (1988)","Eric-Jan Wagenmakers and co-authors",2016,"paper",2,["cycle"],"A multi-lab replication that did not find the facial-feedback effect."],
+["manson16","The Subtle Art of Not Giving a F*ck","Mark Manson",2016,"book",1,["cycle"],"Popular source of the Do-Something Principle."],
+["maxneef91","Human Scale Development: Conception, Application and Further Reflections","Manfred Max-Neef",1991,"book",2,["interviews"],"Finite needs versus culturally specific satisfiers."],
+["doyal91","A Theory of Human Need","Len Doyal & Ian Gough",1991,"book",3,["interviews"],"A case for universal basic needs."],
+["burton90","Conflict: Human Needs Theory","John Burton (ed.)",1990,"book",2,["interviews","alignment"],"Identity, security and recognition as needs that conflict resolution must meet."],
+["fraser89","Talking about Needs: Interpretive Contests as Political Conflicts in Welfare-State Societies","Nancy Fraser",1989,"paper",3,["interviews"],"Need claims as political moves, not neutral facts."],
+["berridge98","What Is the Role of Dopamine in Reward: Hedonic Impact, Reward Learning, or Incentive Salience?","Kent Berridge & Terry Robinson",1998,"paper",3,["interviews"],"Wanting and liking as separable processes."],
+["wilson05","Affective Forecasting: Knowing What to Want","Timothy Wilson & Daniel Gilbert",2005,"paper",1,["interviews"],"People mispredict what will satisfy them."],
+["reynolds88","Laddering Theory, Method, Analysis, and Interpretation","Thomas Reynolds & Jonathan Gutman",1988,"paper",2,["interviews"],"The standard statement of laddering."],
+["flanagan54","The Critical Incident Technique","John Flanagan",1954,"paper",2,["interviews"],"Eliciting concrete past incidents."],
+["schein13","Humble Inquiry: The Gentle Art of Asking Instead of Telling","Edgar Schein",2013,"book",1,["interviews"],"Asking questions you do not already know the answer to."],
+["ibarra03","Working Identity: Unconventional Strategies for Reinventing Your Career","Herminia Ibarra",2003,"book",1,["interviews","identity"],"People learn who they are by trying things."],
+["sph99","Difficult Conversations: How to Discuss What Matters Most","Douglas Stone, Bruce Patton & Sheila Heen",1999,"book",1,["interviews","alignment"],"What happened, feelings and identity in every hard conversation."],
+["follett25","Constructive Conflict","Mary Parker Follett",1925,"paper",2,["interviews","alignment"],"Integration over compromise; the window example.",1],
+["savickas05","The Theory and Practice of Career Construction","Mark Savickas",2005,"paper",2,["interviews"],"The career construction interview.",1],
+["schlossberg81","A Model for Analyzing Human Adaptation to Transition","Nancy Schlossberg",1981,"paper",2,["interviews"],"Transitions as situation, self, support and strategies."],
+["whitmore92","Coaching for Performance","John Whitmore",1992,"book",1,["interviews"],"The GROW model; practitioner, thin controlled evidence."],
+["sullivan08","Clean Language: Revealing Metaphors and Opening Minds","Wendy Sullivan & Judy Rees",2008,"book",1,["interviews"],"Questions that use only the person’s own words."],
+["conklin05","Dialogue Mapping: Building Shared Understanding of Wicked Problems","Jeff Conklin",2005,"book",2,["interviews","alignment"],"Recording issues, positions and arguments as a graph (IBIS)."],
+["fitzpatrick13","The Mom Test","Rob Fitzpatrick",2013,"book",1,["interviews"],"Ask about past behavior, not hypotheticals."],
+["saldana21","The Coding Manual for Qualitative Researchers (4th ed.)","Johnny Saldaña",2021,"book",2,["coding"],"The catalog of coding methods, including structural and process coding."],
+["braun06","Using Thematic Analysis in Psychology","Virginia Braun & Victoria Clarke",2006,"paper",1,["coding"],"The standard introduction to thematic analysis."],
+["milesh14","Qualitative Data Analysis: A Methods Sourcebook (3rd ed.)","Matthew Miles, Michael Huberman & Johnny Saldaña",2014,"book",2,["coding"],"Displays and matrices for qualitative data."],
+["macqueen98","Codebook Development for Team-Based Qualitative Analysis","Kathleen MacQueen and co-authors",1998,"paper",2,["coding"],"Definitions with inclusion and exclusion criteria and examples."],
+["guest06","How Many Interviews Are Enough? An Experiment with Data Saturation and Variability","Greg Guest, Arwen Bunce & Laura Johnson",2006,"paper",1,["coding"],"Most themes appeared within the first dozen interviews."],
+["ritchie94","Qualitative Data Analysis for Applied Policy Research","Jane Ritchie & Liz Spencer",1994,"paper",2,["coding"],"The framework method: a case-by-theme matrix."],
+["trochim89","An Introduction to Concept Mapping for Planning and Evaluation","William Trochim",1989,"paper",2,["coding","interviews"],"Group concept mapping from sorted statements."],
+["mcdonald19","Reliability and Inter-Rater Reliability in Qualitative Research: Norms and Guidelines for CSCW and HCI Practice","Nora McDonald, Sarita Schoenebeck & Andrea Forte",2019,"paper",2,["coding"],"When agreement statistics help and when they mislead."],
+["oconnor20","Intercoder Reliability in Qualitative Research: Debates and Practical Guidelines","Cliodhna O’Connor & Helene Joffe",2020,"paper",2,["coding"],"The case for and against intercoder reliability."],
+["xiao23","Supporting Qualitative Analysis with Large Language Models: Combining Codebook with GPT-3 for Deductive Coding","Ziang Xiao and co-authors",2023,"paper",2,["coding"],"Codebook-guided LLM coding compared with human coders."],
+["chew23","LLM-Assisted Content Analysis: Using Large Language Models to Support Deductive Coding","Robert Chew and co-authors",2023,"paper",2,["coding"],"Prompting LLMs to apply a codebook."],
+["gilardi23","ChatGPT Outperforms Crowd Workers for Text-Annotation Tasks","Fabrizio Gilardi, Meysam Alizadeh & Maël Kubli",2023,"paper",2,["coding"],"LLMs on annotation tasks compared with crowd workers."],
+["sandelowski01","Real Qualitative Researchers Do Not Count: The Use of Numbers in Qualitative Research","Margarete Sandelowski",2001,"paper",2,["coding"],"The case for and against counting in qualitative work."],
+["maxwell10","Using Numbers in Qualitative Research","Joseph Maxwell",2010,"paper",2,["coding"],"When quasi-statistics support qualitative claims."],
+["chwe01","Rational Ritual: Culture, Coordination, and Common Knowledge","Michael Chwe",2001,"book",2,["coding","alignment"],"Why making something common knowledge enables coordination."],
+["ulwick05","What Customers Want","Anthony Ulwick",2005,"book",1,["priorities","interviews"],"Outcome-driven innovation: importance and satisfaction gaps."],
+["hauser88","The House of Quality","John Hauser & Don Clausing",1988,"paper",1,["priorities"],"The standard introduction to the House of Quality."],
+["akao90","Quality Function Deployment: Integrating Customer Requirements into Product Design","Yoji Akao",1990,"book",2,["priorities"],"QFD from its originator."],
+["kano84","Attractive Quality and Must-Be Quality","Noriaki Kano and co-authors",1984,"paper",2,["priorities"],"Why importance is not monotonic: must-be, one-dimensional and attractive qualities."],
+["louviere15","Best-Worst Scaling: Theory, Methods and Applications","Jordan Louviere, Terry Flynn & A. A. J. Marley",2015,"book",3,["priorities"],"Deriving importance from forced trade-offs."],
+["saaty01","Decision Making with Dependence and Feedback: The Analytic Network Process","Thomas Saaty",2001,"book",3,["priorities"],"Priorities in networks with feedback, found as a fixed point."],
+["gabus72","The DEMATEL Method","Andre Gabus & Emilio Fontela",1972,"paper",3,["priorities"],"Mapping causal influence among factors.",1],
+["eppinger12","Design Structure Matrix Methods and Applications","Steven Eppinger & Tyson Browning",2012,"book",3,["priorities"],"Dependencies among components as a matrix."],
+["griffin93","The Voice of the Customer","Abbie Griffin & John Hauser",1993,"paper",2,["priorities","interviews"],"How many interviews it takes to hear most customer needs."]
+];
+
+/* [id,question,[tags],short,[sourceIds],[open]] */
+const Q=[
+ {q:"How do engineers write down goals, and argue that a system achieves them?",t:["goal-models"],
+  a:"Requirements engineering has goal models (KAOS, i*): goals refine into sub-goals until each is assigned to an agent, with conflict and obstacle analysis. Safety engineering has assurance cases (GSN): claims, strategies and evidence, in Toulmin’s tradition. Robotics and games added executable forms: planners (STRIPS, GOAP), behavior trees, BDI agents and temporal-logic missions. Critics say safety cases can become theater; Assurance 2.0 adds defeaters and confidence assessment.",
+  s:["dardenne93","chung00","yu97","kw04","vl09","br20","leveson11b","kgfp09"],
+  o:["Neither KAOS nor GSN has a node for identity or for where top-level goals come from.","Signed goal graphs invite structural-balance and robustness analysis. Which of those results transfer?"]},
+ {q:"Why do some people meet their goals while others struggle?",t:["efficacy"],
+  a:"Read as a control loop, struggle can break in five places: the reference (an unclear, conflicting or borrowed goal), perception (no or late feedback), the comparator (a gap read as failure), action (no cue that triggers the act) and the world (disturbances stronger than the loop). The best-supported levers are specific goals with commitment, if–then plans, progress monitoring and redesigning the situation. Ego depletion largely failed replication, grit overlaps heavily with conscientiousness, and habit formation time varies widely (a median near 66 days in one study).",
+  s:["cs98","ll02","gs06","harkin16","lally10","dgg16","hagger16","cte17","og09"],
+  o:["How much of “struggle” is circumstance (scarcity, time, health) and how much is method?","Do trackers help or backfire once a streak breaks? Largely untested."]},
+ {q:"How does identity form from goals, turn into symbols, and become in-group control?",t:["identity"],
+  a:"A five-step synthesis. Goals harden into commitments. Commitments compress into identity, made of a person’s own goals plus goals ascribed by others. Symbols share identity as cheap pointers to bundles of goals. Symbols draw boundaries. Boundaries regulate behavior through approval, shunning and defensive processing of threatening evidence. Identity control theory treats identity as a standard held against reflected appraisals, while the narrative and relational camp says identity is retold and ascribed, not a set-point.",
+  s:["bs09","burke91","higgins87","hacking95","bc00","tajfel79","iannaccone92","bateson36"],
+  o:["Is identity best modeled as a standard, a story, a relation, or as several separate concepts (Brubaker and Cooper)?","How do goals ascribed by others enter a model of a person’s goals?"]},
+ {q:"What exists for aligning people beyond reflective listening?",t:["alignment"],
+  a:"Techniques sort by what they change: the channel (listening, motivational interviewing), the model each side holds of the facts or of the other side (deep canvassing, correcting misperceptions, prebunking), the shared reference (cooperative contact, interest-based negotiation) and the decision structure (deliberation, bridging rankings, facilitated methods, AI-mediated dialogue). Listening is necessary in many settings and sufficient in few. Every lever is dual-use.",
+  s:["rogers57","mr13","bk16","kb20","kb18","pt06","lowe21","fu81","mb20","costello24","tessler24","ovadya23","weger14"],
+  o:["Whether paraphrase itself matters, or sincere attention, is disputed.","Which levers survive outside experiments, at scale?"]},
+ {q:"Why do identity arguments seem to be about facts rather than goals?",t:["facts","identity"],
+  a:"A loaded claim bundles layers: checkable facts, a frame or metaphor, values at stake and a group symbol. People often argue the checkable layer because it is the only one that can be stated in public. Yet correcting it moves beliefs much more than attitudes, which suggests the fact fight is partly a proxy for the other layers.",
+  s:["hopkins19","kubin21","kahan12","pr19","gaines07","bullock15","prior15","campbell14"],
+  o:["Can the four layers be coded reliably in real arguments?","Which layer does a given intervention actually hit?"]},
+ {q:"Why do construed facts get picked up, and what shared goals could give common ground?",t:["facts","alignment"],
+  a:"Five mechanisms: a wrong belief about national statistics costs its holder little, so social reward is the only feedback; facts imply actions, and people resist facts whose solutions threaten their goals; some survey responses are expressive, and accuracy incentives shrink partisan gaps by about half in two studies; partisans often read the same facts differently; and many people adopt facts from trusted group sources. Candidate common ground: care for people close to you, safety, fairness and autonomy. Schwartz’s surveys find benevolence near the top across cultures. The divergence is over whose circle counts and which risks matter.",
+  s:["caplan07","campbell14","bullock15","prior15","berinsky18","gaines07","zaller92","schwartz92","benabou16","kubin21","feinberg15"],
+  o:["Moral reframing replicates unevenly; what survives?","Is the relationship itself a shared goal worth naming in a conversation?"]},
+ {q:"Is there a named cycle of inspiration, motivation and action, and how does it relate to goal creation?",t:["cycle"],
+  a:"The closest popular match is the Do-Something Principle (Mark Manson), where action produces motivation and inspiration as well as following them. The closest academic cycles are the Rubicon model (wish, plan, act, evaluate) and Zimmerman’s forethought–performance–reflection loop. Evidence for action first: behavioral activation for depression, Amabile’s progress principle and Bandura’s mastery experiences; the brain-chemistry version of the claim is shakier. Planners like STRIPS take the goal as given; goal generation appears in agent research as motivation-driven goal adoption, goal-driven autonomy (surprise triggers new goals) and intrinsic motivation (curiosity).",
+  s:["hg87","amabile11","dimidjian06","richards16","thrash03","luck98","klenk13","oudeyer07","forestier22","wagenmakers16","mgp60","zimmerman00","manson16"],
+  o:["Where do new goals come from in a goal graph: surprise, curiosity, or both?","Is inspiration a distinct state or a label for the moment a goal forms?"]},
+ {q:"What is a goals-and-actions ontology missing?",t:["ontology"],
+  a:"Candidates other fields treat as first-class: beliefs as goods people hold because they pay, trust and testimony, emotion as a progress signal, sacred values that refuse trade-offs, norms and obligations, expressive speech, metaphor and story, group and network structure, and adaptive preferences. Several bear directly on why facts move identity: beliefs-as-assets and trust explain adoption, and sacred values break any arithmetic over goals.",
+  s:["benabou16","akerlof82","nguyen20","tetlock03","ginges07","bicchieri06","kuran95","lakoff80","schank77","centola18","elster83","nisbett77"],
+  o:["Which candidates are separate concepts, and which are properties of goals and agents?","Goals are not always upstream: what do we do about preferences that adapt?"]},
+ {q:"How do needs differ from wants, and how should I interview people about obstacles to find common ground?",t:["interviews"],
+  a:"Needs are few, universal and hard to substitute, while wants are the satisfiers (Max-Neef; self-determination theory). This parallels fundamental versus means objectives (Keeney) and interests versus positions (Fisher and Ury). Methods converge on asking why up a ladder and how else down it: laddering, critical incidents, motivational interviewing, solution-focused scaling, immunity-to-change, Clean Language and humble inquiry. Stated wants are weak evidence: wanting and liking come apart, people mispredict satisfaction, and they often confabulate reasons.",
+  s:["maxneef91","doyal91","burton90","berridge98","wilson05","reynolds88","flanagan54","mr13","kl09","schein13","ibarra03","fu81","sph99","keeney92"],
+  o:["Does need versus satisfier map onto fundamental versus objective goals?","When is “need” a trump card and when is it just a stronger want?"]},
+ {q:"How do I learn qualitative coding, use AI for it, and show community around a shared need across many participants?",t:["coding"],
+  a:"A goal ontology is already a codebook, so use structural or provisional coding (Saldaña) with inductive codes only inside slots. LLMs do decently at deductive coding with a clear codebook and worse at interpretive coding. A workable design: a codebook with when and when-not examples, span extraction with verbatim-quote checks, canonicalization with review, a hand-coded gold set and agreement metrics. For many participants, keep need and satisfier levels, count people instead of mentions, and report coverage, satisfier diversity, importance times gap, conflicts and saturation. Making the overlap visible creates common knowledge.",
+  s:["saldana21","braun06","macqueen98","guest06","ritchie94","xiao23","chew23","gilardi23","mcdonald19","oconnor20","trochim89","chwe01","sandelowski01","maxwell10"],
+  o:["Convenience samples cannot estimate prevalence; how should counts be reported?","Does publishing overlap actually change coordination?"]},
+ {q:"Can House-of-Quality-style systems be looped so that values are re-evaluated recursively?",t:["priorities"],
+  a:"House of Quality is a wants-by-features matrix with a roof of feature conflicts, scored 9/3/1 and weighted by importance. Its weak points are ordinal scores multiplied as ratios, unreliable stated importance and no feedback from field problems. A loop of wants to features to problems back to wants adds that feedback. The closest formal method is the Analytic Network Process, which finds a fixed point of priorities; DEMATEL maps causal influence. Cautions: hub effects, false precision, and oscillation without damping.",
+  s:["hauser88","akao90","kano84","ulwick05","louviere15","saaty01","gabus72","eppinger12","griffin93"],
+  o:["How stable are looped priorities under noisy inputs?","Can needs serve as a stable root while features and wants churn?"]}
+];
+
+/* concept map */
+const CM=[
+ {k:"strategy",name:"Strategy",lab:["Strategy",""],core:true,
+  what:"The means-ends bridge: a diagnosis, a guiding policy and coordinated actions that connect a goal to what you do.",
+  why:"Disputes about strategy are often mistaken for disputes about goals, so separating the two clears up what is actually contested.",
+  studied:"Strategy research, planning (HTN, GOAP), decision analysis.",attach:["goal"],refs:["rumelt11","osinga07","orkin06","keeney92"]},
+ {k:"identity",name:"Identity",lab:["Identity",""],core:true,
+  what:"A person’s own goals plus goals ascribed by others, compressed into a self-description that places them in groups.",
+  why:"Explains why facts that threaten a group’s standing get defended, and why symbols matter.",
+  studied:"Identity control theory, social identity theory, narrative identity, sociology of categories.",attach:["goal"],refs:["bs09","higgins87","bc00","tajfel79"]},
+ {k:"world",name:"World model",lab:["World","model"],core:true,
+  what:"The beliefs and facts an agent infers from observation and from other people, the model the loop updates.",
+  why:"Most of it is secondhand, so adoption depends on trust and on what a belief pays.",
+  studied:"Epistemology, political communication, belief economics, predictive models.",attach:["goal"],refs:["zaller92","nguyen20","benabou16","lenz12"]},
+ {k:"gen",name:"Goal generation",lab:["Goal","generation"],
+  what:"Where new goals come from: inspiration, curiosity, or surprise when an outcome departs from expectation.",
+  why:"Goal models take top-level goals as given; people’s goals shift with experience, which affects what a stable identity can mean.",
+  studied:"Inspiration research, goal-driven autonomy, intrinsic motivation, Rubicon model.",attach:["goal"],refs:["thrash03","klenk13","oudeyer07","hg87","luck98"]},
+ {k:"need",name:"Needs and satisfiers",lab:["Needs &","satisfiers"],
+  what:"Needs are few and hard to substitute. Wants are the satisfiers that meet them, which vary by culture and situation.",
+  why:"Separates what people are really after from the means they argue about, which is where common ground tends to sit.",
+  studied:"Human needs theory, self-determination theory, decision analysis, negotiation.",attach:["goal"],refs:["maxneef91","doyal91","keeney92","burton90","fu81"]},
+ {k:"sacred",name:"Sacred values",lab:["Sacred","values"],
+  what:"Goals that refuse trade-offs: offering material compensation can raise opposition instead of lowering it.",
+  why:"They break any arithmetic over goals, and they make some fact disputes impossible to settle by evidence alone.",
+  studied:"Moral psychology, anthropology of conflict.",attach:["goal"],refs:["tetlock03","ginges07"]},
+ {k:"norm",name:"Norms and obligations",lab:["Norms &","obligations"],
+  what:"Expectations about what one owes, and what others expect, that bind action independently of what one wants.",
+  why:"Identity disputes are often about who owes what, not who wants what.",
+  studied:"Social norm theory, moral philosophy, sociology.",attach:["action"],refs:["bicchieri06","korsgaard96","weber22"]},
+ {k:"group",name:"Groups and networks",lab:["Groups &","networks"],
+  what:"Who is connected to whom, and how beliefs and behaviors spread through those ties.",
+  why:"Identity is membership in something. Spread depends on structure, and some behaviors need several reinforcing contacts.",
+  studied:"Network science, complex contagion, sociology.",attach:["identity"],refs:["centola18","tajfel79","nguyen20"]},
+ {k:"power",name:"Power and status",lab:["Power &","status"],
+  what:"The capacity to shape outcomes and wants, and the sense of standing relative to other groups.",
+  why:"Perceived status threat is one candidate driver of identity-defensive beliefs, and power shapes whose goals count.",
+  studied:"Political theory, political psychology.",attach:["identity"],refs:["lukes74","mutz18"]},
+ {k:"adapt",name:"Adapted preferences",lab:["Adapted","preferences"],
+  what:"Wants shift to fit what seems possible, and stated reasons are often reconstructed after the fact.",
+  why:"Goals inferred from what people say may not be the goals that drive them.",
+  studied:"Philosophy of rationality, social psychology.",attach:["goal"],refs:["elster83","nisbett77","higgins87"]},
+ {k:"expr",name:"Expressive speech",lab:["Expressive","speech"],
+  what:"Statements that signal loyalty or feeling instead of reporting belief, and public positions that diverge from private ones.",
+  why:"Arguing about a statement as if it were a belief misses what the speaker is doing with it.",
+  studied:"Speech-act theory, political science, sociology.",attach:["action"],refs:["kuran95","bullock15","berinsky18","weber22"]},
+ {k:"belief",name:"Beliefs as goods",lab:["Beliefs","as goods"],
+  what:"Beliefs held partly for comfort, status and membership, so that giving one up has a cost.",
+  why:"Gives a formal reason for why construed facts get picked up and why correction alone moves so little.",
+  studied:"Belief economics, cognitive dissonance research.",attach:["world"],refs:["benabou16","akerlof82","caplan07"]},
+ {k:"trust",name:"Trust and testimony",lab:["Trust &","testimony"],
+  what:"Whom a person relies on for facts they cannot check, and how that reliance forms and breaks.",
+  why:"Most facts are secondhand, so who is trusted matters more than the evidence in many disputes.",
+  studied:"Social epistemology, political communication.",attach:["world"],refs:["nguyen20","zaller92","mercier20","lenz12"]},
+ {k:"frame",name:"Frames and stories",lab:["Frames &","stories"],
+  what:"Metaphors, contested terms and narratives that bundle actions, outcomes and feelings.",
+  why:"A word like “invasion” picks a category and implies an action, and anecdotes persuade because they are stories.",
+  studied:"Cognitive linguistics, philosophy, AI (scripts).",attach:["world"],refs:["lakoff80","gallie56","schank77"]},
+ {k:"emo",name:"Emotion as a signal",lab:["Emotion","as signal"],
+  what:"Affect as feedback on how goal pursuit is going: progress feels good and obstruction feels bad.",
+  why:"Emotion marks which goals are live and how threatened they are, which shows up before argument does.",
+  studied:"Self-regulation theory, affective science.",attach:["goal"],refs:["cs98","higgins87"]}
+];
+
+/* layers of a loaded claim */
+const FL=[
+ {k:"claim",name:"Checkable claims",ex:"Counts, rates, dates and comparisons.",
+  moves:[["Corrections move beliefs a little and attitudes barely","moderate","Wood and Porter; Hopkins, Sides and Citrin"],["Accuracy incentives shrink partisan gaps in reported facts","mixed","Bullock and colleagues; Prior and colleagues; Berinsky disputes the interpretation"],["Ask each person what evidence would change their mind","practitioner","Adversarial-collaboration practice"]]},
+ {k:"frame",name:"Frame or metaphor",ex:"“Invasion,” “crisis,” “hoax”: each picks a category and implies an action.",
+  moves:[["Ask what the word commits you to and what else it could be called","practitioner","Lakoff and Johnson; Gallie"],["Compare competing metaphors for the same facts","mixed","Framing effects are well documented; durability varies"]]},
+ {k:"value",name:"Values and goals at stake",ex:"Security, rule of law, compassion, continuity of community.",
+  moves:[["Ladder up to the need behind each position","practitioner","Reynolds and Gutman; Fisher and Ury"],["Argue in the other side’s values","mixed","Feinberg and Willer; replications are uneven"],["Look for shared values such as care for close others","moderate","Schwartz’s cross-cultural surveys"]]},
+ {k:"symbol",name:"Group symbol",ex:"The word as a membership marker: defending it signals loyalty.",
+  moves:[["Personal experiences raise respect more than facts do","moderate","Kubin and colleagues; they move positions less than respect"],["Messengers from inside the group travel further","moderate","Zaller; Lenz"],["Lower identity threat before presenting evidence","mixed","Self-affirmation evidence is uneven"]]}
+];
+
+/* mechanisms for why construed facts get picked up */
+const MECH=[
+ ["No error signal, and beliefs as goods","A wrong belief about national statistics costs its holder little, so social reward is the only feedback, and beliefs are held for comfort, status and membership.","moderate","Caplan; Bénabou and Tirole; Akerlof and Dickens","Raise the cost of being wrong (predictions, bets, accuracy prompts) before arguing the facts."],
+ ["Facts imply actions","People resist facts whose solutions threaten their goals or sacred values.","moderate","Campbell and Kay; Tetlock","Ask what the fact would force you to do, and look for other solutions."],
+ ["Expressive responding","Some answers are cheering, not belief. Incentives for accuracy shrink partisan gaps by about half in two studies.","mixed","Bullock and colleagues; Prior and colleagues; disputed by Berinsky","Treat a stated fact as possibly a stance, and ask a quieter follow-up."],
+ ["Same facts, different readings","Partisans often agree on facts and disagree on what they mean.","moderate","Gaines and colleagues","Agree on the number first, then ask what it means to each person."],
+ ["Source trust","Many people take positions from trusted figures and then adopt the matching facts.","moderate","Zaller; Lenz","Whose word counts matters more than the evidence, so a messenger inside the group travels further."]
+];
+
+/* goal-generation cycle */
+const CYCLE=[
+ {k:"insp",t:"Inspire",name:"Inspiration: a new possibility appears",
+  human:"Inspiration has three parts: it is evoked by something, it brings awareness of a better possibility, and it carries a pull to act (Thrash and Elliot).",
+  agent:"Intrinsic motivation: agents reward themselves for learning progress and generate their own goals (Oudeyer and Kaplan; Forestier and colleagues).",
+  test:"What triggered it, and does it still pull a day later?"},
+ {k:"adopt",t:"Adopt",name:"Goal adoption: a wish becomes a commitment",
+  human:"Crossing the Rubicon: deliberating among wishes is a different mind-set from committing to one (Heckhausen and Gollwitzer).",
+  agent:"Motivations as standing drives that generate goals (Luck and d’Inverno); BDI intentions as commitments (Bratman).",
+  test:"Which wishes did not become goals, and why?"},
+ {k:"plan",t:"Plan",name:"Plan: a cue and a strategy",
+  human:"If–then plans tie action to a cue and are the best-supported planning tool (Gollwitzer and Sheeran).",
+  agent:"Planners such as STRIPS and GOAP, which start here and take the goal as given.",
+  test:"Is there a named cue that starts the action?"},
+ {k:"act",t:"Act",name:"Action: do something small",
+  human:"Behavioral activation and the Do-Something Principle: action feeds motivation, and small wins raise it (Amabile; Richards and colleagues).",
+  agent:"Execution: behavior trees and reactive controllers.",
+  test:"What is the smallest action that counts as a start?"},
+ {k:"cmp",t:"Compare",name:"Outcome against expectation: surprise",
+  human:"The evaluation phase, and mastery experiences that build efficacy (Bandura; Rubicon model).",
+  agent:"Goal-driven autonomy: a discrepancy triggers explanation and a new goal (Klenk, Molineaux and Aha).",
+  test:"What surprised you, and did it change what you want?"}
+];
+
+/* interviews */
+const STEPS=[
+ ["Start from a recent concrete episode","“Tell me about the last time this got in your way.”","Critical incident technique; the Mom Test"],
+ ["Ladder up and down","“What would that get you?” and “How else could you get that?”","Laddering; Keeney’s why-important and how-achieve questions"],
+ ["Separate the need from the satisfier","“If that were solved some other way, would it still matter?”","Fisher and Ury; Max-Neef"],
+ ["Probe the obstacle","“What happens instead?” “When has it worked, even a little?” “Where are you, 0 to 10?”","Immunity to change; solution-focused scaling"],
+ ["Read it back in their words","“Here is what I heard. What did I get wrong?”","Reflective listening; Clean Language"],
+ ["Pick the smallest test","“What is the smallest thing you could try? If X happens, what will you do? When do we look?”","Implementation intentions; GROW"]
+];
+const QB=[
+ ["elicit","Tell me about the last time this came up.","Critical incident; the Mom Test"],
+ ["elicit","What were you trying to do?","Goal elicitation"],
+ ["elicit","What would a good outcome look like?","Solution-focused"],
+ ["need","What would that get you?","Laddering"],
+ ["need","What is important about that?","Keeney; means-end chains"],
+ ["need","If that happened some other way, would it still matter?","Need versus satisfier"],
+ ["satisfier","How else could you get that?","Laddering; Keeney"],
+ ["satisfier","What have you tried so far?","Coaching practice"],
+ ["obstacle","What is happening instead?","Immunity to change"],
+ ["obstacle","When has it worked, even a little?","Solution-focused exceptions"],
+ ["obstacle","What would have to be true for this to go away?","Obstacle analysis"],
+ ["commitment","How important is this right now, 0 to 10, and why not lower?","Motivational interviewing"],
+ ["commitment","How confident are you that you could do it, 0 to 10?","Motivational interviewing"],
+ ["commitment","What is the smallest first step?","GROW; implementation intentions"],
+ ["readback","Here is what I heard. Did I miss anything?","Reflective listening"],
+ ["readback","And is there anything else about that?","Clean Language"],
+ ["readback","And what kind of that is that?","Clean Language"]
+];
+
+/* coding */
+const PIPE=[
+ ["Codebook","Each code gets a definition, a when-to-use, a when-not, and examples."],
+ ["Extract spans","Each item carries a verbatim quote. Code rejects any quote that is not literally in the source."],
+ ["Canonicalize","Merge in code space, not raw text, and keep links back to the spans."],
+ ["Human review","Review a sample, plus every disagreement."],
+ ["Measure","Hand-code a gold set of 50 to 100 segments. Track per-code precision and recall, agreement, and run-to-run stability. Log model, prompt and codebook versions."]
+];
+const CODES=[
+ ["Goal","core","A desired state to achieve, maintain or avoid.","A one-off task.","“I want everyone in the house warm all winter.”"],
+ ["Action","core","Behavior described or observed.","A wish or a belief.","“I split wood on weekends.”"],
+ ["Strategy","core","The bridge from an action set to a goal.","A single action.","“We burn only dry hardwood so it lasts.”"],
+ ["Obstacle","core","Something that blocks or hurts a goal.","A complaint with no link to a goal.","“Wood gets expensive in January.”"],
+ ["Evidence","core","What the speaker offers to show a goal is met or a claim true.","A bare assertion.","“The thermostat reads 68.”"],
+ ["Need","add","A goal that survives swapping the means.","A means that happens to be named.","“I just want the kids safe and warm.”"],
+ ["Satisfier","add","A means by which a need or goal is met.","The underlying need.","“A wood stove.”"],
+ ["Claim","add","A checkable assertion about the world.","A value or an opinion.","“Heating costs doubled.”"],
+ ["Frame or metaphor","add","A loaded term or metaphor that picks a category.","A neutral description.","“Freeloaders.”"],
+ ["Value","add","A goal the speaker refuses to trade off.","A strong preference.","“We never let anyone go cold.”"],
+ ["Trust source","add","Whom the speaker relies on for a claim.","The claim itself.","“My brother-in-law says the price will drop.”"],
+ ["Emotion","add","Affect about how a goal is going.","A reaction unrelated to a goal.","“I’m exhausted by all of it.”"],
+ ["Norm","add","What is expected of me or us.","A personal preference.","“You help your neighbors.”"],
+ ["Identity claim","add","A statement of membership or of kind.","A job title with no stakes.","“We’re people who look after our own.”"]
+];
+
+/* priorities methods */
+const METHODS=[
+ ["House of Quality / QFD","Matrix of customer wants against technical characteristics, with a roof of conflicts and 9/3/1 scoring.","Ordinal scores multiplied as ratios, unreliable stated importance, one-shot snapshot."],
+ ["Kano model","Importance is not monotonic: must-haves matter only when missing, delighters matter when present.","Needs a survey design, and categories drift over time."],
+ ["Outcome-driven innovation","Importance times dissatisfaction, to find underserved outcomes.","Still relies on stated importance."],
+ ["MaxDiff and conjoint","Derive importance from forced trade-offs instead of ratings.","Needs enough respondents and a good item list."],
+ ["Means-end chains and FAST","Why and how laddering from features to values.","Qualitative, so priorities stay judgments."],
+ ["Analytic Network Process","AHP with feedback: priorities in a network with loops, found as a fixed point.","Hub effects, false precision, sensitivity to the pairwise judgments."],
+ ["DEMATEL","Maps causal influence among factors to find drivers and effects.","Expert-judgment inputs, so garbage in, garbage out."],
+ ["Design structure matrices","Dependencies among components or requirements as a matrix.","Shows coupling, not value."]
+];
+
+/* debates added by this line of questioning */
+const D3=[
+ {t:"Do facts or values drive the argument?",tags:["facts","identity"],
+  A:{h:"Facts first",p:"People disagree because they believe different things about the world. Correct the beliefs and attitudes will follow.",w:"Information-deficit models, much civic education"},
+  Bx:{h:"Values and group ties first",p:"Beliefs follow values, loyalties and trusted sources. Facts are downstream, so correcting them leaves attitudes where they were.",w:"Kahan, Zaller, Lenz"},
+  s:"Correcting facts moves beliefs but barely moves attitudes, which favors the second view. But accuracy incentives shrink partisan gaps in factual reports, so some of the disagreement is expressive and some is real belief."},
+ {t:"Are needs universal or constructed?",tags:["interviews"],
+  A:{h:"Universal needs",p:"A short list of needs can be identified and applies across cultures, which gives a basis for judging whether a situation is good or bad.",w:"Doyal and Gough, self-determination theory, Max-Neef"},
+  Bx:{h:"Needs as political claims",p:"What counts as a need is argued over, and need claims work as trump cards in politics. The list reflects whoever wrote it.",w:"Fraser"},
+  s:"Max-Neef separates finite needs from culturally specific satisfiers, which absorbs part of the objection. Burton’s use of needs as non-negotiable supports the trump-card concern. For interviews, treat “need” as a hypothesis the person can correct."},
+ {t:"Can LLMs replace human coders?",tags:["coding"],
+  A:{h:"Assist and scale",p:"With a clear codebook, models perform well on deductive coding and annotation, and they make large corpora tractable.",w:"Xiao and colleagues, Gilardi and colleagues"},
+  Bx:{h:"Interpretation needs people",p:"Interpretive coding depends on judgment and context, and agreement statistics may be the wrong test of quality in qualitative work.",w:"McDonald and colleagues, O’Connor and Joffe"},
+  s:"A hybrid is the common recommendation: codebook, gold set, quote checks, and human review of samples and disagreements. Treat results as sensitive to prompts and definitions."}
+];
+
+/* open questions: my synthesis, not findings */
+const OPENQ=[
+ ["Where do goals come from?","Goal models take top-level goals as given. A goal-generation step (inspiration, curiosity, surprise) could be modelled and tested.","Code interview transcripts for what triggered each new goal, and see whether surprise or curiosity predicts them."],
+ ["Can claim, frame, value and symbol layers be coded reliably?","The layers of a loaded claim are a hypothesis until they can be coded.","Code about thirty passages of heated disputes by hand, measure agreement between people, then between people and models."],
+ ["Which layer is an intervention actually hitting?","A correction, a reframe, a value bridge and a messenger swap each target a different layer.","Cross them in a small experiment and measure beliefs, attitudes and willingness to keep talking."],
+ ["Is need versus want the same as fundamental versus objective goals?","The two vocabularies may name one distinction.","Ladder interview participants and see whether the ladders converge on the same few needs."],
+ ["Does showing shared needs change coordination?","Common knowledge is predicted to help people coordinate.","Publish overlap counts for a small community and compare coordination before and after."],
+ ["How stable are looped priorities under noise?","Feedback methods can produce false precision.","Simulate ANP-style updates with noisy inputs and different damping, and report rank stability."],
+ ["When does a need stop being negotiable?","Sacred values refuse trade-offs, and “need” can be used the same way.","Code transcripts for refusals of substitutes and for the language used when they happen."],
+ ["How much of a belief is testimony?","Most facts are secondhand, but reasons are often given as if observed.","Add a trust-source code and measure how often claims are traced to a person instead of to observation."]
+];
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const tagCol=t=>`var(${TAGC[t]})`;
+const LV=["","Accessible","Some background","Specialist"];
+const dots=tags=>tags.map(t=>`<i style="--c:${tagCol(t)}" title="${esc(TAGN[t])}"></i>`).join("");
+const evChip=t=>`<span class="ev ev-${t}">${t}</span>`;
+const GT={g1:"goal-models",g2:"efficacy",g3:"identity",g4:"alignment"};
+const FACT_IDS=new Set(["kahan12","vbp18","pr19","nr10","wp19","mb20","budak24","mercier20","benkler18","bail18","guess23","wardle17","schwartz92"]);
+const RT=R2.map(r=>{const t=[...new Set(r[6].filter(k=>GT[k]).map(k=>GT[k]))];if(FACT_IDS.has(r[0]))t.push("facts");return [r[0],r[1],r[2],r[3],r[4],r[5],t,r[7],r[8]];});
+const ALLR=RT.concat(RN);
+const RBY={};ALLR.forEach(r=>{RBY[r[0]]=r;});
+const srcLinks=ids=>ids.filter(id=>RBY[id]).map(id=>{const r=RBY[id];return `<li><button class="lnk" data-id="${id}"><i>${esc(r[1])}</i></button> <span>${esc(r[2])}, ${r[3]}</span></li>`;}).join("");
+
+function buildStats(){
+  $("#hstats").innerHTML=`<span><b>${Q.length}</b> questions</span><span><b>${ALLR.length}</b> works</span><span><b>${CM.length}</b> concepts mapped</span><span><b>${D2.length+D3.length}</b> debates</span><span><b>${OPENQ.length}</b> open questions</span>`;
+}
+
+/* ---------- questions ---------- */
+let QF="all";
+function buildQuestions(){
+  $("#qf").innerHTML=`<div class="frow"><label>Topic</label>`+[["all","All"]].concat(TAGS).map(t=>`<button class="fb" data-t="${t[0]}" aria-pressed="${QF===t[0]}">${t[0]==="all"?"":`<i style="--c:${tagCol(t[0])}"></i>`}${esc(t[1])}</button>`).join("")+`</div>`;
+  $("#qf").querySelectorAll(".fb").forEach(b=>b.addEventListener("click",()=>{QF=b.dataset.t;buildQuestions();}));
+  const list=Q.map((q,i)=>({q,i})).filter(o=>QF==="all"||o.q.t.includes(QF));
+  $("#qs").innerHTML=list.map(o=>`<details class="deb" id="q${o.i}"><summary><strong><span class="qn">${o.i+1}</span><span>${esc(o.q.q)}</span></strong><span class="tags">${dots(o.q.t)}</span></summary><p class="ans">${esc(o.q.a)}</p><h4 class="mini">Key sources</h4><ul class="srcs">${srcLinks(o.q.s)}</ul><h4 class="mini">Still open</h4><ul class="opens">${o.q.o.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></details>`).join("");
+}
+
+/* ---------- concept map ---------- */
+const CMK={};CM.forEach(c=>{CMK[c.k]=c;});
+const C0=480,RC=170,RO=385;
+const cpos={goal:{x:C0,y:C0},action:{x:C0,y:C0}};
+const coreAng={strategy:-90,identity:30,world:150};
+Object.keys(coreAng).forEach(k=>{const a=coreAng[k]*Math.PI/180;cpos[k]={x:C0+RC*Math.cos(a),y:C0+RC*Math.sin(a)};});
+const OUT=["gen","need","sacred","norm","group","power","adapt","expr","belief","trust","frame","emo"];
+OUT.forEach((k,i)=>{const a=(-75+30*i)*Math.PI/180;cpos[k]={x:C0+RO*Math.cos(a),y:C0+RO*Math.sin(a)};});
+const ATT={goal:"Goals",action:"Actions",identity:"Identity",world:"World model",strategy:"Strategy"};
+let CMODE="all",csel="strategy";
+const f1=n=>n.toFixed(1);
+
+function cnode(k){
+  const c=CMK[k],p=cpos[k],r=c.core?54:50,x=f1(p.x),y=f1(p.y);
+  let s=`<g class="node cn" data-k="${k}" tabindex="0" role="button" aria-label="${esc(c.name)}">`;
+  s+=`<circle class="n" cx="${x}" cy="${y}" r="${r}" style="stroke:var(--ink);fill:var(--panel)"/>`;
+  if(!c.core)s+=`<circle cx="${x}" cy="${y}" r="${r}" style="fill:url(#hatch);stroke:none;pointer-events:none"/>`;
+  if(c.lab[1]){s+=`<text class="l" x="${x}" y="${f1(p.y-4)}">${esc(c.lab[0])}</text><text class="l" x="${x}" y="${f1(p.y+14)}">${esc(c.lab[1])}</text>`;}
+  else s+=`<text class="l" x="${x}" y="${f1(p.y+5)}">${esc(c.lab[0])}</text>`;
+  if(!c.core)s+=`<g class="cbadge" transform="translate(${f1(p.x+r*0.62)} ${f1(p.y-r*0.78)})"><circle r="10" style="fill:#FDE047"/><text x="0" y="4.5" text-anchor="middle" style="font-size:15px;font-weight:700;fill:#3A2E00">+</text></g>`;
+  return s+`</g>`;
+}
+function buildCM(){
+  const svg=$("#cmsvg");
+  svg.setAttribute("viewBox",CMODE==="all"?"0 0 960 960":"215 215 530 530");
+  let h=`<defs><pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="9" style="stroke:var(--ink);stroke-width:1.6;opacity:.14"/></pattern></defs>`;
+  const shown=CM.filter(c=>c.core||CMODE==="all");
+  shown.forEach(c=>{
+    const a=cpos[c.k],b=cpos[c.attach[0]];
+    h+=c.core?`<line class="spoke" x1="${f1(b.x)}" y1="${f1(b.y)}" x2="${f1(a.x)}" y2="${f1(a.y)}" style="stroke:var(--ink);stroke-width:2"/>`
+              :`<line class="spoke" x1="${f1(b.x)}" y1="${f1(b.y)}" x2="${f1(a.x)}" y2="${f1(a.y)}" style="stroke-dasharray:5 6"/>`;
+  });
+  h+=`<g class="center"><circle cx="${C0}" cy="${C0}" r="76"/><text x="${C0}" y="${C0-14}" font-size="22" font-weight="600">Goals</text><text x="${C0}" y="${C0+8}" font-size="20">⇄</text><text x="${C0}" y="${C0+32}" font-size="22" font-weight="600">Actions</text></g>`;
+  shown.forEach(c=>{h+=cnode(c.k);});
+  svg.innerHTML=h;
+  svg.querySelectorAll(".node").forEach(n=>{
+    n.addEventListener("click",()=>selectCM(n.dataset.k,true));
+    n.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();selectCM(n.dataset.k,true);}});
+  });
+  const tb=c=>`<li><button style="--c:var(--ink)" data-k="${c.k}" aria-pressed="false"><b>${esc(c.name)}${c.core?"":`<span class="newpill">candidate</span>`}</b><span>${esc(c.what)}</span></button></li>`;
+  const t=$("#cmtree");
+  t.innerHTML=`<li class="root">Goals and actions, as the starting ontology</li>`+shown.map(tb).join("");
+  t.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>selectCM(b.dataset.k,true)));
+}
+function selectCM(k,user){
+  const c=CMK[k];
+  if(!c.core&&CMODE!=="all"){k="strategy";}
+  const cc=CMK[k];
+  csel=k;
+  $("#cmsvg").querySelectorAll(".node").forEach(n=>n.classList.toggle("sel",n.dataset.k===k));
+  document.querySelectorAll("#cmtree button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.k===k)));
+  const pn=$("#cmpanel");
+  pn.style.setProperty("--c","var(--ink)");
+  pn.innerHTML=`<h3>${esc(cc.name)}${cc.core?`<span class="pk">core</span>`:`<span class="newpill">candidate addition</span>`}</h3>
+   <p class="kv"><b>What it is.</b> ${esc(cc.what)}</p>
+   <p class="kv"><b>Why it matters here.</b> ${esc(cc.why)}</p>
+   <p class="kv"><b>Studied in.</b> ${esc(cc.studied)}</p>
+   <p class="kv"><b>Could attach to.</b> ${cc.attach.map(a=>esc(ATT[a])).join(", ")}</p>
+   <h4>Key reading</h4><ul class="start srcs">${srcLinks(cc.refs)}</ul>`;
+  if(user&&window.matchMedia("(max-width:820px)").matches){pn.scrollIntoView({behavior:"smooth",block:"start"});}
+}
+function setCM(m){
+  CMODE=m;
+  document.querySelectorAll("#cmseg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.m===m)));
+  buildCM();selectCM(CMK[csel].core||m==="all"?csel:"strategy",false);
+}
+
+/* ---------- facts and identity ---------- */
+let layerSel="claim";
+function buildLayers(){
+  $("#layers").innerHTML=FL.map((l,i)=>`<button class="layer" data-k="${l.k}" aria-pressed="${l.k===layerSel}"><b>${esc(l.name)}</b><span>${esc(l.ex)}</span></button>${i===0?`<div class="line" aria-hidden="true"></div>`:""}`).join("");
+  $("#layers").querySelectorAll(".layer").forEach(b=>b.addEventListener("click",()=>{layerSel=b.dataset.k;buildLayers();}));
+  const L=FL.find(x=>x.k===layerSel);
+  $("#layerdetail").innerHTML=`<div class="ld"><h3>${esc(L.name)}</h3><p>${esc(L.ex)}</p><h4>What tends to move it</h4>${L.moves.map(v=>`<div class="lever"><span>${esc(v[0])}</span>${evChip(v[1])}<small>${esc(v[2])}</small></div>`).join("")}</div>`;
+}
+function buildMech(){
+  $("#mech").innerHTML=MECH.map(m=>`<div class="mech"><h3>${esc(m[0])}</h3><div><p>${esc(m[1])}</p><div class="tg">${evChip(m[2])}<span>${esc(m[3])}</span></div><p class="it">In conversation: ${esc(m[4])}</p></div></div>`).join("");
+}
+
+/* ---------- loops ---------- */
+const LB={ref:{x:10,y:70,w:104,h:56,t:"Reference",s:"goal, identity"},act:{x:225,y:70,w:104,h:56,t:"Action",s:"plan, habit"},world:{x:395,y:70,w:112,h:56,t:"World",s:"where it plays out"},perc:{x:225,y:200,w:104,h:56,t:"Perception",s:"tracking"}};
+let loopTab="loop",loopSel="ref",cycSel="insp";
+const MARK=`<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" style="fill:var(--muted)"/></marker></defs>`;
+function buildLoopTab(){
+  document.querySelectorAll("#ltabs button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.t===loopTab)));
+  const svg=$("#lsvg");
+  if(loopTab==="loop"){
+    svg.setAttribute("viewBox","0 0 520 290");
+    let h=MARK;
+    const path=d=>`<path class="lp" d="${d}" marker-end="url(#ah)"/>`;
+    h+=path("M114 98 H147")+path("M201 98 H223")+path("M329 98 H393")+path("M451 24 V68")+path("M451 126 V228 H331")+path("M225 228 H175 V128");
+    h+=`<text class="lo" x="451" y="16">disturbances</text><text class="lo" x="175" y="60">comparator</text>`;
+    Object.keys(LB).forEach(k=>{const b=LB[k];h+=`<g class="lbox" data-s="${k}" tabindex="0" role="button" aria-label="${esc(b.t)}"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="8"/><text class="lt" x="${b.x+b.w/2}" y="${b.y+25}">${b.t}</text><text class="ls" x="${b.x+b.w/2}" y="${b.y+43}">${b.s}</text></g>`;});
+    h+=`<g class="lbox" data-s="comp" tabindex="0" role="button" aria-label="Comparator"><circle cx="175" cy="98" r="26"/><text class="lt" x="175" y="103">Gap</text></g>`;
+    svg.innerHTML=h;
+    const nm={ref:"Reference",perc:"Perception",comp:"Comparator",act:"Action",world:"World"};
+    $("#lbtns").innerHTML=LOOP.map(L=>`<button data-s="${L.k}" aria-pressed="${L.k===loopSel}">${nm[L.k]}</button>`).join("");
+    $("#lnote").textContent="Read as a control loop: a reference, a comparison against perception, an action, and a world that pushes back.";
+    svg.querySelectorAll(".lbox").forEach(g=>{g.addEventListener("click",()=>selLoop(g.dataset.s));g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();selLoop(g.dataset.s);}});});
+    $("#lbtns").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>selLoop(b.dataset.s)));
+    selLoop(loopSel);
+  }else{
+    svg.setAttribute("viewBox","0 0 520 370");
+    const cx=260,cy=190,R=125,r=38;
+    const P=CYCLE.map((n,i)=>{const a=(-90+72*i)*Math.PI/180;return {x:cx+R*Math.cos(a),y:cy+R*Math.sin(a)};});
+    let h=MARK;
+    const arrow=(a,b,dash)=>{const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy),ux=dx/d,uy=dy/d;return `<path class="lp" style="${dash?"stroke-dasharray:5 5":""}" d="M${f1(a.x+ux*(r+3))} ${f1(a.y+uy*(r+3))} L${f1(b.x-ux*(r+9))} ${f1(b.y-uy*(r+9))}" marker-end="url(#ah)"/>`;};
+    CYCLE.forEach((n,i)=>{h+=arrow(P[i],P[(i+1)%5],false);});
+    h+=arrow(P[4],P[1],true);
+    CYCLE.forEach((n,i)=>{h+=`<g class="lbox" data-s="${n.k}" tabindex="0" role="button" aria-label="${esc(n.name)}"><circle cx="${f1(P[i].x)}" cy="${f1(P[i].y)}" r="${r}"/><text class="lt" x="${f1(P[i].x)}" y="${f1(P[i].y+5)}">${n.t}</text></g>`;});
+    svg.innerHTML=h;
+    $("#lbtns").innerHTML=CYCLE.map(n=>`<button data-s="${n.k}" aria-pressed="${n.k===cycSel}">${n.t}</button>`).join("");
+    $("#lnote").textContent="Dashed: surprise can skip straight to a new goal. Planners such as STRIPS start at Plan and take the goal as given.";
+    svg.querySelectorAll(".lbox").forEach(g=>{g.addEventListener("click",()=>selCyc(g.dataset.s));g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();selCyc(g.dataset.s);}});});
+    $("#lbtns").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>selCyc(b.dataset.s)));
+    selCyc(cycSel);
+  }
+}
+function selLoop(k){
+  loopSel=k;
+  document.querySelectorAll("#lsvg .lbox").forEach(g=>g.classList.toggle("on",g.dataset.s===k));
+  document.querySelectorAll("#lbtns button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.s===k)));
+  const L=LOOP.find(x=>x.k===k);
+  $("#ldetail").innerHTML=`<div class="ld"><h3>${esc(L.name)}</h3><p>${esc(L.role)}</p><p class="brk"><b>Breaks when:</b> ${esc(L.breaks)}</p><h4>Levers researchers have tested</h4>${L.levers.map(v=>`<div class="lever"><span>${esc(v[0])}</span>${evChip(v[1])}<small>${esc(v[2])}</small></div>`).join("")}<h4>Questions that locate the failure</h4><ul class="ask">${L.ask.map(a=>`<li>${esc(a)}</li>`).join("")}</ul></div>`;
+}
+function selCyc(k){
+  cycSel=k;
+  document.querySelectorAll("#lsvg .lbox").forEach(g=>g.classList.toggle("on",g.dataset.s===k));
+  document.querySelectorAll("#lbtns button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.s===k)));
+  const n=CYCLE.find(x=>x.k===k);
+  $("#ldetail").innerHTML=`<div class="ld"><h3>${esc(n.name)}</h3><p class="lens"><b>In people.</b> ${esc(n.human)}</p><p class="lens"><b>In agents.</b> ${esc(n.agent)}</p><p class="brk"><b>Ask:</b> ${esc(n.test)}</p></div>`;
+}
+
+/* ---------- needs and interviews ---------- */
+function buildSteps(){
+  $("#steps").innerHTML=STEPS.map(s=>`<li><div class="body"><h3>${esc(s[0])}</h3><p class="q">${esc(s[1])}</p><div class="src"><b>Draws on.</b> ${esc(s[2])}</div></div></li>`).join("");
+}
+let QBF="all";
+function buildQB(){
+  const opts=[["all","All"],["elicit","Elicit"],["need","Find the need"],["satisfier","Find satisfiers"],["obstacle","Probe obstacles"],["commitment","Test commitment"],["readback","Read back"]];
+  $("#qbf").innerHTML=`<div class="frow"><label>Purpose</label>${opts.map(o=>`<button class="fb" data-p="${o[0]}" aria-pressed="${QBF===o[0]}">${o[1]}</button>`).join("")}</div>`;
+  $("#qbf").querySelectorAll(".fb").forEach(b=>b.addEventListener("click",()=>{QBF=b.dataset.p;buildQB();}));
+  $("#qb").innerHTML=QB.filter(q=>QBF==="all"||q[0]===QBF).map(q=>`<div class="qrow"><span>${esc(q[1])}</span><small>${esc(q[2])}</small></div>`).join("");
+}
+
+/* ---------- coding ---------- */
+function buildPipe(){
+  $("#pipe").innerHTML=PIPE.map(p=>`<div class="stage"><h4>${esc(p[0])}</h4><p>${esc(p[1])}</p></div>`).join("");
+}
+let CF="all";
+function buildCodes(){
+  const opts=[["all","All codes"],["core","Core ontology"],["add","Additions from this research"]];
+  $("#codef").innerHTML=`<div class="frow"><label>Show</label>${opts.map(o=>`<button class="fb" data-c="${o[0]}" aria-pressed="${CF===o[0]}">${o[1]}</button>`).join("")}</div>`;
+  $("#codef").querySelectorAll(".fb").forEach(b=>b.addEventListener("click",()=>{CF=b.dataset.c;buildCodes();}));
+  $("#codes").innerHTML=CODES.filter(c=>CF==="all"||c[1]===CF).map(c=>`<div class="code"><h3>${esc(c[0])}${c[1]==="add"?`<span class="newpill">from the research</span>`:""}</h3><div><p>${esc(c[2])}</p><p class="nw"><b>Not when:</b> ${esc(c[3])}</p><p class="ex"><b>Example:</b> ${esc(c[4])}</p></div></div>`).join("");
+}
+const MX={sat:["Fire","Coat","Blanket","Shared shelter"],rows:[
+ {n:"P1",need:true,s:[1,1,0,0]},{n:"P2",need:true,s:[1,0,0,0]},{n:"P3",need:true,s:[0,1,1,0]},{n:"P4",need:true,s:[1,0,0,1]},
+ {n:"P5",need:true,s:[0,0,0,0]},{n:"P6",need:false,s:[0,0,0,0]},{n:"P7",need:true,s:[1,0,1,0]},{n:"P8",need:true,s:[0,0,0,1]}]};
+function renderMx(){
+  const rows=MX.rows;
+  let h=`<table class="mx"><thead><tr><th>Person</th><th>Has the need</th>${MX.sat.map(s=>`<th>${esc(s)}</th>`).join("")}</tr></thead><tbody>`;
+  rows.forEach((r,ri)=>{
+    h+=`<tr><td>${r.n}</td><td><button class="cell" data-r="${ri}" data-c="-1" aria-pressed="${r.need}" aria-label="${r.n} has the need">${r.need?"✓":""}</button></td>`;
+    r.s.forEach((v,ci)=>{h+=`<td><button class="cell" data-r="${ri}" data-c="${ci}" aria-pressed="${!!v}" ${r.need?"":"disabled"} aria-label="${r.n} uses ${esc(MX.sat[ci])}">${v?"●":""}</button></td>`;});
+    h+=`</tr>`;
+  });
+  h+=`</tbody></table>`;
+  $("#mxtable").innerHTML=h;
+  $("#mxtable").querySelectorAll(".cell").forEach(b=>b.addEventListener("click",()=>{
+    const r=MX.rows[+b.dataset.r],c=+b.dataset.c;
+    if(c<0){r.need=!r.need;if(!r.need)r.s=[0,0,0,0];}else{r.s[c]=r.s[c]?0:1;}
+    renderMx();
+  }));
+  const have=rows.filter(r=>r.need),n=have.length,tot=rows.length;
+  const counts=MX.sat.map((_,c)=>have.filter(r=>r.s[c]).length);
+  const used=counts.filter(x=>x>0).length;
+  const mx=Math.max(0,...counts),top=counts.indexOf(mx);
+  const unmet=have.filter(r=>!r.s.some(x=>x)).map(r=>r.n);
+  let out;
+  if(!n){out=`<p>Nobody has the need in this sample, so there is nothing to measure. Tick “Has the need” for someone.</p>`;}
+  else{
+    out=`<div class="cl">${n} of ${tot} of us are trying to stay warm. ${mx?`${mx} of ${n} use ${esc(MX.sat[top].toLowerCase())}`:"None of us has a way yet"}${unmet.length?`, and ${unmet.length} ${unmet.length===1?"has":"have"} no way yet`:""}.</div>
+    <p><b>Coverage:</b> ${n} of ${tot} people (${Math.round(100*n/tot)}%). Count people, not mentions.</p>
+    <p><b>Satisfier diversity:</b> ${used} different ways in use${mx?`; the most shared (${esc(MX.sat[top].toLowerCase())}) reaches ${Math.round(100*mx/n)}% of people with the need`:""}. Many satisfiers means flexibility, and one shared satisfier means something to coordinate around.</p>
+    <p><b>Unmet:</b> ${unmet.length?unmet.join(", ")+" ha"+(unmet.length===1?"s":"ve")+" the need and no satisfier.":"nobody."}</p>`;
+  }
+  $("#mxout").innerHTML=out;
+}
+function buildSat(){
+  const d=[14,9,7,5,4,2,2,1,1,0],W=520,H=150,bw=34,gap=16,x0=40,base=120;
+  let h=`<line x1="${x0-6}" y1="${base}" x2="${W-10}" y2="${base}" style="stroke:var(--line)"/>`;
+  d.forEach((v,i)=>{const x=x0+i*(bw+gap),bh=v*6.2;h+=`<rect x="${x}" y="${base-bh}" width="${bw}" height="${bh}" style="fill:var(--ink)"/><text x="${x+bw/2}" y="${base-bh-5}" text-anchor="middle">${v}</text><text x="${x+bw/2}" y="${base+14}" text-anchor="middle">${i+1}</text>`;});
+  h+=`<text x="${x0-6}" y="14">New codes per added participant (illustrative data)</text>`;
+  $("#satsvg").innerHTML=h;
+}
+
+/* ---------- priorities ---------- */
+const HQ={wants:["Stays warm","Easy to start","Little smoke"],feats:["Insulated stove","Dry fuel storage","Chimney with damper"],M:[[9,3,3],[3,9,9],[9,1,3]],w:[5,3,3]};
+function hqScores(w){return HQ.M.map(row=>row.reduce((s,m,j)=>s+m*w[j],0));}
+function renderHQ(){
+  const sc=hqScores(HQ.w),mx=Math.max(...sc);
+  const order=sc.map((v,i)=>i).sort((a,b)=>sc[b]-sc[a]);
+  let stable=true;
+  const top=order[0];
+  HQ.w.forEach((_,j)=>{[-1,1].forEach(d=>{const w2=HQ.w.slice();w2[j]=Math.min(5,Math.max(1,w2[j]+d));const s2=hqScores(w2);if(s2.indexOf(Math.max(...s2))!==top||s2.filter(v=>v===Math.max(...s2)).length>1)stable=false;});});
+  $("#hq").innerHTML=`<h3>Try the arithmetic</h3>
+   ${HQ.wants.map((w,j)=>`<div class="w"><span>${esc(w)}</span><input type="range" min="1" max="5" step="1" value="${HQ.w[j]}" data-j="${j}" aria-label="Importance of ${esc(w)}"><b>${HQ.w[j]}</b></div>`).join("")}
+   ${HQ.feats.map((f,i)=>`<div class="bar"><span>${esc(f)}</span><div style="width:${Math.round(100*sc[i]/mx)}%"></div><b>${sc[i]}</b></div>`).join("")}
+   <p class="rk">Each score is the sum of importance times a 9, 3 or 1 relationship. <b>Top choice: ${esc(HQ.feats[top])}.</b> ${stable?"It holds when any single importance moves by one point.":"Moving any single importance by one point can change the top choice, so treat the ranking as a hint, not a result."}</p>`;
+  $("#hq").querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{HQ.w[+inp.dataset.j]=+inp.value;renderHQ();}));
+}
+function buildMethods(){
+  $("#methods").innerHTML=METHODS.map(m=>`<div class="mrow"><h3>${esc(m[0])}</h3><p>${esc(m[1])}</p><p class="wk"><b>Weak point.</b> ${esc(m[2])}</p></div>`).join("");
+}
+
+/* ---------- debates ---------- */
+const ALLD=D2.map(d=>({t:d.t,A:d.A,Bx:d.Bx,s:d.s,tags:[...new Set(d.b.filter(k=>GT[k]).map(k=>GT[k]))]})).concat(D3);
+function buildDebates(){
+  $("#debs").innerHTML=ALLD.map((d,i)=>`<details class="deb" id="deb${i}"><summary><strong>${esc(d.t)}</strong><span class="tags">${dots(d.tags)}</span></summary><div class="vs"><div><h5>${esc(d.A.h)}</h5><p>${esc(d.A.p)}</p><div class="who">${esc(d.A.w)}</div></div><div><h5>${esc(d.Bx.h)}</h5><p>${esc(d.Bx.p)}</p><div class="who">${esc(d.Bx.w)}</div></div></div><div class="stand"><b>Where it stands.</b> ${esc(d.s)}</div></details>`).join("");
+}
+
+/* ---------- reading ---------- */
+const F={t:"all",k:"all",l:"all",q:""};
+function chipRow(label,key,opts){
+  return `<div class="frow"><label>${label}</label>${opts.map(o=>`<button class="fb" data-f="${key}" data-v="${o[0]}" aria-pressed="${F[key]===o[0]}">${o[2]?`<i style="--c:${tagCol(o[0])}"></i>`:""}${esc(o[1])}</button>`).join("")}</div>`;
+}
+function buildFilters(){
+  $("#filters").innerHTML=chipRow("Topic","t",[["all","All"]].concat(TAGS.map(t=>[t[0],t[1],true])))+chipRow("Type","k",[["all","All"],["book","Books"],["paper","Papers"]])+chipRow("Level","l",[["all","All"],["1","Accessible"],["2","Some background"],["3","Specialist"]])+`<div class="frow"><input type="search" id="rq" placeholder="Search titles, authors, notes" aria-label="Search readings"></div>`;
+  $("#rq").value=F.q;
+  $("#filters").querySelectorAll(".fb").forEach(b=>b.addEventListener("click",()=>{F[b.dataset.f]=b.dataset.v;buildFilters();renderReading();}));
+  $("#rq").addEventListener("input",e=>{F.q=e.target.value.toLowerCase();renderReading();});
+}
+function readingRow(r){
+  return `<div class="rrow"><div class="y">${r[3]}</div>
+    <div><div class="t">${esc(r[1])}</div><div class="a">${esc(r[2])}</div>${r[7]?`<div class="nt">${esc(r[7])}</div>`:""}</div>
+    <div class="meta"><span>${r[4]==="book"?"Book":"Paper"}, ${LV[r[5]].toLowerCase()}</span>${r[8]?`<span class="flag">check details</span>`:""}<span class="dots">${dots(r[6])}</span></div></div>`;
+}
+function renderReading(){
+  const q=F.q;
+  const list=ALLR.filter(r=>(F.t==="all"||r[6].includes(F.t))&&(F.k==="all"||r[4]===F.k)&&(F.l==="all"||String(r[5])===F.l)&&(!q||(r[1]+" "+r[2]+" "+(r[7]||"")).toLowerCase().includes(q))).sort((a,b)=>a[3]-b[3]);
+  $("#rcount").textContent=`Showing ${list.length} of ${ALLR.length}, oldest first.`;
+  $("#rlist").innerHTML=list.length?list.map(readingRow).join(""):`<div class="empty">Nothing matches. Clear a filter or shorten the search.</div>`;
+}
+
+/* ---------- open questions ---------- */
+function buildOpen(){
+  $("#oqs").innerHTML=OPENQ.map(o=>`<div class="oq"><h3>${esc(o[0])}</h3><p>${esc(o[1])}</p><p class="test"><b>Test it.</b> ${esc(o[2])}</p></div>`).join("");
+}
+
+
+/* ---------- identity chain and alignment techniques ---------- */
+function buildChain(){
+  $("#chain").innerHTML=CHAIN.map(c=>`<li><div class="body"><h3>${esc(c.h)}</h3><p>${esc(c.p)}</p><div class="src"><b>Sources.</b> ${esc(c.src)}</div><div class="fail"><b>Where it goes wrong.</b> ${esc(c.fail)}</div></div></li>`).join("");
+}
+let TF="all";
+function buildTech(){
+  const chips=[["all","All"],["channel","Channel"],["model","Model"],["reference","Reference"],["structure","Structure"]];
+  $("#techf").innerHTML=`<div class="frow"><label>Changes</label>${chips.map(c=>`<button class="fb" data-t="${c[0]}" aria-pressed="${TF===c[0]}">${c[1]}</button>`).join("")}</div>`;
+  $("#techf").querySelectorAll(".fb").forEach(b=>b.addEventListener("click",()=>{TF=b.dataset.t;buildTech();}));
+  const list=TECH.filter(t=>TF==="all"||t[1].includes(TF));
+  $("#tech").innerHTML=list.map(t=>`<div class="tech"><h3>${esc(t[0])}</h3><div class="tags">${t[1].map(c=>`<span class="chip">${c}</span>`).join("")}${evChip(t[3])}</div><p>${esc(t[2])}</p><p><b>Evidence.</b> ${esc(t[4])}</p><p><b>Limits.</b> ${esc(t[5])}</p><p class="lp2"><b>Loop reading.</b> ${esc(t[6])}</p></div>`).join("");
+}
+
+/* ---------- nav ---------- */
+function navSpy(){
+  const links=[...document.querySelectorAll(".nav a")];
+  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+e.target.id));}});},{rootMargin:"-30% 0px -60% 0px"});
+  links.forEach(a=>{const s=document.querySelector(a.getAttribute("href"));if(s)io.observe(s);});
+}
+
+/* ---------- init ---------- */
+document.addEventListener("click",e=>{
+  const b=e.target.closest(".lnk");if(!b)return;
+  const r=RBY[b.dataset.id];if(!r)return;
+  F.t="all";F.k="all";F.l="all";F.q=r[1].toLowerCase();
+  buildFilters();renderReading();
+  $("#reading").scrollIntoView({behavior:"smooth",block:"start"});
+});
+document.querySelectorAll("#cmseg button").forEach(b=>b.addEventListener("click",()=>setCM(b.dataset.m)));
+document.querySelectorAll("#ltabs button").forEach(b=>b.addEventListener("click",()=>{loopTab=b.dataset.t;buildLoopTab();}));
+buildStats();buildChain();buildTech();buildQuestions();buildCM();selectCM("strategy",false);buildLayers();buildMech();buildLoopTab();buildSteps();buildQB();buildPipe();buildCodes();renderMx();buildSat();renderHQ();buildMethods();buildDebates();buildFilters();renderReading();buildOpen();navSpy();
+
+</script>
+</body>
+</html>
