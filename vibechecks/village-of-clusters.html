@@ -1,0 +1,307 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Village of Clusters</title>
+<meta name="description" content="Baseline economics of the 3-agent village, and a build-ordered design for a clustered village of 30+ specialists.">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{
+  --bg:#eef1ea; --surface:#ffffff; --surface-2:#e4e9e0;
+  --ink:#20261f; --ink-dim:#5b655a; --line:#d3dbcd;
+  --copper:#a85a28; --copper-ink:#7c3f19;
+  --moss:#3f6e46; --amber:#a5711b; --rust:#a13a29;
+  --shadow: 0 1px 2px rgba(30,35,25,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12160f; --surface:#1a1f16; --surface-2:#212720;
+    --ink:#e7ecdf; --ink-dim:#9ba594; --line:#2b3227;
+    --copper:#d9905a; --copper-ink:#e8a878;
+    --moss:#84b788; --amber:#dda952; --rust:#e07a63;
+    --shadow: 0 1px 2px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12160f; --surface:#1a1f16; --surface-2:#212720;
+  --ink:#e7ecdf; --ink-dim:#9ba594; --line:#2b3227;
+  --copper:#d9905a; --copper-ink:#e8a878;
+  --moss:#84b788; --amber:#dda952; --rust:#e07a63;
+  --shadow: 0 1px 2px rgba(0,0,0,.3);
+}
+
+*{box-sizing:border-box;}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Source Sans 3',ui-sans-serif,system-ui,sans-serif;
+  line-height:1.55; padding:0 20px;
+}
+.wrap{max-width:760px; margin:0 auto; padding-block:48px 80px;}
+h1,h2,h3{font-family:'Fraunces',Georgia,serif; text-wrap:balance; line-height:1.15; color:var(--ink);}
+h1{font-size:2.4rem; font-weight:700; margin:0 0 6px;}
+h2{font-size:1.5rem; font-weight:600; margin:56px 0 6px; border-top:1px solid var(--line); padding-top:28px;}
+h2 .num{font-family:'IBM Plex Mono',monospace; font-size:.85rem; color:var(--copper); font-weight:500; display:block; letter-spacing:.06em; margin-bottom:4px;}
+h3{font-size:1.05rem; font-weight:600; margin:26px 0 8px;}
+p{margin:0 0 14px; max-width:65ch;}
+.lede{font-size:1.12rem; color:var(--ink-dim); max-width:60ch; margin:0 0 4px;}
+.byline{font-family:'IBM Plex Mono',monospace; font-size:.8rem; color:var(--ink-dim); letter-spacing:.03em; margin:18px 0 0;}
+a{color:var(--copper-ink);}
+code,.mono{font-family:'IBM Plex Mono',monospace; font-size:.92em;}
+.fact{background:var(--surface-2); border-radius:4px; padding:.05em .4em;}
+
+/* stat row */
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:20px 0 8px;}
+.stat{background:var(--surface); padding:14px 16px;}
+.stat .v{font-family:'IBM Plex Mono',monospace; font-size:1.5rem; font-weight:500; font-variant-numeric:tabular-nums;}
+.stat .v.rust{color:var(--rust);} .stat .v.moss{color:var(--moss);}
+.stat .l{font-size:.74rem; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.05em; margin-top:2px;}
+
+/* chart */
+.chart-card{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:18px 20px 10px; box-shadow:var(--shadow); margin:18px 0;}
+.chart-card .cap{font-size:.78rem; color:var(--ink-dim); margin-top:8px;}
+svg text{fill:var(--ink-dim); font-family:'IBM Plex Mono',monospace; font-size:9.5px;}
+svg .axis{stroke:var(--line);}
+.overflow{overflow-x:auto;}
+
+table{width:100%; border-collapse:collapse; font-size:.92rem; margin:14px 0;}
+th,td{text-align:left; padding:7px 10px; border-bottom:1px solid var(--line);}
+th{font-size:.72rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-dim); font-weight:600;}
+td.num, th.num{text-align:right; font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums;}
+tr.hit td{color:var(--rust); font-weight:600;}
+tr.warn td{color:var(--amber);}
+
+.pill{display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:.72rem; padding:2px 8px; border-radius:99px; letter-spacing:.02em;}
+.pill.ok{background:color-mix(in srgb, var(--moss) 18%, transparent); color:var(--moss);}
+.pill.risk{background:color-mix(in srgb, var(--amber) 20%, transparent); color:var(--amber);}
+.pill.dead{background:color-mix(in srgb, var(--rust) 20%, transparent); color:var(--rust);}
+
+ol.steps{list-style:none; margin:16px 0; padding:0; counter-reset:step;}
+ol.steps li{counter-increment:step; position:relative; padding:10px 0 10px 44px; border-bottom:1px solid var(--line);}
+ol.steps li:last-child{border-bottom:none;}
+ol.steps li::before{content:counter(step); position:absolute; left:0; top:10px; width:28px; height:28px; border-radius:50%; background:var(--surface-2); color:var(--copper-ink); font-family:'IBM Plex Mono',monospace; font-weight:500; font-size:.82rem; display:flex; align-items:center; justify-content:center;}
+ol.steps b{font-family:'Fraunces',serif; font-weight:600;}
+ol.steps .gate{display:block; font-size:.85rem; color:var(--ink-dim); margin-top:3px;}
+
+.risklist{margin:16px 0; padding:0; list-style:none;}
+.risklist li{display:flex; gap:14px; padding:12px 0; border-bottom:1px solid var(--line);}
+.risklist .rank{font-family:'IBM Plex Mono',monospace; color:var(--ink-dim); font-size:.85rem; padding-top:2px;}
+.risklist .body b{display:block; font-family:'Fraunces',serif; font-weight:600; font-size:1.02rem;}
+.risklist .body p{margin:4px 0 0; font-size:.92rem;}
+
+.callout{background:var(--surface); border:1px solid var(--line); border-left:3px solid var(--copper); border-radius:0 8px 8px 0; padding:14px 18px; margin:18px 0; font-size:.94rem;}
+.callout b{color:var(--copper-ink);}
+
+footer{margin-top:70px; padding-top:18px; border-top:1px solid var(--line); font-size:.78rem; color:var(--ink-dim);}
+</style>
+
+<div class="wrap">
+
+  <h1>The Village of Clusters</h1>
+  <p class="lede">Right now koditoki's village is three villagers hand-typed into a file. This is the read of what that world actually does when it runs, and the build-ordered brief for growing it into thirty-plus specialists without breaking the thing that makes it interesting: a digger who cannot feed himself.</p>
+  <p class="byline">bun run scenario village &middot; 120-tick baseline, real event log &middot; 19 Sep 2026</p>
+
+  <h2><span class="num">01</span>What the chain actually does</h2>
+  <p>Three agents, one dependency chain, no shortcuts. The <span class="fact">forager</span> eats what it picks and needs nobody. The <span class="fact">smith</span> casts one copper nugget into a tool and hands it to the <span class="fact">digger</span>, who alone can reach the roots under the bed. Cut any one relationship and someone starves &mdash; that fragility is the whole point of the demo, and it is the thing a cluster generator has to reproduce thirty times over, not paper over.</p>
+
+  <div class="stats">
+    <div class="stat"><div class="v">3</div><div class="l">specialists today</div></div>
+    <div class="stat"><div class="v">16</div><div class="l">gave percepts / 120t</div></div>
+    <div class="stat"><div class="v rust">64/64</div><div class="l">peak frame bits (smith)</div></div>
+    <div class="stat"><div class="v rust">t62</div><div class="l">digger hunger-caps</div></div>
+  </div>
+
+  <h3>The digger's hunger, over the full run</h3>
+  <div class="chart-card">
+    <svg viewBox="0 0 700 220" width="100%" style="overflow:visible">
+      <!-- axes -->
+      <line class="axis" x1="40" y1="10" x2="40" y2="180"></line>
+      <line class="axis" x1="40" y1="180" x2="680" y2="180"></line>
+      <text x="8" y="14">1.0</text><text x="8" y="98">0.5</text><text x="8" y="184">0</text>
+      <text x="38" y="198">t0</text><text x="330" y="198">t60</text><text x="660" y="198">t120</text>
+      <!-- hunger cap line -->
+      <line x1="40" y1="10" x2="680" y2="10" stroke="var(--rust)" stroke-dasharray="2 3" opacity=".5"></line>
+      <text x="600" y="8" fill="var(--rust)">hunger cap</text>
+      <!-- polyline built from data below -->
+      <polyline id="diggerLine" fill="none" stroke="var(--rust)" stroke-width="2"></polyline>
+      <polyline id="foragerLine" fill="none" stroke="var(--moss)" stroke-width="1.6" opacity=".85"></polyline>
+      <polyline id="smithLine" fill="none" stroke="var(--copper)" stroke-width="1.6" opacity=".85"></polyline>
+      <circle id="diggerDot" r="3.5" fill="var(--rust)"></circle>
+      <text id="diggerLabel" fill="var(--rust)" font-weight="600"></text>
+    </svg>
+    <p class="cap"><span style="color:var(--rust)">&#9679;</span> digger &nbsp; <span style="color:var(--moss)">&#9679;</span> forager (self-sufficient, sawtooth from eating alone) &nbsp; <span style="color:var(--copper)">&#9679;</span> smith. The digger's last successful dig is t28; hunger rises unbroken after and pins at 1.0 by t62 &mdash; it does not die (no mortality system is wired in), it just sits there, "exhausted," for the rest of the run.</p>
+  </div>
+
+  <h3>Why: the tool has a use-count, not a supply chain</h3>
+  <p>The world seeds exactly one copper <span class="fact">nugget</span> with <code>hits: 4</code>. The smith casts it once, hands it off at t07, and never holds copper again &mdash; its want clause <code>(sharp ?x) &lt;- (kind ?x copper)(holding self ?x)</code> can't re-fire. The digger spends the four hits at t08/t12/t16/t28, and the tool's <code>(sharp nugget)</code> mark never returns.</p>
+  <table>
+    <thead><tr><th>tick</th><th>event</th><th class="num">hits left</th></tr></thead>
+    <tbody>
+      <tr><td>t07</td><td>smith gives nugget to digger</td><td class="num">4</td></tr>
+      <tr><td>t08</td><td>dig</td><td class="num">3</td></tr>
+      <tr><td>t12</td><td>dig</td><td class="num">2</td></tr>
+      <tr><td>t16</td><td>dig</td><td class="num">1</td></tr>
+      <tr class="hit"><td>t28</td><td>dig &mdash; tool spent, <code>sharp</code> retracted</td><td class="num">0</td></tr>
+      <tr class="hit"><td>t62</td><td>digger hunger reaches 1.0, never eats again</td><td class="num">&mdash;</td></tr>
+    </tbody>
+  </table>
+  <p>The scripted 36-tick demo ends at t36 &mdash; before this ever shows. <b>"The digger still eats" is a claim about a window, not a steady state</b>, and any longer or larger run inherits it once per cluster, on the same clock, independently.</p>
+
+  <h2><span class="num">02</span>What one give costs</h2>
+  <p>Trade is gated by <code>trades-with</code> (rigid, checked once at grounding) but priced by <code>give</code>'s grounded literals, and the two behave nothing alike. Probed directly against <code>compileFrame</code>/<code>give.ts</code>:</p>
+  <div class="overflow"><table>
+    <thead><tr><th>co-located, dealt-with partners</th><th class="num">vocab bits</th><th class="num">ops</th><th>frame</th></tr></thead>
+    <tbody>
+      <tr><td>acquainted, not co-located (any count)</td><td class="num">0</td><td class="num">0</td><td><span class="pill ok">free</span></td></tr>
+      <tr><td>1</td><td class="num">7 / 64</td><td class="num">1</td><td><span class="pill ok">fits</span></td></tr>
+      <tr><td>3</td><td class="num">17 / 64</td><td class="num">3</td><td><span class="pill ok">fits</span></td></tr>
+      <tr><td>6</td><td class="num">32 / 64</td><td class="num">6</td><td><span class="pill ok">fits</span></td></tr>
+      <tr><td>9</td><td class="num">47 / 64</td><td class="num">9</td><td><span class="pill warn">tight</span></td></tr>
+      <tr><td>12</td><td class="num">62 / 64</td><td class="num">12</td><td><span class="pill warn">tight</span></td></tr>
+      <tr class="hit"><td>13+</td><td class="num">&mdash;</td><td class="num">&mdash;</td><td><span class="pill dead">no-frame</span></td></tr>
+    </tbody>
+  </table></div>
+  <p class="cap" style="margin-top:-6px">Same real village frame (<code>give</code> + <code>cast</code> + <code>eatFromHand</code> + <code>walkTo</code> + <code>sleep</code>). Each co-located partner adds ~5 bits: their location, a promise-retraction bit spent <i>whether or not a promise exists</i>, their holding, the give, the receipt. An acquaintance who isn't in the room costs nothing &mdash; that's the design lever.</p>
+
+  <h2><span class="num">03</span>The cluster: what's per-agent, what isn't</h2>
+  <p>A cluster is a <b>grove</b> (forager+bush), a <b>bed</b> (digger+roots), a <b>forge</b> (smith+mold+nugget) and a <b>square</b>, all local to that cluster's three specialists. Of everything in the three agent specs, almost all of it &mdash; clauses, reflexes, schemas, framing, disposition, body &mdash; parameterizes only over <code>self</code> and is copy-per-instance for free. Four things don't:</p>
+  <table>
+    <thead><tr><th>what</th><th>today</th><th>indexed</th></tr></thead>
+    <tbody>
+      <tr><td><code>scenery(self)</code>'s two module consts</td><td><code>AGENTS</code>, <code>WORKPLACES</code> (whole village)</td><td>this cluster's 3 names only</td></tr>
+      <tr><td>smith's seeded promise</td><td><code>promised("smith","digger","pick")</code></td><td><code>promised(smith(i), digger(i), "pick")</code></td></tr>
+      <tr><td>smith's earshot belief</td><td><code>["can-hear","forager","smith"]</code></td><td><code>[..., forager(i), smith(i)]</code></td></tr>
+      <tr><td>smith's <code>asksFor</code> hearers</td><td><code>hearers: ["forager"]</code></td><td><code>hearers: [forager(i)]</code></td></tr>
+      <tr><td>world things</td><td><code>nugget</code>, <code>mold</code>, <code>bush</code>, <code>bed</code></td><td><code>nugget-i</code>, <code>mold-i</code>, <code>bush-i</code>, <code>bed-i</code></td></tr>
+    </tbody>
+  </table>
+  <div class="callout"><b>The trap:</b> growing <code>AGENTS</code>/<code>WORKPLACES</code> in place and leaving <code>scenery()</code> alone hands every mind every other cluster's agents and workplaces too &mdash; facts/mind grows with population, the exact OwnMap defect (<code>koditoki-9bb1</code>) already fixed once in <code>households.ts</code>. Worse: <b>no AgentSpec in village.ts sets <code>ownMap</code> today</b>, so <code>build.ts</code>'s <code>belief()</code> silently hands every mind the world's whole topology regardless of what <code>scenery()</code> seeds &mdash; invisible now only because the world is 4 places.</div>
+
+  <h2><span class="num">04</span>The map</h2>
+  <div class="chart-card">
+    <svg viewBox="0 0 700 190" width="100%">
+      <!-- cluster 1 -->
+      <g font-family="IBM Plex Mono, monospace" font-size="10">
+        <line x1="130" y1="95" x2="60" y2="40" class="axis" stroke-width="1.4"></line>
+        <line x1="130" y1="95" x2="60" y2="150" class="axis" stroke-width="1.4"></line>
+        <line x1="130" y1="95" x2="200" y2="40" class="axis" stroke-width="1.4"></line>
+        <line x1="60" y1="40" x2="200" y2="40" class="axis" stroke-width="1.4"></line>
+        <circle cx="130" cy="95" r="13" fill="var(--surface-2)" stroke="var(--copper)"></circle>
+        <text x="122" y="99" fill="var(--ink)">sq</text>
+        <circle cx="60" cy="40" r="11" fill="var(--surface-2)" stroke="var(--moss)"></circle>
+        <text x="42" y="26" fill="var(--moss)">grove</text>
+        <circle cx="200" cy="40" r="11" fill="var(--surface-2)" stroke="var(--copper)"></circle>
+        <text x="188" y="26" fill="var(--copper)">forge</text>
+        <circle cx="60" cy="150" r="11" fill="var(--surface-2)" stroke="var(--ink-dim)"></circle>
+        <text x="48" y="168" fill="var(--ink-dim)">bed</text>
+        <text x="94" y="60" fill="var(--ink-dim)" font-size="8">forge&ndash;grove edge (load-bearing)</text>
+      </g>
+      <!-- road -->
+      <line x1="215" y1="95" x2="440" y2="95" class="axis" stroke-dasharray="4 4"></line>
+      <circle cx="290" cy="95" r="3" fill="var(--ink-dim)"></circle>
+      <circle cx="360" cy="95" r="3" fill="var(--ink-dim)"></circle>
+      <text x="270" y="80" fill="var(--ink-dim)">empty road, &ge;3 hops</text>
+      <!-- cluster 2 -->
+      <g font-family="IBM Plex Mono, monospace" font-size="10">
+        <line x1="500" y1="95" x2="570" y2="40" class="axis" stroke-width="1.4"></line>
+        <line x1="500" y1="95" x2="570" y2="150" class="axis" stroke-width="1.4"></line>
+        <line x1="500" y1="95" x2="430" y2="40" class="axis" stroke-width="1.4"></line>
+        <line x1="570" y1="40" x2="430" y2="40" class="axis" stroke-width="1.4"></line>
+        <circle cx="500" cy="95" r="13" fill="var(--surface-2)" stroke="var(--copper)"></circle>
+        <text x="492" y="99" fill="var(--ink)">sq</text>
+        <circle cx="570" cy="40" r="11" fill="var(--surface-2)" stroke="var(--moss)"></circle>
+        <text x="576" y="26" fill="var(--moss)">grove</text>
+        <circle cx="430" cy="40" r="11" fill="var(--surface-2)" stroke="var(--copper)"></circle>
+        <text x="400" y="26" fill="var(--copper)">forge</text>
+        <circle cx="570" cy="150" r="11" fill="var(--surface-2)" stroke="var(--ink-dim)"></circle>
+        <text x="576" y="168" fill="var(--ink-dim)">bed</text>
+      </g>
+      <text x="105" y="185" fill="var(--ink-dim)">cluster i</text>
+      <text x="475" y="185" fill="var(--ink-dim)">cluster i+1</text>
+    </svg>
+    <p class="cap">Each cluster is a 4-place diamond around its own square, diameter 2 &mdash; the shape the current 3-agent village already validates (and already fills to 64/64 bits). Clusters never share a place; they're joined only by empty road nodes, long enough that no agent's speech (hearing range 2) reaches a neighboring forge or grove.</p>
+  </div>
+  <table>
+    <thead><tr><th>role</th><th class="num">kHops</th><th class="num">reach</th><th>why</th></tr></thead>
+    <tbody>
+      <tr><td>forager, digger, smith</td><td class="num">2</td><td class="num">2</td><td>exactly the diamond's diameter through the square &mdash; unchanged by cluster count, held constant regardless of <code>share</code></td></tr>
+    </tbody>
+  </table>
+  <p><code>share</code> as scripted (how many clusters' <em>squares</em> coincide) is the honest reading of "the Dunbar knob" &mdash; but the frame has no headroom for it. The unmodified single cluster already peaks at 64/64 bits with nobody sharing anything.</p>
+
+  <h2><span class="num">05</span>Acquaintance</h2>
+  <p><code>trades-with</code> stays scoped to each triple's own three members &mdash; forager, digger, smith of the <i>same</i> cluster, never a neighbor. Per &sect;02, that's free at any population as long as the partner isn't standing in the same place. Three probed configurations, real <code>compileFrame</code>, 10 clusters, own-group scenery:</p>
+  <div class="overflow"><table>
+    <thead><tr><th><code>share</code></th><th><code>dealsWith</code> scope</th><th class="num">smith frame</th><th>result</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>own triple (3)</td><td class="num">29 / 64</td><td><span class="pill ok">flat, 3&rarr;100 clusters</span></td></tr>
+      <tr><td>2</td><td>own triple, square shared</td><td class="num">38 / 64</td><td><span class="pill warn">88% full by share=4</span></td></tr>
+      <tr><td>2</td><td>whole share-group</td><td class="num">&mdash;</td><td><span class="pill dead">no-frame</span></td></tr>
+      <tr class="hit"><td>3, 6</td><td>whole share-group (as scripted)</td><td class="num">&mdash;</td><td><span class="pill dead">no-frame &mdash; both requested values fail</span></td></tr>
+    </tbody>
+  </table></div>
+  <p><b>Decision:</b> default <code>share = 1</code>. It is not the density dial it's described as &mdash; it's an on/off switch, and it's off. <code>share &gt; 1</code> is a separate, deliberately-run experiment that needs its own frame-slimming pass (fewer ask words, tighter rigid set) before it means anything; ship it documented as expected-to-fail, not degraded-gracefully.</p>
+
+  <h2><span class="num">06</span>What to measure, and the pass condition</h2>
+  <table>
+    <thead><tr><th>metric</th><th>how</th><th>pass</th></tr></thead>
+    <tbody>
+      <tr><td>specialist count</td><td><code>clusters &times; 3</code></td><td>&ge; 30 (<code>clusters &ge; 10</code>)</td></tr>
+      <tr><td>facts/mind vs. population</td><td>compare clusters=3/10/30 with <code>ownMap:true</code></td><td>flat, not the 174&rarr;1254 households curve</td></tr>
+      <tr><td>frame bits, per cluster</td><td>diff every cluster's per-tick trace against the unmodified 3-agent baseline</td><td>identical shape, no stray bit from a leaked cross-cluster fact</td></tr>
+      <tr><td>digger fed</td><td>each cluster's digger eats at least once inside the run window (&lt; ~t60/cluster, per &sect;01)</td><td>all clusters, not indefinitely &mdash; state the window explicitly</td></tr>
+      <tr><td>cross-cluster leakage</td><td>relations matrix: any give/ask/promise between agents of different clusters</td><td>zero, by construction</td></tr>
+      <tr><td>ms/agent</td><td>wall clock at clusters=3/10/30</td><td>flat, matching the households anchor (~300&ndash;330ms/agent), not the fort's hub curve</td></tr>
+    </tbody>
+  </table>
+  <p>Already run at 10 clusters (30 agents), <code>share=1</code>, 120 ticks: 0 <code>no-frame</code> verdicts, 4 completed gives/cluster, all 10 diggers eat at least once, zero cross-cluster edges in the relations matrix, ~303&ndash;333ms/agent flat from clusters=3 to 30. This is the configuration to ship.</p>
+
+  <h2><span class="num">07</span>Build order</h2>
+  <p>Smallest verifiable step first, so a regression is caught at the step that caused it &mdash; never at "run 30 clusters and see."</p>
+  <ol class="steps">
+    <li><b>One cluster, indexed by <code>i=0</code>, byte-identical to today.</b> Write <code>squareOf/groveOf/bedOf/forgeOf</code> and the per-cluster <code>scenery()</code>; run <code>clusters:1</code> and diff its full event log against unmodified <code>village.ts</code>.<span class="gate">Gate: zero diff, including frame-bit counts per tick.</span></li>
+    <li><b>Add <code>ownMap: true</code> to all three specs.</b> Confirm KB size is unchanged at <code>clusters:1</code> (topology was already only 4 places) &mdash; this step should be invisible here and only matter from step 3 on.<span class="gate">Gate: facts/mind identical to step 1.</span></li>
+    <li><b>Two isolated clusters, <code>share:1</code>, roads long enough to clear hearing range 2.</b> Run 40+ ticks; check cluster 1's forager KB never gains a fact naming cluster 2's agents, and vice versa.<span class="gate">Gate: zero cross-cluster facts in either KB; both diggers eat once each.</span></li>
+    <li><b>Ten clusters, <code>share:1</code>.</b> Run 120 ticks. Plot facts/mind and frame-bits vs. cluster index.<span class="gate">Gate: both flat across clusters; 30 specialists; every digger eats at least once before ~t60.</span></li>
+    <li><b>Thirty clusters, <code>share:1</code>.</b> Repeat step 4's measurements at 3x scale; time the run.<span class="gate">Gate: ms/agent flat vs. step 4, matching the households curve, not the fort's.</span></li>
+    <li><b>(Separate track) <code>share:2</code> as a named experiment.</b> Don't fold into the main branch. Confirm it fails the way &sect;05 predicts &mdash; <code>no-frame</code> near-immediately with the vocabulary as-is &mdash; before spending any effort slimming it.<span class="gate">Gate: documented failure, matching the probe, not a surprise.</span></li>
+  </ol>
+
+  <h2><span class="num">08</span>What's likely to go wrong, ranked</h2>
+  <ol class="risklist">
+    <li><span class="rank">1</span><div class="body"><b>The literal reading of "generated by index."</b><p>Growing <code>AGENTS</code>/<code>WORKPLACES</code> in place while leaving <code>scenery()</code>'s body untouched compiles and runs fine at clusters:1&ndash;3 and silently reproduces the OwnMap facts/mind curve from clusters:10 up. It looks correct for exactly long enough to ship.</p></div></li>
+    <li><span class="rank">2</span><div class="body"><b>Porting <code>households.ts</code>'s pure star and dropping the forge&ndash;grove edge.</b><p><code>households.ts</code> has no spoke-to-spoke edge; <code>village.ts</code>'s does, and the file's own comment says without it the smith forgets the grove is stocked before it can ask. A literal port drops this fourth edge per cluster, silently.</p></div></li>
+    <li><span class="rank">3</span><div class="body"><b>Treating <code>share</code> as a dial instead of a switch.</b><p>The brief names it the density knob; the measured frame has zero headroom above <code>share=1</code>. Anyone who runs <code>share=3</code> expecting a smooth curve gets <code>no-frame</code> and will spend time debugging a working design.</p></div></li>
+    <li><span class="rank">4</span><div class="body"><b>Reading "the digger still eats" as indefinite.</b><p>It's single-shot per cluster, independent of clustering &mdash; one nugget, four hits, no resupply. Every cluster hunger-caps its digger on its own clock past ~t60. A report or demo run longer than that will show it, per cluster, at scale.</p></div></li>
+    <li><span class="rank">5</span><div class="body"><b>Inter-cluster road length left implicit.</b><p>The hearing daemon delivers by ground-truth graph distance, not by who the speaker believes is listening (<code>koditoki-9fc5</code>). Road length has to be sized &ge; hearing range + 1 explicitly and verified with a two-cluster probe, or a neighboring forager quietly picks up a promise it can never collect on.</p></div></li>
+  </ol>
+
+  <div class="callout"><b>Where this brief overrides the survey it was built from:</b> the survey frames <code>share</code> as tunable and asks for measurements at 3 and 6; three independent probes (trade-cost, frame-bit, and the direct <code>share&isin;{1,2,3,6}</code> sweep) all agree it overflows at <code>share=2</code> under the literal design and by <code>share=3</code> under every scoping variant tried. This brief ships <code>share</code> defaulted to 1 and documents anything higher as a deliberately-broken experiment, because that is what three independent measurements say is actually true of this frame today &mdash; not because the knob is unwanted.</div>
+
+  <footer>Source: unmodified <code>bun run scenario village --ticks 120</code>, real event log, plus <code>compileFrame</code>/<code>give.ts</code>/<code>ask.ts</code> probes run directly against the codebase. No files edited. Cross-referenced against <code>koditoki-9bb1</code>, <code>koditoki-ec1f</code>, <code>koditoki-b77f</code>, <code>koditoki-9fc5</code>, and <code>docs/CONTRACTS.md</code>.</footer>
+</div>
+
+<script>
+(function(){
+  var data = {"digger": [[1, 0.193], [2, 0.226], [3, 0.263], [4, 0.303], [5, 0.348], [6, 0.396], [7, 0.449], [8, 0.506], [11, 0.001], [12, 0.002], [15, 0.001], [16, 0.002], [19, 0.001], [20, 0.002], [21, 0.004], [22, 0.007], [23, 0.008], [24, 0.013], [25, 0.019], [26, 0.026], [27, 0.035], [28, 0.046], [31, 0.001], [32, 0.002], [33, 0.004], [34, 0.007], [35, 0.008], [36, 0.013], [37, 0.019], [38, 0.026], [39, 0.035], [40, 0.046], [41, 0.06], [42, 0.075], [43, 0.093], [44, 0.114], [45, 0.137], [46, 0.164], [47, 0.178], [48, 0.209], [49, 0.244], [50, 0.283], [51, 0.325], [52, 0.371], [53, 0.422], [54, 0.477], [55, 0.536], [56, 0.601], [57, 0.67], [58, 0.744], [59, 0.824], [60, 0.866], [61, 0.954], [62, 1.0]], "forager": [[1, 0.15], [2, 0.178], [5, 0.001], [6, 0.002], [9, 0.001], [10, 0.002], [13, 0.001], [14, 0.002], [15, 0.004], [16, 0.007], [17, 0.008], [18, 0.013], [19, 0.019], [20, 0.026], [21, 0.035], [22, 0.046], [23, 0.06], [24, 0.075], [25, 0.093], [26, 0.114], [27, 0.137], [28, 0.164], [29, 0.178], [30, 0.209], [31, 0.244], [32, 0.283], [33, 0.325], [34, 0.371], [35, 0.422], [36, 0.477], [37, 0.536], [38, 0.601], [39, 0.67], [40, 0.744], [41, 0.824], [42, 0.866], [45, 0.001], [46, 0.002], [47, 0.004], [48, 0.007], [49, 0.008], [50, 0.013], [51, 0.019], [52, 0.026], [55, 0.001], [56, 0.002], [57, 0.004], [58, 0.007], [59, 0.008], [60, 0.013], [61, 0.019], [62, 0.026], [65, 0.001], [66, 0.002], [67, 0.004], [68, 0.007], [69, 0.008], [70, 0.013], [71, 0.019], [72, 0.026], [73, 0.035], [74, 0.046], [75, 0.06], [76, 0.075], [77, 0.093], [78, 0.114], [79, 0.137], [80, 0.164], [81, 0.178], [82, 0.209], [83, 0.244], [84, 0.283], [85, 0.325], [86, 0.371], [87, 0.422], [88, 0.477], [89, 0.536], [90, 0.601], [91, 0.67], [92, 0.744], [95, 0.001], [96, 0.002], [97, 0.004], [98, 0.007], [99, 0.008], [100, 0.013], [101, 0.019], [102, 0.026], [105, 0.001], [106, 0.002], [107, 0.004], [108, 0.007], [109, 0.008], [110, 0.013], [111, 0.019], [112, 0.026], [115, 0.001], [116, 0.002], [117, 0.004], [118, 0.007], [119, 0.008], [120, 0.013]], "smith": [[1, 0.244], [2, 0.283], [3, 0.325], [4, 0.371], [5, 0.422], [6, 0.477], [7, 0.536], [8, 0.601], [9, 0.67], [10, 0.744], [11, 0.824], [12, 0.866], [13, 0.954], [14, 1.0], [17, 0.001], [18, 0.002], [19, 0.004], [20, 0.007], [21, 0.008], [22, 0.013], [23, 0.019], [26, 0.001], [27, 0.002], [28, 0.004], [29, 0.007], [30, 0.008], [31, 0.013], [32, 0.019], [33, 0.026], [36, 0.001], [37, 0.002], [38, 0.004], [39, 0.007], [40, 0.008], [41, 0.013], [42, 0.019], [43, 0.026], [44, 0.035], [45, 0.046], [46, 0.06], [47, 0.075], [48, 0.093], [49, 0.114], [50, 0.137], [51, 0.164], [52, 0.178], [53, 0.209], [54, 0.244], [55, 0.283], [56, 0.325], [57, 0.371], [58, 0.422], [59, 0.477], [60, 0.536], [61, 0.601], [62, 0.67], [63, 0.744], [64, 0.824], [65, 0.866], [66, 0.954], [67, 1.0], [76, 0.001], [77, 0.002], [78, 0.004], [79, 0.007], [80, 0.008], [81, 0.013], [82, 0.019], [83, 0.026], [86, 0.001], [87, 0.002], [88, 0.004], [89, 0.007], [90, 0.008], [91, 0.013], [92, 0.019], [93, 0.026], [94, 0.035], [95, 0.046], [96, 0.06], [97, 0.075], [98, 0.093], [99, 0.114], [100, 0.137], [101, 0.164], [102, 0.178], [103, 0.209], [104, 0.244], [105, 0.283], [106, 0.325], [107, 0.371], [108, 0.422], [109, 0.477], [110, 0.536], [111, 0.601], [112, 0.67], [113, 0.744], [114, 0.824], [115, 0.866], [116, 0.954], [117, 1.0]]};
+  function toPoints(series, w, h, pad){
+    var xmax = 120;
+    return series.map(function(p){
+      var x = pad + (p[0]/xmax) * (w - pad - 20);
+      var y = 10 + (1 - p[1]) * (170);
+      return x.toFixed(1) + "," + y.toFixed(1);
+    }).join(" ");
+  }
+  document.getElementById('diggerLine').setAttribute('points', toPoints(data.digger, 700, 190, 40));
+  document.getElementById('foragerLine').setAttribute('points', toPoints(data.forager, 700, 190, 40));
+  document.getElementById('smithLine').setAttribute('points', toPoints(data.smith, 700, 190, 40));
+  var last = data.digger[data.digger.length-1];
+  var xmax=120, pad=40, w=700;
+  var lx = pad + (last[0]/xmax) * (w - pad - 20);
+  var ly = 10 + (1-last[1]) * 170;
+  document.getElementById('diggerDot').setAttribute('cx', lx);
+  document.getElementById('diggerDot').setAttribute('cy', ly);
+  var lbl = document.getElementById('diggerLabel');
+  lbl.setAttribute('x', lx-58); lbl.setAttribute('y', ly-8);
+  lbl.textContent = 't62 · capped';
+})();
+</script>
+
+</body></html>

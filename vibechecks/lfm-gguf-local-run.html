@@ -1,0 +1,331 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<title>LiquidAI/LFM2.5-2.6B-GGUF · Q4_K_M — local run</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --paper: #f6f7f8;
+  --surface: #ffffff;
+  --ink: #131a1f;
+  --muted: #5c6a73;
+  --faint: #8c99a1;
+  --rule: #dde3e7;
+  --accent: #0f7c86;
+  --scratch: #8a6a12;
+  --scratch-bg: #faf6ea;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0d1215;
+    --surface: #141b1f;
+    --ink: #e6ebee;
+    --muted: #97a5ae;
+    --faint: #6b7981;
+    --rule: #243036;
+    --accent: #54cfc4;
+    --scratch: #c9a542;
+    --scratch-bg: #191b16;
+  }
+}
+:root[data-theme="light"] {
+  --paper: #f6f7f8;
+  --surface: #ffffff;
+  --ink: #131a1f;
+  --muted: #5c6a73;
+  --faint: #8c99a1;
+  --rule: #dde3e7;
+  --accent: #0f7c86;
+  --scratch: #8a6a12;
+  --scratch-bg: #faf6ea;
+}
+:root[data-theme="dark"] {
+  --paper: #0d1215;
+  --surface: #141b1f;
+  --ink: #e6ebee;
+  --muted: #97a5ae;
+  --faint: #6b7981;
+  --rule: #243036;
+  --accent: #54cfc4;
+  --scratch: #c9a542;
+  --scratch-bg: #191b16;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 17px;
+  line-height: 1.65;
+  margin: 0;
+  padding: clamp(1.5rem, 4vw, 4rem) clamp(1rem, 4vw, 2rem);
+}
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(2rem, 4vw, 3.5rem);
+  margin: 0 auto;
+  max-width: 68rem;
+}
+@media (min-width: 62rem) {
+  .page { grid-template-columns: 15rem minmax(0, 1fr); align-items: start; }
+  .rail { position: sticky; top: 2rem; }
+}
+
+h1, h2 {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+  text-wrap: balance;
+}
+h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; }
+
+.eyebrow {
+  color: var(--accent);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+header { display: flex; flex-direction: column; gap: 0.6rem; }
+header p { color: var(--muted); margin: 0; max-width: 34em; }
+
+.rail { display: flex; flex-direction: column; gap: 1.75rem; }
+.metrics { display: flex; flex-direction: column; gap: 0.9rem; }
+.metric { display: flex; flex-direction: column; gap: 0.15rem; }
+.metric dt {
+  color: var(--faint);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.metric dd {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.metric dd .unit { color: var(--muted); font-size: 0.8em; }
+.headline dd { font-size: 1.5rem; }
+.headline dd { color: var(--accent); }
+
+.rail section { display: flex; flex-direction: column; gap: 0.9rem; }
+.rail h2 {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.5rem;
+}
+.params { display: flex; flex-direction: column; gap: 0.35rem; margin: 0; }
+.params div {
+  display: flex;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+.params dt { color: var(--muted); }
+.params dd { margin: 0; }
+
+main { display: flex; flex-direction: column; gap: 2.25rem; min-width: 0; }
+.block { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.prompt {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 2px;
+  font-size: 1.05rem;
+  margin: 0;
+  padding: 1.1rem 1.3rem;
+}
+
+.scratch {
+  background: var(--scratch-bg);
+  border-left: 2px solid var(--scratch);
+  color: var(--muted);
+  font-size: 0.92rem;
+  padding: 1rem 1.3rem;
+  white-space: pre-wrap;
+}
+.scratch-label { color: var(--scratch); }
+
+.answer { display: flex; flex-direction: column; gap: 1rem; }
+.answer > * { margin: 0; }
+.answer h3, .answer h4, .answer h5, .answer h6 {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 0.75rem;
+  text-wrap: balance;
+}
+.answer p { max-width: 40em; }
+.answer ul, .answer ol {
+  display: flex; flex-direction: column; gap: 0.5rem; padding-left: 1.4rem;
+}
+.answer li { max-width: 39em; }
+.answer li::marker { color: var(--accent); }
+.answer ol { counter-reset: item; list-style: none; padding-left: 0; }
+.answer ol li { counter-increment: item; padding-left: 1.9rem; position: relative; }
+.answer ol li::before {
+  color: var(--accent);
+  content: counter(item) ".";
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 0.85em;
+  left: 0;
+  position: absolute;
+  top: 0.1em;
+}
+.answer blockquote {
+  border-left: 2px solid var(--accent);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 0.9rem;
+  padding: 0.35rem 0 0.35rem 1rem;
+}
+.answer code, .scratch code {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 0.85em;
+  padding: 0.1em 0.35em;
+}
+.answer hr { border: 0; border-top: 1px solid var(--rule); width: 100%; }
+.answer pre {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--accent);
+  border-radius: 2px;
+  overflow-x: auto;
+  padding: 0.9rem 1.1rem;
+}
+.answer pre code {
+  background: none; border: 0; font-size: 0.85rem; padding: 0; white-space: pre;
+}
+
+.tablewrap { overflow-x: auto; }
+.answer table {
+  border-collapse: collapse;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 24rem;
+  width: 100%;
+}
+.answer th, .answer td {
+  border-bottom: 1px solid var(--rule);
+  padding: 0.45rem 0.7rem;
+  text-align: left;
+}
+.answer thead th {
+  color: var(--faint);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.truncated {
+  border: 1px dashed var(--rule);
+  border-radius: 2px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 0.6rem 0.9rem;
+}
+
+footer {
+  border-top: 1px solid var(--rule);
+  color: var(--faint);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 0.78rem;
+  grid-column: 1 / -1;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+footer a { color: var(--accent); }
+</style>
+<div class="page">
+  <header style="grid-column: 1 / -1;">
+    <span class="eyebrow">On-device inference report</span>
+    <h1>LiquidAI/LFM2.5-2.6B-GGUF · Q4_K_M</h1>
+    <p>One generation, run entirely on this machine's CPU with no network call at
+    inference time. Weights loaded from the local Hugging Face cache.</p>
+  </header>
+
+  <div class="rail">
+    <dl class="metrics"><div class="metric headline"><dt>Throughput</dt><dd>34.8 <span class="unit">tok/s</span></dd></div><div class="metric"><dt>Prefill</dt><dd>137 <span class="unit">tok/s</span></dd></div><div class="metric"><dt>Generation time</dt><dd>25.4 <span class="unit">s</span></dd></div><div class="metric"><dt>Runtime</dt><dd>llama.cpp</dd></div><div class="metric"><dt>Device</dt><dd>CPU</dd></div><div class="metric"><dt>Precision</dt><dd>Q4_K_M</dd></div><div class="metric"><dt>Threads</dt><dd>8</dd></div></dl>
+    <section>
+      <h2>Sampling</h2>
+      <dl class="params"><div><dt>temperature</dt><dd>0.1</dd></div><div><dt>top_k</dt><dd>50</dd></div><div><dt>max_new_tokens</dt><dd>2048</dd></div></dl>
+    </section>
+  </div>
+
+  <main>
+    <section class="block">
+      <span class="eyebrow">Prompt</span>
+      <p class="prompt">Explain why a 2.6B parameter model can run on a laptop CPU while a 70B model cannot. Be concrete about memory.</p>
+    </section>
+    
+    <section class="block">
+      <span class="eyebrow">Answer</span>
+      <div class="answer"><p>The core reason is <strong>memory bandwidth and capacity constraints</strong>, not raw compute. Let me break this down concretely.</p>
+<h3>The Memory Bottleneck</h3>
+<p>A model&#x27;s ability to run on a CPU (or GPU) is fundamentally limited by <strong>how much parameter memory can fit in fast, on-chip memory</strong> (SRAM) and <strong>how much total memory is available</strong> for the model weights.</p>
+<h4>2.6B Model</h4>
+<ul>
+<li><strong>Parameters</strong>: ~2.6 billion</li>
+<li><strong>FP16 (2 bytes per param)</strong>: ~5.2 GB</li>
+<li><strong>FP32 (4 bytes per param)</strong>: ~5.2 GB</li>
+<li><strong>KV Cache overhead</strong> (for inference): small relative to weights</li>
+</ul>
+<p>On a laptop CPU, you have:</p>
+<ul>
+<li><strong>System RAM</strong>: 16-32 GB (e.g., 32 GB DDR5)</li>
+<li><strong>CPU memory bandwidth</strong>: ~50-100 GB/s (much slower than GPU memory bandwidth)</li>
+</ul>
+<p>The 2.6B model fits comfortably in <strong>system RAM</strong> (well under 16 GB). The CPU can stream the weights from RAM into L3 cache or even main memory during inference. The memory bandwidth is the bottleneck, but the model is small enough that it can be paged in and out of cache without running out of RAM.</p>
+<h4>70B Model</h4>
+<ul>
+<li><strong>Parameters</strong>: ~70 billion</li>
+<li><strong>FP16</strong>: ~140 GB</li>
+<li><strong>FP32</strong>: ~280 GB</li>
+<li><strong>KV Cache</strong>: Even larger (depends on context length)</li>
+</ul>
+<p>On the same laptop:</p>
+<ul>
+<li><strong>System RAM</strong>: 16-32 GB</li>
+<li><strong>GPU VRAM</strong>: 8-16 GB (if you try to use a GPU)</li>
+</ul>
+<p>The 70B model <strong>cannot fit in system RAM</strong> (140 GB &gt; 32 GB). It also cannot fit in GPU VRAM (280 GB &gt; 16 GB). So it physically cannot be loaded at all.</p>
+<h3>Why CPU Inference is Even Harder for Larger Models</h3>
+<p>Even if you had enough RAM, there&#x27;s a second problem: <strong>memory bandwidth</strong>.</p>
+<p>During inference, the model must repeatedly read the weights from memory to compute. The time to process a token is roughly:</p>
+<pre><code>Time ≈ (Number of parameters) × (Memory bandwidth) / (Compute throughput)</code></pre>
+<p>For a 70B model:</p>
+<ul>
+<li>70B parameters × 2 bytes = 140 GB of weight data</li>
+<li>At 50 GB/s memory bandwidth → ~2.8 seconds just to read the weights once</li>
+<li>Plus the KV cache (which grows with context length)</li>
+</ul>
+<p>A 2.6B model:</p>
+<ul>
+<li>2.6B parameters × 2 bytes = 5.2 GB</li>
+<li>At 50 GB/s → ~0.1 seconds to read the weights once</li>
+</ul>
+<p>The 2.6B model is fast because the weight data is small enough that the memory bandwidth isn&#x27;t the bottleneck. The 70B model is memory-bandwidth-bound, and the bandwidth is simply too slow to process the massive weight matrix before the next token arrives.</p>
+<h3>Summary</h3>
+<div class="tablewrap"><table><thead><tr><th>Model</th><th>Weight Size (FP16)</th><th>Fits in 32GB RAM?</th><th>Fits in 16GB GPU?</th><th>Can Run on Laptop CPU?</th></tr></thead><tbody><tr><td>2.6B</td><td>~5.2 GB</td><td>✅ Yes</td><td>✅ Yes</td><td>✅ Yes (fast)</td></tr><tr><td>70B</td><td>~140 GB</td><td>❌ No</td><td>❌ No</td><td>❌ No (physically impossible)</td></tr></tbody></table></div>
+<p>The 2.6B model runs on a laptop CPU because its entire parameter set fits in system RAM, and the memory bandwidth is sufficient to feed the CPU. The 70B model cannot run on a laptop CPU because its weights alone exceed the available RAM, and even if they didn&#x27;t, the memory bandwidth would be too slow to process the model during inference.</p></div>
+      
+    </section>
+  </main>
+
+  <footer>
+    Generated 2026-08-05 14:15 UTC &middot;
+    <a href="https://www.liquid.ai/blog/lfm2-5-2-6b">liquid.ai/blog/lfm2-5-2-6b</a>
+  </footer>
+</div>
+
+</body></html>

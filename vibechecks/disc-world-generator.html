@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Disc world generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --paper:#EFE9DA; --ink:#1C2B30; --muted:#5A696A; --line:#D2C9B1;
+  --sea:#1B6F70; --ochre:#8F5F12; --chip:#E3DBC6;
+  --sky-top:#7FA9C4; --sky-bot:#E8EEE6;
+  --hud:rgba(239,233,218,.84);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12262C; --ink:#E9E5D7; --muted:#9BAFAD; --line:#2B454B;
+    --sea:#63BDB5; --ochre:#E0B35A; --chip:#1B343B;
+    --sky-top:#0B1A24; --sky-bot:#35525E;
+    --hud:rgba(18,38,44,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12262C; --ink:#E9E5D7; --muted:#9BAFAD; --line:#2B454B;
+  --sea:#63BDB5; --ochre:#E0B35A; --chip:#1B343B;
+  --sky-top:#0B1A24; --sky-bot:#35525E;
+  --hud:rgba(18,38,44,.8);
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:"Alegreya Sans","Gill Sans","Trebuchet MS",system-ui,sans-serif;
+  font-size:16px;line-height:1.35;overflow:hidden;
+}
+#app{display:flex;flex-direction:column;height:100%}
+#stage{position:relative;flex:1 1 auto;min-height:0;background:linear-gradient(var(--sky-top),var(--sky-bot) 78%)}
+#c{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#c:active{cursor:grabbing}
+#hud{position:absolute;left:10px;top:10px;max-width:62%;background:var(--hud);padding:8px 12px;border-radius:3px;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:none}
+#hud h1{margin:0;font-size:1.2rem;font-weight:700;letter-spacing:-.01em}
+#hud p{margin:2px 0 0;font-size:.85rem;color:var(--muted)}
+#actions{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+button{font:inherit;font-weight:500;color:var(--ink);background:var(--hud);border:1px solid var(--line);border-radius:3px;
+  min-height:40px;padding:6px 12px;cursor:pointer;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--ochre);outline-offset:2px}
+#panel{flex:0 0 42%;min-height:0;display:flex;flex-direction:column;border-top:2px solid var(--ink);background:var(--paper)}
+#panel[hidden]{display:none}
+#layers{display:flex;border-bottom:1px solid var(--line);overflow-x:auto;flex:0 0 auto}
+#layers button{flex:1 0 auto;background:none;border:0;border-radius:0;border-bottom:3px solid transparent;min-height:44px;
+  padding:8px 12px;color:var(--muted);backdrop-filter:none;-webkit-backdrop-filter:none}
+#layers button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--sea);font-weight:700}
+#body{overflow-y:auto;padding:10px 14px 18px;flex:1 1 auto}
+#about{margin:0 0 8px;max-width:62ch}
+#legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0 0 10px;padding:0;list-style:none;font-size:.92rem}
+#legend li{display:flex;align-items:center;gap:6px}
+#legend i{display:inline-block;width:14px;height:14px;border-radius:2px;border:1px solid rgba(0,0,0,.25);flex:0 0 auto}
+#legend i.ln{height:4px;border:0;border-radius:0;width:18px}
+#legend i.ramp{width:90px;background:linear-gradient(90deg,#f0f6fa,#aacde1 25%,#6eaa8c 42%,#d7c85a 65%,#d26e32 85%,#aa3228)}
+#tally{margin:0 0 6px;padding-top:8px;border-top:1px solid var(--line);color:var(--muted);font-size:.92rem;max-width:62ch}
+.row{display:grid;grid-template-columns:1fr auto;gap:0 10px;align-items:baseline;margin:10px 0 2px}
+.row label{font-weight:500}
+.row output{color:var(--ochre);font-weight:700;font-variant-numeric:tabular-nums}
+.row input[type=range]{grid-column:1/-1;width:100%;margin:4px 0 0;accent-color:var(--sea);height:28px}
+#err{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:24px;text-align:center}
+@media (min-width:820px){
+  #app{flex-direction:row}
+  #panel{flex:0 0 360px;border-top:0;border-left:2px solid var(--ink)}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="c" aria-label="3D view of the disc world. Drag to orbit, pinch or scroll to zoom."></canvas>
+    <div id="hud"><h1>Disc world generator</h1><p id="stats">Generating</p></div>
+    <div id="actions">
+      <button id="reseed" type="button">New seed</button>
+      <button id="togglePanel" type="button">Hide controls</button>
+    </div>
+    <div id="err">This view needs WebGL, which this browser did not provide.</div>
+  </div>
+  <section id="panel" aria-label="Map layers and controls">
+    <div id="layers"></div>
+    <div id="body">
+      <p id="about"></p>
+      <ul id="legend"></ul>
+      <p id="tally"></p>
+      <div id="sliders"></div>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+"use strict";
+/*GEN-START*/
+// =====================================================================
+//  DISC WORLD GENERATOR -- whole world at low resolution, solved at once.
+//  Grid of N x N cells; cells within radius R of the centre are the world.
+// =====================================================================
+const TAU = Math.PI * 2;
+function hash2(ix, iz, seed) {
+  let h = Math.imul(ix | 0, 374761393) ^ Math.imul(iz | 0, 668265263) ^ Math.imul(seed | 0, 1274126177);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+function hash1(i, seed) { return hash2(i, 7919, seed); }
+function vnoise(x, z, seed) {
+  const ix = Math.floor(x), iz = Math.floor(z);
+  const fx = x - ix, fz = z - iz;
+  const u = fx * fx * (3 - 2 * fx), v = fz * fz * (3 - 2 * fz);
+  const a = hash2(ix, iz, seed), b = hash2(ix + 1, iz, seed);
+  const c = hash2(ix, iz + 1, seed), d = hash2(ix + 1, iz + 1, seed);
+  return (a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v) * 2 - 1;
+}
+function fbm(x, z, seed, oct) {
+  let s = 0, a = 1, f = 1, n = 0;
+  for (let i = 0; i < oct; i++) { s += a * vnoise(x * f, z * f, seed + i * 101); n += a; a *= 0.5; f *= 2; }
+  return s / n;
+}
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const mix = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const angPos = a => ((a % TAU) + TAU) % TAU;
+
+// water-body kinds
+const LAND = 0, OCEAN = 1, LAKE = 2, SALT = 3, DRYBED = 4;
+// coast kinds
+const COASTS = ['', 'Volcanic', 'Salt shore', 'Delta', 'Fjord', 'Ria', 'Skerries', 'Reef', 'Cliff', 'Beach and barrier'];
+
+function generateWorld(P) {
+  const N = P.N, n = N * N, R = N / 2 - 2, c0 = (N - 1) / 2, seed = P.seed | 0, sea = P.sea;
+  const h = new Float32Array(n), temp = new Float32Array(n), rain = new Float32Array(n);
+  const inside = new Uint8Array(n), plate = new Int8Array(n), bnd = new Uint8Array(n);
+
+  // ---- 1. PLATES: cells around scattered centres, as on a planet ----------
+  // Each plate is continental or oceanic and drifts its own way. The square
+  // map is then cut to a disc; plates that reach the edge crumble (step 2).
+  const K = P.plates, G = Math.ceil(Math.sqrt(K));
+  const sx = [], sy = [], vx = [], vy = [], cont = [];
+  const slots = [...Array(G * G).keys()].sort((a, b) => hash1(a, seed + 1) - hash1(b, seed + 1)).slice(0, K);
+  slots.forEach((s, k) => {
+    sx[k] = ((s % G) + 0.15 + 0.7 * hash1(k, seed + 2)) / G * N;
+    sy[k] = (Math.floor(s / G) + 0.15 + 0.7 * hash1(k, seed + 3)) / G * N;
+    const a = hash1(k, seed + 4) * TAU, sp = 0.3 + 0.7 * hash1(k, seed + 5);
+    vx[k] = Math.cos(a) * sp; vy[k] = Math.sin(a) * sp;
+    cont[k] = hash1(k, seed + 6) < P.cont ? 1 : 0;
+  });
+  if (!cont.includes(1)) cont[0] = 1;
+  if (!cont.includes(0)) cont[K - 1] = 0;
+  const WARP = 0.07 * N, SOFT = 0.02 * N, W0 = 0.03 * N, dist = new Float64Array(K);
+  const info = { a: 0, b: 0, d: 0, d3: 0, closing: 0, base: 0 };
+  function plateInfo(x, y) {
+    const wx = x + WARP * fbm(x * 2.4 / N + 3, y * 2.4 / N, seed + 40, 3), wy = y + WARP * fbm(x * 2.4 / N, y * 2.4 / N + 9, seed + 41, 3);
+    let a = -1, b = -1, c = -1, d1 = 1e9, d2 = 1e9, d3 = 1e9;
+    for (let k = 0; k < K; k++) {
+      const d = Math.hypot(wx - sx[k], wy - sy[k]); dist[k] = d;
+      if (d < d1) { d3 = d2; c = b; d2 = d1; b = a; d1 = d; a = k; }
+      else if (d < d2) { d3 = d2; c = b; d2 = d; b = k; }
+      else if (d < d3) { d3 = d; c = k; }
+    }
+    // base height: a soft blend of nearby plates, so there is no step where plates meet
+    let ws = 0, bs = 0;
+    for (let k = 0; k < K; k++) { const w = Math.exp(-(dist[k] - d1) / SOFT); ws += w; bs += w * (cont[k] ? 0.22 : -0.42); }
+    const L = Math.hypot(sx[b] - sx[a], sy[b] - sy[a]), nx = (sx[b] - sx[a]) / L, ny = (sy[b] - sy[a]) / L;
+    info.a = a; info.b = b; info.base = bs / ws;
+    info.d = (d2 * d2 - d1 * d1) / (2 * L);                                 // distance to the nearest boundary
+    info.d3 = (d3 * d3 - d1 * d1) / (2 * Math.hypot(sx[c] - sx[a], sy[c] - sy[a]));   // and to the next one
+    info.closing = (vx[a] - vx[b]) * nx + (vy[a] - vy[b]) * ny;             // > 0: the two plates are closing
+    return info;
+  }
+  // the edge itself is worn and uneven, not a perfect circle
+  const edgeRad = th => R * (1 - 0.07 * (0.5 + 0.5 * vnoise(Math.cos(th) * 1.7 + 5, Math.sin(th) * 1.7 + 5, seed + 30))
+                              - 0.02 * vnoise(Math.cos(th) * 6, Math.sin(th) * 6, seed + 31));
+
+  // ---- 2. ELEVATION ---------------------------------------------------------
+  // Every boundary profile is written in signed distance across the boundary,
+  // so both plates compute the same height where they meet.
+  const f0 = 3.0 / N, bell = (d, w) => Math.exp(-(d / w) * (d / w));
+  const pcx = new Float64Array(K), pcy = new Float64Array(K), pcn = new Float64Array(K);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const i = y * N + x, dx = x - c0, dy = y - c0, r = Math.hypot(dx, dy);
+    const rhoE = r / edgeRad(Math.atan2(dy, dx));
+    inside[i] = rhoE <= 1 ? 1 : 0;
+    const q = plateInfo(x, y), a = q.a, b = q.b;
+    plate[i] = a;
+    if (inside[i]) { pcx[a] += x; pcy[a] += y; pcn[a]++; }
+    let v = q.base;
+    const edge = smooth(0.84, 1.0, rhoE);
+    const Ac = clamp(q.closing * 0.8, -1, 1), kind = smooth(0.15, 0.4, Math.abs(Ac));
+    // fade a boundary's relief out toward the junction with a third plate, and toward the edge
+    const str = kind * smooth(0, 0.8 * W0, q.d3 - q.d) * (1 - 0.75 * edge);
+    const w = W0 * (0.8 + 0.4 * (0.5 + 0.5 * vnoise(x * 5 / N, y * 5 / N, seed + 43)));
+    const ridged = 1 - Math.abs(fbm(x * 9 / N, y * 9 / N, seed + 42, 3));
+    const along = 0.4 + 1.0 * (0.5 + 0.5 * fbm(x * 7 / N + 2, y * 7 / N, seed + 46, 2));     // peaks and passes along the range
+    const wob = 0.6 * w * vnoise(x * 8 / N, y * 8 / N + 4, seed + 47);                       // the crest wanders off the line
+    const bothC = cont[a] && cont[b], bothO = !cont[a] && !cont[b];
+    const over = bothC || bothO ? a < b : cont[a] === 1;                  // which side rides over the other
+    const sd = (over ? q.d : -q.d) + wob;
+    let up = 0;
+    if (Ac > 0) {
+      if (bothC) up = Ac * 1.5 * bell(sd, 1.2 * w) * (0.55 + 0.6 * ridged) * along;                                   // collision range
+      else if (bothO) up = Ac * (0.8 * bell(sd - w, 0.7 * w) * Math.max(0, 0.2 + 1.1 * vnoise(x * 16 / N, y * 16 / N, seed + 44))
+                               - 0.3 * bell(sd + 0.5 * w, 0.6 * w));                                                  // island arc and trench
+      else up = Ac * (1.3 * bell(sd - 1.3 * w, w) * (0.55 + 0.6 * ridged) * along - 0.35 * bell(sd + 0.5 * w, 0.6 * w)); // coastal range and trench
+    } else {
+      up = bothC ? Ac * 0.75 * bell(q.d, 1.3 * w) : -Ac * 0.12 * bell(q.d, w);                                         // rift, or ocean ridge
+    }
+    v += up * str;
+    if (q.d < 1.2) bnd[i] = kind < 0.5 ? 3 : Ac > 0 ? 1 : 2;
+    const wx = x + 18 * fbm(x * f0 + 3, y * f0, seed + 50, 2), wy = y + 18 * fbm(x * f0, y * f0 + 9, seed + 51, 2);
+    v += fbm(wx * f0 * 1.3, wy * f0 * 1.3, seed + 52, 5) * 0.5 + P.land + fbm(x * 30 / N, y * 30 / N, seed + 53, 2) * 0.05;
+    // plates crumble as they near the edge: land breaks into islands, then sea
+    v -= edge * (0.12 + 0.6 * (0.5 + 0.5 * fbm(x * 14 / N, y * 14 / N, seed + 45, 3)));
+    h[i] = v;
+  }
+
+  // ---- drainage machinery (used by erosion, then again for the final rivers) --
+  // Oceans are flooded inward from wherever sea touches the edge. Then a
+  // priority flood visits every cell lowest first from the true outlets (the
+  // oceans and the land edge); each cell drains to the one it was reached from.
+  // A hollow fills until it finds its spill point: that makes lakes and seas.
+  const NB = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+  const water = new Uint8Array(n), ocean = new Int16Array(n), isRim = new Uint8Array(n), stack = new Int32Array(n);
+  const fill = new Float32Array(n), recv = new Int32Array(n), order = new Int32Array(n), seen = new Uint8Array(n);
+  const hk = new Float32Array(n + 1), hi = new Int32Array(n + 1); let hn = 0, no = 0, nOcean = 0;
+  const push = (key, idx) => { let p = ++hn; while (p > 1 && hk[p >> 1] > key) { hk[p] = hk[p >> 1]; hi[p] = hi[p >> 1]; p >>= 1; } hk[p] = key; hi[p] = idx; };
+  const pop = () => { const top = hi[1], key = hk[hn], idx = hi[hn--]; let p = 1; for (;;) { let c = p * 2; if (c > hn) break; if (c < hn && hk[c + 1] < hk[c]) c++; if (hk[c] >= key) break; hk[p] = hk[c]; hi[p] = hi[c]; p = c; } hk[p] = key; hi[p] = idx; return top; };
+  for (let y = 1; y < N - 1; y++) for (let x = 1; x < N - 1; x++) {
+    const i = y * N + x; if (!inside[i]) continue;
+    for (let q = 0; q < 4; q++) if (!inside[i + NB[q][0] + NB[q][1] * N]) { isRim[i] = 1; break; }
+  }
+  function drain() {
+    water.fill(0); ocean.fill(0); seen.fill(0); recv.fill(-1); hn = 0; no = 0; nOcean = 0;
+    for (let i0 = 0; i0 < n; i0++) {
+      if (!isRim[i0] || h[i0] >= sea || ocean[i0]) continue;
+      nOcean++; let sp = 0; stack[sp++] = i0; ocean[i0] = nOcean;
+      while (sp) {
+        const i = stack[--sp], x = i % N, y = (i / N) | 0;
+        water[i] = OCEAN;
+        for (let q = 0; q < 8; q++) {
+          const j = (y + NB[q][1]) * N + x + NB[q][0];
+          if (inside[j] && !ocean[j] && h[j] < sea) { ocean[j] = nOcean; stack[sp++] = j; }
+        }
+      }
+    }
+    for (let i = 0; i < n; i++) {
+      if (!inside[i]) continue;
+      if (water[i] === OCEAN) { fill[i] = sea; seen[i] = 1; push(sea, i); }
+      else if (isRim[i]) { fill[i] = h[i]; seen[i] = 1; push(h[i], i); }
+    }
+    while (hn) {
+      const i = pop(), x = i % N, y = (i / N) | 0; order[no++] = i;
+      for (let q = 0; q < 8; q++) {
+        const j = (y + NB[q][1]) * N + x + NB[q][0];
+        if (!inside[j] || seen[j]) continue;
+        seen[j] = 1; fill[j] = Math.max(h[j], fill[i] + 1e-6); recv[j] = i; push(fill[j], j);
+      }
+    }
+  }
+
+  // ---- 2b. EROSION: rivers cut the raw uplift into valleys -------------------
+  // Each pass: find the drainage, count the cells upstream of every cell, then
+  // pull each cell toward the height of the cell it drains to, more strongly
+  // the more water passes through it. Solved downstream first, so it is stable.
+  const area = new Float32Array(n), tmp = new Float32Array(n);
+  for (let pass = 0; pass < P.erode; pass++) {
+    drain();
+    for (let i = 0; i < n; i++) area[i] = inside[i] && water[i] !== OCEAN ? 1 : 0;
+    // water that enters a hollow stays there, so a sea's outlet is not sawn through by its whole catchment
+    for (let q = no - 1; q >= 0; q--) { const i = order[q], r = recv[i]; if (r >= 0 && fill[i] - h[i] < 1e-3) area[r] += area[i]; }
+    for (let q = 0; q < no; q++) {
+      const i = order[q], r = recv[i]; if (r < 0 || water[i] === OCEAN) continue;
+      const hr = water[r] === OCEAN ? sea : h[r];
+      if (hr >= h[i]) continue;                               // on the floor of a hollow: nothing to cut toward
+      const f = P.erodeK * Math.sqrt(area[i]);
+      h[i] = (h[i] + f * hr) / (1 + f);
+    }
+    // hillslopes: steep ground relaxes a little toward its neighbours
+    tmp.set(h);
+    for (let y = 1; y < N - 1; y++) for (let x = 1; x < N - 1; x++) {
+      const i = y * N + x; if (!inside[i] || tmp[i] <= sea) continue;
+      h[i] = mix(tmp[i], (tmp[i - 1] + tmp[i + 1] + tmp[i - N] + tmp[i + N]) * 0.25, 0.3);
+    }
+  }
+
+  // volcanoes: above sinking plates, near the edge where rock is drawn down, and a few hotspots
+  const volc = [], VG = 16, vcs = N / VG;
+  for (let gy = 0; gy < VG; gy++) for (let gx = 0; gx < VG; gx++) {
+    const x = (gx + 0.15 + 0.7 * hash2(gx, gy, seed + 70)) * vcs, y = (gy + 0.15 + 0.7 * hash2(gx, gy, seed + 71)) * vcs;
+    const dx = x - c0, dy = y - c0, r = Math.hypot(dx, dy), rhoE = r / edgeRad(Math.atan2(dy, dx));
+    if (rhoE > 0.96) continue;
+    const q = plateInfo(x, y), a = q.a, b = q.b, roll = hash2(gx, gy, seed + 72), w = W0;
+    const sinking = q.closing * 0.8 > 0.3 && (!cont[a] || !cont[b]);
+    const over = cont[a] && !cont[b] ? true : (!cont[a] && !cont[b] && a < b);
+    const outward = r > 1 ? (vx[a] * dx + vy[a] * dy) / r : 0;
+    let kind = '';
+    if (sinking && over && q.d > 0.6 * w && q.d < 2.4 * w && roll < 0.75) kind = 'arc';
+    else if (rhoE > 0.84 && outward > 0.3 && roll < 0.55) kind = 'rim';
+    else if (roll < 0.012) kind = 'hotspot';
+    if (kind) volc.push({ x, y, rad: N * (0.016 + 0.014 * hash2(gx, gy, seed + 73)), ht: 0.28 + 0.34 * hash2(gx, gy, seed + 74), kind });
+  }
+  for (const q of volc) {
+    const x0 = Math.max(0, Math.floor(q.x - q.rad)), x1 = Math.min(N - 1, Math.ceil(q.x + q.rad)), y0 = Math.max(0, Math.floor(q.y - q.rad)), y1 = Math.min(N - 1, Math.ceil(q.y + q.rad));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const d = Math.hypot(x - q.x, y - q.y); if (d < q.rad) h[y * N + x] += q.ht * Math.pow(1 - d / q.rad, 1.3); }
+  }
+
+  // ---- 3. CLIMATE: the sun circles above a ring at 55% of the radius -----
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const i = y * N + x, rho = Math.hypot(x - c0, y - c0) / R, v = h[i];
+    const tn = fbm(x * 4 / N, y * 4 / N, seed + 60, 3);
+    temp[i] = 1 - Math.abs(rho - 0.55) * 2.1 + 0.2 * tn - 0.45 * Math.max(0, v - sea);
+    rain[i] = clamp((0.45 + 0.45 * fbm(x * 5 / N + 11, y * 5 / N, seed + 61, 3) + 0.3 * Math.max(0, v - sea)
+                    - 0.35 * Math.max(0, temp[i] - 0.6)) * P.rain, 0.03, 2.5);
+  }
+
+  // ---- 4 + 5. OCEANS AND DRAINAGE on the finished terrain --------------------
+  drain();
+
+  // hollows: connected cells whose fill level sits above their floor
+  const lake = new Int32Array(n); const lakes = [null];
+  for (let i0 = 0; i0 < n; i0++) {
+    if (!inside[i0] || lake[i0] || water[i0] || fill[i0] - h[i0] < 1e-3) continue;
+    const L = lakes.length, cells = []; let sp = 0; stack[sp++] = i0; lake[i0] = L;
+    while (sp) {
+      const i = stack[--sp], x = i % N, y = (i / N) | 0; cells.push(i);
+      for (let q = 0; q < 8; q++) { const j = (y + NB[q][1]) * N + x + NB[q][0]; if (inside[j] && !lake[j] && !water[j] && fill[j] - h[j] >= 1e-3) { lake[j] = L; stack[sp++] = j; } }
+    }
+    let E = 0, tsum = 0;
+    for (const i of cells) { E += evapAt(temp[i]); tsum += temp[i]; }
+    lakes.push({ cells, evap: E, evapLeft: E, out: 0, temp: tsum / cells.length, terminal: false, level: 0, area: 0 });
+  }
+  function evapAt(t) { const p = Math.max(0, t); return (0.2 + 2.6 * p * p) * P.evap; }
+
+  // ---- 6. FLOW: pass rainfall downstream; hollows pay evaporation first -----
+  const flux = new Float32Array(n);
+  for (let i = 0; i < n; i++) if (inside[i] && water[i] !== OCEAN) flux[i] = rain[i];
+  for (let q = no - 1; q >= 0; q--) {
+    const i = order[q], r = recv[i]; if (r < 0) continue;
+    let f = flux[i];
+    if (lake[i] && lake[r] !== lake[i]) { const L = lakes[lake[i]], take = Math.min(f, L.evapLeft); L.evapLeft -= take; f -= take; L.out += f; }
+    flux[r] += f;
+  }
+  // a hollow whose evaporation swallows all its inflow never spills: a salt sea
+  const level = new Float32Array(n);
+  for (let i = 0; i < n; i++) level[i] = water[i] === OCEAN ? sea : h[i];
+  for (let L = 1; L < lakes.length; L++) {
+    const lk = lakes[L];
+    lk.terminal = lk.out < 1e-3;
+    if (!lk.terminal) { for (const i of lk.cells) { water[i] = LAKE; level[i] = fill[i]; } lk.area = lk.cells.length; lk.level = fill[lk.cells[0]]; }
+    else {
+      const inflow = lk.evap - lk.evapLeft; lk.cells.sort((a, b) => h[a] - h[b]);
+      let e = 0, cnt = 0, lv = h[lk.cells[0]];
+      for (const i of lk.cells) { if (e >= inflow && cnt > 0) break; e += evapAt(temp[i]); cnt++; lv = h[i]; }
+      for (let c = 0; c < lk.cells.length; c++) { const i = lk.cells[c]; if (c < cnt) { water[i] = SALT; level[i] = lv; } else water[i] = DRYBED; }
+      lk.area = cnt; lk.level = lv;
+    }
+  }
+
+  // ---- 7. WATERSHEDS: label every cell by the water it finally reaches ------
+  const basin = new Int32Array(n);
+  for (let q = 0; q < no; q++) {
+    const i = order[q];
+    if (water[i] === OCEAN) basin[i] = ocean[i];
+    else if (lake[i] && lakes[lake[i]].terminal) basin[i] = 1000 + lake[i];
+    else basin[i] = recv[i] < 0 ? 999 : basin[recv[i]];
+  }
+
+  // ---- 8. COASTS: classify each stretch of shoreline from what we now know --
+  const coast = new Uint8Array(n);
+  const RIVER = P.riverT;
+  for (let y = 4; y < N - 4; y++) for (let x = 4; x < N - 4; x++) {
+    const i = y * N + x;
+    if (!inside[i] || water[i] === OCEAN || water[i] === LAKE || water[i] === SALT) continue;
+    let wj = -1;
+    for (let q = 0; q < 4; q++) { const j = i + NB[q][0] + NB[q][1] * N; if (water[j] === OCEAN || water[j] === SALT || (water[j] === LAKE && lakes[lake[j]].area > 60)) { wj = j; break; } }
+    if (wj < 0) continue;
+    let relief = 0, mouth = 0;
+    for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
+      const j = i + dx + dy * N; if (!inside[j]) continue;
+      if (water[j] === LAND || water[j] === DRYBED) relief = Math.max(relief, h[j] - level[wj]);
+      if (Math.abs(dx) <= 2 && Math.abs(dy) <= 2 && water[j] === LAND && flux[j] > mouth) mouth = flux[j];
+    }
+    let nearVolc = false;
+    for (const q of volc) if (Math.hypot(x - q.x, y - q.y) < q.rad * 1.25) { nearVolc = true; break; }
+    const t = temp[i], dx = x - c0, dy = y - c0, wx = (wj % N) - x, wy = ((wj / N) | 0) - y;
+    const facesRim = wx * dx + wy * dy > 0, isOcean = water[wj] === OCEAN;
+    let c;
+    if (nearVolc) c = 1;
+    else if (water[wj] === SALT) c = 2;
+    else if (mouth > RIVER * 8 && relief < 0.2) c = 3;
+    else if (t < 0.3 && relief > 0.25) c = 4;
+    else if (mouth > RIVER * 4) c = 5;
+    else if (t < 0.3) c = 6;
+    else if (t > 0.6 && isOcean && relief < 0.5) c = 7;
+    else if (relief > 0.35 || (relief > 0.2 && isOcean && facesRim)) c = 8;
+    else c = 9;
+    coast[i] = c;
+  }
+
+  // ---- 9. THE WALL: where sea meets the edge, water is drawn upward ---------
+  // and where a plate is moving outward at the edge, its rock is drawn down.
+  const SECT = 480, wall = new Float32Array(SECT), edgeR = new Float32Array(SECT), rimGlow = new Float32Array(SECT), tmpGlow = new Float32Array(SECT);
+  for (let s = 0; s < SECT; s++) {
+    const a = s / SECT * TAU, cs = Math.cos(a), sn = Math.sin(a); edgeR[s] = edgeRad(a);
+    const x = Math.round(c0 + cs * (edgeR[s] - 1.5)), y = Math.round(c0 + sn * (edgeR[s] - 1.5)), i = y * N + x;
+    wall[s] = water[i] === OCEAN ? (temp[i] < P.iceT ? 2 : 1) : 0;
+    const k = plate[i]; tmpGlow[s] = smooth(0.2, 0.6, vx[k] * cs + vy[k] * sn);
+  }
+  for (let s = 0; s < SECT; s++) { let v = 0; for (let d = -14; d <= 14; d++) v += tmpGlow[(s + d + SECT) % SECT]; rimGlow[s] = v / 29; }
+
+  // summary
+  let land = 0, tot = 0, mouths = 0;
+  for (let i = 0; i < n; i++) { if (!inside[i]) continue; tot++; if (water[i] === LAND || water[i] === DRYBED) land++;
+    if (water[i] === LAND && recv[i] >= 0 && water[recv[i]] !== LAND && water[recv[i]] !== DRYBED && flux[i] > RIVER * 4) mouths++; }
+  const seas = lakes.slice(1).filter(l => l.area >= P.seaArea);
+  const basins = new Set(); for (let i = 0; i < n; i++) if (inside[i]) basins.add(basin[i]);
+  const oceanArea = new Array(nOcean + 1).fill(0); for (let i = 0; i < n; i++) if (ocean[i]) oceanArea[ocean[i]]++;
+  const stats = { landFrac: land / tot, oceans: oceanArea.filter(a => a > 150).length, seasSalt: seas.filter(l => l.terminal).length,
+    seasSpill: seas.filter(l => !l.terminal).length, lakes: lakes.length - 1 - seas.length, rivers: mouths, basins: basins.size,
+    wallWater: wall.filter(v => v === 1).length / SECT, wallIce: wall.filter(v => v === 2).length / SECT };
+  return { N, R, c0, sea, K, h, temp, rain, inside, plate, bnd, water, ocean, lake, lakes, level, fill, recv, flux, basin, coast, wall, SECT,
+    volc, stats, isRim, edgeR, rimGlow, cont, pvx: vx, pvy: vy,
+    pcx: Array.from(pcx, (v, k) => pcn[k] ? v / pcn[k] : -1), pcy: Array.from(pcy, (v, k) => pcn[k] ? v / pcn[k] : -1), pcn: Array.from(pcn) };
+}
+/*GEN-END*/
+
+// =====================================================================
+//  PAINTING THE MAP (a 2D canvas, draped over the disc as a texture)
+// =====================================================================
+const TEX = 1024;
+const baseCv = document.createElement('canvas'), texCv = document.createElement('canvas');
+texCv.width = texCv.height = TEX;
+const bctx = baseCv.getContext('2d'), tctx = texCv.getContext('2d');
+
+function hsl(hh, s, l) {
+  const f = k => { const q = (k + hh * 12) % 12; return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(q - 3, 9 - q, 1)); };
+  return [f(0) * 255, f(8) * 255, f(4) * 255];
+}
+const RAMP = [[-0.2, 240, 246, 250], [0.1, 170, 205, 225], [0.3, 110, 170, 140], [0.6, 215, 200, 90], [0.85, 210, 110, 50], [1.1, 170, 50, 40]];
+function ramp(t, o) {
+  t = clamp(t, -0.2, 1.1);
+  for (let k = 1; k < RAMP.length; k++) if (t <= RAMP[k][0]) { const a = RAMP[k - 1], b = RAMP[k], u = (t - a[0]) / (b[0] - a[0]); o[0] = mix(a[1], b[1], u); o[1] = mix(a[2], b[2], u); o[2] = mix(a[3], b[3], u); return; }
+}
+const COAST_RGB = [null, [200, 50, 40], [250, 250, 245], [120, 80, 30], [30, 60, 150], [0, 140, 140], [130, 90, 190], [245, 140, 40], [35, 35, 35], [240, 210, 80]];
+
+function paint(w, layer) {
+  const { N, h, sea, temp, rain, water, inside, level, plate, bnd, basin, coast, lake, lakes, K, R, c0 } = w;
+  if (baseCv.width !== N) baseCv.width = baseCv.height = N;
+  const img = bctx.createImageData(N, N), d = img.data, o = [0, 0, 0];
+  const H = i => inside[i] ? level[i] : (h[i] < sea ? sea : h[i]);
+  const plateHue = k => (k * 0.618 + 0.05) % 1;
+  // widen the coast line so it reads at map scale
+  let coastW = null;
+  if (layer === 'coasts') {
+    coastW = new Uint8Array(N * N);
+    for (let y = 1; y < N - 1; y++) for (let x = 1; x < N - 1; x++) { const c = coast[y * N + x]; if (c) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) coastW[(y + dy) * N + x + dx] = c; }
+  }
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const i = y * N + x;
+    const kind = inside[i] ? water[i] : (h[i] < sea ? OCEAN : LAND);
+    const wet = kind === OCEAN || kind === LAKE || kind === SALT;
+    let shade = 1;
+    if (x > 0 && y > 0 && x < N - 1 && y < N - 1 && !wet) shade = clamp(1 + ((H(i - 1) - H(i + 1)) + (H(i - N) - H(i + N))) * 1.7, 0.55, 1.35);
+    const t = temp[i], e = h[i] - sea;
+    let r, g, b;
+    if (layer === 'land') {
+      if (kind === OCEAN) {
+        const dp = smooth(0, 0.8, sea - h[i]); r = mix(86, 14, dp); g = mix(190, 62, dp); b = mix(188, 98, dp);
+        const ice = 1 - smooth(w.iceT - 0.03, w.iceT + 0.04, t); r = mix(r, 226, ice * 0.9); g = mix(g, 238, ice * 0.9); b = mix(b, 242, ice * 0.9);
+      } else if (kind === LAKE) { if (t < 0.1) { r = 220; g = 235; b = 240; } else { r = 70; g = 150; b = 205; } }
+      else if (kind === SALT) { r = 64; g = 172; b = 150; }
+      else if (kind === DRYBED) { r = 232; g = 220; b = 204; }
+      else {
+        const wv = smooth(0.25, 0.8, rain[i]);
+        if (t < 0.1) { r = 238; g = 242; b = 244; }
+        else if (t < 0.3) { const u = smooth(0.1, 0.16, t); r = mix(238, mix(150, 72, wv), u); g = mix(242, mix(150, 102, wv), u); b = mix(244, mix(120, 78, wv), u); }
+        else if (t < 0.62) { r = mix(172, 70, wv); g = mix(172, 122, wv); b = mix(104, 66, wv); }
+        else { r = mix(222, 44, wv); g = mix(196, 112, wv); b = mix(140, 60, wv); }
+        const rock = smooth(0.7, 1.15, e); r = mix(r, 128, rock); g = mix(g, 122, rock); b = mix(b, 114, rock);
+        for (const q of w.volc) { const dd = Math.hypot(x - q.x, y - q.y) / q.rad; if (dd < 1) { const u = 1 - smooth(0.45, 1, dd); r = mix(r, 70, u); g = mix(g, 60, u); b = mix(b, 58, u); if (dd < 0.2) { r = 236; g = 96; b = 30; shade = 1; } } }
+      }
+    } else if (layer === 'plates') {
+      const c = hsl(plateHue(plate[i]), w.cont[plate[i]] ? 0.5 : 0.32, wet ? 0.36 : 0.62); r = c[0]; g = c[1]; b = c[2];
+      if (bnd[i] === 1) { r = 190; g = 40; b = 34; shade = 1; } else if (bnd[i] === 2) { r = 36; g = 84; b = 214; shade = 1; } else if (bnd[i] === 3) { r = 60; g = 62; b = 64; shade = 1; }
+    } else if (layer === 'sheds') {
+      const id = basin[i];
+      if (!inside[i] || id === 999 || id === 0) { r = g = b = 150; }
+      else { const c = hsl((id * 0.381966 + (id >= 1000 ? 0.5 : 0.13)) % 1, wet ? 0.7 : 0.5, wet ? 0.34 : 0.64); r = c[0]; g = c[1]; b = c[2]; }
+      if (kind === DRYBED) { r = mix(r, 235, 0.5); g = mix(g, 228, 0.5); b = mix(b, 215, 0.5); }
+    } else if (layer === 'climate') {
+      ramp(t, o); r = o[0]; g = o[1]; b = o[2];
+      if (wet) { r = r * 0.66 + 14; g = g * 0.66 + 30; b = b * 0.66 + 48; }
+    } else {
+      if (wet) { r = 206; g = 222; b = 228; } else { r = 168; g = 163; b = 152; }
+      if (coastW[i]) { const c = COAST_RGB[coastW[i]]; r = c[0]; g = c[1]; b = c[2]; shade = 1; }
+    }
+    const p = i * 4; d[p] = clamp(r * shade, 0, 255); d[p + 1] = clamp(g * shade, 0, 255); d[p + 2] = clamp(b * shade, 0, 255); d[p + 3] = 255;
+  }
+  bctx.putImageData(img, 0, 0);
+  tctx.imageSmoothingEnabled = true; tctx.imageSmoothingQuality = 'high';
+  tctx.drawImage(baseCv, 0, 0, TEX, TEX);
+
+  // rivers, as vector strokes so they stay crisp
+  const s = TEX / N, buckets = [[], [], [], [], []];
+  for (let i = 0; i < N * N; i++) {
+    if (!inside[i] || water[i] !== LAND || w.recv[i] < 0 || w.flux[i] < w.riverT) continue;
+    const k = Math.min(4, Math.floor(Math.log2(w.flux[i] / w.riverT) * 0.6));
+    buckets[k].push(i);
+  }
+  tctx.lineCap = 'round';
+  tctx.strokeStyle = layer === 'land' ? '#2a66a8' : layer === 'coasts' ? '#5f8fb8' : layer === 'climate' ? 'rgba(20,40,70,.75)' : 'rgba(255,255,255,.9)';
+  buckets.forEach((list, k) => {
+    tctx.lineWidth = (1.1 + k * 0.95) * (TEX / 1024); tctx.beginPath();
+    for (const i of list) { const j = w.recv[i]; tctx.moveTo((i % N + 0.5) * s, (((i / N) | 0) + 0.5) * s); tctx.lineTo((j % N + 0.5) * s, (((j / N) | 0) + 0.5) * s); }
+    tctx.stroke();
+  });
+
+  if (layer === 'plates') {                       // drift arrows
+    for (let k = 0; k < K; k++) {
+      if (w.pcn[k] < 150) continue;
+      const px = (w.pcx[k] + 0.5) * s, py = (w.pcy[k] + 0.5) * s, vx = w.pvx[k], vy = w.pvy[k];
+      const len = 62 * (TEX / 1024), ex = px + vx * len, ey = py + vy * len, ang = Math.atan2(vy, vx);
+      for (const [col, lw] of [['rgba(20,30,34,.9)', 9], ['#fff', 4.5]]) {
+        tctx.strokeStyle = col; tctx.lineWidth = lw * (TEX / 1024); tctx.beginPath();
+        tctx.moveTo(px, py); tctx.lineTo(ex, ey);
+        tctx.moveTo(ex - Math.cos(ang - 0.5) * 16, ey - Math.sin(ang - 0.5) * 16); tctx.lineTo(ex, ey); tctx.lineTo(ex - Math.cos(ang + 0.5) * 16, ey - Math.sin(ang + 0.5) * 16);
+        tctx.stroke();
+      }
+    }
+  }
+  if (layer === 'climate') {                      // the sun's track
+    tctx.strokeStyle = 'rgba(255,255,255,.95)'; tctx.lineWidth = 3 * (TEX / 1024); tctx.setLineDash([14, 10]);
+    tctx.beginPath(); tctx.arc((c0 + 0.5) * s, (c0 + 0.5) * s, R * 0.55 * s, 0, TAU); tctx.stroke(); tctx.setLineDash([]);
+  }
+}
+
+// =====================================================================
+//  CONTROLS
+// =====================================================================
+const P = { N: 384, seed: 2, plates: 18, cont: 0.5, sea: 0, land: 0, rain: 1, evap: 1, riverT: 30, iceT: 0.14, seaArea: 250, erode: 4, erodeK: 0.04 };
+let layer = 'land';
+const LAYERS = [
+  { id: 'land', name: 'Land', about: 'The finished world. Plates crumble into islands as they near the edge. Where sea reaches the edge it is drawn upward as a wall of water or ice. Where a plate is moving outward its rock is drawn down, the underside glows, and volcanoes rise just inside the rim.',
+    legend: [['#56bebc', 'Ocean'], ['#4696cd', 'Lake or spilling sea'], ['#40ac96', 'Salt sea'], ['#e8dccc', 'Salt flat'], ['#ec601e', 'Active crater'], ['ln#2a66a8', 'River']] },
+  { id: 'plates', name: 'Plates', about: 'Plates are cells around scattered centres, laid out on a square and then cut to a disc. Stronger colours are continental plates, greyer ones oceanic. Arrows show each plate\u2019s drift.',
+    legend: [['ln#be2822', 'Closing: mountains, or a trench and volcanic arc'], ['ln#2454d6', 'Parting: a rift, gulf or ocean ridge'], ['ln#3c3e40', 'Sliding past']] },
+  { id: 'sheds', name: 'Watersheds', about: 'Each colour is all the land that drains to one body of water. The darker patch of the same colour is that water. Grey land drains straight off the edge.',
+    legend: [] },
+  { id: 'climate', name: 'Climate', about: 'The sun circles above the dashed ring, so the hub and the rim are both cold. Height cools the land further.',
+    legend: [['ramp', 'cold to hot']] },
+  { id: 'coasts', name: 'Coasts', about: 'Every stretch of shoreline is given a type from what the map already knows: temperature, relief, river mouths, volcanoes, and whether it faces the rim.',
+    legend: COASTS.slice(1).map((n, k) => ['rgb(' + COAST_RGB[k + 1].join(',') + ')', n]) },
+];
+const SLIDERS = [
+  { k: 'plates', label: 'Plates', min: 8, max: 30, step: 1, fmt: v => v },
+  { k: 'cont', label: 'Continental plates', min: 0.2, max: 0.8, step: 0.05, fmt: v => Math.round(v * 100) + '%' },
+  { k: 'erode', label: 'River erosion', min: 0, max: 8, step: 1, fmt: v => v === 0 ? 'none' : v + (v === 1 ? ' pass' : ' passes') },
+  { k: 'sea', label: 'Sea level', min: -0.25, max: 0.25, step: 0.01, fmt: v => (v > 0 ? '+' : '') + v.toFixed(2) },
+  { k: 'rain', label: 'Rainfall', min: 0.4, max: 2, step: 0.05, fmt: v => '\u00d7' + v.toFixed(2) },
+];
+const $ = id => document.getElementById(id);
+function buildUI() {
+  LAYERS.forEach(L => {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = L.name; b.setAttribute('aria-pressed', L.id === layer ? 'true' : 'false');
+    b.addEventListener('click', () => { layer = L.id; [...$('layers').children].forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false')); showLayer(); });
+    $('layers').appendChild(b);
+  });
+  SLIDERS.forEach(it => {
+    const row = document.createElement('div'); row.className = 'row';
+    const lab = document.createElement('label'); lab.htmlFor = 'in-' + it.k; lab.textContent = it.label;
+    const out = document.createElement('output'); out.textContent = it.fmt(P[it.k]);
+    const inp = document.createElement('input'); inp.type = 'range'; inp.id = 'in-' + it.k; inp.min = it.min; inp.max = it.max; inp.step = it.step; inp.value = P[it.k];
+    inp.addEventListener('input', () => { P[it.k] = parseFloat(inp.value); out.textContent = it.fmt(P[it.k]); });
+    inp.addEventListener('change', regenerate);
+    row.appendChild(lab); row.appendChild(out); row.appendChild(inp); $('sliders').appendChild(row);
+  });
+}
+function showLayer() {
+  const L = LAYERS.find(x => x.id === layer);
+  $('about').textContent = L.about;
+  const ul = $('legend'); ul.innerHTML = '';
+  L.legend.forEach(([c, name]) => {
+    const li = document.createElement('li'), sw = document.createElement('i');
+    if (c === 'ramp') sw.className = 'ramp'; else if (c.startsWith('ln')) { sw.className = 'ln'; sw.style.background = c.slice(2); } else sw.style.background = c;
+    li.appendChild(sw); li.appendChild(document.createTextNode(name)); ul.appendChild(li);
+  });
+  if (world) { paint(world, layer); texture.needsUpdate = true; }
+}
+
+// =====================================================================
+//  3D VIEW
+// =====================================================================
+const canvas = $('c'), stage = $('stage');
+const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let renderer, scene, camera, disc, skirt, wallMesh, texture, world = null;
+const RINGS = 150, SECT = 480, WR = 100, VSCALE = 8, WALL_H = 36;
+
+const WALL_VS = `
+attribute float aPres; attribute float aIce; attribute float aV; attribute float aAng;
+varying float vPres; varying float vIce; varying float vV; varying float vAng;
+void main(){ vPres = aPres; vIce = aIce; vV = aV; vAng = aAng; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const WALL_FS = `
+uniform float uTime; varying float vPres; varying float vIce; varying float vV; varying float vAng;
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+  return mix(mix(hash(i), hash(i+vec2(1.0,0.0)), f.x), mix(hash(i+vec2(0.0,1.0)), hash(i+vec2(1.0,1.0)), f.x), f.y); }
+void main(){
+  if (vPres < 0.02) discard;
+  // streaks that travel upward: the water is rising, not falling
+  float n = noise(vec2(vAng * 70.0, vV * 7.0 - uTime * 0.9)) * 0.6 + noise(vec2(vAng * 190.0, vV * 16.0 - uTime * 1.6)) * 0.4;
+  vec3 waterCol = mix(vec3(0.13, 0.50, 0.62), vec3(0.80, 0.93, 0.96), vV * 0.9 + n * 0.25);
+  float waterA = pow(1.0 - vV, 1.1) * (0.68 + 0.32 * n);
+  vec3 iceCol = mix(vec3(0.62, 0.80, 0.88), vec3(0.95, 0.98, 1.0), smoothstep(0.0, 0.5, vV) + n * 0.15);
+  float iceA = (1.0 - smoothstep(0.38, 0.62 + n * 0.12, vV)) * 0.96 + pow(1.0 - vV, 2.0) * 0.25 * n;
+  float ice = clamp(vIce, 0.0, 1.0);
+  gl_FragColor = vec4(mix(waterCol, iceCol, ice), clamp(mix(waterA, iceA, ice), 0.0, 1.0) * clamp(vPres, 0.0, 1.0));
+}`;
+
+const orb = { th: 2.2, ph: 0.92, r: 270, tx: 0, ty: 4, tz: 0 };
+function placeCamera() {
+  orb.ph = clamp(orb.ph, 0.05, 1.5); orb.r = clamp(orb.r, 30, 700);
+  const s = Math.sin(orb.ph);
+  camera.position.set(orb.tx + orb.r * s * Math.sin(orb.th), orb.ty + orb.r * Math.cos(orb.ph), orb.tz + orb.r * s * Math.cos(orb.th));
+  camera.lookAt(orb.tx, orb.ty, orb.tz);
+}
+function setupControls() {
+  const pts = new Map(); let lastD = 0, lastMx = 0, lastMy = 0;
+  const pan = (dx, dy) => { const k = orb.r * 0.0016; orb.tx -= Math.cos(orb.th) * dx * k; orb.tz += Math.sin(orb.th) * dx * k; orb.ty += dy * k; };
+  canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); lastD = 0; });
+  canvas.addEventListener('pointermove', e => {
+    const p = pts.get(e.pointerId); if (!p) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+    if (pts.size === 1) { if (e.shiftKey || e.buttons === 2) pan(dx, dy); else { orb.th -= dx * 0.006; orb.ph -= dy * 0.006; } }
+    else if (pts.size === 2) {
+      const [a, b] = [...pts.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      if (lastD) { orb.r *= lastD / d; pan(mx - lastMx, my - lastMy); }
+      lastD = d; lastMx = mx; lastMy = my;
+    }
+    placeCamera();
+  });
+  const up = e => { pts.delete(e.pointerId); lastD = 0; };
+  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+  canvas.addEventListener('wheel', e => { e.preventDefault(); orb.r *= Math.exp(e.deltaY * 0.0012); placeCamera(); }, { passive: false });
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+}
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+
+function initScene() {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x000000, 0);
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(40, 1, 1, 3000);
+
+  texture = new THREE.CanvasTexture(texCv);
+  texture.flipY = false; texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+  // the disc: a polar grid so the edge is a true circle
+  const nv = (RINGS + 1) * SECT, pos = new Float32Array(nv * 3), uv = new Float32Array(nv * 2), idx = new Uint32Array(RINGS * SECT * 6);
+  let q = 0;
+  for (let j = 0; j < RINGS; j++) for (let s = 0; s < SECT; s++) {
+    const a = j * SECT + s, b = j * SECT + (s + 1) % SECT, c = a + SECT, d = b + SECT;
+    idx[q++] = a; idx[q++] = c; idx[q++] = b; idx[q++] = b; idx[q++] = c; idx[q++] = d;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.setIndex(new THREE.BufferAttribute(idx, 1));
+  disc = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
+  disc.frustumCulled = false; scene.add(disc);
+
+  // the underside: rock being drawn down, glowing below the fire rims
+  const sg = new THREE.BufferGeometry(), sidx = new Uint32Array(SECT * 6);
+  q = 0;
+  for (let s = 0; s < SECT; s++) { const a = s * 2, b = ((s + 1) % SECT) * 2; sidx[q++] = a; sidx[q++] = a + 1; sidx[q++] = b; sidx[q++] = b; sidx[q++] = a + 1; sidx[q++] = b + 1; }
+  sg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(SECT * 6), 3));
+  sg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(SECT * 6), 3)); sg.setIndex(new THREE.BufferAttribute(sidx, 1));
+  skirt = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+  skirt.frustumCulled = false; scene.add(skirt);
+
+  // the wall
+  const wg = new THREE.BufferGeometry(), wp = new Float32Array(SECT * 6), wv = new Float32Array(SECT * 2), wa = new Float32Array(SECT * 2);
+  for (let s = 0; s < SECT; s++) {
+    const a = s / SECT * TAU, x = Math.cos(a) * (WR + 0.3), z = Math.sin(a) * (WR + 0.3);
+    wp.set([x, -0.5, z, x, WALL_H, z], s * 6); wv[s * 2] = 0; wv[s * 2 + 1] = 1; wa[s * 2] = wa[s * 2 + 1] = s / SECT;
+  }
+  wg.setAttribute('position', new THREE.BufferAttribute(wp, 3)); wg.setAttribute('aV', new THREE.BufferAttribute(wv, 1)); wg.setAttribute('aAng', new THREE.BufferAttribute(wa, 1));
+  wg.setAttribute('aPres', new THREE.BufferAttribute(new Float32Array(SECT * 2), 1)); wg.setAttribute('aIce', new THREE.BufferAttribute(new Float32Array(SECT * 2), 1));
+  wg.setIndex(new THREE.BufferAttribute(sidx.slice(), 1));
+  wallMesh = new THREE.Mesh(wg, new THREE.ShaderMaterial({ vertexShader: WALL_VS, fragmentShader: WALL_FS, transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: { uTime: { value: 3 } } }));
+  wallMesh.frustumCulled = false; wallMesh.renderOrder = 2; scene.add(wallMesh);
+
+  setupControls();
+  new ResizeObserver(resize).observe(stage);
+  resize(); placeCamera();
+}
+
+function updateMeshes(w) {
+  const { N, R, c0, level, sea, inside, wall, edgeR, rimGlow } = w;
+  const Hc = (x, y) => { const i = y * N + x; return level[i]; };
+  const sample = (gx, gy) => {
+    const x0 = Math.floor(gx), y0 = Math.floor(gy), fx = gx - x0, fy = gy - y0;
+    return (Hc(x0, y0) * (1 - fx) + Hc(x0 + 1, y0) * fx) * (1 - fy) + (Hc(x0, y0 + 1) * (1 - fx) + Hc(x0 + 1, y0 + 1) * fx) * fy;
+  };
+  for (let i = 0; i < N * N; i++) if (!inside[i]) level[i] = w.h[i] < sea ? sea : w.h[i];     // so sampling at the edge is defined
+  const pos = disc.geometry.attributes.position.array, uv = disc.geometry.attributes.uv.array;
+  const sp = skirt.geometry.attributes.position.array, sc = skirt.geometry.attributes.color.array;
+  for (let j = 0; j <= RINGS; j++) for (let s = 0; s < SECT; s++) {
+    const rho = j / RINGS * (edgeR[s] - 0.6) / R, a = s / SECT * TAU, cs = Math.cos(a), sn = Math.sin(a);
+    const gx = c0 + cs * rho * R, gy = c0 + sn * rho * R, v = j * SECT + s;
+    const y = (sample(gx, gy) - sea) * VSCALE;
+    pos[v * 3] = cs * rho * WR; pos[v * 3 + 1] = y; pos[v * 3 + 2] = sn * rho * WR;
+    uv[v * 2] = (gx + 0.5) / N; uv[v * 2 + 1] = (gy + 0.5) / N;
+    if (j === RINGS) {
+      const fire = rimGlow[s], wr = rho * WR + 0.3, wpos = wallMesh.geometry.attributes.position.array;
+      wpos.set([cs * wr, -0.5, sn * wr, cs * wr, WALL_H, sn * wr], s * 6);
+      sp.set([cs * rho * WR, y, sn * rho * WR, cs * rho * WR * 0.97, -16, sn * rho * WR * 0.97], s * 6);
+      sc.set([0.26, 0.21, 0.18, mix(0.10, 0.80, fire), mix(0.07, 0.26, fire), mix(0.07, 0.08, fire)], s * 6);
+    }
+  }
+  disc.geometry.attributes.position.needsUpdate = true; disc.geometry.attributes.uv.needsUpdate = true;
+  wallMesh.geometry.attributes.position.needsUpdate = true;
+  skirt.geometry.attributes.position.needsUpdate = true; skirt.geometry.attributes.color.needsUpdate = true;
+  // wall presence and iciness, softened along the rim so it does not start and stop abruptly
+  const ap = wallMesh.geometry.attributes.aPres.array, ai = wallMesh.geometry.attributes.aIce.array;
+  for (let s = 0; s < SECT; s++) {
+    let p = 0, ic = 0, wsum = 0;
+    for (let d = -4; d <= 4; d++) { const v = wall[(s + d + SECT) % SECT], wt = 5 - Math.abs(d); p += (v > 0 ? 1 : 0) * wt; ic += (v === 2 ? 1 : 0) * wt; wsum += wt; }
+    ap[s * 2] = ap[s * 2 + 1] = p / wsum; ai[s * 2] = ai[s * 2 + 1] = p > 0 ? ic / p : 0;
+  }
+  wallMesh.geometry.attributes.aPres.needsUpdate = true; wallMesh.geometry.attributes.aIce.needsUpdate = true;
+}
+
+let pending = false;
+function regenerate() {
+  if (pending) return; pending = true;
+  $('stats').textContent = 'Generating';
+  setTimeout(() => {
+    pending = false;
+    const t0 = performance.now();
+    world = generateWorld(P);
+    world.riverT = P.riverT; world.iceT = P.iceT;
+    const ms = Math.round(performance.now() - t0);
+    updateMeshes(world);
+    showLayer();
+    const st = world.stats, pct = v => Math.round(v * 100) + '%';
+    const seas = st.seasSalt + st.seasSpill;
+    $('stats').textContent = 'Seed ' + P.seed + ', ' + world.N + ' \u00d7 ' + world.N + ' cells, built in ' + ms + ' ms';
+    $('tally').textContent = pct(st.landFrac) + ' land. ' + st.oceans + (st.oceans === 1 ? ' ocean' : ' oceans') + ', '
+      + seas + ' trapped ' + (seas === 1 ? 'sea' : 'seas') + ' (' + st.seasSalt + ' salt, ' + st.seasSpill + ' spilling), '
+      + st.lakes + ' lakes, ' + st.rivers + ' large rivers, ' + st.basins + ' watersheds. Rim: '
+      + pct(st.wallWater) + ' wall of water, ' + pct(st.wallIce) + ' wall of ice, ' + pct(1 - st.wallWater - st.wallIce) + ' land.';
+  }, 30);
+}
+
+let last = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000 || 0); last = now;
+  if (!reduceMotion) wallMesh.material.uniforms.uTime.value += dt;
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+(function boot() {
+  buildUI();
+  const panel = $('panel'), tog = $('togglePanel');
+  tog.addEventListener('click', () => { panel.hidden = !panel.hidden; tog.textContent = panel.hidden ? 'Show controls' : 'Hide controls'; });
+  $('reseed').addEventListener('click', () => { P.seed = (Math.random() * 9000 | 0) + 1; regenerate(); });
+  try { if (!window.THREE) throw new Error('three.js did not load'); initScene(); }
+  catch (err) { $('err').style.display = 'flex'; $('stats').textContent = 'Unavailable'; return; }
+  showLayer();
+  regenerate();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Disk World Sky Simulator</title>
+<style>
+:root{
+  --stage:#cfdbe1; --panel:#f3f6f7; --panel2:#dfe8ec; --ink:#12212b; --mute:#475d6c; --line:#b9c9d2;
+  --accent:#1c7c8c; --accent-ink:#ffffff; --focus:#0b5f6e;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --stage:#0a1016; --panel:#141e27; --panel2:#1d2a36; --ink:#e4ecf0; --mute:#9bb0be; --line:#2a3946;
+    --accent:#5bbac8; --accent-ink:#04222a; --focus:#9be0ea;
+  }
+}
+:root[data-theme="dark"]{
+  --stage:#0a1016; --panel:#141e27; --panel2:#1d2a36; --ink:#e4ecf0; --mute:#9bb0be; --line:#2a3946;
+  --accent:#5bbac8; --accent-ink:#04222a; --focus:#9be0ea;
+}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;margin:0;background:var(--stage);color:var(--ink);font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-text-size-adjust:100%;overflow:hidden}
+#app{height:100%;display:flex;flex-direction:column;max-width:100%}
+#stage{flex:1 1 auto;min-height:150px;display:flex;flex-direction:column;overflow:hidden}
+#tabs{display:grid;grid-template-columns:repeat(4,1fr);background:var(--panel);border-bottom:1px solid var(--line)}
+#tabs button{border:0;background:transparent;color:var(--mute);font:inherit;font-weight:600;padding:10px 4px;min-height:42px;cursor:pointer;border-bottom:3px solid transparent}
+#tabs button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+#viewbox{position:relative;flex:1 1 auto;min-height:0;overflow:hidden}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#cv[hidden],#cmpWrap[hidden],#find[hidden],#card[hidden]{display:none}
+#cmpWrap{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;background:var(--panel)}
+#cmp{display:block}
+#card{position:absolute;top:10px;left:10px;max-width:72%;background:rgba(10,16,22,.72);color:#eef4f7;border-radius:10px;padding:8px 11px;font-size:13px;line-height:1.4;pointer-events:none;font-variant-numeric:tabular-nums}
+#card b{font-size:14px;margin-right:6px}
+#card span{opacity:.8}
+#find{position:absolute;right:10px;bottom:10px;background:rgba(10,16,22,.72);color:#eef4f7;border:1px solid rgba(255,255,255,.25);border-radius:10px;padding:0 14px;min-height:40px;font:inherit;font-weight:600;cursor:pointer}
+#sheet{flex:0 1 auto;max-height:40%;overflow:auto;background:var(--panel);border-top:1px solid var(--line);padding:10px 12px 14px}
+.row{display:flex;gap:8px;align-items:center}
+.btn{white-space:nowrap;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:0 14px;min-height:42px;font:inherit;font-weight:600;cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);min-width:78px}
+#scrub{flex:1 1 auto;min-width:0;accent-color:var(--accent)}
+#tlabel{min-width:78px;text-align:right;font-variant-numeric:tabular-nums;color:var(--mute);font-size:13px}
+select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:0 8px;min-height:42px;font:inherit}
+#chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 2px;margin:0 -12px;padding-left:12px;padding-right:12px;scrollbar-width:thin}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:999px;padding:0 14px;min-height:40px;font:inherit;font-size:14px;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+#blurb{margin:6px 2px 0;color:var(--mute);font-size:13.5px}
+#solar{margin:2px 2px 0;color:var(--mute);font-size:13.5px}
+.obs{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px;margin-top:12px}
+.slider{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:13px;color:var(--mute)}
+.slider output{color:var(--ink);font-variant-numeric:tabular-nums}
+.slider input{grid-column:1/3;width:100%;margin:4px 0 0;accent-color:var(--accent);min-height:28px}
+details{margin-top:10px;border-top:1px solid var(--line);padding-top:6px}
+summary{cursor:pointer;font-weight:600;padding:8px 2px;min-height:24px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;padding:4px 0 8px}
+.check{grid-column:1/3;display:flex;gap:10px;align-items:center;font-size:14px;min-height:36px}
+.check input{width:20px;height:20px;accent-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+@media (min-width:760px){
+  #app{flex-direction:row}
+  #sheet{flex:0 0 380px;max-height:none;border-top:0;border-left:1px solid var(--line);order:2}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <div id="tabs" role="group" aria-label="View">
+      <button type="button" data-view="sky" aria-pressed="true">Sky</button>
+      <button type="button" data-view="map" aria-pressed="false">Map</button>
+      <button type="button" data-view="side" aria-pressed="false">Side</button>
+      <button type="button" data-view="compare" aria-pressed="false">Compare</button>
+    </div>
+    <div id="viewbox">
+      <canvas id="cv" aria-label="Simulation view"></canvas>
+      <div id="cmpWrap" hidden><canvas id="cmp" aria-label="Day and night timelines for every setup"></canvas></div>
+      <div id="card" role="status"></div>
+      <button id="find" type="button">Find sun</button>
+    </div>
+  </div>
+  <section id="sheet" aria-label="Simulation controls">
+    <div class="row">
+      <button id="play" class="btn primary" type="button">Pause</button>
+      <input id="scrub" type="range" min="0" max="60" step="0.01" value="0.3" aria-label="Time in days">
+      <span id="tlabel"></span>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <label for="rate" style="color:var(--mute);font-size:13px">Speed</label>
+      <select id="rate">
+        <option value="0.02">1 day = 50 s</option>
+        <option value="0.08" selected>1 day = 12 s</option>
+        <option value="0.25">1 day = 4 s</option>
+        <option value="0.7">1 day = 1.5 s</option>
+      </select>
+    </div>
+    <div id="chips" role="group" aria-label="Presets"></div>
+    <p id="blurb"></p>
+    <p id="solar"></p>
+    <div class="obs">
+      <label class="slider"><span class="nm">You are</span><output id="o-obs"></output><input id="obs" type="range" min="0" max="100" step="1" value="62"></label>
+      <label class="slider"><span class="nm">Direction from hub</span><output id="o-obp"></output><input id="obp" type="range" min="0" max="359" step="1" value="0"></label>
+    </div>
+    <div id="paramGroups"></div>
+  </section>
+</div>
+<script>
+/* ---------- Sky simulator core: geometry + lighting (no DOM) ---------- */
+const TAU = Math.PI * 2, DEG = Math.PI / 180, EYE = 0.004;
+const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
+const smoothstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const len3 = (a) => Math.hypot(a[0], a[1], a[2]);
+const norm3 = (a) => { const l = len3(a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+
+/* Orbit: a circle in a plane tilted `tilt` degrees about a horizontal axis at azimuth `tiltAz`,
+   centred `hc` above the hub. Radius breathes with the year (swing). */
+function orbitPosTheta(o, th, R) {
+  const psi = o.tiltAz * DEG, i = o.tilt * DEG;
+  const ax = Math.cos(psi), ay = Math.sin(psi), bx = -ay, by = ax;
+  const ci = Math.cos(i), si = Math.sin(i), c = Math.cos(th), s = Math.sin(th);
+  return [R * (c * ax + s * ci * bx), R * (c * ay + s * ci * by), o.hc + R * s * si];
+}
+function orbitRadius(o, t) { return o.Ro * (1 + (o.swing ? o.swing * Math.sin((TAU * t) / o.year) : 0)); }
+function orbitPos(o, t) { return orbitPosTheta(o, (TAU * t) / (o.period || 1) + o.phase, orbitRadius(o, t)); }
+
+function discOf(P) {
+  const a = P.disc.curv * DEG;
+  return a < 1e-4 ? { alpha: 0, flat: true, Rc: Infinity, cosMax: 1 } : { alpha: a, flat: false, Rc: 1 / a, cosMax: Math.cos(a) };
+}
+
+/* Local frame at the observer: x = turnwise, y = hubward, z = up. s = distance from hub along the surface (0..1). */
+function observerFrame(P, ob, t) {
+  const G = discOf(P), phiIn = ob.phi + TAU * P.disc.spin * t, c = Math.cos(phiIn), sn = Math.sin(phiIn);
+  let up, er, pos, th = 0;
+  if (G.flat) { up = [0, 0, 1]; er = [c, sn, 0]; pos = [ob.s * c, ob.s * sn, 0]; }
+  else {
+    th = ob.s * G.alpha;
+    const st = Math.sin(th), ct = Math.cos(th);
+    up = [st * c, st * sn, ct]; er = [ct * c, ct * sn, -st];
+    pos = [G.Rc * st * c, G.Rc * st * sn, G.Rc * (ct - 1)];
+  }
+  const ef = [-sn, c, 0], hub = [-er[0], -er[1], -er[2]];
+  const eye = [pos[0] + EYE * up[0], pos[1] + EYE * up[1], pos[2] + EYE * up[2]];
+  return { G, s: ob.s, phi: ob.phi, phiIn, th, st: Math.sin(th), ct: Math.cos(th), up, er, hub, ef, pos, eye };
+}
+const toLocal = (F, v) => [dot3(v, F.ef), dot3(v, F.hub), dot3(v, F.up)];
+
+/* Does a ray from the eye (local direction dx,dy,dz) strike the disc? Fills TR with the hit. */
+const TR = { t: 0, hx: 0, hy: 0, hz: 0, nx: 0, ny: 0, nz: 1, rad: 0, az: 0 };
+function traceDisc(F, dx, dy, dz) {
+  const G = F.G;
+  if (G.flat) {
+    if (dz >= -1e-9) return -1;
+    const t = -EYE / dz, hx = t * dx, hy = t * dy, ry = hy - F.s, r2 = hx * hx + ry * ry;
+    if (r2 > 1) return -1;
+    TR.t = t; TR.hx = hx; TR.hy = hy; TR.hz = -EYE; TR.nx = 0; TR.ny = 0; TR.nz = 1;
+    TR.rad = Math.sqrt(r2); TR.az = F.phi + Math.atan2(hx, F.s - hy);
+    return t;
+  }
+  const Rc = G.Rc, m = Rc + EYE, b = m * dz, c = EYE * (2 * Rc + EYE), disc = b * b - c;
+  if (disc < 0) return -1;
+  const t = -b - Math.sqrt(disc);
+  if (t <= 0) return -1;
+  const qx = t * dx, qy = t * dy, qz = t * dz + m;
+  const ca = (qy * F.st + qz * F.ct) / Rc;
+  if (ca < G.cosMax) return -1;
+  TR.t = t; TR.hx = qx; TR.hy = qy; TR.hz = qz - m; TR.nx = qx / Rc; TR.ny = qy / Rc; TR.nz = qz / Rc;
+  TR.rad = Rc * Math.acos(ca > 1 ? 1 : ca);
+  TR.az = F.phi + Math.atan2(qx, -qy * F.ct + qz * F.st);
+  return t;
+}
+
+/* Light model: illuminance on a horizontal surface ~ (power/d)^2 * sin(elevation); a little twilight below 0. */
+const gFac = (sinE) => clamp((sinE + 0.12) / 1.12, 0, 1);
+const dayOf = (l) => (l <= 1e-6 ? 0 : clamp(1 + Math.log10(l) / 2.2, 0, 1));
+
+function bodyState(F, pos, size) {
+  const rel = sub3(pos, F.eye), d = len3(rel), dir = [rel[0] / d, rel[1] / d, rel[2] / d];
+  const loc = toLocal(F, dir), relLoc = toLocal(F, rel);
+  const hit = loc[2] >= 0 ? -1 : traceDisc(F, loc[0], loc[1], loc[2]);
+  return { pos, d, loc, relLoc, sinE: loc[2], elev: Math.asin(clamp(loc[2], -1, 1)), az: Math.atan2(loc[0], loc[1]),
+    ang: Math.atan(size / d), visible: hit < 0 };
+}
+
+function simulate(P, ob, t, noMoon) {
+  const F = observerFrame(P, ob, t), sp = orbitPos(P.sun, t), sun = bodyState(F, sp, P.sun.size);
+  sun.lum = Math.pow(P.sun.power / sun.d, 2) * gFac(sun.sinE);
+  const day = dayOf(sun.lum);
+  let moon = null;
+  if (P.moon.on && !noMoon) {
+    const mp = orbitPos(P.moon, t); moon = bodyState(F, mp, P.moon.size);
+    const ts = norm3(sub3(sp, mp)), te = norm3(sub3(F.eye, mp));
+    moon.sunLoc = toLocal(F, ts); moon.phase = 0.5 * (1 + dot3(ts, te));
+  }
+  return { P, ob, t, F, sun, moon, day, omega: TAU * P.disc.spin * t };
+}
+
+function solarDay(P) { const r = Math.abs(1 - P.disc.spin); return r < 1e-3 ? Infinity : 1 / r; }
+
+function dayStats(P, ob) {
+  const sd = solarDay(P), win = Math.min(isFinite(sd) ? sd : 1, 14), N = 480;
+  let up = 0, bright = 0, maxEl = -90, minD = 1e9, maxAngD = 0, minAngD = 1e9, upN = 0;
+  for (let i = 0; i < N; i++) {
+    const S = simulate(P, ob, (i / N) * win, true);
+    if (S.sun.elev > 0) up++;
+    if (S.day > 0.5) bright++;
+    maxEl = Math.max(maxEl, S.sun.elev / DEG);
+    if (S.sun.elev > 0) { minD = Math.min(minD, S.sun.d); const ad = 2 * S.sun.ang / DEG; maxAngD = Math.max(maxAngD, ad); minAngD = Math.min(minAngD, ad); upN++; }
+  }
+  return { solar: sd, upFrac: up / N, brightFrac: bright / N, maxEl, minD: upN ? minD : NaN, minAng: upN ? minAngD : NaN, maxAng: upN ? maxAngD : NaN };
+}
+
+
+const SUN0 = { Ro: 0.55, hc: 0.22, tilt: 0, tiltAz: 0, swing: 0, year: 24, size: 0.012, power: 0.55, phase: 0, period: 1 };
+const MOON0 = { on: true, Ro: 0.42, hc: 0.3, tilt: 0, tiltAz: 0, swing: 0, year: 24, size: 0.01, power: 0, phase: 2.2, period: 1.035 };
+const mk = (id, name, blurb, disc, sun, moon) => ({ id, name, blurb, disc, sun: Object.assign({}, SUN0, sun), moon: Object.assign({}, MOON0, moon) });
+const PRESETS = [
+  mk('flat', 'Flat disc, sun circling above', 'No horizon dip, so the sun never sets. It only fades as it drifts away: a spotlight.',
+    { curv: 0, spin: 0 }, {}, {}),
+  mk('dome', 'Curved disc, real horizon', 'The surface bends away, so the sun drops below the local horizon and sets.',
+    { curv: 32, spin: 0 }, { Ro: 0.5, hc: 0.3, power: 0.7 }, { Ro: 0.45, hc: 0.35 }),
+  mk('loop', 'Sun loops under the disc', 'A vertical loop through the hub. Everyone gets sunset and sunrise at the same moment.',
+    { curv: 0, spin: 0 }, { Ro: 1.3, hc: 0, tilt: 90, tiltAz: 0, power: 1.0, size: 0.03 }, { Ro: 1.05, hc: 0, tilt: 90, tiltAz: 90, size: 0.02, phase: 4 }),
+  mk('spin', 'Spinning curved disc', 'The disc turns almost as fast as the sun circles it, so each day drags on.',
+    { curv: 32, spin: 0.9 }, { Ro: 0.5, hc: 0.3, power: 0.7 }, { Ro: 0.45, hc: 0.35 }),
+  mk('tilt', 'Tilted loop with seasons', 'A tilted orbit whose radius breathes over the year, like a spiralling sun.',
+    { curv: 12, spin: 0 }, { Ro: 0.8, hc: 0.15, tilt: 55, tiltAz: 30, swing: 0.35, year: 20, power: 0.8, size: 0.02 }, { Ro: 0.5, hc: 0.25, tilt: 30, tiltAz: 120 }),
+];
+
+/* ---------- Renderers ---------- */
+const mixc = (a, b, k) => a + (b - a) * k;
+
+function makeLut(stops) {
+  const out = new Uint8Array(256 * 3);
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255; let a = 0;
+    while (a < stops.length - 2 && t > stops[a + 1][0]) a++;
+    const [t0, c0] = stops[a], [t1, c1] = stops[a + 1], f = clamp((t - t0) / (t1 - t0), 0, 1);
+    for (let c = 0; c < 3; c++) out[i * 3 + c] = c0[c] + (c1[c] - c0[c]) * f;
+  }
+  return out;
+}
+const DAYLUT = makeLut([[0, [10, 14, 32]], [0.25, [44, 42, 92]], [0.5, [176, 100, 92]], [0.75, [244, 176, 110]], [1, [255, 244, 206]]]);
+
+function hash3(x, y, z) {
+  let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ Math.imul(z, 1274126177);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
+/* ---- first-person sky ---- */
+function cameraBasis(cam) {
+  const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw), cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+  return { f: [sy * cp, cy * cp, sp], r: [cy, -sy, 0], u: [-sy * sp, -cy * sp, cp], tf: Math.tan(cam.fov / 2) };
+}
+function projectDir(B, d, W, H) {
+  const zf = dot3(d, B.f);
+  if (zf < 0.03) return null;
+  const sx = dot3(d, B.r) / zf / B.tf, sy = dot3(d, B.u) / zf / (B.tf * H / W);
+  return [(sx * 0.5 + 0.5) * W, (0.5 - sy * 0.5) * H];
+}
+
+function drawSky(S, buf, W, H, cam) {
+  const { P, F, sun, moon, day: D } = S, B = cameraBasis(cam), f = B.f, r = B.r, u = B.u, tf = B.tf;
+  const k = smoothstep(0.08, 0.85, D), dusk = clamp(1 - Math.abs(D - 0.42) / 0.4, 0, 1) * 0.5;
+  const Zr = mixc(7, 56, k), Zg = mixc(10, 116, k), Zb = mixc(24, 212, k);
+  let Hr = mixc(18, 172, k), Hg = mixc(24, 206, k), Hb = mixc(46, 238, k);
+  Hr = mixc(Hr, 240, dusk); Hg = mixc(Hg, 140, dusk); Hb = mixc(Hb, 86, dusk);
+  const starAmt = 1 - smoothstep(0.1, 0.6, D);
+  const warm = 1 - smoothstep(0, 0.35, sun.loc[2]);
+  const sL = sun.loc, cosSr = Math.cos(sun.ang), sr = sun.ang;
+  const sunB = 0.86 + 0.14 * D;
+  const gR = 255, gG = 240 - 100 * warm, gB = 200 - 130 * warm;
+  const gs = Math.pow(clamp(sun.lum, 0, 1), 0.35) * 0.55, sig = sun.ang * 3 + 0.1, inv2 = 1 / (sig * sig);
+  const cR = 255 * sunB, cG = (247 - 60 * warm) * sunB, cB = (220 - 130 * warm) * sunB;
+  const pow2 = P.sun.power * P.sun.power, sRel = sun.relLoc;
+  let mU = null, mV = null, mL = null, cosMr = 2, mrs = 1, mW = null;
+  if (moon) {
+    mL = moon.loc; cosMr = Math.cos(moon.ang); mrs = Math.sin(moon.ang);
+    mU = norm3([mL[1], -mL[0], 0]); if (Math.hypot(mL[0], mL[1]) < 1e-4) mU = [1, 0, 0];
+    mV = [mL[1] * mU[2] - mL[2] * mU[1], mL[2] * mU[0] - mL[0] * mU[2], mL[0] * mU[1] - mL[1] * mU[0]];
+    mW = [-mL[0], -mL[1], -mL[2]];
+  }
+  const ef = F.ef, hub = F.hub, up = F.up, aspect = H / W;
+  let o = 0;
+  for (let y = 0; y < H; y++) {
+    const sy = (1 - (2 * (y + 0.5)) / H) * tf * aspect;
+    for (let x = 0; x < W; x++, o += 4) {
+      const sx = ((2 * (x + 0.5)) / W - 1) * tf;
+      let dx = f[0] + sx * r[0] + sy * u[0], dy = f[1] + sx * r[1] + sy * u[1], dz = f[2] + sx * r[2] + sy * u[2];
+      const il = 1 / Math.sqrt(dx * dx + dy * dy + dz * dz); dx *= il; dy *= il; dz *= il;
+      const t = traceDisc(F, dx, dy, dz);
+      if (t > 0) {
+        const wx = sRel[0] - TR.hx, wy = sRel[1] - TR.hy, wz = sRel[2] - TR.hz;
+        const dd2 = wx * wx + wy * wy + wz * wz, dd = Math.sqrt(dd2);
+        const sinEh = (wx * TR.nx + wy * TR.ny + wz * TR.nz) / dd;
+        const lh = (pow2 / dd2) * clamp((sinEh + 0.12) / 1.12, 0, 1);
+        const Dh = lh <= 1e-6 ? 0 : clamp(1 + Math.log10(lh) / 2.2, 0, 1);
+        const X = TR.rad * Math.cos(TR.az), Y = TR.rad * Math.sin(TR.az);
+        const v = Math.sin(5.3 * X + 1.1) + Math.sin(4.1 * Y - 0.4) + 0.8 * Math.sin(3.3 * (X + Y) + 2) + 0.6 * Math.sin(9.1 * X - 7.3 * Y + 0.5);
+        const land = smoothstep(0.1, 0.5, v), hill = smoothstep(1.2, 2.2, v);
+        let cr = mixc(34, mixc(92, 128, hill), land), cg = mixc(84, mixc(128, 116, hill), land), cb = mixc(126, mixc(72, 80, hill), land);
+        const ur = TR.rad * 10, fr = Math.abs(ur - Math.round(ur)) / 10, ua = TR.az / (TAU / 24), fa = Math.abs(ua - Math.round(ua)) * (TAU / 24) * TR.rad;
+        const lw = 0.0022 + 0.003 * t, gl = (1 - smoothstep(lw, 2 * lw, Math.min(fr, fa))) * Math.exp(-t * 2.2) * 0.3;
+        cr += (255 - cr) * gl; cg += (255 - cg) * gl; cb += (255 - cb) * gl;
+        const rim = smoothstep(0.965, 1, TR.rad);
+        cr = mixc(cr, 62, rim); cg = mixc(cg, 54, rim); cb = mixc(cb, 48, rim);
+        const sh = 0.05 + 0.95 * Dh;
+        cr *= sh * (0.55 + 0.45 * Dh); cg *= sh * (0.62 + 0.38 * Dh); cb *= sh * (0.95 + 0.05 * Dh);
+        const fog = 1 - Math.exp(-t * 0.9);
+        buf[o] = mixc(cr, Hr, fog); buf[o + 1] = mixc(cg, Hg, fog); buf[o + 2] = mixc(cb, Hb, fog); buf[o + 3] = 255;
+        continue;
+      }
+      /* sky or the void beyond the rim */
+      const zz = dz > 0 ? dz : 0, tt = Math.pow(zz, 0.45);
+      let cr = mixc(Hr, Zr, tt), cg = mixc(Hg, Zg, tt), cb = mixc(Hb, Zb, tt);
+      if (dz < 0) { cr *= 0.55; cg *= 0.55; cb *= 0.6; }
+      if (starAmt > 0.02) {
+        const ix = dx * ef[0] + dy * hub[0] + dz * up[0], iy = dx * ef[1] + dy * hub[1] + dz * up[1], iz = dx * ef[2] + dy * hub[2] + dz * up[2];
+        const px = ix * 38, py = iy * 38, pz = iz * 38, fx = Math.floor(px), fy = Math.floor(py), fz = Math.floor(pz);
+        const h = hash3(fx, fy, fz);
+        if ((h & 1023) < 40) {
+          const ox = ((h >>> 10) & 63) / 63, oy = ((h >>> 16) & 63) / 63, oz = ((h >>> 22) & 63) / 63;
+          const dd = Math.hypot(px - fx - ox, py - fy - oy, pz - fz - oz);
+          if (dd < 0.3) {
+            const b = Math.pow(1 - dd / 0.3, 2) * (0.35 + 0.65 * (((h >>> 5) & 31) / 31)) * starAmt * 255;
+            cr += b; cg += b; cb += b * 0.95;
+          }
+        }
+      }
+      const cosA = dx * sL[0] + dy * sL[1] + dz * sL[2], a2 = 2 * (1 - cosA);
+      if (a2 < 1.0) {
+        const g = Math.exp(-a2 * inv2) * gs;
+        cr += gR * g; cg += gG * g; cb += gB * g;
+      }
+      if (moon && dx * mL[0] + dy * mL[1] + dz * mL[2] > cosMr - 0.0004) {
+        const ou = (dx * mU[0] + dy * mU[1] + dz * mU[2]) / mrs, ov = (dx * mV[0] + dy * mV[1] + dz * mV[2]) / mrs, r2 = ou * ou + ov * ov;
+        if (r2 < 1.02) {
+          const nz = Math.sqrt(Math.max(0, 1 - r2));
+          const nx = ou * mU[0] + ov * mV[0] + nz * mW[0], ny = ou * mU[1] + ov * mV[1] + nz * mW[1], nzz = ou * mU[2] + ov * mV[2] + nz * mW[2];
+          const lit = smoothstep(-0.04, 0.06, nx * moon.sunLoc[0] + ny * moon.sunLoc[1] + nzz * moon.sunLoc[2]);
+          const al = 1 - smoothstep(0.9, 1.02, Math.sqrt(r2)), br = 0.07 + 0.93 * lit;
+          cr = mixc(cr, 234 * br, al); cg = mixc(cg, 232 * br, al); cb = mixc(cb, 220 * br, al);
+        }
+      }
+      if (cosA > cosSr - 0.00005) {
+        const a = Math.acos(cosA > 1 ? 1 : cosA), q = sr > 0 ? a / sr : 1;
+        if (q < 1.05) {
+          const limb = 0.78 + 0.22 * Math.sqrt(Math.max(0, 1 - q * q)), al = 1 - smoothstep(0.92, 1.05, q);
+          cr = mixc(cr, cR * limb, al); cg = mixc(cg, cG * limb, al); cb = mixc(cb, cB * limb, al);
+        }
+      }
+      buf[o] = cr; buf[o + 1] = cg; buf[o + 2] = cb; buf[o + 3] = 255;
+    }
+  }
+}
+
+/* ---- top-down daylight map (in the disc's own frame) ---- */
+function mapExtent(P) {
+  const G = discOf(P), rmax = G.flat ? 1 : G.Rc * Math.sin(G.alpha);
+  let e = rmax * 1.1;
+  e = Math.max(e, P.sun.Ro * (1 + P.sun.swing) * 1.1);
+  if (P.moon.on) e = Math.max(e, P.moon.Ro * 1.1);
+  return Math.min(e, 3);
+}
+function drawMapPixels(S, buf, M) {
+  const { P, F, sun } = S, G = F.G, ext = mapExtent(P), rmax = G.flat ? 1 : G.Rc * Math.sin(G.alpha), rmax2 = rmax * rmax;
+  const cO = Math.cos(S.omega), sO = Math.sin(S.omega), sp = sun.pos, pow2 = P.sun.power * P.sun.power, Rc = G.Rc;
+  let o = 0;
+  for (let j = 0; j < M; j++) {
+    const y = (1 - (2 * (j + 0.5)) / M) * ext;
+    for (let i = 0; i < M; i++, o += 4) {
+      const x = ((2 * (i + 0.5)) / M - 1) * ext, rr2 = x * x + y * y;
+      if (rr2 > rmax2) { buf[o + 3] = 0; continue; }
+      const xi = x * cO - y * sO, yi = x * sO + y * cO;
+      let ux = 0, uy = 0, uz = 1, pz = 0;
+      if (!G.flat) { ux = xi / Rc; uy = yi / Rc; uz = Math.sqrt(Math.max(0, 1 - rr2 / (Rc * Rc))); pz = Rc * (uz - 1); }
+      const rx = sp[0] - xi, ry = sp[1] - yi, rz = sp[2] - pz, d2 = rx * rx + ry * ry + rz * rz, d = Math.sqrt(d2);
+      const sinE = (rx * ux + ry * uy + rz * uz) / d, l = (pow2 / d2) * clamp((sinE + 0.12) / 1.12, 0, 1);
+      const D = l <= 1e-6 ? 0 : clamp(1 + Math.log10(l) / 2.2, 0, 1), li = ((D * 255) | 0) * 3;
+      buf[o] = DAYLUT[li]; buf[o + 1] = DAYLUT[li + 1]; buf[o + 2] = DAYLUT[li + 2]; buf[o + 3] = 255;
+    }
+  }
+}
+function toDiscFrame(S, p) {
+  const c = Math.cos(S.omega), s = Math.sin(S.omega);
+  return [p[0] * c + p[1] * s, -p[0] * s + p[1] * c, p[2]];
+}
+function observerDiscXY(S) {
+  const F = S.F, rxy = F.G.flat ? F.s : F.G.Rc * F.st;
+  return [rxy * Math.cos(F.phi), rxy * Math.sin(F.phi)];
+}
+
+/* ---- side cross-section through the hub and the observer ---- */
+function sideProject(S, p) {
+  const F = S.F, c = Math.cos(F.phiIn), s = Math.sin(F.phiIn);
+  return [p[0] * c + p[1] * s, p[2], -p[0] * s + p[1] * c];
+}
+
+/* ---- comparison timeline ---- */
+function stripColors(P, ob, t0, win, W) {
+  const cols = new Uint8Array(W * 3), els = new Float32Array(W);
+  for (let x = 0; x < W; x++) {
+    const S = simulate(P, ob, t0 + (win * (x + 0.5)) / W, true), li = ((S.day * 255) | 0) * 3;
+    cols[x * 3] = DAYLUT[li]; cols[x * 3 + 1] = DAYLUT[li + 1]; cols[x * 3 + 2] = DAYLUT[li + 2];
+    els[x] = S.sun.elev;
+  }
+  return { cols, els };
+}
+
+/* ---------- App ---------- */
+const $ = (s) => document.querySelector(s);
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const st = {
+  P: clone(PRESETS[1]), active: 'dome', ob: { s: 0.62, phi: 0 }, t: 0.3, playing: true, rate: 0.08, view: 'sky',
+  cam: { yaw: 0, pitch: 0.2, fov: 100 * DEG }, dirty: true,
+};
+let theme = {}, dpr = 1, cssW = 300, cssH = 300, skyCanvas = null, skyCtx = null, skyImg = null, mapCanvas = null, mapCtx = null, mapImg = null;
+let lastS = null, compareRows = [];
+
+function readTheme() {
+  const cs = getComputedStyle(document.documentElement), v = (n) => cs.getPropertyValue(n).trim();
+  theme = { stage: v('--stage'), panel: v('--panel'), panel2: v('--panel2'), ink: v('--ink'), mute: v('--mute'), line: v('--line'), accent: v('--accent') };
+  st.dirty = true;
+}
+
+/* ---------- parameters UI ---------- */
+const SLIDERS = [
+  { g: 'Disc', k: 'disc.curv', label: 'Curvature', min: 0, max: 60, step: 1, fmt: (v) => (v === 0 ? 'flat' : v + '°') },
+  { g: 'Disc', k: 'disc.spin', label: 'Disc spin', min: -1.5, max: 1.5, step: 0.05, fmt: (v) => v.toFixed(2) + ' turns/day' },
+  { g: 'Sun', k: 'sun.Ro', label: 'Orbit radius', min: 0.1, max: 2, step: 0.05, fmt: (v) => v.toFixed(2) },
+  { g: 'Sun', k: 'sun.hc', label: 'Orbit height', min: -0.5, max: 1.2, step: 0.05, fmt: (v) => v.toFixed(2) },
+  { g: 'Sun', k: 'sun.tilt', label: 'Orbit tilt', min: 0, max: 90, step: 5, fmt: (v) => v + '°' },
+  { g: 'Sun', k: 'sun.tiltAz', label: 'Tilt direction', min: 0, max: 355, step: 5, fmt: (v) => v + '°' },
+  { g: 'Sun', k: 'sun.swing', label: 'Season swing', min: 0, max: 0.6, step: 0.05, fmt: (v) => Math.round(v * 100) + '%' },
+  { g: 'Sun', k: 'sun.year', label: 'Year length', min: 6, max: 60, step: 1, fmt: (v) => v + ' days' },
+  { g: 'Sun', k: 'sun.size', label: 'Sun size', min: 0.004, max: 0.06, step: 0.002, fmt: (v) => v.toFixed(3) },
+  { g: 'Sun', k: 'sun.power', label: 'Sun power', min: 0.2, max: 1.6, step: 0.05, fmt: (v) => v.toFixed(2) },
+  { g: 'Moon', k: 'moon.Ro', label: 'Orbit radius', min: 0.1, max: 1.5, step: 0.05, fmt: (v) => v.toFixed(2) },
+  { g: 'Moon', k: 'moon.hc', label: 'Orbit height', min: -0.5, max: 1.2, step: 0.05, fmt: (v) => v.toFixed(2) },
+  { g: 'Moon', k: 'moon.tilt', label: 'Orbit tilt', min: 0, max: 90, step: 5, fmt: (v) => v + '°' },
+  { g: 'Moon', k: 'moon.period', label: 'Period', min: 0.4, max: 3, step: 0.005, fmt: (v) => v.toFixed(3) + ' days' },
+  { g: 'Moon', k: 'moon.size', label: 'Moon size', min: 0.004, max: 0.05, step: 0.002, fmt: (v) => v.toFixed(3) },
+];
+const getK = (k) => k.split('.').reduce((o, p) => o[p], st.P);
+function setK(k, v) { const [a, b] = k.split('.'); st.P[a][b] = v; }
+
+function buildParams() {
+  const box = $('#paramGroups');
+  for (const g of ['Disc', 'Sun', 'Moon']) {
+    const det = document.createElement('details');
+    det.innerHTML = '<summary>' + g + '</summary><div class="grid"></div>';
+    const grid = det.querySelector('.grid');
+    if (g === 'Moon') {
+      const row = document.createElement('label'); row.className = 'check';
+      row.innerHTML = '<input type="checkbox" id="moonOn"><span>Show the moon</span>';
+      grid.appendChild(row);
+      row.querySelector('input').addEventListener('change', (e) => { st.P.moon.on = e.target.checked; edited(); });
+    }
+    for (const s of SLIDERS.filter((x) => x.g === g)) {
+      const lab = document.createElement('label'); lab.className = 'slider';
+      const id = 'p-' + s.k.replace('.', '-');
+      lab.innerHTML = '<span class="nm">' + s.label + '</span><output id="o-' + id + '"></output><input type="range" id="' + id + '" min="' + s.min + '" max="' + s.max + '" step="' + s.step + '">';
+      grid.appendChild(lab);
+      lab.querySelector('input').addEventListener('input', (e) => { setK(s.k, +e.target.value); syncParams(); edited(); });
+    }
+    box.appendChild(det);
+  }
+}
+function syncParams() {
+  for (const s of SLIDERS) {
+    const id = 'p-' + s.k.replace('.', '-'), inp = $('#' + id), v = getK(s.k);
+    if (+inp.value !== v) inp.value = v;
+    $('#o-' + id).textContent = s.fmt(v);
+  }
+  $('#moonOn').checked = st.P.moon.on;
+}
+function edited() { st.active = null; markChips(); st.dirty = true; }
+
+function buildChips() {
+  const box = $('#chips');
+  for (const p of PRESETS) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.dataset.id = p.id; b.textContent = p.name;
+    b.addEventListener('click', () => applyPreset(p.id));
+    box.appendChild(b);
+  }
+}
+function markChips() {
+  for (const b of document.querySelectorAll('.chip')) b.setAttribute('aria-pressed', b.dataset.id === st.active ? 'true' : 'false');
+  const p = PRESETS.find((x) => x.id === st.active);
+  $('#blurb').textContent = p ? p.blurb : 'Custom settings. Tap a preset to go back.';
+}
+function applyPreset(id) {
+  const p = PRESETS.find((x) => x.id === id);
+  st.P = clone(p); st.active = id; syncParams(); markChips(); st.dirty = true;
+}
+
+/* ---------- view plumbing ---------- */
+function resize() {
+  const vb = $('#viewbox'); cssW = vb.clientWidth || 300; cssH = vb.clientHeight || 300; dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const cv = $('#cv'); cv.width = Math.round(cssW * dpr); cv.height = Math.round(cssH * dpr);
+  const lw = Math.min(300, Math.round(cssW)), lh = Math.max(40, Math.round(lw * cssH / cssW));
+  skyCanvas = document.createElement('canvas'); skyCanvas.width = lw; skyCanvas.height = lh; skyCtx = skyCanvas.getContext('2d'); skyImg = skyCtx.createImageData(lw, lh);
+  const M = 240; mapCanvas = document.createElement('canvas'); mapCanvas.width = mapCanvas.height = M; mapCtx = mapCanvas.getContext('2d'); mapImg = mapCtx.createImageData(M, M);
+  st.dirty = true;
+}
+const fmtDeg = (r) => (r / DEG).toFixed(0) + '°';
+const fmtDay = (d) => (isFinite(d) ? (d < 10 ? d.toFixed(2) : d.toFixed(1)) : 'never changes');
+const AZNAMES = [['Hubward', 0], ['Turnwise', 90], ['Rimward', 180], ['Widdershins', 270]];
+
+function drawSkyView(S, ctx) {
+  const W = skyCanvas.width, H = skyCanvas.height;
+  drawSky(S, skyImg.data, W, H, st.cam);
+  skyCtx.putImageData(skyImg, 0, 0);
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(skyCanvas, 0, 0, cssW, cssH);
+  const B = cameraBasis(st.cam);
+  ctx.font = '600 12px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  for (let a = 0; a < 360; a += 15) {
+    const ar = a * DEG, p = projectDir(B, [Math.sin(ar), Math.cos(ar), 0], cssW, cssH);
+    if (!p || p[0] < -20 || p[0] > cssW + 20) continue;
+    const major = a % 90 === 0;
+    ctx.strokeStyle = 'rgba(255,255,255,' + (major ? 0.8 : 0.4) + ')'; ctx.lineWidth = major ? 2 : 1;
+    ctx.beginPath(); ctx.moveTo(p[0], p[1] - (major ? 10 : 5)); ctx.lineTo(p[0], p[1]); ctx.stroke();
+    if (major) {
+      const nm = AZNAMES.find((n) => n[1] === a)[0];
+      ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillText(nm, p[0] + 1, p[1] - 12 + 1);
+      ctx.fillStyle = '#fff'; ctx.fillText(nm, p[0], p[1] - 12);
+    }
+  }
+}
+
+function drawMapView(S, ctx) {
+  const M = mapCanvas.width, size = Math.min(cssW, cssH), ox = (cssW - size) / 2, oy = (cssH - size) / 2, ext = mapExtent(S.P);
+  ctx.fillStyle = theme.stage; ctx.fillRect(0, 0, cssW, cssH);
+  drawMapPixels(S, mapImg.data, M); mapCtx.putImageData(mapImg, 0, 0);
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(mapCanvas, ox, oy, size, size);
+  const toXY = (p) => [ox + (p[0] / ext * 0.5 + 0.5) * size, oy + (0.5 - p[1] / ext * 0.5) * size];
+  const G = S.F.G, rmax = G.flat ? 1 : G.Rc * Math.sin(G.alpha), cx = ox + size / 2, cy = oy + size / 2, rpx = (rmax / ext) * size * 0.5;
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, rpx, 0, TAU); ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.14)'; ctx.lineWidth = 1;
+  for (const q of [0.25, 0.5, 0.75]) { ctx.beginPath(); ctx.arc(cx, cy, rpx * q, 0, TAU); ctx.stroke(); }
+  const path = (o, col) => {
+    ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash([4, 5]); ctx.beginPath();
+    const R = orbitRadius(o, S.t);
+    for (let k = 0; k <= 120; k++) {
+      const p = toXY(toDiscFrame(S, orbitPosTheta(o, (k / 120) * TAU, R)));
+      if (k) ctx.lineTo(p[0], p[1]); else ctx.moveTo(p[0], p[1]);
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  };
+  path(S.P.sun, 'rgba(255,226,140,0.8)');
+  if (S.moon) path(S.P.moon, 'rgba(210,220,240,0.6)');
+  const dot = (p, rad, fill, stroke) => { const q = toXY(toDiscFrame(S, p)); ctx.fillStyle = fill; ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(q[0], q[1], rad, 0, TAU); ctx.fill(); ctx.stroke(); return q; };
+  if (S.moon) dot(S.moon.pos, 6, '#dfe6ee', 'rgba(0,0,0,0.5)');
+  dot(S.sun.pos, 9, '#ffd24a', '#fff6c8');
+  const ob = toXY(observerDiscXY(S).concat([0]));
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(ob[0], ob[1], 8, 0, TAU); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ob[0], ob[1], 2.5, 0, TAU); ctx.fill();
+  const hubXY = toXY([0, 0, 0]);
+  ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('hub', hubXY[0], hubXY[1] + 5);
+  ctx.textBaseline = 'bottom'; ctx.fillText('you', ob[0], ob[1] - 11);
+}
+
+function drawSideView(S, ctx) {
+  ctx.fillStyle = theme.panel2; ctx.fillRect(0, 0, cssW, cssH);
+  const P = S.P, G = S.F.G, pts = [];
+  const prof = [];
+  if (G.flat) { prof.push([-1, 0], [1, 0]); }
+  else for (let k = -40; k <= 40; k++) { const th = (k / 40) * G.alpha; prof.push([G.Rc * Math.sin(th), G.Rc * (Math.cos(th) - 1)]); }
+  const R = orbitRadius(P.sun, S.t), sunPath = [];
+  for (let k = 0; k <= 120; k++) { const q = sideProject(S, orbitPosTheta(P.sun, (k / 120) * TAU, R)); sunPath.push(q); }
+  const moonPath = [];
+  if (S.moon) { const Rm = orbitRadius(P.moon, S.t); for (let k = 0; k <= 120; k++) moonPath.push(sideProject(S, orbitPosTheta(P.moon, (k / 120) * TAU, Rm))); }
+  for (const a of [prof, sunPath, moonPath]) for (const q of a) pts.push(q);
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+  for (const q of pts) { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); z0 = Math.min(z0, q[1]); z1 = Math.max(z1, q[1]); }
+  const pad = 0.12 * Math.max(x1 - x0, z1 - z0, 1); x0 -= pad; x1 += pad; z0 -= pad; z1 += pad;
+  const sc = Math.min((cssW - 24) / (x1 - x0), (cssH - 24) / (z1 - z0)), cx = cssW / 2 - ((x0 + x1) / 2) * sc, cy = cssH / 2 + ((z0 + z1) / 2) * sc;
+  const X = (q) => cx + q[0] * sc, Y = (q) => cy - q[1] * sc;
+  ctx.strokeStyle = 'rgba(255,226,140,0.55)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 5]);
+  const trace = (arr) => { ctx.beginPath(); arr.forEach((q, i) => (i ? ctx.lineTo(X(q), Y(q)) : ctx.moveTo(X(q), Y(q)))); ctx.stroke(); };
+  trace(sunPath); if (S.moon) { ctx.strokeStyle = 'rgba(150,170,200,0.7)'; trace(moonPath); } ctx.setLineDash([]);
+  ctx.strokeStyle = theme.ink; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath();
+  prof.forEach((q, i) => (i ? ctx.lineTo(X(q), Y(q)) : ctx.moveTo(X(q), Y(q)))); ctx.stroke();
+  const eye = sideProject(S, S.F.eye), er = [S.F.er[0] * Math.cos(S.F.phiIn) + S.F.er[1] * Math.sin(S.F.phiIn), S.F.er[2]];
+  ctx.strokeStyle = theme.accent; ctx.lineWidth = 1.5; ctx.setLineDash([2, 3]); ctx.beginPath();
+  ctx.moveTo(X(eye) - er[0] * 0.5 * sc, Y(eye) + er[1] * 0.5 * sc); ctx.lineTo(X(eye) + er[0] * 0.5 * sc, Y(eye) - er[1] * 0.5 * sc); ctx.stroke(); ctx.setLineDash([]);
+  const body = (q, rad, fill, alpha) => { ctx.globalAlpha = alpha; ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(X(q), Y(q), rad, 0, TAU); ctx.fill(); ctx.globalAlpha = 1; };
+  const sp = sideProject(S, S.sun.pos), above = S.sun.elev > 0;
+  ctx.strokeStyle = above ? 'rgba(255,214,90,0.9)' : 'rgba(255,120,90,0.8)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 5]);
+  ctx.beginPath(); ctx.moveTo(X(eye), Y(eye)); ctx.lineTo(X(sp), Y(sp)); ctx.stroke(); ctx.setLineDash([]);
+  if (S.moon) body(sideProject(S, S.moon.pos), 6, '#cfd8e6', clamp(1 - Math.abs(sideProject(S, S.moon.pos)[2]) / 2, 0.35, 1));
+  body(sp, 10, '#ffc933', clamp(1 - Math.abs(sp[2]) / 2, 0.4, 1));
+  ctx.fillStyle = theme.accent; ctx.beginPath(); ctx.arc(X(eye), Y(eye), 6, 0, TAU); ctx.fill();
+  ctx.fillStyle = theme.mute; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('Slice through the hub and you. Dotted: your horizon.', 12, cssH - 30);
+  ctx.fillText(above ? 'The sun is above your horizon.' : 'The sun is below your horizon.', 12, cssH - 10);
+}
+
+/* ---------- compare ---------- */
+const ROW_H = 112;
+function drawCompare() {
+  const cv = $('#cmp'), wrap = $('#cmpWrap'), W = Math.max(200, wrap.clientWidth), rows = [];
+  if (!st.active) rows.push({ id: null, P: st.P, name: 'Your settings' });
+  for (const p of PRESETS) rows.push({ id: p.id, P: p.id === st.active ? st.P : p, name: p.name });
+  compareRows = rows;
+  const Hh = rows.length * ROW_H + 8;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(Hh * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(Hh * dpr); cv.style.width = W + 'px'; cv.style.height = Hh + 'px'; }
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = theme.panel; ctx.fillRect(0, 0, W, Hh);
+  const win = 6, t0 = st.t - win / 2, sw = W - 24;
+  rows.forEach((row, i) => {
+    const y0 = 8 + i * ROW_H, sel = row.id === st.active;
+    ctx.fillStyle = theme.ink; ctx.font = '600 14px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(row.name, 12, y0);
+    const { cols, els } = stripColors(row.P, st.ob, t0, win, Math.round(sw));
+    const sy = y0 + 22, sh = 46;
+    for (let x = 0; x < cols.length; x++) { ctx.fillStyle = 'rgb(' + cols[x * 3] + ',' + cols[x * 3 + 1] + ',' + cols[x * 3 + 2] + ')'; ctx.fillRect(12 + x, sy, 1, sh); }
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 2; ctx.beginPath();
+    for (let x = 0; x < els.length; x++) { const yy = sy + sh / 2 - (els[x] / (Math.PI / 2)) * (sh / 2 - 2); if (x) ctx.lineTo(12 + x, yy); else ctx.moveTo(12 + x, yy); }
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(12, sy + sh / 2); ctx.lineTo(12 + sw, sy + sh / 2); ctx.stroke();
+    ctx.strokeStyle = sel ? theme.accent : theme.line; ctx.lineWidth = sel ? 3 : 1; ctx.strokeRect(11.5, sy - 0.5, sw + 1, sh + 1);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(12 + sw / 2, sy - 3); ctx.lineTo(12 + sw / 2, sy + sh + 3); ctx.stroke();
+    const s = dayStats(row.P, st.ob);
+    ctx.fillStyle = theme.mute; ctx.font = '12.5px system-ui, sans-serif';
+    ctx.fillText('Sun up ' + Math.round(s.upFrac * 100) + '% of the time, peaks at ' + Math.round(s.maxEl) + '°', 12, sy + sh + 6);
+    ctx.fillText(isFinite(s.minAng) ? 'Looks ' + s.minAng.toFixed(1) + '° to ' + s.maxAng.toFixed(1) + '° wide, a day lasts ' + (isFinite(s.solar) ? s.solar.toFixed(1) : 'forever') + ' orbits' : 'The sun never clears the horizon here', 12, sy + sh + 23);
+    ctx.strokeStyle = theme.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, y0 + ROW_H - 4.5); ctx.lineTo(W, y0 + ROW_H - 4.5); ctx.stroke();
+  });
+}
+
+/* ---------- frame ---------- */
+function renderFrame() {
+  const S = simulate(st.P, st.ob, st.t); lastS = S;
+  const cv = $('#cv'), ctx = cv.getContext('2d');
+  $('#cv').hidden = st.view === 'compare'; $('#cmpWrap').hidden = st.view !== 'compare'; $('#find').hidden = st.view !== 'sky'; $('#card').hidden = st.view === 'compare';
+  if (st.view === 'compare') drawCompare();
+  else {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (st.view === 'sky') drawSkyView(S, ctx); else if (st.view === 'map') drawMapView(S, ctx); else drawSideView(S, ctx);
+  }
+  updateCard(S);
+  $('#tlabel').textContent = 'Day ' + st.t.toFixed(2);
+  if (document.activeElement !== $('#scrub')) $('#scrub').value = ((st.t % 60) + 60) % 60;
+}
+function updateCard(S) {
+  const sun = S.sun, D = S.day, tod = D < 0.12 ? 'Night' : D < 0.6 ? 'Twilight' : 'Daylight';
+  let h = '<b>' + tod + '</b> <span>' + Math.round(D * 100) + '% light</span><br>';
+  h += sun.elev >= 0 ? 'Sun ' + fmtDeg(sun.elev) + ' above the horizon' : 'Sun ' + fmtDeg(-sun.elev) + ' below the horizon' + (sun.visible ? ' (still in view past the rim)' : '');
+  h += '<br>' + sun.d.toFixed(2) + ' radii away, ' + ((2 * sun.ang) / DEG).toFixed(1) + '° wide';
+  if (S.moon) h += '<br>Moon ' + Math.round(S.moon.phase * 100) + '% lit, ' + (S.moon.elev >= 0 ? fmtDeg(S.moon.elev) + ' up' : 'below the horizon');
+  $('#card').innerHTML = h;
+  const sd = solarDay(S.P); $('#solar').textContent = 'A full day for you lasts ' + fmtDay(sd) + ' sun orbits.';
+}
+
+let last = performance.now();
+function loop(now) {
+  requestAnimationFrame(loop);
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (st.playing) { st.t = (st.t + st.rate * dt) % 60; st.dirty = true; }
+  if (st.dirty) { st.dirty = false; renderFrame(); }
+}
+
+/* ---------- interaction ---------- */
+function initInteraction() {
+  const cv = $('#cv'), ptr = new Map();
+  const mapPick = (e) => {
+    const rc = cv.getBoundingClientRect(), size = Math.min(rc.width, rc.height), ox = (rc.width - size) / 2, oy = (rc.height - size) / 2, ext = mapExtent(st.P);
+    const x = (((e.clientX - rc.left - ox) / size) * 2 - 1) * ext, y = (1 - ((e.clientY - rc.top - oy) / size) * 2) * ext, G = discOf(st.P), rxy = Math.hypot(x, y);
+    const rmax = G.flat ? 1 : G.Rc * Math.sin(G.alpha);
+    if (rxy > rmax) return;
+    st.ob.s = G.flat ? rxy : Math.asin(Math.min(1, rxy / G.Rc)) / G.alpha; st.ob.phi = ((Math.atan2(y, x) % TAU) + TAU) % TAU;
+    syncObserver(); st.dirty = true;
+  };
+  cv.addEventListener('pointerdown', (e) => { cv.setPointerCapture(e.pointerId); ptr.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (st.view === 'map') mapPick(e); });
+  const up = (e) => ptr.delete(e.pointerId);
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('pointermove', (e) => {
+    const p = ptr.get(e.pointerId); if (!p) return;
+    if (st.view === 'sky') {
+      st.cam.yaw -= (e.clientX - p.x) * 0.005 * (st.cam.fov / (100 * DEG));
+      st.cam.pitch = clamp(st.cam.pitch + (e.clientY - p.y) * 0.005 * (st.cam.fov / (100 * DEG)), -1.1, 1.5);
+      p.x = e.clientX; p.y = e.clientY; st.dirty = true;
+    } else if (st.view === 'map') mapPick(e);
+  });
+  $('#cmpWrap').addEventListener('click', (e) => {
+    const rc = $('#cmp').getBoundingClientRect(), i = Math.floor((e.clientY - rc.top - 8) / ROW_H), row = compareRows[i];
+    if (row && row.id) applyPreset(row.id);
+  });
+  $('#find').addEventListener('click', () => {
+    if (!lastS) return;
+    st.cam.yaw = lastS.sun.az; st.cam.pitch = clamp(lastS.sun.elev, -0.3, 1.2) * 0.9; st.dirty = true;
+  });
+  cv.addEventListener('wheel', (e) => { if (st.view !== 'sky') return; e.preventDefault(); st.cam.fov = clamp(st.cam.fov * Math.exp(e.deltaY * 0.001), 40 * DEG, 130 * DEG); st.dirty = true; }, { passive: false });
+}
+function syncObserver() {
+  $('#obs').value = Math.round(st.ob.s * 100); $('#obp').value = Math.round((st.ob.phi / DEG) % 360);
+  $('#o-obs').textContent = Math.round(st.ob.s * 100) + '% to the rim'; $('#o-obp').textContent = Math.round((st.ob.phi / DEG) % 360) + '°';
+}
+
+function initUI() {
+  buildChips(); buildParams(); applyPreset('dome'); syncObserver();
+  for (const b of document.querySelectorAll('#tabs button')) {
+    b.addEventListener('click', () => {
+      st.view = b.dataset.view;
+      for (const x of document.querySelectorAll('#tabs button')) x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
+      st.dirty = true; requestAnimationFrame(resize);
+    });
+  }
+  $('#play').addEventListener('click', () => { st.playing = !st.playing; $('#play').textContent = st.playing ? 'Pause' : 'Play'; });
+  $('#scrub').addEventListener('input', (e) => { st.t = +e.target.value; st.dirty = true; });
+  $('#rate').addEventListener('change', (e) => { st.rate = +e.target.value; });
+  $('#obs').addEventListener('input', (e) => { st.ob.s = +e.target.value / 100; syncObserver(); st.dirty = true; });
+  $('#obp').addEventListener('input', (e) => { st.ob.phi = (+e.target.value) * DEG; syncObserver(); st.dirty = true; });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  readTheme(); initUI(); initInteraction(); resize();
+  new ResizeObserver(() => resize()).observe($('#viewbox'));
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  if (mq.addEventListener) mq.addEventListener('change', readTheme);
+  new MutationObserver(readTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  requestAnimationFrame(loop);
+});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<title>LiquidAI/LFM2.5-2.6B — local run</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --paper: #f6f7f8;
+  --surface: #ffffff;
+  --ink: #131a1f;
+  --muted: #5c6a73;
+  --faint: #8c99a1;
+  --rule: #dde3e7;
+  --accent: #0f7c86;
+  --scratch: #8a6a12;
+  --scratch-bg: #faf6ea;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0d1215;
+    --surface: #141b1f;
+    --ink: #e6ebee;
+    --muted: #97a5ae;
+    --faint: #6b7981;
+    --rule: #243036;
+    --accent: #54cfc4;
+    --scratch: #c9a542;
+    --scratch-bg: #191b16;
+  }
+}
+:root[data-theme="light"] {
+  --paper: #f6f7f8;
+  --surface: #ffffff;
+  --ink: #131a1f;
+  --muted: #5c6a73;
+  --faint: #8c99a1;
+  --rule: #dde3e7;
+  --accent: #0f7c86;
+  --scratch: #8a6a12;
+  --scratch-bg: #faf6ea;
+}
+:root[data-theme="dark"] {
+  --paper: #0d1215;
+  --surface: #141b1f;
+  --ink: #e6ebee;
+  --muted: #97a5ae;
+  --faint: #6b7981;
+  --rule: #243036;
+  --accent: #54cfc4;
+  --scratch: #c9a542;
+  --scratch-bg: #191b16;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 17px;
+  line-height: 1.65;
+  margin: 0;
+  padding: clamp(1.5rem, 4vw, 4rem) clamp(1rem, 4vw, 2rem);
+}
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(2rem, 4vw, 3.5rem);
+  margin: 0 auto;
+  max-width: 68rem;
+}
+@media (min-width: 62rem) {
+  .page { grid-template-columns: 15rem minmax(0, 1fr); align-items: start; }
+  .rail { position: sticky; top: 2rem; }
+}
+
+h1, h2 {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+  text-wrap: balance;
+}
+h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; }
+
+.eyebrow {
+  color: var(--accent);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+header { display: flex; flex-direction: column; gap: 0.6rem; }
+header p { color: var(--muted); margin: 0; max-width: 34em; }
+
+.rail { display: flex; flex-direction: column; gap: 1.75rem; }
+.metrics { display: flex; flex-direction: column; gap: 0.9rem; }
+.metric { display: flex; flex-direction: column; gap: 0.15rem; }
+.metric dt {
+  color: var(--faint);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.metric dd {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.metric dd .unit { color: var(--muted); font-size: 0.8em; }
+.headline dd { font-size: 1.5rem; }
+.headline dd { color: var(--accent); }
+
+.rail section { display: flex; flex-direction: column; gap: 0.9rem; }
+.rail h2 {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.5rem;
+}
+.params { display: flex; flex-direction: column; gap: 0.35rem; margin: 0; }
+.params div {
+  display: flex;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+.params dt { color: var(--muted); }
+.params dd { margin: 0; }
+
+main { display: flex; flex-direction: column; gap: 2.25rem; min-width: 0; }
+.block { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.prompt {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 2px;
+  font-size: 1.05rem;
+  margin: 0;
+  padding: 1.1rem 1.3rem;
+}
+
+.scratch {
+  background: var(--scratch-bg);
+  border-left: 2px solid var(--scratch);
+  color: var(--muted);
+  font-size: 0.92rem;
+  padding: 1rem 1.3rem;
+  white-space: pre-wrap;
+}
+.scratch-label { color: var(--scratch); }
+
+.answer { display: flex; flex-direction: column; gap: 1rem; }
+.answer > * { margin: 0; }
+.answer h3, .answer h4, .answer h5, .answer h6 {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 0.75rem;
+  text-wrap: balance;
+}
+.answer p { max-width: 40em; }
+.answer ul { display: flex; flex-direction: column; gap: 0.5rem; padding-left: 1.2rem; }
+.answer li { max-width: 39em; }
+.answer li::marker { color: var(--accent); }
+.answer li .num {
+  color: var(--accent);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 0.85em;
+}
+.answer blockquote {
+  border-left: 2px solid var(--accent);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 0.9rem;
+  padding: 0.35rem 0 0.35rem 1rem;
+}
+.answer code, .scratch code {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 0.85em;
+  padding: 0.1em 0.35em;
+}
+.answer hr { border: 0; border-top: 1px solid var(--rule); width: 100%; }
+
+.truncated {
+  border: 1px dashed var(--rule);
+  border-radius: 2px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 0.6rem 0.9rem;
+}
+
+footer {
+  border-top: 1px solid var(--rule);
+  color: var(--faint);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 0.78rem;
+  grid-column: 1 / -1;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+footer a { color: var(--accent); }
+</style>
+<div class="page">
+  <header style="grid-column: 1 / -1;">
+    <span class="eyebrow">On-device inference report</span>
+    <h1>LiquidAI/LFM2.5-2.6B</h1>
+    <p>One generation, run entirely on this machine's CPU with no network call at
+    inference time. Weights loaded from the local Hugging Face cache.</p>
+  </header>
+
+  <div class="rail">
+    <dl class="metrics"><div class="metric headline"><dt>Throughput</dt><dd>7.0 <span class="unit">tok/s</span></dd></div><div class="metric"><dt>Generated</dt><dd>1,487 <span class="unit">tokens</span></dd></div><div class="metric"><dt>Prompt</dt><dd>39 <span class="unit">tokens</span></dd></div><div class="metric"><dt>Generation time</dt><dd>212.1 <span class="unit">s</span></dd></div><div class="metric"><dt>Model load</dt><dd>3.3 <span class="unit">s</span></dd></div><div class="metric"><dt>Device</dt><dd>cpu</dd></div><div class="metric"><dt>Precision</dt><dd>bfloat16</dd></div><div class="metric"><dt>Threads</dt><dd>12</dd></div></dl>
+    <section>
+      <h2>Sampling</h2>
+      <dl class="params"><div><dt>do_sample</dt><dd>True</dd></div><div><dt>temperature</dt><dd>0.1</dd></div><div><dt>top_k</dt><dd>50</dd></div><div><dt>repetition_penalty</dt><dd>1.1</dd></div><div><dt>max_new_tokens</dt><dd>2048</dd></div></dl>
+    </section>
+  </div>
+
+  <main>
+    <section class="block">
+      <span class="eyebrow">Prompt</span>
+      <p class="prompt">Explain why a 2.6B parameter model can run on a laptop CPU while a 70B model cannot. Be concrete about memory.</p>
+    </section>
+    <section class="block"><span class="eyebrow scratch-label">Reasoning pass</span><div class="scratch">The user is asking about the difference in hardware requirements between a 2.6B parameter model and a 70B parameter model, specifically why one can run on a laptop CPU while the other cannot. They want me to be concrete about memory usage. This is a technical question about LLM inference and memory constraints. I need to explain the relationship between model size (parameters), memory footprint (VRAM/CPU RAM), quantization, and practical deployment scenarios.
+
+Key points to cover:
+1. Parameter count vs. memory footprint: A 2.6B model requires significantly less memory than a 70B model.
+2. The math: Memory = parameters × bytes per parameter (typically 2 for FP16, or even less with quantization).
+3. For a laptop CPU: We&#x27;re talking about system RAM (not GPU VRAM). Laptop CPUs typically have 8-32GB of system RAM.
+4. Concrete numbers:
+   - 2.6B model in FP16: ~5.2 GB
+   - 2.6B model in INT4 (quantized): ~1.3 GB
+   - 70B model in FP16: ~140 GB (impossible on any laptop)
+   - 70B model in INT4: ~35 GB (still too big for most laptops)
+5. Why CPU matters: CPU has much more RAM than GPU, but still limited by system RAM capacity.
+6. Practical considerations: KV cache, context length, batch size all add overhead.
+
+Let me calculate precisely:
+
+For a 2.6 billion parameter model:
+- In FP16 (2 bytes per param): 2.6e9 * 2 = 5.2 GB
+- In INT4 (1 byte per param): 2.6e9 * 0.5 = 1.3 GB
+
+For a 70 billion parameter model:
+- In FP16: 70e9 * 2 = 140 GB
+- In INT4: 70e9 * 0.5 = 35 GB
+
+A typical laptop CPU has 16-32 GB of system RAM. So:
+- 2.6B model: fits easily (even with some overhead for OS, context, etc.)
+- 70B model: needs at least 35 GB just for weights in INT4, which exceeds most laptop configurations.
+
+I should also mention that running on CPU means no parallelism benefits from GPUs, so we might need to use smaller batch sizes or even single-stream processing, making it slower but possible if memory permits.
+
+Also worth noting: Some models are &quot;quantized&quot; to lower precision (INT4, INT3) to fit on consumer hardware. The 2.6B model likely runs in FP16 or INT4 comfortably; the 70B definitely doesn&#x27;t.
+
+Structure of answer:
+1. Direct comparison of memory requirements using concrete numbers
+2. Explain the formula: memory = params × bits_per_param
+3. Show the gap between the two models
+4. Discuss what happens when you try to run the 70B on a laptop (OOM errors, swapping to disk which is slow)
+5. Mention practical workarounds (quantization, offloading to SSD, etc.)
+
+Make sure to be specific about &quot;laptop CPU&quot; - this implies system RAM, not GPU VRAM. The distinction is important because modern laptops often have integrated graphics with very little dedicated memory, but they do have substantial system RAM.
+
+Let me write this out clearly.</div></section>
+    <section class="block">
+      <span class="eyebrow">Answer</span>
+      <div class="answer"><p>The core reason comes down to <strong>memory scaling</strong>: larger models require exponentially more storage for their weights, and a laptop CPU&#x27;s system RAM (typically 8–32 GB) simply isn&#x27;t large enough to hold a 70B model, regardless of whether it&#x27;s an Intel i7 or a high-end mobile chip.</p>
+<p>Here’s the concrete breakdown:</p>
+<h3>Memory Math: Parameters × Bytes Per Parameter</h3>
+<p>| Model | Params | FP16 (2 bytes) | INT4 (0.5 bytes)* |</p>
+<p>|-------|--------|----------------|-------------------|</p>
+<p>| <strong>2.6B</strong> | 2.6×10⁹ | <strong>~5.2 GB</strong> | <strong>~1.3 GB</strong> |</p>
+<p>| <strong>70B</strong> | 70×10⁹ | <strong>~140 GB</strong> | <strong>~35 GB</strong> |</p>
+<p>\*Quantization to 4-bit reduces each parameter to half a byte.</p>
+<h4>What this means for a laptop CPU</h4>
+<ul>
+<li><strong>2.6B model (FP16):</strong> Needs roughly 5–6 GB of contiguous memory. Most laptops with 16+ GB of system RAM can allocate this easily—leaving plenty for the operating system, your OS kernel, and a small context window. It will run smoothly, though inference speed will be limited by the CPU&#x27;s single-threaded nature (no massive GPU parallelism).</li>
+</ul>
+<ul>
+<li><strong>70B model (INT4):</strong> Requires ~35 GB of RAM just for the weights. Even with aggressive quantization, this exceeds the total capacity of almost every consumer laptop (the largest consumer configurations top out around 32 GB). When you hit the memory limit, the system starts paging to disk (swap), which makes inference painfully slow—or fails entirely with an OOM error.</li>
+</ul>
+<h3>Why CPU Matters Here</h3>
+<p>GPUs have massive shared memory (24–80 GB) and specialized tensor cores for matrix multiplication, allowing them to handle 70B models via quantization and batching. But a laptop CPU lacks both:</p>
+<ul>
+<li><span class='num'>1.</span> <strong>No dedicated memory pool:</strong> System RAM is shared across the OS, drivers, and application. You don&#x27;t get a separate &quot;model buffer.&quot;</li>
+<li><span class='num'>2.</span> <strong>Limited bandwidth:</strong> Moving data from RAM to CPU cores is slower than GPU-to-memory transfers, further slowing down already bottlenecked operations like attention computation.</li>
+<li><span class='num'>3.</span> <strong>No parallelism:</strong> A 70B model would need thousands of concurrent threads to utilize its compute, but a laptop CPU typically has only 4–12 physical cores. Without massive parallelism, the model would stall waiting for memory accesses.</li>
+</ul>
+<h3>Practical Reality Check</h3>
+<p>If you tried to load a 70B model onto a 16 GB laptop CPU:</p>
+<ul>
+<li><strong>Out-of-Memory (OOM)</strong> error immediately upon initialization</li>
+<li>If you force it with swap, throughput drops to near zero (disk I/O is orders of magnitude slower than RAM)</li>
+<li>Even with heavy quantization (INT3 or sub-4-bit), you&#x27;d need &gt;30 GB of RAM—rarely available in consumer laptops</li>
+</ul>
+<p>In contrast, a 2.6B model fits comfortably within 8–16 GB of RAM, leaving room for the context window (which itself consumes significant memory proportional to sequence length). That&#x27;s why many local AI apps (LLaMA-2 7B, Phi-3, etc.) target exactly this size range for laptop deployment.</p>
+<p><strong>Bottom line:</strong> The 2.6B model sits in the &quot;sweet spot&quot; where its weight footprint (~1.3 GB in 4-bit) is well under a laptop&#x27;s 16–32 GB of system RAM. The 70B model requires ~35 GB minimum, pushing past the hard ceiling of most consumer machines.</p></div>
+      
+    </section>
+  </main>
+
+  <footer>
+    Generated 2026-08-05 00:02 UTC &middot;
+    <a href="https://www.liquid.ai/blog/lfm2-5-2-6b">liquid.ai/blog/lfm2-5-2-6b</a>
+  </footer>
+</div>
+
+</body></html>

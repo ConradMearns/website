@@ -1,0 +1,403 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<title>Mind Inspector</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F6F7F5; --surface:#FFFFFF; --surface-2:#ECEFEA; --surface-3:#E1E6DF;
+  --ink:#171C19; --ink-2:#5A635C; --ink-3:#87908A;
+  --line:#C9D0C8; --line-2:#DDE3DB;
+  --accent:#0E6B63; --accent-soft:#DCEDE9;
+  --warn:#A8500B; --warn-soft:#F6E7D6;
+  --sans:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1311; --surface:#161C19; --surface-2:#1D2521; --surface-3:#26302B;
+    --ink:#E4EAE5; --ink-2:#939E96; --ink-3:#6E7A73;
+    --line:#2E3A34; --line-2:#232D28;
+    --accent:#4FC7B8; --accent-soft:#12302C;
+    --warn:#E39A4A; --warn-soft:#3A2A18;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1311; --surface:#161C19; --surface-2:#1D2521; --surface-3:#26302B;
+  --ink:#E4EAE5; --ink-2:#939E96; --ink-3:#6E7A73;
+  --line:#2E3A34; --line-2:#232D28;
+  --accent:#4FC7B8; --accent-soft:#12302C;
+  --warn:#E39A4A; --warn-soft:#3A2A18;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--sans); font-size:16px; line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1000px; margin:0 auto; padding:56px 24px 96px; display:flex; flex-direction:column; gap:56px}
+
+.eyebrow{
+  font-family:var(--mono); font-size:11px; font-weight:500;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3);
+}
+h1{font-size:clamp(30px,5vw,44px); line-height:1.12; font-weight:600; margin:10px 0 0; text-wrap:balance; letter-spacing:-.015em}
+h2{font-size:22px; font-weight:600; margin:0; letter-spacing:-.01em}
+p{margin:0; max-width:66ch}
+.lede{font-size:18px; color:var(--ink-2); margin-top:16px; max-width:62ch}
+
+header{border-bottom:1px solid var(--line-2); padding-bottom:36px}
+
+section{display:flex; flex-direction:column; gap:18px}
+.sec-head{display:flex; flex-direction:column; gap:8px}
+
+figure{margin:0; display:flex; flex-direction:column; gap:12px}
+.figbox{
+  background:var(--surface); border:1px solid var(--line-2); border-radius:14px;
+  padding:14px; overflow-x:auto;
+}
+.figbox svg{display:block; width:100%; height:auto; min-width:640px}
+figcaption{font-size:14px; color:var(--ink-2); max-width:66ch}
+
+/* ---- shared diagram styles ---- */
+.edge{stroke:var(--line); stroke-width:1.5; fill:none}
+.node-c{fill:var(--surface-2); stroke:var(--line); stroke-width:1.5}
+.node-em{font-size:24px; text-anchor:middle; dominant-baseline:central}
+.node-em-sm{font-size:15px; text-anchor:middle; dominant-baseline:central}
+.node-lbl{
+  font-family:var(--mono); font-size:10px; font-weight:500; letter-spacing:.1em;
+  text-transform:uppercase; fill:var(--ink-3); text-anchor:middle;
+}
+.chip-c{fill:var(--surface); stroke:var(--ink-3); stroke-width:1.5}
+.chip-c.wrong{stroke:var(--warn); stroke-width:2.5; fill:var(--warn-soft)}
+.chip-em{font-size:15px; text-anchor:middle; dominant-baseline:central}
+.chip-em-sm{font-size:11px; text-anchor:middle; dominant-baseline:central}
+.badge-c{fill:var(--surface); stroke:var(--line); stroke-width:1}
+.badge-em{font-size:9px; text-anchor:middle; dominant-baseline:central}
+.ghost{opacity:.3}
+.ghost .node-c{stroke-dasharray:3 3}
+.agent-c{fill:var(--surface); stroke:var(--ink); stroke-width:1.5}
+.agent-ring{fill:none; stroke:var(--accent); stroke-width:2; stroke-dasharray:4 4; opacity:.9}
+.agent-lbl{font-family:var(--mono); font-size:10px; font-weight:500; fill:var(--ink-2); text-anchor:middle}
+
+.bubble{fill:var(--surface-2); stroke:var(--line); stroke-width:1.5}
+.bub-eyebrow{font-family:var(--mono); font-size:9.5px; font-weight:500; letter-spacing:.14em; fill:var(--ink-3)}
+.slot{fill:var(--surface); stroke:var(--line-2); stroke-width:1}
+.slot.now{stroke:var(--accent); stroke-width:2}
+.slot.wrong{stroke:var(--warn); stroke-width:2}
+.slot-txt{font-family:var(--mono); font-size:12px; fill:var(--ink)}
+.slot-txt.dim{fill:var(--ink-3)}
+.meter-bg{fill:var(--surface-3)}
+.meter-fg{fill:var(--accent)}
+.meter-lbl{font-family:var(--mono); font-size:10px; fill:var(--ink-3)}
+.panel-frame{fill:none; stroke:var(--line-2); stroke-width:1.5; rx:10}
+.panel-ttl{font-family:var(--mono); font-size:10px; font-weight:500; letter-spacing:.12em; text-transform:uppercase; fill:var(--ink-2)}
+.panel-ttl.hot{fill:var(--warn)}
+
+/* ---- legend ---- */
+.legend{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(216px,1fr)); gap:1px;
+  background:var(--line-2); border:1px solid var(--line-2); border-radius:14px; overflow:hidden;
+}
+.lg{background:var(--surface); padding:16px 18px; display:flex; flex-direction:column; gap:10px}
+.lg-top{display:flex; align-items:center; gap:10px}
+.lg svg{flex:none}
+.lg-name{font-family:var(--mono); font-size:12px; font-weight:500; color:var(--ink)}
+.lg-desc{font-size:13.5px; color:var(--ink-2); line-height:1.5}
+
+.glyphs{display:flex; flex-wrap:wrap; gap:10px}
+.gl{
+  display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--line-2);
+  border-radius:999px; padding:7px 14px 7px 10px; font-family:var(--mono); font-size:12px; color:var(--ink-2);
+}
+.gl b{font-weight:500; color:var(--ink)}
+.gl .e{font-size:15px; line-height:1}
+
+.rules{display:flex; flex-direction:column; gap:0; border-top:1px solid var(--line-2)}
+.rule{display:grid; grid-template-columns:34px 1fr; gap:16px; padding:16px 0; border-bottom:1px solid var(--line-2); align-items:start}
+.rule .n{font-family:var(--mono); font-size:12px; color:var(--ink-3); padding-top:2px; font-variant-numeric:tabular-nums}
+.rule h3{margin:0 0 5px; font-size:15.5px; font-weight:600}
+.rule p{font-size:14.5px; color:var(--ink-2); line-height:1.55}
+
+.gate{
+  border:1.5px solid var(--warn); background:var(--warn-soft); color:var(--ink);
+  border-radius:14px; padding:20px 22px; display:flex; flex-direction:column; gap:8px;
+}
+.gate .eyebrow{color:var(--warn)}
+.gate p{font-size:15px; max-width:64ch}
+code{font-family:var(--mono); font-size:.9em; background:var(--surface-2); padding:1px 5px; border-radius:4px}
+.gate code{background:var(--surface)}
+footer{border-top:1px solid var(--line-2); padding-top:28px; color:var(--ink-3); font-size:14px}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">NPC substrate · renderer study</div>
+  <h1>What a mind looks like from outside</h1>
+  <p class="lede">A look-test for the simulation's renderer, drawn by hand with fake data. The question it exists to answer: can we show belief diverging from truth without it turning into a wall of parentheses?</p>
+</header>
+
+<section>
+  <div class="sec-head">
+    <div class="eyebrow">Figure 1 · primary view</div>
+    <h2>The canvas, and one agent thinking</h2>
+  </div>
+  <figure>
+    <div class="figbox">
+      <svg viewBox="0 0 900 500" role="img" aria-label="A graph world of five places with two agents. One agent has a thought bubble containing a smaller copy of the same world, in which the fish is wrongly placed at the cave.">
+        <!-- world edges -->
+        <line class="edge" x1="140" y1="410" x2="250" y2="410"/>
+        <line class="edge" x1="280" y1="380" x2="280" y2="310"/>
+        <line class="edge" x1="309" y1="401" x2="421" y2="369"/>
+        <line class="edge" x1="479" y1="369" x2="581" y2="401"/>
+
+        <!-- camp -->
+        <circle class="node-c" cx="110" cy="410" r="30"/>
+        <text class="node-em" x="110" y="410">🏕️</text>
+        <text class="node-lbl" x="110" y="462">camp</text>
+        <!-- clearing -->
+        <circle class="node-c" cx="280" cy="410" r="30"/>
+        <text class="node-em" x="280" y="410">🌲</text>
+        <text class="node-lbl" x="280" y="462">clearing</text>
+        <!-- river -->
+        <circle class="node-c" cx="280" cy="280" r="30"/>
+        <text class="node-em" x="280" y="280">🏞️</text>
+        <text class="node-lbl" x="280" y="332">river</text>
+        <!-- ridge -->
+        <circle class="node-c" cx="450" cy="360" r="30"/>
+        <text class="node-em" x="450" y="360">🪨</text>
+        <text class="node-lbl" x="450" y="412">ridge</text>
+        <!-- cave -->
+        <circle class="node-c" cx="610" cy="410" r="30"/>
+        <text class="node-em" x="610" y="410">🕳️</text>
+        <text class="node-lbl" x="610" y="462">cave</text>
+
+        <!-- truth: fish at river, carcass at cave -->
+        <circle class="chip-c" cx="310" cy="250" r="14"/>
+        <text class="chip-em" x="310" y="250">🐟</text>
+        <circle class="chip-c" cx="640" cy="380" r="14"/>
+        <text class="chip-em" x="640" y="380">💀</text>
+
+        <!-- agent A at camp -->
+        <circle class="agent-c" cx="144" cy="432" r="17"/>
+        <text class="chip-em" x="144" y="432">🧓</text>
+        <text class="agent-lbl" x="144" y="466">A</text>
+        <!-- agent B at clearing, deliberating -->
+        <circle class="agent-ring" cx="314" cy="432" r="22"/>
+        <circle class="agent-c" cx="314" cy="432" r="17"/>
+        <text class="chip-em" x="314" y="432">🧑</text>
+
+        <!-- thought tail -->
+        <circle class="bubble" cx="344" cy="404" r="5"/>
+        <circle class="bubble" cx="372" cy="372" r="8"/>
+        <circle class="bubble" cx="408" cy="328" r="11"/>
+
+        <!-- bubble -->
+        <rect class="bubble" x="350" y="24" width="525" height="270" rx="18"/>
+
+        <text class="bub-eyebrow" x="380" y="58">B BELIEVES</text>
+        <!-- mini world: same layout, no labels needed -->
+        <line class="edge" x1="395" y1="195" x2="450" y2="195"/>
+        <line class="edge" x1="465" y1="180" x2="465" y2="145"/>
+        <line class="edge" x1="479" y1="191" x2="536" y2="174"/>
+        <line class="edge" x1="564" y1="174" x2="616" y2="191"/>
+
+        <g><circle class="node-c" cx="380" cy="195" r="15"/><text class="node-em-sm" x="380" y="195">🏕️</text></g>
+        <g><circle class="node-c" cx="465" cy="195" r="15"/><text class="node-em-sm" x="465" y="195">🌲</text></g>
+        <g class="ghost"><circle class="node-c" cx="465" cy="130" r="15"/><text class="node-em-sm" x="465" y="130">🏞️</text></g>
+        <g><circle class="node-c" cx="550" cy="170" r="15"/><text class="node-em-sm" x="550" y="170">🪨</text></g>
+        <g><circle class="node-c" cx="630" cy="195" r="15"/><text class="node-em-sm" x="630" y="195">🕳️</text></g>
+
+        <!-- B's wrong fish, inferred -->
+        <circle class="chip-c wrong" cx="648" cy="177" r="11"/>
+        <text class="chip-em-sm" x="648" y="177">🐟</text>
+        <circle class="badge-c" cx="659" cy="188" r="6.5"/>
+        <text class="badge-em" x="659" y="188">🧠</text>
+
+        <!-- B's self -->
+        <circle class="agent-c" cx="479" cy="207" r="9"/>
+        <text class="chip-em-sm" x="479" y="207">🧑</text>
+
+        <!-- goal + plan -->
+        <text class="bub-eyebrow" x="672" y="58">WANTS</text>
+        <rect class="slot" x="672" y="68" width="188" height="34" rx="8"/>
+        <text class="chip-em-sm" x="690" y="85">🍽️</text>
+        <text class="slot-txt" x="704" y="89">(not-hungry B)</text>
+
+        <text class="bub-eyebrow" x="672" y="130">PLAN</text>
+        <rect class="slot now" x="672" y="140" width="188" height="32" rx="8"/>
+        <text class="chip-em-sm" x="690" y="156">🚶</text>
+        <text class="slot-txt" x="704" y="160">(walk-to cave)</text>
+
+        <rect class="slot" x="672" y="180" width="188" height="32" rx="8"/>
+        <text class="chip-em-sm" x="690" y="196">🎣</text>
+        <text class="slot-txt dim" x="704" y="200">(catch fish)</text>
+
+        <rect class="slot" x="672" y="220" width="188" height="32" rx="8"/>
+        <text class="chip-em-sm" x="690" y="236">🍽️</text>
+        <text class="slot-txt dim" x="704" y="240">(eat fish)</text>
+
+        <!-- fuel meter -->
+        <rect class="meter-bg" x="380" y="258" width="480" height="5" rx="2.5"/>
+        <rect class="meter-fg" x="380" y="258" width="201" height="5" rx="2.5"/>
+        <text class="meter-lbl" x="380" y="281">deliberating · 312 fuel · K depth 21</text>
+        <text class="meter-lbl" x="860" y="281" text-anchor="end">tick 4,118</text>
+      </svg>
+    </div>
+    <figcaption>The bubble is not a new visual language — it is the same renderer at half scale. Because every panel shares one layout computed from ground truth, the mini world needs no labels: position identifies the place. B has never looked at the river, so the river is ghosted; B has inferred fish at the cave, so the fish is amber and carries 🧠 rather than 👁️.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <div class="sec-head">
+    <div class="eyebrow">Figure 2 · compare mode</div>
+    <h2>Three heads, one layout</h2>
+  </div>
+  <figure>
+    <div class="figbox">
+      <svg viewBox="0 0 960 250" role="img" aria-label="Three panels showing the same five-place world: ground truth with fish at the river, agent B's belief with fish wrongly at the cave, and agent A's belief with fish correctly at the river.">
+        <!-- panel 1: truth -->
+        <rect class="panel-frame" x="12" y="40" width="290" height="190"/>
+        <text class="panel-ttl" x="30" y="66">ground truth</text>
+        <line class="edge" x1="45" y1="185" x2="100" y2="185"/>
+        <line class="edge" x1="115" y1="170" x2="115" y2="135"/>
+        <line class="edge" x1="129" y1="181" x2="186" y2="164"/>
+        <line class="edge" x1="214" y1="164" x2="266" y2="181"/>
+        <g><circle class="node-c" cx="30" cy="185" r="15"/><text class="node-em-sm" x="30" y="185">🏕️</text></g>
+        <g><circle class="node-c" cx="115" cy="185" r="15"/><text class="node-em-sm" x="115" y="185">🌲</text></g>
+        <g><circle class="node-c" cx="115" cy="120" r="15"/><text class="node-em-sm" x="115" y="120">🏞️</text></g>
+        <g><circle class="node-c" cx="200" cy="160" r="15"/><text class="node-em-sm" x="200" y="160">🪨</text></g>
+        <g><circle class="node-c" cx="280" cy="185" r="15"/><text class="node-em-sm" x="280" y="185">🕳️</text></g>
+        <circle class="chip-c" cx="131" cy="104" r="11"/><text class="chip-em-sm" x="131" y="104">🐟</text>
+        <circle class="chip-c" cx="296" cy="169" r="11"/><text class="chip-em-sm" x="296" y="169">💀</text>
+        <circle class="agent-c" cx="44" cy="197" r="9"/><text class="chip-em-sm" x="44" y="197">🧓</text>
+        <circle class="agent-c" cx="129" cy="197" r="9"/><text class="chip-em-sm" x="129" y="197">🧑</text>
+
+        <!-- panel 2: B believes -->
+        <rect class="panel-frame" x="332" y="40" width="290" height="190"/>
+        <text class="panel-ttl hot" x="350" y="66">🧑 B believes</text>
+        <line class="edge" x1="365" y1="185" x2="420" y2="185"/>
+        <line class="edge" x1="435" y1="170" x2="435" y2="135"/>
+        <line class="edge" x1="449" y1="181" x2="506" y2="164"/>
+        <line class="edge" x1="534" y1="164" x2="586" y2="181"/>
+        <g><circle class="node-c" cx="350" cy="185" r="15"/><text class="node-em-sm" x="350" y="185">🏕️</text></g>
+        <g><circle class="node-c" cx="435" cy="185" r="15"/><text class="node-em-sm" x="435" y="185">🌲</text></g>
+        <g class="ghost"><circle class="node-c" cx="435" cy="120" r="15"/><text class="node-em-sm" x="435" y="120">🏞️</text></g>
+        <g><circle class="node-c" cx="520" cy="160" r="15"/><text class="node-em-sm" x="520" y="160">🪨</text></g>
+        <g><circle class="node-c" cx="600" cy="185" r="15"/><text class="node-em-sm" x="600" y="185">🕳️</text></g>
+        <circle class="chip-c wrong" cx="616" cy="169" r="11"/><text class="chip-em-sm" x="616" y="169">🐟</text>
+        <circle class="badge-c" cx="627" cy="180" r="6.5"/><text class="badge-em" x="627" y="180">🧠</text>
+        <circle class="agent-c" cx="449" cy="197" r="9"/><text class="chip-em-sm" x="449" y="197">🧑</text>
+
+        <!-- panel 3: A believes -->
+        <rect class="panel-frame" x="652" y="40" width="290" height="190"/>
+        <text class="panel-ttl" x="670" y="66">🧓 A believes</text>
+        <line class="edge" x1="685" y1="185" x2="740" y2="185"/>
+        <line class="edge" x1="755" y1="170" x2="755" y2="135"/>
+        <line class="edge" x1="769" y1="181" x2="826" y2="164"/>
+        <line class="edge" x1="854" y1="164" x2="906" y2="181"/>
+        <g><circle class="node-c" cx="670" cy="185" r="15"/><text class="node-em-sm" x="670" y="185">🏕️</text></g>
+        <g><circle class="node-c" cx="755" cy="185" r="15"/><text class="node-em-sm" x="755" y="185">🌲</text></g>
+        <g><circle class="node-c" cx="755" cy="120" r="15"/><text class="node-em-sm" x="755" y="120">🏞️</text></g>
+        <g><circle class="node-c" cx="840" cy="160" r="15"/><text class="node-em-sm" x="840" y="160">🪨</text></g>
+        <g class="ghost"><circle class="node-c" cx="920" cy="185" r="15"/><text class="node-em-sm" x="920" y="185">🕳️</text></g>
+        <circle class="chip-c" cx="771" cy="104" r="11"/><text class="chip-em-sm" x="771" y="104">🐟</text>
+        <circle class="badge-c" cx="782" cy="115" r="6.5"/><text class="badge-em" x="782" y="115">👁️</text>
+        <circle class="agent-c" cx="684" cy="197" r="9"/><text class="chip-em-sm" x="684" y="197">🧓</text>
+        <circle class="agent-c" cx="769" cy="197" r="9"/><text class="chip-em-sm" x="769" y="197">🧑</text>
+      </svg>
+    </div>
+    <figcaption>Compare mode is the same view zoomed out with every mind opened at once. Nothing here is a special rendering path — panel two is B's thought bubble, unwrapped. The eye compares three copies of one arrangement, so divergence reads instantly: only the amber fish and the ghosted nodes differ.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <div class="sec-head">
+    <div class="eyebrow">Encoding</div>
+    <h2>Three belief states, one hue</h2>
+  </div>
+  <div class="legend">
+    <div class="lg">
+      <div class="lg-top">
+        <svg width="34" height="34" viewBox="0 0 34 34" role="img" aria-label="Neutral outlined chip"><circle class="chip-c" cx="17" cy="17" r="11"/><text class="chip-em-sm" x="17" y="17">🐟</text></svg>
+        <span class="lg-name">agrees</span>
+      </div>
+      <div class="lg-desc">The mind believes it and it is true. Quiet outline, no colour. Most of every panel looks like this.</div>
+    </div>
+    <div class="lg">
+      <div class="lg-top">
+        <svg width="34" height="34" viewBox="0 0 34 34" role="img" aria-label="Amber outlined chip"><circle class="chip-c wrong" cx="17" cy="17" r="11"/><text class="chip-em-sm" x="17" y="17">🐟</text></svg>
+        <span class="lg-name">diverges</span>
+      </div>
+      <div class="lg-desc">Believed and false. The only hot colour on the page, so a glance finds every mistake in a head.</div>
+    </div>
+    <div class="lg">
+      <div class="lg-top">
+        <svg width="34" height="34" viewBox="0 0 34 34" role="img" aria-label="Faded dashed node"><g class="ghost"><circle class="node-c" cx="17" cy="17" r="12"/><text class="node-em-sm" x="17" y="17">🏞️</text></g></svg>
+        <span class="lg-name">unknown</span>
+      </div>
+      <div class="lg-desc">True, but this mind has no percept of it. Ghosted and dashed — how ignorance is drawn, and B's whole starting state.</div>
+    </div>
+    <div class="lg">
+      <div class="lg-top">
+        <svg width="34" height="34" viewBox="0 0 34 34" role="img" aria-label="Dashed teal ring around an agent"><circle class="agent-ring" cx="17" cy="17" r="14"/><circle class="agent-c" cx="17" cy="17" r="10"/><text class="chip-em-sm" x="17" y="17">🧑</text></svg>
+        <span class="lg-name">deliberating</span>
+      </div>
+      <div class="lg-desc">Teal is machine activity, never belief. A ring while the CEK machine is burning fuel; gone the moment it finishes.</div>
+    </div>
+  </div>
+  <p style="margin-top:6px">Every believed fact carries a source glyph, which is the provenance system made visible. When B reaches the empty cave, the glyph is what tells it — and the viewer — that this belief was <em>inferred</em>, not <em>seen</em>:</p>
+  <div class="glyphs">
+    <span class="gl"><span class="e">👁️</span><b>saw</b> it</span>
+    <span class="gl"><span class="e">👃</span><b>smelled</b> it</span>
+    <span class="gl"><span class="e">💬</span><b>was told</b></span>
+    <span class="gl"><span class="e">🧠</span><b>inferred</b> it</span>
+    <span class="gl"><span class="e">🌱</span><b>always knew</b></span>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <div class="eyebrow">Why it holds together</div>
+    <h2>Four rules doing all the work</h2>
+  </div>
+  <div class="rules">
+    <div class="rule"><div class="n">01</div><div>
+      <h3>One layout, computed once</h3>
+      <p>Node positions come from ground truth and every panel reuses them. This is what makes divergence readable at a glance, and it is why the bubble can drop its labels — position already says which place it is.</p>
+    </div></div>
+    <div class="rule"><div class="n">02</div><div>
+      <h3>Colour only where a mind is wrong</h3>
+      <p>One accent hue, spent entirely on divergence. Teal is reserved for machine state and means nothing about belief. If a third meaning ever wants a colour, it does not get one.</p>
+    </div></div>
+    <div class="rule"><div class="n">03</div><div>
+      <h3>The bubble is the world, recursively</h3>
+      <p>A belief environment is world-shaped, so it renders with the identical code. Nested theory of mind — A's model of B, containing B's own bubble — falls out with no extra work.</p>
+    </div></div>
+    <div class="rule"><div class="n">04</div><div>
+      <h3>Only spatial facts are drawn</h3>
+      <p>Horn clauses, goals stacks and continuations are not in the picture. The moment the whole knowledge base gets rendered, the bubble becomes the wall of parentheses this study exists to avoid.</p>
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <div class="eyebrow">Honest limits</div>
+    <h2>What this does not prove</h2>
+  </div>
+  <p>Hand-placed coordinates, five nodes, two agents, one moment. A real force-directed layout of forty nodes will be uglier, and <code>overflow</code> is unsolved: a node holding six entities has nowhere to put them. Motion is untested — plans advancing and percepts landing are the parts most likely to turn noisy. And nothing here is interactive, so the pan-and-zoom level-of-detail idea, where a bubble expands into a full panel as you approach it, is still a claim rather than a result.</p>
+</section>
+
+<div class="gate">
+  <div class="eyebrow">Gate</div>
+  <p><strong>No visual code gets written until this passes.</strong> If the look is wrong, changing it costs an afternoon now and a rewrite later. The substrate work — the graph, the agent loop, perception daemons — is not blocked by this and can proceed either way.</p>
+</div>
+
+<footer>Fake data throughout. Ground truth: fish at the river, a carcass in the cave. B has inferred the wrong thing from a true smell.</footer>
+
+</div>
+
+</body></html>

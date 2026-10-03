@@ -1,0 +1,339 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<title>The Shape of a Tick</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F6F7F5; --surface:#FFFFFF; --surface-2:#ECEFEA; --surface-3:#E1E6DF;
+  --ink:#171C19; --ink-2:#5A635C; --ink-3:#87908A;
+  --line:#C9D0C8; --line-2:#DDE3DB;
+  --accent:#0E6B63; --accent-soft:#DCEDE9;
+  --warn:#A8500B; --warn-soft:#F6E7D6;
+  --sans:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1311; --surface:#161C19; --surface-2:#1D2521; --surface-3:#26302B;
+    --ink:#E4EAE5; --ink-2:#939E96; --ink-3:#6E7A73;
+    --line:#2E3A34; --line-2:#232D28;
+    --accent:#4FC7B8; --accent-soft:#12302C;
+    --warn:#E39A4A; --warn-soft:#3A2A18;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1311; --surface:#161C19; --surface-2:#1D2521; --surface-3:#26302B;
+  --ink:#E4EAE5; --ink-2:#939E96; --ink-3:#6E7A73;
+  --line:#2E3A34; --line-2:#232D28;
+  --accent:#4FC7B8; --accent-soft:#12302C;
+  --warn:#E39A4A; --warn-soft:#3A2A18;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:56px 24px 96px;display:flex;flex-direction:column;gap:52px}
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+h1{font-size:clamp(30px,5vw,44px);line-height:1.12;font-weight:600;margin:10px 0 0;text-wrap:balance;letter-spacing:-.015em}
+h2{font-size:21px;font-weight:600;margin:0;letter-spacing:-.01em}
+h3{font-size:15.5px;font-weight:600;margin:0}
+p{margin:0;max-width:68ch}
+.lede{font-size:18px;color:var(--ink-2);margin-top:16px;max-width:62ch}
+header{border-bottom:1px solid var(--line-2);padding-bottom:36px}
+section{display:flex;flex-direction:column;gap:16px}
+.sec-head{display:flex;flex-direction:column;gap:7px}
+.note{font-size:14.5px;color:var(--ink-2);max-width:68ch}
+
+pre{
+  margin:0;background:var(--surface);border:1px solid var(--line-2);border-radius:12px;
+  padding:18px 20px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.72;
+  color:var(--ink);tab-size:2;
+}
+pre b{font-weight:600;color:var(--accent)}
+pre i{font-style:normal;color:var(--ink-3)}
+pre u{text-decoration:none;color:var(--warn);font-weight:500}
+code{font-family:var(--mono);font-size:.9em;background:var(--surface-2);padding:1px 5px;border-radius:4px}
+
+.inv{
+  border-left:3px solid var(--accent);background:var(--accent-soft);
+  padding:12px 16px;border-radius:0 10px 10px 0;font-size:14.5px;color:var(--ink);max-width:68ch;
+}
+.inv b{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:3px}
+
+.open{
+  border-left:3px solid var(--warn);background:var(--warn-soft);
+  padding:12px 16px;border-radius:0 10px 10px 0;font-size:14.5px;color:var(--ink);max-width:68ch;
+}
+.open b{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--warn);display:block;margin-bottom:3px}
+
+.blockers{display:flex;flex-direction:column;border-top:1px solid var(--line-2)}
+.bl{display:grid;grid-template-columns:96px 1fr;gap:20px;padding:18px 0;border-bottom:1px solid var(--line-2);align-items:start}
+.bl .id{font-family:var(--mono);font-size:12px;color:var(--warn);font-weight:500;padding-top:2px}
+.bl .id.soft{color:var(--ink-3)}
+.bl p{font-size:14.5px;color:var(--ink-2);margin-top:5px}
+.tag{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:2px 9px;color:var(--ink-3);margin-left:8px;vertical-align:2px}
+footer{border-top:1px solid var(--line-2);padding-top:28px;color:var(--ink-3);font-size:14px}
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">NPC substrate · architecture</div>
+  <h1>The shape of a tick</h1>
+  <p class="lede">Every decision made so far, written as one pass of the simulation clock — from the world mutating to a mind discovering it was wrong. Read top to bottom; each level is called by the one above it.</p>
+</header>
+
+<section>
+  <div class="sec-head"><div class="eyebrow">Level 0</div><h2>The world tick</h2></div>
+  <p class="note">The spine. Order is the schedule — and the ordering is what makes the whole thing deterministic, because both boundaries between world and mind are queues drained at fixed points.</p>
+<pre><b>function</b> worldTick(W):
+  W.tick += 1
+
+  <i>// 1. apply what minds decided last tick</i>
+  drainIntents(W)                       <i>// ECS performs every mutation</i>
+
+  <i>// 2. what changed is what can be perceived</i>
+  changes = collectChanges(W)           <i>// ECS change detection, not polling</i>
+
+  <i>// 3. daemons turn world changes into percepts</i>
+  percepts = []
+  <b>for</b> d <b>in</b> W.daemons:
+    <b>for</b> (sub, ch) <b>in</b> d.match(changes, W.subscribersByNode):
+      percepts += d.sense(W, sub, ch)
+
+  <i>// 4. percept filters transform the queue — fear, illusion, a fae realm</i>
+  <b>for</b> f <b>in</b> W.perceptFilters:
+    percepts = f(percepts, W)
+
+  <i>// 5. deliver into minds</i>
+  <b>for</b> p <b>in</b> percepts:
+    kbAssert(W.minds[p.subject].kb, p)
+
+  <i>// 6. the floor: every mind, every tick, no search</i>
+  stalled = []
+  <b>for</b> m <b>in</b> W.minds:
+    <b>if</b> reflexArbiter(m, W) == STALL: stalled.push(m)
+
+  <i>// 7. the only expensive thing, and it is rationed</i>
+  scheduleDeliberation(W, stalled)</pre>
+  <div class="inv"><b>Invariant 4 · ECS owns the write path</b>Minds never touch <code>W</code>. They read their own KB and push intents, drained at step 1 of the next tick. Perception is the mirror image: the world pushes percepts, drained at step 5. Two queues, no back-channel, and rollback stays possible.</div>
+</section>
+
+<section>
+  <div class="sec-head"><div class="eyebrow">Level 1</div><h2>The reflex arbiter</h2></div>
+  <p class="note">Fixed native code, not a per-agent program — at a million agents, interpreting a script per agent per tick <em>is</em> the floor cost we cannot afford. What varies per agent is the table: thresholds, goal weights, and which compiled reactions are installed. Personality lives in the installed set.</p>
+<pre><b>function</b> reflexArbiter(m, W) -> CONTINUE | SWITCH | STALL:
+
+  <i>// a. did the world already contradict us? cheap check only</i>
+  <b>if</b> m.plan <b>and</b> nextStepInvalidated(m):
+      m.plan = nil
+
+  <i>// b. a percept fired a compiled reaction that outranks us</i>
+  r = matchReaction(m.table.reactions, m.freshPercepts)
+  <b>if</b> r <b>and</b> priority(r) &gt; priority(m.activity):
+      m.activity = r; m.plan = r.plan
+      <b>return</b> SWITCH
+
+  <i>// c. is this still the right goal?</i>
+  g = topGoal(m)
+  <b>if</b> shouldSwitch(m.table.commitment, m.goal, g):
+      m.goal = g; m.plan = nil
+      <b>return</b> SWITCH
+
+  <i>// d. keep going</i>
+  <b>if</b> m.plan <b>and</b> holds(m.kb, preconditions(nextStep(m.plan))):
+      emitIntent(m, nextStep(m.plan))
+      advance(m.plan)
+      <b>return</b> CONTINUE
+
+  <i>// e. unmet goal, nothing applicable. A STATE, not an act.</i>
+  <b>return</b> STALL</pre>
+  <p class="note"><strong>Nothing here requests deliberation.</strong> An agent that knows it needs to think is doing implausible self-inspection. It runs out of reflexes; the scheduler notices.</p>
+</section>
+
+<section>
+  <div class="sec-head"><div class="eyebrow">Level 2</div><h2>Insistence and commitment</h2></div>
+<pre>insistence(m, goal) = drive(m, goal) × urgency(goal) × m.table.weight[goal.kind]
+
+topGoal(m) = argmax insistence(m, g) <b>over</b> g <b>in</b> m.goals <b>where not</b> satisfied(m.kb, g)
+
+<b>function</b> shouldSwitch(strategy, current, candidate):
+  <b>if</b> current == nil:                       <b>return</b> true
+  <b>if</b> satisfied(current) <b>or</b> impossible(current): <b>return</b> true
+  <b>switch</b> strategy:                        <i>// Kinny &amp; Georgeff: match the</i>
+    BLIND:         <b>return</b> false            <i>// strategy to the world's</i>
+    SINGLE_MINDED: <b>return</b> false            <i>// rate of change</i>
+    OPEN_MINDED:   <b>return</b> insistence(candidate)
+                          &gt; insistence(current) × (1 + m.table.hysteresis)</pre>
+  <div class="open"><b>Undecided</b><code>drive</code>, <code>urgency</code> and the default commitment strategy are unpinned. Insistence is called from four places — goal choice, switching, the leak threshold, and the deliberation queue's priority — so it is the single undefined function with the widest blast radius.</div>
+</section>
+
+<section>
+  <div class="sec-head"><div class="eyebrow">Level 3</div><h2>Rationing thought</h2></div>
+  <p class="note">The budget is global, not per-agent. Most agents never deliberate on a given tick and live on reflexes and compiled frames. "You have to wait until Sunday" is not flavour — it is this queue.</p>
+<pre><b>function</b> scheduleDeliberation(W, stalled):
+  budget = W.deliberationBudget
+
+  <i>// minds already mid-thought resume exactly where they stopped</i>
+  <b>for</b> m <b>in</b> W.thinking:
+    budget -= runMachine(m.machine, W.envs, min(m.share, budget))
+    <b>if</b> m.machine.status == DONE: install(m, m.machine.result)
+
+  <i>// newly stuck minds compete for what is left</i>
+  <b>for</b> m <b>in</b> sortDesc(stalled, m => insistence(m, m.goal) × staleness(m)):
+    <b>if</b> budget &lt;= 0: <b>break</b>            <i>// the rest wait, and leak while waiting</i>
+    m.machine = makeMachine(deliberate(m.goal), fork(m.kb))
+    budget -= runMachine(m.machine, W.envs, min(SLICE, budget))</pre>
+  <div class="inv"><b>Invariant 3 · one evaluator, many environments</b><code>fork(m.kb)</code> is a child frame over the mind's own beliefs, which are themselves forked from truth. Imagining eating the fish allocates one frame and cannot reach the world — enforced by data layout, not discipline.</div>
+</section>
+
+<section>
+  <div class="sec-head"><div class="eyebrow">Level 4</div><h2>Two ways to think</h2></div>
+<pre>deliberate(goal) =                    <i>// a Lisp form, run on the CEK machine</i>
+  (or (goap-plan goal)                <i>// fast: bitwise, over a compiled frame</i>
+      (fol-plan  goal))               <i>// slow: backward chaining over clauses</i>
+
+<b>function</b> goapPlan(m, goal):
+  frame = frameFor(m, situation(m))   <i>// cached, or compiled on the spot</i>
+  <b>if</b> frame == nil: <b>return</b> NO_FRAME    <i>// too big for working memory → go slow</i>
+  <b>return</b> aStarBackward(project(goal, frame), frame)</pre>
+  <p class="note">Regression, which is the same operator used three ways — to search, to compute a macro's precondition, and to test relevance:</p>
+<pre>relevant(op, g) = (op.eff.mask &amp; g.mask) != 0
+               <b>and</b> (op.eff.val ^ g.val) &amp; op.eff.mask &amp; g.mask == 0
+
+<b>function</b> regress(g, op):
+  keep = g.mask &amp; ~op.eff.mask                      <i>// goal bits op leaves alone</i>
+  <b>if</b> (g.val ^ op.pre.val) &amp; keep &amp; op.pre.mask:
+      <b>return</b> BOTTOM                               <i>// preconditions fight the goal</i>
+  <b>return</b> ( keep | op.pre.mask,
+           (g.val &amp; keep) | (op.pre.val &amp; op.pre.mask) )
+
+reached(g, state) = (state.val &amp; g.mask) == g.val</pre>
+  <div class="inv"><b>Three return values, not two</b><code>PLAN</code> · <code>EXHAUSTED</code> — the space closed and no plan exists, so the goal is impossible and commitment drops it · <code>OUT_OF_FUEL</code> — still stuck, try again later, and leak in the meantime. Collapsing the last two makes an agent give up on solvable problems and keep grinding at impossible ones.</div>
+</section>
+
+<section>
+  <div class="sec-head"><div class="eyebrow">Level 5</div><h2>Grounding, and the cap that is working memory</h2></div>
+<pre><b>function</b> compileFrame(m, situation):
+  objects = entitiesWithin(m.kb, situation.node, K_HOPS)   <i>// the graph bounds it</i>
+  lits = []
+  <b>for</b> s <b>in</b> m.schemas:
+    <b>for</b> b <b>in</b> groundings(s, objects):
+      lits += s.pre[b] + s.add[b] + s.del[b]
+
+  vocab = dedupe(lits)
+  <b>if</b> len(vocab) &gt; FRAME_BITS: <b>return</b> nil   <u>// ← this is the whole boundary</u>
+
+  frame = intern(vocab)                       <i>// literal ↔ bit position</i>
+  frame.ops = [ toOp(s, b, frame) <b>for each</b> grounding ]
+  frame.byEffect = index(frame.ops)           <i>// (bit,value) → ops. why it is fast</i>
+  <b>return</b> frame</pre>
+  <p class="note">Naive grounding explodes — <code>n</code> objects by a <code>k</code>-ary predicate is n<sup>k</sup> propositions. The graph solves it: locality of world gives locality of grounding. And <code>FRAME_BITS</code> is not a tuning knob. A task that does not fit cannot be compiled and must be reasoned about the slow way, which makes working-memory capacity a per-agent number with real consequences.</p>
+</section>
+
+<section>
+  <div class="sec-head"><div class="eyebrow">Level 6</div><h2>Belief</h2></div>
+<pre>KB      = { facts: PersistentSet&lt;Assertion&gt;, clauses: [Clause] }
+Assertion = { term, source: DaemonId | AgentId | SELF, tick, confidence }
+Clause    = { head: Term, body: [Term] }        <i>// Horn</i>
+
+<b>function</b> prove(kb, goal, fuel) -> { bindings, support: [Assertion|Clause] }
+  <i>// backward chaining with unification, metered by the CEK machine.</i>
+  <i>// SUPPORT is the composed lineage — not a source tag. Without it an agent</i>
+  <i>// can notice it was wrong but cannot work out whose fault that was.</i>
+
+<i>// decay is not a mechanism, it is a clause:</i>
+(percept ?sense ?t ?f) <b>and</b> (recent ?t) -> ?f</pre>
+  <div class="inv"><b>Derivation is belief</b><code>(at fish cave)</code> need not be asserted to be believed. And because inference is fuel-metered, knowing is not binary — an agent can fail to reach something it technically knows.</div>
+</section>
+
+<section>
+  <div class="sec-head"><div class="eyebrow">Level 7</div><h2>Acting, expecting, being wrong</h2></div>
+<pre><b>function</b> emitIntent(m, step):
+  m.intents.push({ actor: m.id, action: step })
+  m.expectations.push({
+     tick:      W.tick,
+     predicted: applyEffects(m.kb, step.schema),
+     support:   step.support           <i>// WHY we believed this would work</i>
+  })
+
+<b>function</b> checkExpectations(m):
+  <b>for</b> e <b>in</b> m.expectations <b>where</b> matured(e):
+    d = diff(e.predicted, observe(m.kb, e.predicted.terms))
+    <b>if</b> d: attribute(m, e, d)</pre>
+  <div class="inv"><b>Actions do not fail</b><code>catch</code> at the empty cave does not return an error. It runs. The error is a diff computed in the mind between a remembered prediction and a later percept — which is why it can be delayed, partial, and misattributed.</div>
+  <p class="note">Attribution is the personality program. Four candidates, all consistent with the same evidence, and nothing in the data picks a winner:</p>
+<pre>attribute(m, e, diff) = run(m.table.attributionPolicy, [e, diff])
+
+  <i>// the percept was wrong        → distrust that sense</i>
+  <i>// my clause was wrong          → retract or weaken it (this is learning)</i>
+  <i>// my informant was wrong       → update trust, and possibly call it betrayal</i>
+  <i>// the world moved              → retract the fact, blame nobody</i></pre>
+  <div class="open"><b>Undecided</b>When an expectation <code>matures</code>. Checking immediately is the obvious answer and probably the wrong one — an agent that only checks immediately can never discover a delayed error.</div>
+</section>
+
+<section>
+  <div class="sec-head"><div class="eyebrow">Level 8</div><h2>Leakage — which nobody chooses</h2></div>
+<pre>StressDaemon.sense(W, sub, _):
+  m = W.minds[sub]
+  <b>if</b> m.lastOutcome == STALL
+     <b>and</b> insistence(m, m.goal) &gt; m.table.leakThreshold:
+       sym = m.table.leakSymbol[m.goal.kind]
+       <b>return</b> [ Assertion((distressed m.id sym), source=STRESS, tick=W.tick)
+                <b>for each</b> subscriber <b>within</b> N hops ]</pre>
+  <p class="note">Not a move in the arbiter and not an action in any schema. Being stuck makes stress <em>observable</em>; the agent has no say. That is what puts signals into the world before anyone has learned to read them — without an involuntary channel, no agent ever emits, so no agent ever learns meaning, and the culture cannot start.</p>
+  <p class="note"><strong>Complaining is the learned trick built on top</strong> — deliberately producing that signal to cause help. A schema with abduced or transmitted provenance, plannable like anything else. And its mirror is equally learned: suppression, the skill of masking your own leak.</p>
+</section>
+
+<section>
+  <div class="sec-head"><div class="eyebrow">Level 9</div><h2>Compilation</h2></div>
+<pre>wp([], G)      = G
+wp(a:rest, G)  = regress(wp(rest, G), a)          <i>// the planner IS the compiler</i>
+
+<b>function</b> onPlanSucceeded(m, plan, goal):
+  macro = { pre: wp(plan, goal), eff: goal, cost: sum(costs(plan)) }
+  macro = generalize(macro, plan.support)         <i>// lift only what the proof</i>
+                                                  <i>// did not actually depend on</i>
+  <b>if</b> utility(macro) &gt; m.table.compileThreshold:
+      m.schemas.add(macro, provenance = DERIVED)
+
+utility(macro) = savings(macro) × frequency(macro) - matchCost(macro)
+  <u>// Minton's utility problem: an agent that never forgets a trick seizes up.</u></pre>
+</section>
+
+<section>
+  <div class="sec-head"><div class="eyebrow">Blocking</div><h2>What still has no answer</h2></div>
+  <div class="blockers">
+    <div class="bl"><div class="id">fb1b</div><div>
+      <h3>Insistence<span class="tag">4 call sites</span></h3>
+      <p>Goal choice, commitment switching, the leak threshold, and the deliberation queue's priority all call it. Nothing else has this blast radius.</p>
+    </div></div>
+    <div class="bl"><div class="id">73cd · 8a3a</div><div>
+      <h3>Concrete term and assertion syntax</h3>
+      <p>Everything above is written against <code>(at fish river)</code> without pinning how a fact is stored, how an assertion wraps a term, or how lineage attaches. The renderer also keys emoji off term heads.</p>
+    </div></div>
+    <div class="bl"><div class="id">fb1b</div><div>
+      <h3>Default commitment strategy and hysteresis</h3>
+      <p>Small, but it sits in the arbiter's hot path and decides whether agents thrash or stubbornly finish bad plans.</p>
+    </div></div>
+    <div class="bl"><div class="id">850a</div><div>
+      <h3>When an expectation matures</h3>
+      <p>Appears in level 7 as an undefined predicate. Delayed discovery is more interesting than immediate, which argues against the easy answer.</p>
+    </div></div>
+    <div class="bl"><div class="id soft">0c88</div><div>
+      <h3>The look-test<span class="tag">visual only</span></h3>
+      <p>Gates renderer work. Substrate work proceeds regardless.</p>
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><div class="eyebrow">Not blocking</div><h2>Stubbed for the first demo</h2></div>
+  <p class="note">The smell-daemon shortcut means demo one is <strong>a single agent with no communication at all</strong>: a true percept, a bad clause, a confident plan, an empty cave. That leaves a lot legitimately stubbed — compilation (seed the schemas), attribution (one hardcoded policy; the paranoid-versus-humble split is the later twist), frame caching and eviction (one frame, no utility tracking), and every speech act.</p>
+  <p class="note">One correction worth recording: tail calls matter <em>less</em> than previously claimed. The GOAP planner is propositional and runs as a primitive, so it never grows the continuation stack. Only the slow FOL layer loops inside the machine — still worth fixing, no longer urgent.</p>
+</section>
+
+<footer>Pseudocode, not source. Where it disagrees with a seed, the seed is newer.</footer>
+
+</div>
+
+</body></html>

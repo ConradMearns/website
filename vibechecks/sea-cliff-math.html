@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A sea cliff, one layer of math at a time</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;0,700;0,800;1,400;1,500&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --paper:#EFE9DA; --ink:#1C2B30; --muted:#5A696A; --line:#D2C9B1;
+  --sea:#1B6F70; --ochre:#8F5F12; --chip:#E4DCC8;
+  --sky-top:#8FBBD1; --sky-bot:#E4ECE3;
+  --hud:rgba(239,233,218,.86);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12262C; --ink:#E9E5D7; --muted:#9BAFAD; --line:#2B454B;
+    --sea:#63BDB5; --ochre:#E0B35A; --chip:#1A3239;
+    --sky-top:#15303D; --sky-bot:#587781;
+    --hud:rgba(18,38,44,.82);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12262C; --ink:#E9E5D7; --muted:#9BAFAD; --line:#2B454B;
+  --sea:#63BDB5; --ochre:#E0B35A; --chip:#1A3239;
+  --sky-top:#15303D; --sky-bot:#587781;
+  --hud:rgba(18,38,44,.82);
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:Alegreya,"Iowan Old Style","Palatino Linotype",Georgia,serif;
+  font-size:18px;line-height:1.5;overflow:hidden;
+}
+#app{display:flex;flex-direction:column;height:100%}
+#stage{
+  position:relative;flex:0 0 45%;min-height:0;
+  background:linear-gradient(var(--sky-top),var(--sky-bot) 62%);
+}
+#c{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#c:active{cursor:grabbing}
+#legend{
+  position:absolute;left:10px;bottom:10px;max-width:calc(100% - 20px);
+  background:var(--hud);padding:6px 10px;border-radius:3px;font-size:.85rem;line-height:1.3;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:none;
+}
+#legend:empty{display:none}
+#legend .ramp{display:inline-block;width:84px;height:10px;vertical-align:middle;margin:0 6px;border-radius:2px;
+  background:linear-gradient(90deg,#3358d8,#8fd0a0 45%,#e8d05a 62%,#e2462a)}
+#legend .sw{display:inline-block;width:12px;height:12px;vertical-align:-1px;margin-right:4px;border-radius:2px}
+#pause{
+  position:absolute;right:10px;top:10px;font:inherit;font-size:.9rem;font-weight:500;color:var(--ink);background:var(--hud);
+  border:1px solid var(--line);border-radius:3px;min-height:40px;padding:4px 12px;cursor:pointer;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+#pause:focus-visible{outline:2px solid var(--ochre);outline-offset:2px}
+#err{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:24px;text-align:center}
+
+#story{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;border-top:2px solid var(--ink)}
+#progress{flex:0 0 auto;padding:8px 18px 6px;border-bottom:1px solid var(--line)}
+#progress p{margin:0 0 5px;font-size:.85rem;color:var(--muted)}
+#ticks{display:flex;gap:3px}
+#ticks span{flex:1;height:4px;background:var(--line);border-radius:2px;transition:background .25s}
+#ticks span.on{background:var(--sea)}
+#scroll{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 18px}
+.step{padding:22px 0 0;margin:0 auto 34vh;max-width:36rem;opacity:.3;transition:opacity .3s}
+.step.active{opacity:1}
+.step:last-child{margin-bottom:0;padding-bottom:58vh}
+.step h1,.step h2{margin:0 0 .45em;font-weight:800;line-height:1.08;letter-spacing:-.012em}
+.step h1{font-size:2.1rem}
+.step h2{font-size:1.65rem}
+.step p{margin:0 0 .8em}
+.formula{
+  margin:1em 0;padding:.5em 0 .5em .9em;border-left:3px solid var(--sea);
+  font-size:1.1rem;line-height:1.7;overflow-x:auto;white-space:nowrap;
+}
+.formula i{font-style:italic}
+.formula sub,.formula sup{font-size:.7em;line-height:0}
+.code{
+  margin:1em 0;padding:.7em .8em;background:var(--chip);border-radius:3px;overflow-x:auto;
+  font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.72rem;line-height:1.55;white-space:pre;
+}
+.look{margin:0;padding-top:.7em;border-top:1px solid var(--line);color:var(--muted);font-style:italic}
+.look b{font-style:normal;color:var(--ochre);font-weight:700}
+@media (min-width:900px){
+  #app{flex-direction:row}
+  #stage{flex:1 1 auto}
+  #story{flex:0 0 470px;border-top:0;border-left:2px solid var(--ink)}
+  #scroll{padding:0 28px}
+  .step{margin-bottom:46vh}
+  .step:last-child{padding-bottom:70vh}
+}
+@media (prefers-reduced-motion: reduce){ .step,#ticks span{transition:none} }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="c" aria-label="3D view of the generated coast. Drag to orbit, pinch or scroll to zoom."></canvas>
+    <button id="pause" type="button">Pause sea</button>
+    <div id="legend" aria-live="polite"></div>
+    <div id="err">This view needs WebGL, which this browser did not provide.</div>
+  </div>
+  <section id="story" aria-label="Explanation">
+    <div id="progress"><p id="where">Scroll to begin</p><div id="ticks" aria-hidden="true"></div></div>
+    <div id="scroll" tabindex="0"></div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+"use strict";
+/*GEN-START*/
+// =====================================================================
+//  GENERATOR -- every stage is a pure function of (x, y, z, seed).
+// =====================================================================
+const CH = 32, WH = 96, SEA = 32;
+const ROCK = 1, SAND = 2, GRASS = 3, SOIL = 4, BOULDER = 5;
+
+function hash2(ix, iz, seed) {
+  let h = Math.imul(ix | 0, 374761393) ^ Math.imul(iz | 0, 668265263) ^ Math.imul(seed | 0, 1274126177);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+function hash1(i, seed) { return hash2(i, 7919, seed); }
+function vnoise(x, z, seed) {
+  const ix = Math.floor(x), iz = Math.floor(z);
+  const fx = x - ix, fz = z - iz;
+  const u = fx * fx * (3 - 2 * fx), v = fz * fz * (3 - 2 * fz);
+  const a = hash2(ix, iz, seed), b = hash2(ix + 1, iz, seed);
+  const c = hash2(ix, iz + 1, seed), d = hash2(ix + 1, iz + 1, seed);
+  return (a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v) * 2 - 1;
+}
+function fbm(x, z, seed, oct) {
+  let s = 0, a = 1, f = 1, n = 0;
+  for (let i = 0; i < oct; i++) { s += a * vnoise(x * f, z * f, seed + i * 101); n += a; a *= 0.5; f *= 2; }
+  return s / n;
+}
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+
+function makeGenerator(P) {
+  const seed = P.seed | 0;
+  const th = P.swell * Math.PI / 180;
+  const swx = Math.sin(th), swz = Math.cos(th);
+
+  let lastBig = 0;
+  function coastMain(x, z) {
+    const big = fbm(x / 85, z / 85, seed + 11, 3) * 1.8;
+    const small = fbm(x / 22, z / 22, seed + 23, 2);
+    lastBig = big;
+    return (z - P.coastZ) + big * P.coastWarp + small * P.coastWarp * 0.22;
+  }
+
+  const SC = 26;
+  const stackOut = { v: -1e9, r: 0, top: 1 };
+  function stackField(x, z) {
+    stackOut.v = -1e9;
+    if (P.stacks <= 0) return stackOut;
+    const cx = Math.floor(x / SC), cz = Math.floor(z / SC);
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+      const ix = cx + dx, iz = cz + dz;
+      if (hash2(ix, iz, seed + 900) > P.stacks) continue;
+      const px = (ix + 0.2 + 0.6 * hash2(ix, iz, seed + 901)) * SC;
+      const pz = (iz + 0.2 + 0.6 * hash2(ix, iz, seed + 902)) * SC;
+      const cm = coastMain(px, pz);
+      if (cm > -5 || cm < -32) continue;
+      const r = 2.6 + 4.2 * hash2(ix, iz, seed + 903);
+      const d = Math.hypot(x - px, z - pz) + vnoise(x / 4, z / 4, seed + 905) * 0.9;
+      const v = r - d;
+      if (v > stackOut.v) { stackOut.v = v; stackOut.r = r; stackOut.top = 0.4 + 0.5 * hash2(ix, iz, seed + 904); }
+    }
+    return stackOut;
+  }
+
+  function column(x, z) {
+    const cM = coastMain(x, z);
+    const headland = P.coastWarp > 0 ? clamp(lastBig * 1.4, -1, 1) : 0;
+    const g = 3;
+    const gx = coastMain(x + g, z) - coastMain(x - g, z);
+    const gz = coastMain(x, z + g) - coastMain(x, z - g);
+    const facing = Math.max(0, (gx * swx + gz * swz) / (Math.hypot(gx, gz) || 1));
+    let e = clamp((0.15 + 0.85 * facing) * (0.78 + 0.3 * headland), 0, 1);
+
+    let c = cM, isStack = false, stackR = 0, topFrac = 1;
+    if (cM < 8 && cM > -45) {
+      const s = stackField(x, z);
+      if (s.v > c) { c = s.v; isStack = true; stackR = s.r; topFrac = s.top; e = 0.85; }
+    }
+
+    const top = !P.sProfile ? SEA + P.cliffH
+      : SEA + P.cliffH * topFrac * (0.86 + 0.14 * fbm(x / 48, z / 48, seed + 31, 2)) + vnoise(x / 13, z / 13, seed + 37) * 1.5;
+
+    const s = -c;
+    let bed;
+    if (!P.sProfile) bed = s <= 0 ? SEA - 2 : SEA - 7;
+    else if (P.sNotch) {
+      const platW = 1.5 + P.notch * e * 1.4;
+      if (s <= platW) {
+        bed = SEA - 2;
+        if (vnoise(x / 3.1, z / 3.1, seed + 43) > 0.55) bed -= 1;
+      } else {
+        bed = SEA - 2 - smooth(0, 3, s - platW) * 2.5 - (s - platW) * 0.4 + vnoise(x / 6, z / 6, seed + 41) * 0.9;
+      }
+    } else {
+      bed = s <= 0 ? SEA - 2 : SEA - 1.5 - s * 0.5 + vnoise(x / 6, z / 6, seed + 41) * 0.9;
+    }
+    const bedTop = Math.max(3, Math.floor(bed));
+
+    let sandTop = -1, boulder = 0;
+    if (P.sBeach) {
+      const amt = P.beach * smooth(0.42, 0.75, 1 - e);
+      if (amt > 0.12 && c > -12 && c < 12) sandTop = Math.floor(SEA - 3 + (c + 12) * 0.4 * (0.4 + 0.6 * amt));
+      if (e > 0.35 && c > -7 && c < 1.5) {
+        boulder = Math.max(0, Math.floor((vnoise(x / 2.2, z / 2.2, seed + 700) - 0.3) * 4.5 * (1 - Math.abs(c + 2.5) / 5)));
+      }
+    }
+
+    const J = [];
+    if (P.sJoints && P.cave > 0) {
+      for (let k = 0; k < 2; k++) {
+        const a = (k === 0 ? 0.18 : -0.6) + (hash1(k, seed + 399) - 0.5) * 0.3;
+        const u = x * Math.cos(a) + z * Math.sin(a) + vnoise(x / 28, z / 28, seed + 420 + k) * 2.5;
+        const sp = P.jspace * (k === 0 ? 1 : 1.6);
+        const ci = Math.floor(u / sp);
+        const pos = (ci + 0.25 + 0.5 * hash1(ci, seed + 400 + k)) * sp;
+        const major = hash1(ci, seed + 410 + k);
+        J.push({ dist: Math.abs(u - pos), major, len: P.cave * (0.35 + 0.9 * major) * (0.35 + 0.65 * e) });
+      }
+    }
+    const dipOff = x * P.dip + z * P.dip * 0.4 + vnoise(x / 40, z / 40, seed + 301) * 1.5;
+    return { c, e, top, bedTop, sandTop, boulder, J, isStack, stackR, dipOff };
+  }
+
+  function recession(col, y) {
+    let R = 0, hard = 1;
+    if (P.sStrata) {
+      const layer = Math.floor((y + col.dipOff) / P.thick);
+      hard = hash1(layer, seed + 300);
+      if (y >= SEA - 2) R += P.ledge * Math.pow(1 - hard, 1.5);
+    }
+    if (P.sNotch) {
+      const d = (y - SEA) / 2.6;
+      const band = Math.exp(-d * d);
+      R += P.notch * col.e * (band * (0.55 + 0.45 * (1 - hard)) + (y >= SEA - 1 ? 0.4 : 0));
+    }
+    if (col.isStack) R = Math.min(R, col.stackR * 0.5);
+    return R;
+  }
+
+  function landTop(col, cp) {
+    if (cp <= 0) return -1;
+    if (!P.sProfile) return col.top;
+    const t = Math.min(1, cp / P.slopeW), r = 1 - (1 - t) * (1 - t);
+    return SEA - 1 + (col.top - (SEA - 1)) * r;
+  }
+
+  function jointCarves(col, y) {
+    for (let k = 0; k < col.J.length; k++) {
+      const j = col.J[k];
+      if (col.c >= j.len) continue;
+      const t = col.c <= 0 ? 1 : 1 - col.c / j.len, st = Math.sqrt(t);
+      let hw = (1.1 + 2.4 * j.major) * st, hc = (3 + 9 * j.major) * st;
+      if (col.isStack) { if (col.stackR < 4.6) continue; hw *= 0.5; hc *= 0.6; }
+      const yy = (y - (SEA - 2)) / hc;
+      if (yy >= 0 && yy < 1 && j.dist < Math.max(0.75, hw) * Math.sqrt(1 - yy * yy)) return true;
+      if (j.major > 0.7 && !col.isStack && col.c < j.len * 0.55 && y >= SEA - 2 && j.dist < 0.75 + 0.9 * t) return true;
+    }
+    return false;
+  }
+
+  function genChunk(cx, cz, world) {
+    const { blocks, expo, dip, cArr, carve, stack, W, D } = world;
+    for (let lz = 0; lz < CH; lz++) for (let lx = 0; lx < CH; lx++) {
+      const wx = cx * CH + lx, wz = cz * CH + lz, ci = wz * W + wx;
+      const col = column(wx + 0.5, wz + 0.5);
+      expo[ci] = col.e; dip[ci] = col.dipOff; cArr[ci] = col.c; stack[ci] = col.isStack ? 1 : 0;
+      const ground = Math.max(col.bedTop, col.sandTop);
+      const yMax = Math.min(WH - 1, Math.ceil(col.top) + 2);
+      let topY = -1, carved = 0;
+      for (let y = 0; y <= yMax; y++) {
+        let t = 0;
+        if (y <= col.bedTop) t = ROCK;
+        else { const cp = col.c - recession(col, y); if (cp > 0 && y <= landTop(col, cp)) t = ROCK; }
+        if (t && y >= SEA - 2 && jointCarves(col, y)) { t = 0; carved++; }
+        if (!t && y <= col.sandTop) t = SAND;
+        if (!t && col.boulder && y <= ground + col.boulder) t = BOULDER;
+        if (t) { blocks[(y * D + wz) * W + wx] = t; topY = y; }
+      }
+      carve[ci] = topY >= SEA + 10 ? carved : 0;      // only count caves that kept a roof
+      if (P.sProfile && topY >= SEA + 6 && blocks[(topY * D + wz) * W + wx] === ROCK) {
+        const cp = col.c - recession(col, topY);
+        if (cp / P.slopeW >= 0.8 || (col.isStack && cp > 2.2)) {
+          blocks[(topY * D + wz) * W + wx] = GRASS;
+          if (blocks[((topY - 1) * D + wz) * W + wx] === ROCK) blocks[((topY - 1) * D + wz) * W + wx] = SOIL;
+        }
+      }
+    }
+  }
+  return { genChunk, hardness: (y, dipOff) => P.sStrata ? hash1(Math.floor((y + dipOff) / P.thick), seed + 300) : 0.8 };
+}
+
+function newWorld(P) {
+  const W = P.chunks * CH, D = P.chunks * CH;
+  P.coastZ = D * 0.4;
+  const n = W * D;
+  const world = { W, D, n: P.chunks, next: 0, blocks: new Uint8Array(n * WH), expo: new Float32Array(n), dip: new Float32Array(n),
+    cArr: new Float32Array(n), carve: new Uint16Array(n), stack: new Uint8Array(n) };
+  world.gen = makeGenerator(P);
+  world.hardness = world.gen.hardness;
+  return world;
+}
+
+// ---- meshing, a slab of y at a time so it can be spread over frames ------
+const FACES = [
+  { n: [1, 0, 0], u: [0, 1, 0], v: [0, 0, 1], sh: 0.80 },
+  { n: [-1, 0, 0], u: [0, 0, 1], v: [0, 1, 0], sh: 0.70 },
+  { n: [0, 1, 0], u: [0, 0, 1], v: [1, 0, 0], sh: 1.00 },
+  { n: [0, -1, 0], u: [1, 0, 0], v: [0, 0, 1], sh: 0.45 },
+  { n: [0, 0, 1], u: [1, 0, 0], v: [0, 1, 0], sh: 0.60 },
+  { n: [0, 0, -1], u: [0, 1, 0], v: [1, 0, 0], sh: 0.93 },
+];
+const CORN = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+
+function meshSlab(world, view, y0, y1, acc) {
+  const { blocks, W, D, expo, dip, cArr } = world;
+  const { pos, col, idx } = acc;
+  const solid = (x, y, z) => y < 0 ? 1 : (x < 0 || z < 0 || x >= W || z >= D || y >= WH) ? 0 : (blocks[(y * D + z) * W + x] ? 1 : 0);
+  const rgb = [0, 0, 0];
+  function blockColor(t, x, y, z) {
+    const j = (hash2(x * 31 + y, z * 17 - y, 5) - 0.5) * 0.06;
+    let r, g, b;
+    if (view === 'field') {                                   // contour stripes of the coast field
+      const c = cArr[z * W + x], stripe = (Math.floor(c / 4) & 1) ? 0.78 : 1;
+      if (Math.abs(c) < 0.75) { r = 0.12; g = 0.17; b = 0.19; }
+      else if (c > 0) { r = 0.90 * stripe; g = 0.80 * stripe; b = 0.58 * stripe; }
+      else { r = 0.30 * stripe; g = 0.62 * stripe; b = 0.68 * stripe; }
+      rgb[0] = r; rgb[1] = g; rgb[2] = b; return;
+    }
+    if (t === ROCK || t === BOULDER) {
+      if (view === 'exposure' && y >= SEA - 1) {
+        const e = expo[z * W + x];
+        r = 0.2 + 0.75 * smooth(0.3, 0.8, e); g = 0.35 + 0.5 * (1 - Math.abs(e - 0.5) * 2); b = 0.85 - 0.75 * smooth(0.2, 0.7, e);
+      } else {
+        const h = world.hardness(y, dip[z * W + x]);
+        r = 0.74 + 0.14 * h; g = 0.62 + 0.22 * h; b = 0.43 + 0.33 * h;
+        if (t === BOULDER) { r *= 0.86; g *= 0.86; b *= 0.86; }
+      }
+      if (y >= SEA - 1 && y <= SEA + 1) { r *= 0.60; g *= 0.65; b *= 0.58; }
+    } else if (t === SAND) { r = 0.90; g = 0.82; b = 0.62; }
+    else if (t === GRASS) { r = 0.44; g = 0.52; b = 0.27; }
+    else { r = 0.47; g = 0.37; b = 0.26; }
+    r += j; g += j; b += j;
+    if (y < SEA - 1) {
+      const f = Math.min(1, (SEA - 1 - y) / 12) * 0.8;
+      r = r * 0.85 * (1 - f) + 0.06 * f; g = g * 0.9 * (1 - f) + 0.27 * f; b = b * 0.9 * (1 - f) + 0.31 * f;
+    }
+    if (view === 'borders' && (x % CH === 0 || z % CH === 0)) { r *= 0.45; g *= 0.45; b *= 0.6; }
+    rgb[0] = r; rgb[1] = g; rgb[2] = b;
+  }
+  const lt = [0, 0, 0, 0];
+  for (let y = y0; y < y1; y++) for (let z = 0; z < D; z++) for (let x = 0; x < W; x++) {
+    const t = blocks[(y * D + z) * W + x];
+    if (!t) continue;
+    let colored = false;
+    for (let f = 0; f < 6; f++) {
+      const F = FACES[f], n = F.n, u = F.u, v = F.v;
+      const ax = x + n[0], ay = y + n[1], az = z + n[2];
+      if (solid(ax, ay, az)) continue;
+      if (!colored) { blockColor(t, x, y, z); colored = true; }
+      const nv = acc.nv;
+      for (let k = 0; k < 4; k++) {
+        const su = CORN[k][0], sv = CORN[k][1];
+        const s1 = solid(ax + su * u[0], ay + su * u[1], az + su * u[2]);
+        const s2 = solid(ax + sv * v[0], ay + sv * v[1], az + sv * v[2]);
+        const cc = solid(ax + su * u[0] + sv * v[0], ay + su * u[1] + sv * v[1], az + su * u[2] + sv * v[2]);
+        const ao = (s1 && s2) ? 0 : 3 - (s1 + s2 + cc);
+        lt[k] = ao;
+        const l = F.sh * (0.5 + ao * 0.1667) * 255;
+        pos.push(x + 0.5 + 0.5 * (n[0] + su * u[0] + sv * v[0]),
+                 y + 0.5 + 0.5 * (n[1] + su * u[1] + sv * v[1]),
+                 z + 0.5 + 0.5 * (n[2] + su * u[2] + sv * v[2]));
+        col.push(clamp(rgb[0] * l, 0, 255), clamp(rgb[1] * l, 0, 255), clamp(rgb[2] * l, 0, 255));
+      }
+      if (lt[0] + lt[2] >= lt[1] + lt[3]) idx.push(nv, nv + 1, nv + 2, nv, nv + 2, nv + 3);
+      else idx.push(nv + 1, nv + 2, nv + 3, nv + 1, nv + 3, nv);
+      acc.nv += 4;
+    }
+  }
+}
+
+function buildWaterMap(world) {
+  const { blocks, W, D, expo } = world;
+  const at = (x, y, z) => blocks[(y * D + z) * W + x];
+  const data = new Uint8Array(W * D * 4), dist = new Float32Array(W * D);
+  for (let z = 0; z < D; z++) for (let x = 0; x < W; x++) {
+    let y = SEA - 1;
+    while (y >= 0 && !at(x, y, z)) y--;
+    const depth = SEA - 1 - y;
+    data[(z * W + x) * 4] = Math.min(255, depth / 32 * 255);
+    dist[z * W + x] = depth === 0 ? 0 : 1e9;
+  }
+  const rel = (i, x, z, dx, dz, w) => { const xx = x + dx, zz = z + dz; if (xx < 0 || zz < 0 || xx >= W || zz >= D) return; const v = dist[zz * W + xx] + w; if (v < dist[i]) dist[i] = v; };
+  for (let z = 0; z < D; z++) for (let x = 0; x < W; x++) { const i = z * W + x; rel(i, x, z, -1, 0, 1); rel(i, x, z, 0, -1, 1); rel(i, x, z, -1, -1, 1.414); rel(i, x, z, 1, -1, 1.414); }
+  for (let z = D - 1; z >= 0; z--) for (let x = W - 1; x >= 0; x--) { const i = z * W + x; rel(i, x, z, 1, 0, 1); rel(i, x, z, 0, 1, 1); rel(i, x, z, 1, 1, 1.414); rel(i, x, z, -1, 1, 1.414); }
+  const shore = [];
+  const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  for (let z = 0; z < D; z++) for (let x = 0; x < W; x++) {
+    const i = z * W + x;
+    data[i * 4 + 1] = Math.min(255, dist[i] / 16 * 255);
+    data[i * 4 + 2] = expo[i] * 255; data[i * 4 + 3] = 255;
+    if (at(x, SEA - 1, z)) continue;
+    for (const [dx, dz] of N4) {
+      const xx = x + dx, zz = z + dz;
+      if (xx < 0 || zz < 0 || xx >= W || zz >= D) continue;
+      const t = at(xx, SEA - 1, zz) || at(xx, SEA, zz);
+      const cliff = at(xx, SEA + 1, zz) || at(xx, SEA + 2, zz) || at(xx, SEA + 3, zz) || at(xx, SEA + 4, zz);
+      if (t && t !== SAND && cliff) shore.push(x + 0.5 + dx * 0.4, z + 0.5 + dz * 0.4, -dx, -dz, expo[zz * W + xx]);
+    }
+  }
+  return { data, shore: new Float32Array(shore) };
+}
+
+// Places worth pointing the camera at, read off the finished world.
+function findPOIs(w) {
+  const { W, D, cArr, expo, carve, stack, blocks } = w;
+  const out = { center: [W / 2, D * 0.42] };
+  let bN = -1, bC = 0, bS = 0;
+  for (let z = 2; z < D - 2; z++) for (let x = 12; x < W - 12; x++) {
+    const i = z * W + x, c = cArr[i];
+    const tall = blocks[((SEA + 8) * D + z) * W + x] !== 0;
+    if (!stack[i] && tall && c < 7 && expo[i] > bN) { bN = expo[i]; out.notch = [x + 0.5, z + 0.5]; }
+    if (!stack[i] && c > 1 && carve[i] > bC) { bC = carve[i]; out.cave = [x + 0.5, z + 0.5]; }
+    if (stack[i] && x > 16 && x < W - 16 && c > bS) { bS = c; out.stack = [x + 0.5, z + 0.5]; }
+  }
+  const sand = new Uint8Array(W * D);
+  for (let z = 0; z < D; z++) for (let x = 0; x < W; x++)
+    if (blocks[(SEA * D + z) * W + x] === SAND || blocks[((SEA + 1) * D + z) * W + x] === SAND) sand[z * W + x] = 1;
+  let bB = 0;
+  for (let z = 6; z < D - 6; z++) for (let x = 10; x < W - 10; x++) {
+    if (!sand[z * W + x]) continue;
+    let s = 0;
+    for (let dz = -5; dz <= 5; dz++) for (let dx = -5; dx <= 5; dx++) s += sand[(z + dz) * W + x + dx];
+    if (s > bB) { bB = s; out.beach = [x + 0.5, z + 0.5]; }
+  }
+  return out;
+}
+/*GEN-END*/
+
+// =====================================================================
+//  THE STORY
+// =====================================================================
+const SEED = 88, CHUNKS = 3;
+const G = (o) => Object.assign({ warp: false, profile: false, strata: false, notch: false, joints: false, stacks: false, beach: false }, o);
+const FULL = G({ warp: true, profile: true, strata: true, notch: true, joints: true, stacks: true, beach: true });
+const genKey = g => ['warp', 'profile', 'strata', 'notch', 'joints', 'stacks', 'beach'].map(k => g[k] ? 1 : 0).join('');
+function paramsFor(g) {
+  return { seed: SEED, chunks: CHUNKS, cliffH: 34, coastWarp: g.warp ? 26 : 0, slopeW: 3, stacks: g.stacks ? 0.6 : 0,
+    sProfile: g.profile, sStrata: g.strata, thick: 4, ledge: 3, dip: 0.08, sNotch: g.notch, notch: 6,
+    sJoints: g.joints, cave: 22, jspace: 20, sBeach: g.beach, beach: 0.8, swell: 20, coastZ: 0 };
+}
+const SEA_FULL = { show: 1, n: 5, shoal: 1, foam: 1, spray: true };
+const SEA_FLAT = { show: 1, n: 0, shoal: 0, foam: 0, spray: false };
+const SEA_NONE = { show: 0, n: 0, shoal: 0, foam: 0, spray: false };
+
+const STEPS = [
+  { gen: FULL, view: 'normal', water: SEA_FULL, cam: { poi: 'center', th: -0.6, ph: 1.22, r: 1.1 },
+    title: 'A sea cliff, one layer of math at a time',
+    body: `<p>Every block in this coast is decided by a formula. Nothing is simulated, and no block ever looks at its neighbour.</p>
+<p>Scroll down and we will rebuild it from nothing, adding one piece of arithmetic at a time. Drag the view whenever you want a closer look.</p>` },
+
+  { gen: G({}), view: 'field', water: SEA_NONE, cam: { poi: 'center', th: -0.4, ph: 0.62, r: 1.3 },
+    legend: 'Each stripe is 4 blocks of <i>c</i>. The dark line is <i>c</i> = 0.',
+    title: 'Distance to the shore',
+    body: `<p>Start with one number for every column of blocks: how far it is from the shoreline. Call it <i>c</i>. It is positive inland, negative out to sea, and zero on the waterline.</p>
+<p>Every later layer is written in terms of <i>c</i>, so the whole coast is really a picture of this one field.</p>`,
+    formula: `<i>c</i>(<i>x</i>, <i>z</i>) = <i>z</i> − <i>z</i><sub>0</sub>`,
+    code: `function coast(x, z) {\n  return z - P.coastZ;\n}`,
+    look: `<b>Look for</b> the rule that makes rock: a column is land wherever <i>c</i> is above zero. So far that gives a straight wall.` },
+
+  { gen: G({ warp: true }), view: 'field', water: SEA_NONE, cam: { poi: 'center', th: -0.4, ph: 0.62, r: 1.3 },
+    legend: 'Each stripe is 4 blocks of <i>c</i>. The dark line is <i>c</i> = 0.',
+    title: 'Bend the shoreline',
+    body: `<p>Add smooth noise to <i>c</i> and the zero line wanders. A slow, strong noise <i>B</i> makes headlands and bays. A faster, weaker one <i>S</i> adds coves and points.</p>
+<p>Keep hold of <i>B</i>. Its sign says whether a column sits on a headland or in a bay, and we will need that soon.</p>`,
+    formula: `<i>c</i> = (<i>z</i> − <i>z</i><sub>0</sub>) + 47·<i>B</i>(<i>x</i>/85, <i>z</i>/85) + 6·<i>S</i>(<i>x</i>/22, <i>z</i>/22)`,
+    code: `const big   = fbm(x / 85, z / 85, seed + 11, 3) * 1.8;\nconst small = fbm(x / 22, z / 22, seed + 23, 2);\nreturn (z - P.coastZ) + big * 26 + small * 26 * 0.22;`,
+    look: `<b>Look for</b> stripes that are no longer evenly spaced. After bending, <i>c</i> is only roughly a distance. That turns out to be good enough.` },
+
+  { gen: G({ warp: true, profile: true }), view: 'normal', water: SEA_FLAT, cam: { poi: 'center', th: -1.2, ph: 1.3, r: 1.05 },
+    title: 'Turn distance into height',
+    body: `<p>A cliff is a rule for how high the ground is <i>c</i> blocks inland. Use a curve that is steep at the foot and rounds over at the top, reaching full height <i>H</i> after <i>w</i> blocks. With <i>w</i> = 3 the wall is close to sheer.</p>
+<p>The seabed is the same idea pointed downward. A block at height <i>y</i> is rock if <i>y</i> is at or below the curve.</p>`,
+    formula: `<i>h</i>(<i>c</i>) = sea + <i>H</i>·(1 − (1 − <i>c</i>/<i>w</i>)<sup>2</sup>) &nbsp; for 0 &lt; <i>c</i> &lt; <i>w</i><br><i>bed</i>(<i>c</i>) = sea − 1.5 + <i>c</i>/2 &nbsp; for <i>c</i> &lt; 0`,
+    code: `function landTop(col, c) {\n  if (c <= 0) return -1;\n  const t = Math.min(1, c / P.slopeW);\n  const r = 1 - (1 - t) * (1 - t);\n  return SEA - 1 + (col.top - (SEA - 1)) * r;\n}`,
+    look: `<b>Look for</b> the cut edge of the world, where the profile shows in section. This is still a plain heightmap: one height per column.` },
+
+  { gen: G({ warp: true, profile: true }), view: 'exposure', water: SEA_FLAT, cam: { poi: 'center', th: -0.3, ph: 0.85, r: 1.2 },
+    legend: 'sheltered<span class="ramp"></span>exposed',
+    title: 'Which rock takes the hit',
+    body: `<p>Erosion should bite hardest where waves strike squarely. The gradient of <i>c</i> points inland, straight through the cliff face. Compare it with the direction the swell travels, <i>d</i>. Their dot product is 1 for a head-on hit and 0 for a glancing one.</p>
+<p>Then scale by the headland noise <i>B</i> from before. Headlands focus wave energy and bays spread it out.</p>`,
+    formula: `facing = max(0, ∇<i>c</i> · <i>d</i> / |∇<i>c</i>|)<br><i>e</i> = (0.15 + 0.85·facing) · (0.78 + 0.3·<i>B</i>)`,
+    code: `const gx = coast(x + 3, z) - coast(x - 3, z);\nconst gz = coast(x, z + 3) - coast(x, z - 3);\nconst facing = Math.max(0,\n  (gx * swx + gz * swz) / Math.hypot(gx, gz));\nlet e = clamp((0.15 + 0.85 * facing)\n            * (0.78 + 0.3 * headland), 0, 1);`,
+    look: `<b>Look for</b> red points and blue bays. Nothing has moved yet. Exposure <i>e</i> is the one number every later layer reads.` },
+
+  { gen: G({ warp: true, profile: true, strata: true }), view: 'normal', water: SEA_FLAT, cam: { poi: 'notch', th: -0.5, ph: 1.32, r: 50, ty: 14 },
+    legend: '<span class="sw" style="background:#e0d6c1"></span>hard bed &nbsp; <span class="sw" style="background:#c0a070"></span>soft bed',
+    title: 'Bedding, and the trick the rest depends on',
+    body: `<p>Limestone is laid down in beds. Slice the rock into tilted layers and give each a hardness from a hash of its layer number.</p>
+<p>Now the key move. Do not carve blocks. Instead, at each height, pull <i>c</i> back by a recession <i>R</i> before applying the cliff curve. Soft beds get a larger <i>R</i> and sit further back. Hard beds stand out as ledges.</p>`,
+    formula: `layer = ⌊(<i>y</i> + dip·<i>x</i>) / <i>t</i>⌋ &nbsp;&nbsp; hard = hash(layer)<br><i>R</i>(<i>y</i>) = ledge · (1 − hard)<sup>1.5</sup><br>rock if &nbsp;<i>y</i> ≤ <i>h</i>(<i>c</i> − <i>R</i>(<i>y</i>))`,
+    code: `const layer = Math.floor((y + col.dipOff) / P.thick);\nconst hard  = hash1(layer, seed + 300);\nR += P.ledge * Math.pow(1 - hard, 1.5);\n...\nconst cp = col.c - R;\nif (cp > 0 && y <= landTop(col, cp)) block = ROCK;`,
+    look: `<b>Look for</b> ledges stepping in and out. Because <i>R</i> changes with height, a column can now be rock, then air, then rock. It has stopped being a heightmap.` },
+
+  { gen: G({ warp: true, profile: true, strata: true, notch: true }), view: 'normal', water: SEA_FLAT, cam: { poi: 'notch', th: -0.95, ph: 1.47, r: 32, ty: 4 },
+    title: 'The wave notch',
+    body: `<p>Waves work on a narrow band around the waterline. Add a second recession term shaped like a bell, centred on sea level, scaled by exposure and resisted by hard beds.</p>
+<p>Rock above the notch loses its support and falls, so everything from the waterline up also retreats, by 40% of the notch depth. What used to stand there survives below the water as a flat bench, the wave-cut platform.</p>`,
+    formula: `band = exp(−((<i>y</i> − sea) / 2.6)<sup>2</sup>)<br><i>R</i>(<i>y</i>) += <i>N</i>·<i>e</i>·(band·(0.55 + 0.45·(1 − hard)) + 0.4)<br>platform width = 1.5 + 1.4·<i>N</i>·<i>e</i>`,
+    code: `const d = (y - SEA) / 2.6;\nconst band = Math.exp(-d * d);\nR += P.notch * col.e * (\n  band * (0.55 + 0.45 * (1 - hard))\n  + (y >= SEA - 1 ? 0.4 : 0));`,
+    look: `<b>Look for</b> the undercut at the waterline with rock hanging over it, and a pale shelf just under the surface.` },
+
+  { gen: G({ warp: true, profile: true, strata: true, notch: true, joints: true }), view: 'normal', water: SEA_FLAT, cam: { poi: 'cave', th: -0.2, ph: 1.4, r: 36, ty: 5 },
+    title: 'Joints, caves and clefts',
+    body: `<p>Limestone cracks along near-vertical planes, and the sea widens them. Lay down two sets of parallel planes at different angles. Jitter each plane within its slot and give it a random strength.</p>
+<p>For every block, measure the distance to the nearest plane. Remove the block if it lies inside a half-ellipse around that plane at the waterline. The opening tapers inland and ends at a length <i>L</i> set by strength and exposure. The strongest planes are opened to the sky.</p>`,
+    formula: `<i>u</i> = <i>x</i>·cos <i>a</i> + <i>z</i>·sin <i>a</i> &nbsp;&nbsp; dist = |<i>u</i> − <i>p</i><sub>i</sub>|<br>taper = 1 − <i>c</i>/<i>L</i><br>carve if &nbsp;dist &lt; <i>w</i>·√taper · √(1 − <i>ŷ</i><sup>2</sup>)`,
+    code: `const u   = x * Math.cos(a) + z * Math.sin(a);\nconst ci  = Math.floor(u / spacing);\nconst pos = (ci + 0.25 + 0.5 * hash1(ci, s1)) * spacing;\nconst dist = Math.abs(u - pos);\n...\nconst yy = (y - (SEA - 2)) / height;\nif (dist < halfWidth * Math.sqrt(1 - yy * yy)) carve();`,
+    look: `<b>Look for</b> a cave mouth. Where a cave is longer than its headland is wide it comes out the far side. Arches are not a feature here, they are a consequence.` },
+
+  { gen: G({ warp: true, profile: true, strata: true, notch: true, joints: true, stacks: true }), view: 'normal', water: SEA_FLAT, cam: { poi: 'stack', th: -0.75, ph: 1.36, r: 46, ty: 8 },
+    title: 'Sea stacks',
+    body: `<p>A stack is a piece of cliff the retreat left behind. Divide the map into cells 26 blocks across. In each cell a hash decides whether there is a candidate, where it stands, and how wide and tall it is. Keep it only if the coast field at that spot says it is just offshore.</p>
+<p>Then merge it into <i>c</i> with a max. The stack becomes part of the same field, so it picks up bedding, the notch and joints with no extra code.</p>`,
+    formula: `<i>c</i> ← max(<i>c</i>, &nbsp;<i>r</i> − ‖(<i>x</i>, <i>z</i>) − <i>p</i><sub>cell</sub>‖)`,
+    code: `if (hash2(ix, iz, seed + 900) > P.stacks) continue;\nconst px = (ix + 0.2 + 0.6 * hash2(ix, iz, s1)) * 26;\nconst pz = (iz + 0.2 + 0.6 * hash2(ix, iz, s2)) * 26;\nconst cm = coast(px, pz);\nif (cm > -5 || cm < -32) continue;   // not offshore\nc = Math.max(c, r - Math.hypot(x - px, z - pz));`,
+    look: `<b>Look for</b> the narrow waist at the waterline. The notch applies to stacks too, capped at half the radius so it can never cut one loose.` },
+
+  { gen: FULL, view: 'normal', water: SEA_FLAT, cam: { poi: 'beach', th: -0.15, ph: 0.72, r: 48, ty: 2 },
+    title: 'What the sea puts back',
+    body: `<p>Erosion has a counterpart. Where exposure is low, sand settles. Fill each sheltered column with sand up to a ramp that rises with <i>c</i>, scaled by how sheltered it is.</p>
+<p>Where exposure is high, fallen blocks collect at the cliff foot instead. A fine-grained noise picks where the boulders sit.</p>`,
+    formula: `shelter = 1 − <i>e</i><br><i>a</i> = 0.8 · smoothstep(0.42, 0.75, shelter)<br>sand top = sea − 3 + 0.4·(<i>c</i> + 12)·(0.4 + 0.6·<i>a</i>)`,
+    code: `const amt = P.beach * smooth(0.42, 0.75, 1 - e);\nif (amt > 0.12 && c > -12 && c < 12)\n  sandTop = Math.floor(SEA - 3\n    + (c + 12) * 0.4 * (0.4 + 0.6 * amt));`,
+    look: `<b>Look for</b> pocket beaches in the bays and bare rock on the points. It is the same exposure field, read the other way round.` },
+
+  { gen: FULL, view: 'normal', water: { show: 1, n: 1, shoal: 0, foam: 0, spray: false }, cam: { poi: 'center', th: -1.0, ph: 1.44, r: 0.95, tz: 0.26, ty: 2 },
+    title: 'One Gerstner wave',
+    body: `<p>Now the water. A plain sine wave moves each point straight up and down, which gives round crests. A Gerstner wave also slides each point sideways, toward the crest as it rises. Crests sharpen and troughs flatten, the way real swell looks.</p>
+<p>Speed is not a free choice. In deep water it follows from the wavelength <i>λ</i>.</p>`,
+    formula: `<i>k</i> = 2π/<i>λ</i> &nbsp;&nbsp; <i>ω</i> = √(<i>g</i>·<i>k</i>) &nbsp;&nbsp; <i>φ</i> = <i>k</i>·(<i>D</i> · <i>p</i>) − <i>ω</i><i>t</i><br><i>p</i><sub>xz</sub> += <i>Q</i>·<i>A</i>·<i>D</i>·cos <i>φ</i><br><i>p</i><sub>y</sub> &nbsp;+= <i>A</i>·sin <i>φ</i>`,
+    code: `float ph = k * dot(D, p.xz) - sqrt(9.81 * k) * uTime;\nd.xz += D * QA * cos(ph);\nd.y  += A * sin(ph);`,
+    look: `<b>Look for</b> one wave, 38 blocks long, with about five seconds between crests. That timing comes from the formula, not from a setting.` },
+
+  { gen: FULL, view: 'normal', water: { show: 1, n: 5, shoal: 0, foam: 0, spray: false }, cam: { poi: 'center', th: -0.85, ph: 1.4, r: 0.95, tz: 0.28, ty: 2 },
+    title: 'Five waves make a sea',
+    body: `<p>A single wave looks like a machine. Add five, each shorter and smaller than the last, fanned out around the swell direction.</p>
+<p>The sideways slide is shared out among them through a steepness <i>s</i>, so that crests can never fold over on themselves.</p>`,
+    formula: `<i>p</i> += Σ<sub>i</sub> (<i>Q</i><sub>i</sub><i>A</i><sub>i</sub>·<i>D</i><sub>i</sub>·cos <i>φ</i><sub>i</sub>, &nbsp;<i>A</i><sub>i</sub>·sin <i>φ</i><sub>i</sub>)<br><i>Q</i><sub>i</sub><i>A</i><sub>i</sub> = <i>s</i> / (5·<i>k</i><sub>i</sub>)<br><i>λ</i><sub>i</sub> = <i>λ</i>·(1, 0.61, 0.39, 0.26, 0.17)`,
+    code: `for (int i = 0; i < 5; i++) {\n  vec2 D = uWave[i].xy; float k = uWave[i].z;\n  float A = uWave[i].w;\n  float ph = k * dot(D, p.xz) - sqrt(9.81 * k) * uTime;\n  float QA = uSteep * A / max(k * A * 5.0, 0.4);\n  d.xz += D * QA * cos(ph);  d.y += A * sin(ph);\n}`,
+    look: `<b>Look for</b> the direction the swell runs. It is the same <i>d</i> that set exposure earlier, so the sea and the erosion agree.` },
+
+  { gen: FULL, view: 'normal', water: SEA_FULL, cam: { poi: 'notch', th: -0.8, ph: 1.4, r: 42, ty: 4 },
+    title: 'Where water meets rock',
+    body: `<p>Three additions tie the sea to the coast. Wave height is damped over shallow rock. Foam is drawn where a crest is sharp, and in bands that run toward the shore, using a map of distance to the nearest rock.</p>
+<p>Spray is thrown wherever a rising crest reaches a rock face, in proportion to that face's exposure.</p>`,
+    formula: `<i>A</i>′ = <i>A</i> · mix(0.45, 1, smoothstep(0, 6, depth))<br>foam ∝ (1 − smoothstep(0.3, 5, shore)) · sin(1.5·shore + 1.7·<i>t</i>)`,
+    code: `float att = mix(0.45, 1.0, smoothstep(0.0, 6.0, depth));\n...\nfloat band = 0.5 + 0.5 * sin(shore * 1.5 + uTime * 1.7);\nfloat shoreFoam = (1.0 - smoothstep(0.3, 5.0, shore))\n                * (0.4 + 0.6 * band) * surge;`,
+    look: `<b>Look for</b> spray on the faces that were red in the exposure layer, and almost none in the bays.` },
+
+  { gen: FULL, view: 'borders', water: SEA_FULL, cam: { poi: 'center', th: -0.5, ph: 0.85, r: 1.3 },
+    legend: 'Dark lines are chunk borders, 32 blocks apart.',
+    title: 'Why this works chunk by chunk',
+    body: `<p>Look back over the layers. Each one answered the question "is this block rock?" using only its own <i>x</i>, <i>y</i>, <i>z</i> and the seed. No layer read a neighbouring block, and nothing was repeated until it settled.</p>
+<p>So any chunk can be built alone, in any order, on any thread, and the borders line up. The worlds in this page were built that way, a chunk at a time, while you were reading.</p>
+<p>The one shared input is the coast field. Here it is a formula. In a game it would come from the ocean map, worked out per region before any chunk is built.</p>
+<p>The price is that nothing is simulated. No sediment is conserved and nothing emerges from flow. It is a careful drawing of erosion, not erosion.</p>`,
+    look: `<b>Look for</b> the seams. There are none.` },
+];
+
+// =====================================================================
+//  RENDERING
+// =====================================================================
+const canvas = document.getElementById('c'), stage = document.getElementById('stage');
+const legendEl = document.getElementById('legend'), whereEl = document.getElementById('where');
+const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let renderer, scene, camera, terrain, water, spray, shore = new Float32Array(0);
+const NW = 5, WAVE_H = 1.6, WAVE_L = 38, SWELL = 20;
+const WAVE_AS = [0.40, 0.26, 0.17, 0.10, 0.07];
+let waves = [];
+const sea = { amp: [0, 0, 0, 0, 0], n: 5, shoal: 0, foam: 0, show: 0, spray: false };   // current, tweened
+let seaGoal = SEA_FULL;
+
+function initWaves() {
+  const th = SWELL * Math.PI / 180, offs = [0, 0.30, -0.38, 0.62, -0.80], ls = [1, 0.61, 0.39, 0.26, 0.17];
+  waves = offs.map((o, i) => { const a = th + o, k = 2 * Math.PI / (WAVE_L * ls[i]); return { dx: Math.sin(a), dz: Math.cos(a), k, A: 0, w: Math.sqrt(9.81 * k), ph: i * 1.7 }; });
+}
+function ampGoal(i) { return seaGoal.n === 0 ? 0 : seaGoal.n === 1 ? (i === 0 ? 0.9 : 0) : WAVE_H * WAVE_AS[i]; }
+function waveHeightAt(x, z, t) {
+  let h = 0;
+  for (const w of waves) h += w.A * Math.sin(w.k * (w.dx * x + w.dz * z) - w.w * t + w.ph);
+  return h;
+}
+
+const WATER_VS = `
+uniform float uTime; uniform vec4 uWave[${NW}]; uniform float uSteep; uniform float uN; uniform float uShoal;
+uniform sampler2D uMap; uniform vec2 uWorld;
+varying vec3 vPos; varying vec3 vN; varying float vCrest; varying float vH; varying vec2 vMap;
+void main(){
+  vec3 p = position;
+  vMap = p.xz / uWorld;
+  float depth = texture2D(uMap, vMap).r * 32.0;
+  float att = mix(1.0, mix(0.45, 1.0, smoothstep(0.0, 6.0, depth)), uShoal);
+  vec3 d = vec3(0.0); vec3 n = vec3(0.0, 1.0, 0.0); float crest = 0.0; float sumA = 0.001;
+  for (int i = 0; i < ${NW}; i++) {
+    vec2 D = uWave[i].xy; float k = uWave[i].z; float A = uWave[i].w * att;
+    float ph = k * dot(D, p.xz) - sqrt(9.81 * k) * uTime + float(i) * 1.7;
+    float s = sin(ph), c = cos(ph);
+    float QA = uSteep * A / max(k * A * uN, 0.4);
+    d.xz += D * QA * c; d.y += A * s;
+    n.xz -= D * k * A * c; n.y -= QA * k * s;
+    crest += QA * k * s; sumA += uWave[i].w;
+  }
+  p += d;
+  vec4 wp = modelMatrix * vec4(p, 1.0);
+  vPos = wp.xyz; vN = n; vCrest = crest / max(uSteep, 0.05); vH = d.y / sumA;
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}`;
+const WATER_FS = `
+uniform float uTime; uniform float uFoam; uniform float uOpacity; uniform sampler2D uMap;
+uniform vec3 uShallow; uniform vec3 uDeep; uniform vec3 uSky;
+varying vec3 vPos; varying vec3 vN; varying float vCrest; varying float vH; varying vec2 vMap;
+float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+  return mix(mix(hash(i), hash(i+vec2(1.0,0.0)), f.x), mix(hash(i+vec2(0.0,1.0)), hash(i+vec2(1.0,1.0)), f.x), f.y); }
+void main(){
+  vec3 N = normalize(vN); vec3 Vd = normalize(cameraPosition - vPos);
+  vec4 m = texture2D(uMap, vMap);
+  float depth = m.r * 32.0, shore = m.g * 16.0;
+  float fres = pow(1.0 - max(dot(N, Vd), 0.0), 3.0);
+  vec3 col = mix(uShallow, uDeep, smoothstep(0.5, 13.0, depth));
+  col = mix(col, uSky, fres * 0.55);
+  vec3 L = normalize(vec3(-0.35, 0.8, -0.5));
+  col += pow(max(dot(N, normalize(L + Vd)), 0.0), 140.0) * 0.8;
+  float n = noise(vPos.xz * 1.3 + uTime * 0.2) * 0.6 + noise(vPos.xz * 3.1 - uTime * 0.3) * 0.4;
+  float crestFoam = smoothstep(0.62, 1.0, vCrest + n * 0.3);
+  float band = 0.5 + 0.5 * sin(shore * 1.5 + uTime * 1.7 + n * 3.0);
+  float surge = 0.55 + 0.7 * max(vH, 0.0);
+  float shoreFoam = (1.0 - smoothstep(0.3, 5.0, shore)) * (0.4 + 0.6 * band) * surge;
+  shoreFoam = smoothstep(0.3, 0.75, shoreFoam + n * 0.3);
+  float foam = clamp(max(crestFoam, shoreFoam), 0.0, 1.0) * uFoam;
+  col = mix(col, vec3(0.97, 0.98, 0.96), foam);
+  float a = mix(0.70, 0.94, smoothstep(0.0, 10.0, depth));
+  gl_FragColor = vec4(col, clamp(max(a, foam) + fres * 0.2, 0.0, 1.0) * uOpacity);
+}`;
+const SPRAY_VS = `
+attribute float aAlpha; attribute float aSize; uniform float uScale; varying float vA;
+void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); vA = aAlpha;
+  gl_PointSize = aSize * uScale / max(0.1, -mv.z); gl_Position = projectionMatrix * mv; }`;
+const SPRAY_FS = `varying float vA; void main(){ if (vA <= 0.0) discard; gl_FragColor = vec4(0.97, 0.98, 0.96, vA); }`;
+
+const NP = 2200;
+const sp = { pos: new Float32Array(NP * 3), vel: new Float32Array(NP * 3), life: new Float32Array(NP), max: new Float32Array(NP), alpha: new Float32Array(NP), size: new Float32Array(NP), next: 0 };
+
+const WORLD = CHUNKS * CH;
+const orb = { th: Math.PI - 0.6, ph: 1.22, r: WORLD * 1.1, tx: WORLD / 2, ty: SEA + 6, tz: WORLD * 0.42 };
+let orbGoal = null, camFollow = true, pois = { center: [WORLD / 2, WORLD * 0.42] };
+function placeCamera() {
+  orb.ph = clamp(orb.ph, 0.15, 1.54); orb.r = clamp(orb.r, 10, 500);
+  const s = Math.sin(orb.ph);
+  camera.position.set(orb.tx + orb.r * s * Math.sin(orb.th), orb.ty + orb.r * Math.cos(orb.ph), orb.tz + orb.r * s * Math.cos(orb.th));
+  camera.lookAt(orb.tx, orb.ty, orb.tz);
+}
+function poseFor(step) {
+  const c = step.cam, p = pois[c.poi] || pois.center, close = c.poi !== 'center';
+  return { th: Math.PI + c.th, ph: c.ph, r: close ? c.r : c.r * WORLD,
+    tx: p[0], tz: c.tz ? WORLD * c.tz : p[1], ty: SEA + (c.ty !== undefined ? c.ty : 6) };
+}
+function setupControls() {
+  const pts = new Map(); let lastD = 0, lastMx = 0, lastMy = 0;
+  const pan = (dx, dy) => { const k = orb.r * 0.0016; orb.tx -= Math.cos(orb.th) * dx * k; orb.tz += Math.sin(orb.th) * dx * k; orb.ty += dy * k; };
+  canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); lastD = 0; orbGoal = null; camFollow = false; });
+  canvas.addEventListener('pointermove', e => {
+    const p = pts.get(e.pointerId); if (!p) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+    if (pts.size === 1) {
+      if (e.shiftKey || e.buttons === 2) pan(dx, dy);
+      else { orb.th -= dx * 0.006; orb.ph -= dy * 0.006; }
+    } else if (pts.size === 2) {
+      const [a, b] = [...pts.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+      if (lastD) { orb.r *= lastD / d; pan(mx - lastMx, my - lastMy); }
+      lastD = d; lastMx = mx; lastMy = my;
+    }
+    placeCamera();
+  });
+  const up = e => { pts.delete(e.pointerId); lastD = 0; };
+  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+  canvas.addEventListener('wheel', e => { e.preventDefault(); orbGoal = null; camFollow = false; orb.r *= Math.exp(e.deltaY * 0.0012); placeCamera(); }, { passive: false });
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+}
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  spray.material.uniforms.uScale.value = renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360));
+}
+
+function initScene() {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setClearColor(0x000000, 0);
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(48, 1, 0.5, 2000);
+
+  terrain = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ vertexColors: true }));
+  terrain.visible = false; scene.add(terrain);
+
+  const blank = new THREE.DataTexture(new Uint8Array([255, 255, 0, 255]), 1, 1, THREE.RGBAFormat); blank.needsUpdate = true;
+  water = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.ShaderMaterial({
+    vertexShader: WATER_VS, fragmentShader: WATER_FS, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+    uniforms: {
+      uTime: { value: 0 }, uSteep: { value: 0.7 }, uN: { value: 5 }, uShoal: { value: 0 }, uFoam: { value: 0 }, uOpacity: { value: 0 },
+      uMap: { value: blank }, uWorld: { value: new THREE.Vector2(WORLD, WORLD) },
+      uWave: { value: Array.from({ length: NW }, () => new THREE.Vector4()) },
+      uShallow: { value: new THREE.Color(0x3fb7ac) }, uDeep: { value: new THREE.Color(0x0e4a63) }, uSky: { value: new THREE.Color(0xcfe3ea) },
+    },
+  }));
+  const seg = Math.min(WORLD * 2, 208), pos = new Float32Array((seg + 1) * (seg + 1) * 3), idx = new Uint32Array(seg * seg * 6);
+  let q = 0;
+  for (let j = 0; j <= seg; j++) for (let i = 0; i <= seg; i++) { pos[q++] = i / seg * WORLD; pos[q++] = 0; pos[q++] = j / seg * WORLD; }
+  q = 0;
+  for (let j = 0; j < seg; j++) for (let i = 0; i < seg; i++) { const a = j * (seg + 1) + i, b = a + 1, c = a + seg + 1, d = c + 1; idx[q++] = a; idx[q++] = c; idx[q++] = b; idx[q++] = b; idx[q++] = c; idx[q++] = d; }
+  water.geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3)); water.geometry.setIndex(new THREE.BufferAttribute(idx, 1));
+  water.position.y = SEA - 0.2; water.frustumCulled = false; water.renderOrder = 1;
+  scene.add(water);
+
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(sp.pos, 3));
+  g.setAttribute('aAlpha', new THREE.BufferAttribute(sp.alpha, 1));
+  g.setAttribute('aSize', new THREE.BufferAttribute(sp.size, 1));
+  spray = new THREE.Points(g, new THREE.ShaderMaterial({ vertexShader: SPRAY_VS, fragmentShader: SPRAY_FS, transparent: true, depthWrite: false, uniforms: { uScale: { value: 400 } } }));
+  spray.frustumCulled = false; spray.renderOrder = 2;
+  scene.add(spray);
+
+  setupControls();
+  new ResizeObserver(resize).observe(stage);
+  resize();
+}
+
+// =====================================================================
+//  BACKGROUND BUILDS -- one chunk or one slab of mesh per slice, so the
+//  page keeps scrolling while every layer's world is prepared.
+// =====================================================================
+const worlds = new Map();     // genKey  -> world
+const meshes = new Map();     // meshKey -> { geo, world }
+const jobs = new Map();       // meshKey -> iterator
+const meshKey = st => genKey(st.gen) + '|' + st.view;
+const FULL_KEY = genKey(FULL);
+
+function* buildJob(st) {
+  const gk = genKey(st.gen);
+  let w = worlds.get(gk);
+  if (!w) { w = newWorld(paramsFor(st.gen)); worlds.set(gk, w); }
+  while (w.next < w.n * w.n) { const i = w.next++; w.gen.genChunk(i % w.n, (i / w.n) | 0, w); yield; }
+  if (!w.map) {
+    w.map = buildWaterMap(w);
+    if (gk === FULL_KEY) { pois = findPOIs(w); if (camFollow && active >= 0) aimCamera(STEPS[active]); }
+    yield;
+  }
+  const acc = { pos: [], col: [], idx: [], nv: 0 };
+  for (let y0 = 0; y0 < WH; y0 += 2) { meshSlab(w, st.view, y0, Math.min(WH, y0 + 2), acc); yield; }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(acc.pos), 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(new Uint8Array(acc.col), 3, true));
+  geo.setIndex(new THREE.BufferAttribute(new Uint32Array(acc.idx), 1));
+  if (!w.tex) {
+    w.tex = new THREE.DataTexture(w.map.data, w.W, w.D, THREE.RGBAFormat);
+    w.tex.magFilter = w.tex.minFilter = THREE.LinearFilter; w.tex.needsUpdate = true;
+  }
+  meshes.set(meshKey(st), { geo, world: w });
+}
+let active = -1, shownKey = null;
+function pump(budgetMs) {
+  const t0 = performance.now();
+  while (performance.now() - t0 < budgetMs) {
+    let st = null;
+    if (active >= 0 && !meshes.has(meshKey(STEPS[active]))) st = STEPS[active];
+    else for (const s of STEPS) if (!meshes.has(meshKey(s))) { st = s; break; }
+    if (!st) return;
+    const k = meshKey(st);
+    if (!jobs.has(k)) jobs.set(k, buildJob(st));
+    if (jobs.get(k).next().done) jobs.delete(k);
+  }
+}
+function trySwap() {
+  if (active < 0) return;
+  const k = meshKey(STEPS[active]);
+  if (k === shownKey) return;
+  const m = meshes.get(k);
+  if (!m) return;
+  terrain.geometry = m.geo; terrain.visible = true;
+  water.material.uniforms.uMap.value = m.world.tex;
+  shore = m.world.map.shore;
+  shownKey = k;
+}
+
+// =====================================================================
+//  SCROLL
+// =====================================================================
+const scrollEl = document.getElementById('scroll'), ticksEl = document.getElementById('ticks');
+const stepEls = [];
+function buildStory() {
+  STEPS.forEach((st, i) => {
+    const el = document.createElement('article'); el.className = 'step';
+    let h = (i === 0 ? '<h1>' + st.title + '</h1>' : '<h2>' + st.title + '</h2>') + st.body;
+    if (st.formula) h += '<div class="formula">' + st.formula + '</div>';
+    el.innerHTML = h;
+    if (st.code) { const pre = document.createElement('pre'); pre.className = 'code'; pre.textContent = st.code; el.appendChild(pre); }
+    if (st.look) { const p = document.createElement('p'); p.className = 'look'; p.innerHTML = st.look; el.appendChild(p); }
+    scrollEl.appendChild(el); stepEls.push(el);
+    if (i > 0) ticksEl.appendChild(document.createElement('span'));
+  });
+}
+function setStep(i) {
+  if (i === active) return;
+  active = i;
+  const st = STEPS[i];
+  stepEls.forEach((el, k) => el.classList.toggle('active', k === i));
+  [...ticksEl.children].forEach((t, k) => t.classList.toggle('on', k < i));
+  whereEl.textContent = i === 0 ? 'Scroll to begin' : 'Layer ' + i + ' of ' + (STEPS.length - 1);
+  legendEl.innerHTML = st.legend || '';
+  seaGoal = st.water;
+  sea.spray = st.water.spray;
+  if (!sea.spray) { sp.life.fill(0); }
+  camFollow = true;
+  aimCamera(st);
+}
+function aimCamera(st) {
+  orbGoal = poseFor(st);
+  if (reduceMotion) { Object.assign(orb, orbGoal); orbGoal = null; placeCamera(); }
+}
+let scrollQueued = false;
+function onScroll() {
+  if (scrollQueued) return; scrollQueued = true;
+  requestAnimationFrame(() => {
+    scrollQueued = false;
+    const line = scrollEl.scrollTop + scrollEl.clientHeight * 0.42, base = stepEls[0].offsetTop;
+    let i = 0;
+    for (let k = 0; k < stepEls.length; k++) if (stepEls[k].offsetTop - base <= line) i = k;
+    setStep(i);
+  });
+}
+
+// =====================================================================
+//  FRAME LOOP
+// =====================================================================
+function emitSpray(dt, t) {
+  const n = shore.length / 5; if (!n || !sea.spray) return;
+  const tries = Math.min(140, Math.ceil(n * 0.06 * dt * 60));
+  for (let k = 0; k < tries; k++) {
+    const i = (Math.random() * n | 0) * 5;
+    const x = shore[i], z = shore[i + 1], nx = shore[i + 2], nz = shore[i + 3], e = shore[i + 4];
+    const h = waveHeightAt(x, z, t), rel = h / WAVE_H;
+    if (rel < 0.22 || h <= waveHeightAt(x, z, t - 0.08)) continue;
+    if (Math.random() > e * 0.56) continue;
+    const count = 2 + (Math.random() * 4 * rel * 2 | 0);
+    for (let c = 0; c < count; c++) {
+      const j = sp.next; sp.next = (sp.next + 1) % NP;
+      sp.pos[j * 3] = x + (Math.random() - 0.5) * 0.8; sp.pos[j * 3 + 1] = SEA - 0.2 + h * 0.6; sp.pos[j * 3 + 2] = z + (Math.random() - 0.5) * 0.8;
+      sp.vel[j * 3] = nx * (0.3 + 1.6 * Math.random()) + (Math.random() - 0.5) * 1.6;
+      sp.vel[j * 3 + 1] = (2.5 + 6 * Math.random()) * (0.4 + rel) * (0.5 + e);
+      sp.vel[j * 3 + 2] = nz * (0.3 + 1.6 * Math.random()) + (Math.random() - 0.5) * 1.6;
+      sp.max[j] = sp.life[j] = 0.7 + Math.random() * 0.9; sp.size[j] = 0.35 + Math.random() * 0.45;
+    }
+  }
+}
+function stepSpray(dt) {
+  for (let j = 0; j < NP; j++) {
+    if (sp.life[j] <= 0) { sp.alpha[j] = 0; continue; }
+    sp.life[j] -= dt; sp.vel[j * 3 + 1] -= 11 * dt;
+    sp.pos[j * 3] += sp.vel[j * 3] * dt; sp.pos[j * 3 + 1] += sp.vel[j * 3 + 1] * dt; sp.pos[j * 3 + 2] += sp.vel[j * 3 + 2] * dt;
+    sp.alpha[j] = sp.pos[j * 3 + 1] < SEA - 0.6 ? 0 : Math.max(0, sp.life[j] / sp.max[j]) * 0.9;
+  }
+  const a = spray.geometry.attributes; a.position.needsUpdate = true; a.aAlpha.needsUpdate = true; a.aSize.needsUpdate = true;
+}
+
+let simT = 12, lastFrame = 0, paused = reduceMotion;
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastFrame) / 1000 || 0); lastFrame = now;
+  pump(shownKey ? 7 : 40);
+  trySwap();
+
+  const kS = reduceMotion ? 1 : 1 - Math.exp(-dt * 3.2), u = water.material.uniforms;
+  for (let i = 0; i < NW; i++) { waves[i].A += (ampGoal(i) - waves[i].A) * kS; u.uWave.value[i].set(waves[i].dx, waves[i].dz, waves[i].k, waves[i].A); }
+  sea.n += ((seaGoal.n === 1 ? 1 : 5) - sea.n) * kS; u.uN.value = sea.n;
+  sea.shoal += (seaGoal.shoal - sea.shoal) * kS; u.uShoal.value = sea.shoal;
+  sea.foam += (seaGoal.foam - sea.foam) * kS; u.uFoam.value = sea.foam;
+  sea.show += ((shownKey ? seaGoal.show : 0) - sea.show) * kS; u.uOpacity.value = sea.show;
+  water.visible = sea.show > 0.01;
+
+  if (orbGoal) {
+    const k = 1 - Math.exp(-dt * 2.6);
+    let done = true;
+    for (const key of ['th', 'ph', 'r', 'tx', 'ty', 'tz']) { const d = orbGoal[key] - orb[key]; orb[key] += d * k; if (Math.abs(d) > 0.002 * (key === 'th' || key === 'ph' ? 1 : 50)) done = false; }
+    placeCamera();
+    if (done) orbGoal = null;
+  }
+  if (!paused) {
+    simT += dt; u.uTime.value = simT;
+    emitSpray(dt, simT); stepSpray(dt);
+  }
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+
+(function boot() {
+  buildStory();
+  const pb = document.getElementById('pause');
+  pb.textContent = paused ? 'Play sea' : 'Pause sea';
+  pb.addEventListener('click', () => { paused = !paused; pb.textContent = paused ? 'Play sea' : 'Pause sea'; });
+  try {
+    if (!window.THREE) throw new Error('three.js did not load');
+    initScene();
+  } catch (err) {
+    document.getElementById('err').style.display = 'flex'; return;
+  }
+  initWaves();
+  water.material.uniforms.uTime.value = simT;
+  placeCamera();
+  scrollEl.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  setStep(0);
+  Object.assign(orb, poseFor(STEPS[0])); orbGoal = null; placeCamera();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

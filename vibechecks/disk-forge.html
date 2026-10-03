@@ -1,0 +1,1529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Disk Forge</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;0,800;1,400;1,500&display=swap">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --scene:#d3e2ea; --panel:rgba(246,249,248,.9); --panel-solid:#f4f7f6;
+  --ink:#12243a; --ink-2:#4a6078; --line:#b4c6d2; --track:#c3d2dc;
+  --chip:#e9dba9; --chip-ink:#12243a;
+  --accent:#b3206b; --accent-ink:#ffffff;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --scene:#0c1a2c; --panel:rgba(17,33,53,.88); --panel-solid:#112135;
+    --ink:#e3ecf2; --ink-2:#9bb0c4; --line:#2a4262; --track:#263f5e;
+    --chip:#eadbae; --chip-ink:#12243a;
+    --accent:#e4579d; --accent-ink:#1c0812;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --scene:#0c1a2c; --panel:rgba(17,33,53,.88); --panel-solid:#112135;
+  --ink:#e3ecf2; --ink-2:#9bb0c4; --line:#2a4262; --track:#263f5e;
+  --chip:#eadbae; --chip-ink:#12243a;
+  --accent:#e4579d; --accent-ink:#1c0812;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;background:var(--scene);scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0;height:100%;position:relative;overflow:hidden;
+  background:var(--scene);color:var(--ink);
+  font:400 16px/1.35 "Alegreya Sans","Gill Sans","Gill Sans MT","Trebuchet MS",system-ui,sans-serif;
+  font-variant-numeric:lining-nums tabular-nums;
+  -webkit-text-size-adjust:100%;
+}
+[hidden]{display:none !important}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3,p,dl,dd,ul,fieldset{margin:0;padding:0}
+ul{list-style:none}
+
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#gl:focus-visible{outline-offset:-3px}
+#fatal{position:absolute;inset:0;display:grid;place-items:center;padding:32px;text-align:center;max-width:36ch;margin:auto}
+
+#pin{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none}
+#pin::before{content:"";position:absolute;left:-8px;top:-8px;width:16px;height:16px;border-radius:50%;
+  border:2.5px solid var(--accent);background:rgba(255,255,255,.3);box-shadow:0 0 0 1.5px rgba(8,16,28,.55)}
+
+/* top bar */
+#top{position:absolute;top:0;left:0;right:0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+  padding:12px 12px 0;pointer-events:none}
+#top > *{pointer-events:auto}
+.mark h1{font-size:25px;line-height:1;font-weight:800;letter-spacing:-.012em}
+.mark p{font-size:14px;color:var(--ink-2);margin-top:3px}
+.actions{display:flex;gap:8px;flex:none}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:5px;padding:8px 13px;font-weight:500;line-height:1.2;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.btn.wide{width:100%;padding:11px 13px}
+.btn:disabled{opacity:.5;cursor:default}
+.quiet{border:1px solid var(--line);background:transparent;border-radius:5px;padding:5px 10px;font-size:14px;font-weight:500}
+
+/* bottom dock */
+#dock{position:absolute;left:8px;right:8px;bottom:8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);padding:8px 10px 10px;display:flex;flex-direction:column;gap:8px}
+#views{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin:0 -4px}
+#views::-webkit-scrollbar{display:none}
+#views.more{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 34px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 34px),transparent)}
+#views button{flex:none;border:0;background:transparent;border-radius:4px;padding:6px 10px;color:var(--ink-2);font-weight:500;line-height:1.2}
+#views button[aria-pressed="true"]{background:var(--chip);color:var(--chip-ink)}
+#views button.water, .water dt, .water dd, p.water{font-style:italic}
+
+#progress p{font-size:15px}
+.meter{height:3px;background:var(--track);border-radius:2px;overflow:hidden;margin-top:6px}
+#progressFill{height:100%;background:var(--accent);transform-origin:left center;transform:scaleX(0);transition:transform .12s linear}
+
+#info{display:flex;flex-direction:column;gap:8px}
+.hint{font-size:14.5px;color:var(--ink-2);max-width:62ch}
+.keys{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:14.5px;color:var(--ink-2)}
+.keys li{display:flex;align-items:center;gap:6px}
+.keys i{width:14px;height:8px;border-radius:2px;display:inline-block}
+.keys .sw-land{background:#c9a15f}
+.keys .sw-sea{background:#3f6f8f}
+.ramp{padding-bottom:2px}
+.ramp-bar{height:9px;border-radius:2px;border:1px solid var(--line)}
+.ramp-ticks{position:relative;height:19px;font-size:13.5px;color:var(--ink-2)}
+.ramp-ticks span{position:absolute;top:2px;transform:translateX(-50%);white-space:nowrap}
+.ramp-ticks span.first{transform:none}
+.ramp-ticks span.last{transform:translateX(-100%)}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 16px;border-top:1px solid var(--line);padding-top:8px}
+.stats dt,.rows dt{font-size:13.5px;color:var(--ink-2);line-height:1.2}
+.stats dd,.rows dd{font-size:16px;font-weight:500;line-height:1.25}
+.probe-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.probe-head h2{font-size:19px;font-weight:700;line-height:1.15}
+.probe-head p{font-size:14px;color:var(--ink-2)}
+.rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 16px;margin-top:8px}
+
+/* settings */
+#sheet{position:absolute;left:0;right:0;bottom:0;z-index:5;max-height:64%;overflow-y:auto;overscroll-behavior:contain;
+  background:var(--panel-solid);border-top:1px solid var(--line);border-radius:12px 12px 0 0;padding:14px 16px 22px;
+  transform:translateY(104%);visibility:hidden;transition:transform .26s ease, visibility 0s linear .26s}
+#sheet.open{transform:none;visibility:visible;transition:transform .26s ease, visibility 0s}
+.sheet-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.sheet-head h2,.sub{font-size:18px;font-weight:700}
+.sub{margin:20px 0 8px;padding-top:14px;border-top:1px solid var(--line)}
+.field{margin-top:12px}
+.frow{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.frow label,.seg legend,.field > label{font-weight:500}
+.frow output{color:var(--ink-2);font-size:15px}
+input[type="range"]{width:100%;margin:6px 0 0;accent-color:var(--accent);height:22px}
+.seedrow{display:flex;gap:8px;margin-top:5px}
+#seed{flex:1;min-width:0;border:1px solid var(--line);border-radius:5px;background:transparent;padding:8px 10px}
+.seg{border:0;margin-top:14px;min-width:0}
+.seg legend{margin-bottom:6px}
+.seg .opts{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.seg label{flex:1;position:relative;text-align:center;display:flex}
+.seg label + label{border-left:1px solid var(--line)}
+.seg input{position:absolute;opacity:0;inset:0;width:100%;height:100%;margin:0;cursor:pointer}
+.seg span{flex:1;display:flex;align-items:center;justify-content:center;padding:7px 4px;font-size:15px;line-height:1.15;color:var(--ink-2)}
+.seg input:checked + span{background:var(--chip);color:var(--chip-ink);font-weight:500}
+.seg input:focus-visible + span{outline:2px solid var(--accent);outline-offset:-2px}
+.note{font-size:14px;color:var(--ink-2);margin-top:6px}
+.check{display:flex;align-items:center;gap:9px;margin-top:14px;font-weight:500}
+.check input{width:18px;height:18px;accent-color:var(--accent);margin:0}
+#rebuild{margin-top:18px}
+#exportWrap{margin-top:16px}
+
+@media (min-width:480px){
+  .stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .rows{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media (min-width:900px){
+  #top{padding:16px 18px 0}
+  #openSheet,#closeSheet{display:none}
+  #sheet{left:16px;right:auto;top:76px;bottom:16px;width:322px;max-height:none;border:1px solid var(--line);border-radius:8px;
+    transform:none;visibility:visible;transition:none;background:var(--panel);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+  #dock{left:354px;right:16px;bottom:16px;max-width:720px;margin:0 auto;padding:10px 14px 12px}
+}
+@media (prefers-reduced-motion: reduce){
+  #sheet,#sheet.open{transition:none}
+  #progressFill{transition:none}
+}
+</style>
+</head>
+<body>
+<canvas id="gl" tabindex="0" role="img" aria-label="3D view of the generated disk world. Arrow keys orbit, plus and minus zoom."></canvas>
+<p id="fatal" hidden></p>
+<div id="pin" hidden></div>
+
+<header id="top">
+  <div class="mark">
+    <h1>Disk Forge</h1>
+    <p id="caption"></p>
+  </div>
+  <div class="actions">
+    <button type="button" class="btn" id="openSheet" aria-controls="sheet" aria-expanded="false">Settings</button>
+    <button type="button" class="btn primary" id="newWorld">New world</button>
+  </div>
+</header>
+
+<section id="dock" aria-label="Map views and readouts">
+  <div id="views" role="group" aria-label="Map view">
+    <button type="button" data-view="terrain" aria-pressed="true">Terrain</button>
+    <button type="button" data-view="elevation" aria-pressed="false">Elevation</button>
+    <button type="button" data-view="plates" aria-pressed="false">Plates</button>
+    <button type="button" data-view="basins" aria-pressed="false" class="water">Watersheds</button>
+    <button type="button" data-view="rain" aria-pressed="false" class="water">Rain</button>
+    <button type="button" data-view="temp" aria-pressed="false">Temperature</button>
+  </div>
+  <div id="progress" role="status" hidden>
+    <p id="progressLabel"></p>
+    <div class="meter"><div id="progressFill"></div></div>
+  </div>
+  <div id="info"></div>
+</section>
+
+<aside id="sheet" aria-label="World settings">
+  <div class="sheet-head">
+    <h2>Shape the world</h2>
+    <button type="button" class="quiet" id="closeSheet">Done</button>
+  </div>
+
+  <div class="field">
+    <label for="seed">Seed</label>
+    <div class="seedrow">
+      <input id="seed" type="text" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button type="button" class="quiet" id="reseed">Random</button>
+    </div>
+  </div>
+  <div class="field">
+    <div class="frow"><label for="plates">Tectonic plates</label><output id="platesOut" for="plates"></output></div>
+    <input id="plates" type="range" min="6" max="26" step="1" value="14">
+  </div>
+  <div class="field">
+    <div class="frow"><label for="land">Land</label><output id="landOut" for="land"></output></div>
+    <input id="land" type="range" min="12" max="60" step="1" value="32">
+  </div>
+  <div class="field">
+    <div class="frow"><label for="erosion">Erosion</label><output id="erosionOut" for="erosion"></output></div>
+    <input id="erosion" type="range" min="1" max="5" step="0.25" value="2.5">
+  </div>
+  <div class="field">
+    <div class="frow"><label for="impacts">Giant impacts</label><output id="impactsOut" for="impacts"></output></div>
+    <input id="impacts" type="range" min="0" max="10" step="1" value="4">
+  </div>
+  <div class="field">
+    <div class="frow"><label for="hotspots">Hotspot volcano chains</label><output id="hotspotsOut" for="hotspots"></output></div>
+    <input id="hotspots" type="range" min="0" max="8" step="1" value="4">
+  </div>
+  <fieldset class="seg">
+    <legend>Climate</legend>
+    <div class="opts">
+      <label><input type="radio" name="climate" value="coldhub" checked><span>Cold hub</span></label>
+      <label><input type="radio" name="climate" value="hothub"><span>Hot hub</span></label>
+      <label><input type="radio" name="climate" value="bands"><span>North to south</span></label>
+    </div>
+  </fieldset>
+  <fieldset class="seg">
+    <legend>Grid, cells across</legend>
+    <div class="opts">
+      <label><input type="radio" name="grid" value="256"><span>256</span></label>
+      <label><input type="radio" name="grid" value="384" checked><span>384</span></label>
+      <label><input type="radio" name="grid" value="512"><span>512</span></label>
+      <label><input type="radio" name="grid" value="768"><span>768</span></label>
+    </div>
+    <p class="note">The disk is 16,000 km wide, so a cell is 62 km at 256 and 21 km at 768.</p>
+  </fieldset>
+  <button type="button" class="btn primary wide" id="rebuild">Rebuild with these settings</button>
+
+  <h3 class="sub">Display</h3>
+  <div class="field">
+    <div class="frow"><label for="exag">Height exaggeration</label><output id="exagOut" for="exag"></output></div>
+    <input id="exag" type="range" min="5" max="120" step="1" value="40">
+  </div>
+  <div class="field water">
+    <div class="frow"><label for="rivers">Rivers shown</label><output id="riversOut" for="rivers"></output></div>
+    <input id="rivers" type="range" min="0" max="100" step="1" value="50">
+  </div>
+  <label class="check"><input id="sea" type="checkbox" checked>Show the sea</label>
+
+  <div id="exportWrap" hidden>
+    <button type="button" class="btn wide" id="export" disabled>Export lookup tables</button>
+    <p class="note">One JSON file with height, plates, climate, flow and watersheds as typed arrays, plus the river paths.</p>
+    <p class="note" id="exportNote" role="status"></p>
+  </div>
+</aside>
+
+<script>
+/* ===== Simulation core: everything here is pure data, no DOM ===== */
+const Sim = (() => {
+  'use strict';
+  const R_KM = 8000;                       // disk radius
+  const OFF_X = [-1, 0, 1, -1, 1, -1, 0, 1];
+  const OFF_Y = [-1, -1, -1, 0, 0, 1, 1, 1];
+  const OFF_L = [Math.SQRT2, 1, Math.SQRT2, 1, 1, Math.SQRT2, 1, Math.SQRT2];
+
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  const gauss = (d, mu, sig) => { const t = (d - mu) / sig; return Math.exp(-t * t); };
+
+  function hashStr(s) {
+    let h = 1779033703 ^ s.length;
+    for (let i = 0; i < s.length; i++) { h = Math.imul(h ^ s.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+    h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909);
+    return (h ^ (h >>> 16)) >>> 0;
+  }
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /* 2D gradient noise + fbm */
+  function makeNoise(rng) {
+    const p = new Uint8Array(256); for (let i = 0; i < 256; i++) p[i] = i;
+    for (let i = 255; i > 0; i--) { const j = (rng() * (i + 1)) | 0; const t = p[i]; p[i] = p[j]; p[j] = t; }
+    const perm = new Uint8Array(512); for (let i = 0; i < 512; i++) perm[i] = p[i & 255];
+    const gx = new Float32Array(256), gy = new Float32Array(256);
+    for (let i = 0; i < 256; i++) { const a = rng() * 6.283185307; gx[i] = Math.cos(a); gy[i] = Math.sin(a); }
+    function n2(x, y) {
+      const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+      const u = xf * xf * xf * (xf * (xf * 6 - 15) + 10), v = yf * yf * yf * (yf * (yf * 6 - 15) + 10);
+      const X = xi & 255, Y = yi & 255;
+      const aa = perm[perm[X] + Y], ab = perm[perm[X] + Y + 1], ba = perm[perm[X + 1] + Y], bb = perm[perm[X + 1] + Y + 1];
+      const d00 = gx[aa] * xf + gy[aa] * yf, d10 = gx[ba] * (xf - 1) + gy[ba] * yf;
+      const d01 = gx[ab] * xf + gy[ab] * (yf - 1), d11 = gx[bb] * (xf - 1) + gy[bb] * (yf - 1);
+      const a = d00 + (d10 - d00) * u, b = d01 + (d11 - d01) * u;
+      return (a + (b - a) * v) * 1.5;
+    }
+    function fbm(x, y, oct) {
+      let s = 0, a = 1, f = 1, norm = 0;
+      for (let o = 0; o < oct; o++) { s += a * n2(x * f, y * f); norm += a; a *= 0.5; f *= 2.03; }
+      return s / norm;
+    }
+    return { n2, fbm };
+  }
+
+  /* binary min-heap on (key, cell) */
+  function makeHeap(cap) {
+    const keys = new Float64Array(cap + 1), ids = new Int32Array(cap + 1);
+    let size = 0;
+    return {
+      clear() { size = 0; },
+      get size() { return size; },
+      push(k, id) {
+        let i = ++size;
+        while (i > 1) { const p = i >> 1; if (keys[p] <= k) break; keys[i] = keys[p]; ids[i] = ids[p]; i = p; }
+        keys[i] = k; ids[i] = id;
+      },
+      topKey() { return keys[1]; },
+      pop() {
+        const id = ids[1]; const k = keys[size], v = ids[size]; size--;
+        let i = 1;
+        for (;;) {
+          let c = i << 1; if (c > size) break;
+          if (c < size && keys[c + 1] < keys[c]) c++;
+          if (keys[c] >= k) break;
+          keys[i] = keys[c]; ids[i] = ids[c]; i = c;
+        }
+        keys[i] = k; ids[i] = v;
+        return id;
+      },
+    };
+  }
+
+  function createWorld(P) {
+    const N = P.N, n = N * N;
+    const W = {
+      N, n, R_KM, cellKm: (2 * R_KM) / N, params: P,
+      X: new Float32Array(n), Y: new Float32Array(n), R: new Float32Array(n),
+      inDisk: new Uint8Array(n), diskCells: null,
+      plate: new Uint8Array(n), plate2: new Uint8Array(n), bdist: new Float32Array(n),
+      conv: new Float32Array(n), shear: new Float32Array(n), crust: new Float32Array(n),
+      h: new Float32Array(n), U: new Float32Array(n),
+      temp: new Float32Array(n), rain: new Float32Array(n), ice: new Uint8Array(n),
+      filled: new Float64Array(n), rcv: new Int32Array(n).fill(-1), rdist: new Float32Array(n),
+      order: new Int32Array(n), landCount: 0, flow: new Float32Array(n), lake: new Uint8Array(n),
+      basin: new Uint16Array(n), basins: [], flen: new Float32Array(n),
+      off: new Int32Array(8), plates: [], impacts: [], hotspots: [], stats: {}, stage: 0, ready: false,
+    };
+    for (let k = 0; k < 8; k++) W.off[k] = OFF_Y[k] * N + OFF_X[k];
+    const rn = 1 - 2.2 / N, list = [];
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const c = j * N + i, x = ((i + 0.5) / N) * 2 - 1, y = ((j + 0.5) / N) * 2 - 1, r = Math.hypot(x, y);
+      W.X[c] = x; W.Y[c] = y; W.R[c] = r;
+      if (r <= rn) { W.inDisk[c] = 1; list.push(c); }
+    }
+    W.diskCells = Int32Array.from(list);
+    W.heap = makeHeap(n);
+    W.closed = new Uint8Array(n);
+    W.tmp = new Float32Array(n);
+    return W;
+  }
+
+  /* ---------- 1. plates ---------- */
+  function genPlates(W, P, rng, noise) {
+    const K = P.plates, plates = [];
+    for (let k = 0; k < K; k++) {
+      let best = null, bd = -1;
+      for (let c = 0; c < 24; c++) {
+        const r = Math.sqrt(rng()) * 0.93, a = rng() * 6.283185;
+        const x = r * Math.cos(a), y = r * Math.sin(a);
+        let d = 1e9; for (const p of plates) { const dd = Math.hypot(p.x - x, p.y - y); if (dd < d) d = dd; }
+        if (d > bd) { bd = d; best = { x, y }; }
+      }
+      const ang = rng() * 6.283185, sp = 0.35 + rng() * 0.65;
+      plates.push({ id: k, x: best.x, y: best.y, w: (rng() - 0.5) * 0.16, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+        om: (rng() - 0.5) * 1.1, cont: false, hue: rng(), tone: rng() });
+    }
+    const idx = plates.map((_, i) => i);
+    for (let i = K - 1; i > 0; i--) { const j = (rng() * (i + 1)) | 0; const t = idx[i]; idx[i] = idx[j]; idx[j] = t; }
+    const nc = clamp(Math.round(K * (0.3 + P.land * 0.5)), 1, K - 1);
+    for (let i = 0; i < nc; i++) plates[idx[i]].cont = true;
+    W.plates = plates;
+
+    const { X, Y, diskCells } = W;
+    for (let t = 0; t < diskCells.length; t++) {
+      const c = diskCells[t], x = X[c], y = Y[c];
+      const wx = x + 0.2 * noise.fbm(x * 1.3 + 11.3, y * 1.3 + 4.7, 4) + 0.05 * noise.fbm(x * 4 + 3.1, y * 4 + 9.2, 3) + 0.02 * noise.fbm(x * 11 + 1.7, y * 11 + 5.2, 2);
+      const wy = y + 0.2 * noise.fbm(x * 1.3 - 7.1, y * 1.3 + 19.2, 4) + 0.05 * noise.fbm(x * 4 - 13.4, y * 4 + 2.6, 3) + 0.02 * noise.fbm(x * 11 - 8.3, y * 11 + 12.9, 2);
+      let d1 = 1e9, d2 = 1e9, a = 0, b = 0;
+      for (let k = 0; k < K; k++) {
+        const p = plates[k], d = Math.hypot(wx - p.x, wy - p.y) - p.w;
+        if (d < d1) { d2 = d1; b = a; d1 = d; a = k; } else if (d < d2) { d2 = d; b = k; }
+      }
+      W.plate[c] = a; W.plate2[c] = b; W.bdist[c] = (d2 - d1) * 0.5 * R_KM;
+      const pa = plates[a], pb = plates[b];
+      let nx = pb.x - pa.x, ny = pb.y - pa.y; const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
+      const rx = (pa.vx - pa.om * (y - pa.y)) - (pb.vx - pb.om * (y - pb.y));
+      const ry = (pa.vy + pa.om * (x - pa.x)) - (pb.vy + pb.om * (x - pb.x));
+      W.conv[c] = clamp((rx * nx + ry * ny) / 1.2, -1, 1);
+      W.shear[c] = clamp(Math.abs(rx * ny - ry * nx) / 1.2, 0, 1);
+    }
+  }
+
+  /* ---------- 2. crust, boundaries, hotspots -> starting heights + uplift field ---------- */
+  function genCrust(W, P, rng, noise, noise2) {
+    const { X, Y, R, diskCells, plates, h, U, crust, bdist, conv, shear, plate, plate2, N } = W;
+    const m = diskCells.length;
+    for (let t = 0; t < m; t++) {
+      const c = diskCells[t], x = X[c], y = Y[c];
+      const A = plates[plate[c]].cont ? 1 : -1, B = plates[plate2[c]].cont ? 1 : -1;
+      const s = sstep(0, 520, bdist[c]);
+      const bias = 0.2 * ((A + B) * 0.5 * (1 - s) + A * s);
+      crust[c] = bias + 0.95 * noise2.fbm(x * 1.25 + 31.7, y * 1.25 - 17.3, 6) - 1.7 * sstep(0.8, 0.985, R[c]);
+    }
+    // sea level: pick the crust threshold that gives the requested land share
+    const sorted = new Float32Array(m);
+    for (let t = 0; t < m; t++) sorted[t] = crust[diskCells[t]];
+    sorted.sort();
+    const c0 = sorted[clamp(Math.floor(m * (1 - P.land)), 0, m - 1)];
+
+    for (let t = 0; t < m; t++) {
+      const c = diskCells[t], x = X[c], y = Y[c];
+      const Cs = crust[c] - c0; crust[c] = Cs;
+      let hb;
+      if (Cs > 0) hb = 30 + 1000 * Math.pow(Math.min(Cs, 1.2), 1.25) + 160 * noise.fbm(x * 5 + 2, y * 5 + 7, 5) * sstep(0, 0.15, Cs);
+      else {
+        const q = -Cs;
+        hb = -130 * sstep(0, 0.05, q) - 3500 * sstep(0.04, 0.3, q) - 700 * sstep(0.3, 0.9, q) + 260 * noise.fbm(x * 4 - 5, y * 4 + 3, 4) * sstep(0.1, 0.3, q);
+      }
+      const a = plate[c], b = plate2[c], A = Cs > -0.04, B = plates[b].cont;
+      const dk = bdist[c], cv = conv[c], cp = Math.pow(Math.max(0, cv), 0.65), cd = Math.pow(Math.max(0, -cv), 0.8);
+      const rough = 0.55 + 0.95 * Math.abs(noise.fbm(x * 5 + 50.5, y * 5 - 20.5, 4));
+      let up = 0, st = 0;
+      if (cp > 0) {
+        if (A && B) up = cp * (6200 * gauss(dk, 0, 320) + 2600 * gauss(dk, 0, 800)) * rough;
+        else if (A && !B) up = cp * 6000 * gauss(dk, 180, 210) * rough;
+        else if (!A && B) st = -cp * 3000 * gauss(dk, 0, 120);
+        else if (a < b) {
+          const isl = clamp(noise2.fbm(x * 9 + 4, y * 9 - 8, 3) * 2.4 + 0.45, 0, 1.4);
+          st = cp * 3300 * gauss(dk, 160, 110) * isl; up = cp * 2400 * gauss(dk, 160, 100) * isl;
+        } else st = -cp * 2800 * gauss(dk, 0, 120);
+      }
+      if (cd > 0) {
+        if (!A && !B) st += cd * 1700 * gauss(dk, 0, 520) * (0.85 + 0.3 * noise.fbm(x * 7, y * 7, 3));
+        else up += cd * (-1500 * gauss(dk, 0, 90) + 520 * gauss(dk, 230, 170));
+      }
+      st += shear[c] * (1 - Math.min(1, Math.abs(cv) * 2)) * 260 * noise.fbm(x * 12 + 9, y * 12 - 3, 3) * gauss(dk, 0, 130);
+      if (Cs > 0) up += 260 * sstep(0, 0.3, Cs);     // slow broad uplift keeps old continents above water
+      U[c] = up;
+      h[c] = hb + st;
+    }
+
+    // hotspots: a fixed plume, the plate drifts over it and carries older volcanoes away
+    W.hotspots = [];
+    for (let k = 0; k < P.hotspots; k++) {
+      const r = Math.sqrt(rng()) * 0.8, a = rng() * 6.283185, x0 = r * Math.cos(a), y0 = r * Math.sin(a);
+      const ci = clamp(Math.floor((x0 + 1) / 2 * N), 0, N - 1), cj = clamp(Math.floor((y0 + 1) / 2 * N), 0, N - 1);
+      const p = plates[plate[cj * N + ci]];
+      let vx = p.vx - p.om * (y0 - p.y), vy = p.vy + p.om * (x0 - p.x); const vl = Math.hypot(vx, vy) || 1;
+      const step = (230 + 160 * vl) / R_KM; vx /= vl; vy /= vl;
+      const len = 6 + ((rng() * 8) | 0), chain = [];
+      for (let q = 0; q < len; q++) {
+        const bend = q > len * 0.6 ? 0.5 : 0;        // old chains kink, like Hawaii–Emperor
+        const cx = x0 + (vx * q - vy * bend * (q - len * 0.6)) * step, cy = y0 + (vy * q + vx * bend * (q - len * 0.6)) * step;
+        chain.push({ x: cx, y: cy, H: 5600 * Math.pow(0.87, q) * (0.8 + rng() * 0.4), sig: (95 + rng() * 50) / R_KM });
+      }
+      W.hotspots.push({ x: x0, y: y0, chain });
+      for (const v of chain) stamp(W, v.x, v.y, v.sig * 3, (c, d) => {
+        const g = Math.exp(-(d / v.sig) * (d / v.sig)), land = crust[c] > 0 ? 0.3 : 1;
+        h[c] += v.H * g * land; U[c] += v.H * 0.22 * g * land;
+      });
+    }
+    for (let t = 0; t < m; t++) { const c = diskCells[t]; h[c] += 0.3 * U[c]; }
+  }
+
+  function stamp(W, x0, y0, rad, fn) {
+    const { N, inDisk, X, Y } = W;
+    const i0 = Math.max(1, Math.floor((x0 - rad + 1) / 2 * N)), i1 = Math.min(N - 2, Math.ceil((x0 + rad + 1) / 2 * N));
+    const j0 = Math.max(1, Math.floor((y0 - rad + 1) / 2 * N)), j1 = Math.min(N - 2, Math.ceil((y0 + rad + 1) / 2 * N));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const c = j * N + i; if (!inDisk[c]) continue;
+      const d = Math.hypot(X[c] - x0, Y[c] - y0); if (d <= rad) fn(c, d);
+    }
+  }
+
+  function applyImpact(W, imp) {
+    const { h } = W, Rn = imp.rk / R_KM, D = imp.depth, rim = 0.4 * D;
+    stamp(W, imp.x, imp.y, Rn * 2.6, (c, dn) => {
+      const d = dn / Rn; let dh = 0;
+      if (d < 1) dh = -D * (1 - d * d);
+      dh += rim * Math.exp(-((d - 1) / 0.2) * ((d - 1) / 0.2));
+      if (d > 1) dh += 0.22 * rim / (d * d * d);
+      if (imp.rk > 230) dh += 0.4 * D * Math.exp(-(d / 0.17) * (d / 0.17));
+      // flatten what was there before so the bowl reads clearly
+      if (d < 1) h[c] = h[c] * (0.35 + 0.65 * d) + (1 - (0.35 + 0.65 * d)) * imp.floor;
+      h[c] += dh;
+    });
+  }
+
+  /* ---------- 3. climate: temperature bands, prevailing winds, rain shadows ---------- */
+  function latOf(mode, x, y, r) {
+    if (mode === 'hothub') return 1 - Math.pow(Math.min(1, r), 2.2);
+    if (mode === 'bands') return (y + 1) * 0.5;
+    return Math.min(1, r);
+  }
+  const seaTemp = (u) => -23 + 53 * Math.pow(u, 0.85);
+
+  function climate(W, P, noise) {
+    const { N, X, Y, R, diskCells, h, temp, rain, ice } = W, mode = P.climate;
+    const G = 96, gn = G * G;
+    const hc = new Float32Array(gn), oc = new Uint8Array(gn), ev = new Float32Array(gn), uc = new Float32Array(gn);
+    const wx = new Float32Array(gn), wy = new Float32Array(gn), ind = new Uint8Array(gn);
+    for (let gj = 0; gj < G; gj++) for (let gi = 0; gi < G; gi++) {
+      const g = gj * G + gi, x = ((gi + 0.5) / G) * 2 - 1, y = ((gj + 0.5) / G) * 2 - 1, r = Math.hypot(x, y);
+      const ci = Math.min(N - 1, Math.floor((gi + 0.5) / G * N)), cj = Math.min(N - 1, Math.floor((gj + 0.5) / G * N));
+      const hv = h[cj * N + ci]; hc[g] = Math.max(0, hv); oc[g] = hv <= 0 ? 1 : 0; ind[g] = r <= 0.99 ? 1 : 0;
+      const u = latOf(mode, x, y, r); uc[g] = u;
+      const T = seaTemp(u) - 6.5 * hc[g] / 1000;
+      ev[g] = clamp(0.25 + 0.75 * (T + 5) / 33, 0.15, 1);
+      const s = Math.cos(3 * Math.PI * u), q = 0.45 * Math.sin(3 * Math.PI * u);
+      let vx, vy;
+      if (mode === 'bands') { vx = s; vy = q; }
+      else { const rr = r || 1e-6, tx = -y / rr, ty = x / rr, sg = mode === 'hothub' ? -1 : 1; vx = tx * s + (x / rr) * q * sg; vy = ty * s + (y / rr) * q * sg; }
+      const vl = Math.hypot(vx, vy) || 1; wx[g] = vx / vl; wy[g] = vy / vl;
+    }
+    let m = new Float32Array(gn), m2 = new Float32Array(gn); const acc = new Float32Array(gn);
+    for (let g = 0; g < gn; g++) m[g] = oc[g] ? ev[g] : 0.3;
+    const bil = (a, fx, fy) => {
+      fx = clamp(fx, 0, G - 1.001); fy = clamp(fy, 0, G - 1.001);
+      const i = fx | 0, j = fy | 0, tx = fx - i, ty = fy - j, g = j * G + i;
+      return (a[g] * (1 - tx) + a[g + 1] * tx) * (1 - ty) + (a[g + G] * (1 - tx) + a[g + G + 1] * tx) * ty;
+    };
+    const IT = 72, TAIL = 10;
+    for (let it = 0; it < IT; it++) {
+      for (let gj = 0; gj < G; gj++) for (let gi = 0; gi < G; gi++) {
+        const g = gj * G + gi;
+        if (!ind[g]) { m2[g] = 0.45; continue; }
+        const sx = gi - wx[g], sy = gj - wy[g], ms = bil(m, sx, sy);
+        let mn, p;
+        if (oc[g]) { mn = ms + (ev[g] - ms) * 0.3; p = mn * 0.03; }
+        else {
+          const lift = Math.max(0, hc[g] - bil(hc, sx, sy)) / 1000;
+          const rate = Math.min(0.85, 0.03 + 0.5 * lift); p = ms * rate; mn = ms - p * 0.6;
+        }
+        m2[g] = mn; if (it >= IT - TAIL) acc[g] += p / TAIL;
+      }
+      const t = m; m = m2; m2 = t;
+    }
+    // light blur, then to mm/yr with the band structure (wet belt, dry belt, cold = dry)
+    const mm = new Float32Array(gn);
+    for (let gj = 0; gj < G; gj++) for (let gi = 0; gi < G; gi++) {
+      let s = 0, w = 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+        const i = gi + di, j = gj + dj; if (i < 0 || j < 0 || i >= G || j >= G) continue;
+        const ww = di === 0 && dj === 0 ? 2 : 1; s += acc[j * G + i] * ww; w += ww;
+      }
+      const g = gj * G + gi, u = uc[g], rel = 3 * Math.tanh((s / w) / 0.03 / 3);
+      const T = seaTemp(u) - 6.5 * hc[g] / 1000;
+      const band = 1 - 0.55 * gauss(u, 0.62, 0.11) + 0.6 * gauss(u, 0.95, 0.14);
+      const cold = clamp(0.3 + (T + 15) / 35, 0.2, 1.1);
+      mm[g] = (1500 * rel + 400 * gauss(u, 0.95, 0.14)) * band * cold;
+    }
+    for (let t = 0; t < diskCells.length; t++) {
+      const c = diskCells[t], x = X[c], y = Y[c];
+      const u = latOf(mode, x, y, R[c]);
+      temp[c] = seaTemp(u) - 6.5 * Math.max(0, h[c]) / 1000 + 3.2 * noise.fbm(x * 3 + 40, y * 3 - 40, 4);
+      const fx = (x + 1) / 2 * G - 0.5, fy = (y + 1) / 2 * G - 0.5;
+      rain[c] = Math.max(20, bil(mm, fx, fy) * (1 + 0.18 * noise.fbm(x * 6 + 70, y * 6 + 70, 3)));
+      ice[c] = temp[c] + 7 * noise.fbm(x * 7 - 90, y * 7 + 90, 4) < -11 ? 1 : 0;       // ragged edge for sea ice and ice sheets
+    }
+  }
+
+  /* ---------- 4. hydrology: fill depressions, route flow, accumulate discharge ---------- */
+  function route(W) {
+    const { N, diskCells, inDisk, h, filled, rcv, rdist, order, flow, rain, off, heap, closed, cellKm } = W;
+    const EPS = 1e-3; closed.fill(0); heap.clear(); let cnt = 0;
+    for (let t = 0; t < diskCells.length; t++) {
+      const c = diskCells[t];
+      if (h[c] <= 0) {
+        closed[c] = 1; filled[c] = 0; flow[c] = 0;
+        for (let k = 0; k < 8; k++) { const nb = c + off[k]; if (inDisk[nb] && h[nb] > 0) { heap.push(0, c); break; } }
+      } else {
+        for (let k = 0; k < 8; k++) if (!inDisk[c + off[k]]) { closed[c] = 1; filled[c] = h[c]; heap.push(h[c], c); break; }
+      }
+    }
+    while (heap.size) {
+      const k0 = heap.topKey(), c = heap.pop();
+      if (h[c] > 0) order[cnt++] = c;
+      for (let k = 0; k < 8; k++) {
+        const nb = c + off[k]; if (!inDisk[nb] || closed[nb]) continue;
+        closed[nb] = 1; const f = h[nb] > k0 + EPS ? h[nb] : k0 + EPS; filled[nb] = f; heap.push(f, nb);
+      }
+    }
+    W.landCount = cnt;
+    const cellA = cellKm * cellKm;
+    for (let t = 0; t < cnt; t++) {
+      const c = order[t], fc = filled[c]; let best = -1, bs = 0, bk = 0;
+      for (let k = 0; k < 8; k++) {
+        const nb = c + off[k]; if (!inDisk[nb]) continue;
+        const fn = h[nb] <= 0 ? 0 : filled[nb], s = (fc - fn) / OFF_L[k];
+        if (s > bs) { bs = s; best = nb; bk = k; }
+      }
+      rcv[c] = best; rdist[c] = OFF_L[bk] * cellKm; flow[c] = cellA * rain[c] * 0.001;
+    }
+    for (let t = cnt - 1; t >= 0; t--) { const c = order[t], r = rcv[c]; if (r >= 0 && h[r] > 0) flow[r] += flow[c]; }
+  }
+
+  /* stream-power incision, implicit, solved from the coast upstream */
+  function erode(W, kdt) {
+    const { h, filled, rcv, rdist, order, flow, lake, cellKm, landCount, rain } = W;
+    const cellA = cellKm * cellKm, M = 0.42;
+    for (let t = 0; t < landCount; t++) {
+      const c = order[t], r = rcv[c]; lake[c] = 0;
+      if (r < 0) continue;
+      const hc = h[c], fc = filled[c];
+      if (fc > hc + 0.5) { lake[c] = 1; h[c] = hc + (fc - hc) * 0.22; continue; }   // lakes silt up
+      const base = h[r] <= 0 ? 0 : (lake[r] ? filled[r] : h[r]);
+      if (base >= hc) continue;
+      const f = kdt * Math.pow(flow[c] / cellA, M) * (cellKm / rdist[c]);
+      h[c] = (hc + f * base) / (1 + f);
+    }
+  }
+
+  function diffuse(W, kd) {
+    const { N, h, tmp, order, landCount, inDisk } = W;
+    for (let t = 0; t < landCount; t++) {
+      const c = order[t]; let s = 0, w = 0;
+      if (inDisk[c - 1]) { s += Math.max(h[c - 1], -40); w++; } if (inDisk[c + 1]) { s += Math.max(h[c + 1], -40); w++; }
+      if (inDisk[c - N]) { s += Math.max(h[c - N], -40); w++; } if (inDisk[c + N]) { s += Math.max(h[c + N], -40); w++; }
+      tmp[c] = w ? h[c] + kd * (s / w - h[c]) : h[c];
+    }
+    for (let t = 0; t < landCount; t++) { const c = order[t]; h[c] = Math.max(0.5, tmp[c]); }
+  }
+
+  /* ---------- 5. final hydrology products ---------- */
+  function finalize(W) {
+    const { h, filled, rcv, rdist, order, flow, lake, basin, flen, landCount, cellKm, diskCells } = W;
+    route(W);
+    lake.fill(0); basin.fill(0); flen.fill(0);
+    const outlet = new Int32Array(W.n).fill(-1), count = new Map();
+    for (let t = 0; t < landCount; t++) {
+      const c = order[t], r = rcv[c];
+      if (filled[c] - h[c] > 3) lake[c] = 1;
+      const o = (r < 0 || h[r] <= 0) ? c : outlet[r];
+      outlet[c] = o; count.set(o, (count.get(o) || 0) + 1);
+    }
+    for (let t = landCount - 1; t >= 0; t--) {
+      const c = order[t], r = rcv[c];
+      if (r >= 0 && h[r] > 0) { const l = flen[c] + rdist[c]; if (l > flen[r]) flen[r] = l; }
+    }
+    const list = [...count.entries()].sort((a, b) => b[1] - a[1]);
+    const rank = new Map(); W.basins = [];
+    const cellA = cellKm * cellKm;
+    list.forEach(([o, cells], i) => {
+      const rk = Math.min(65535, i + 1); rank.set(o, rk);
+      if (i < 400) W.basins.push({ rank: rk, outlet: o, cells, areaKm2: cells * cellA, lengthKm: flen[o] + rdist[o], discharge: flow[o] });
+    });
+    for (let t = 0; t < landCount; t++) { const c = order[t]; basin[c] = rank.get(outlet[c]); }
+    let maxH = -1e9, minH = 1e9, longest = 0, maxFlow = 0, lakes = 0;
+    for (let t = 0; t < diskCells.length; t++) { const c = diskCells[t]; if (h[c] > maxH) maxH = h[c]; if (h[c] < minH) minH = h[c]; }
+    for (let t = 0; t < landCount; t++) { const c = order[t]; if (flen[c] > longest) longest = flen[c]; if (flow[c] > maxFlow) maxFlow = flow[c]; if (lake[c]) lakes++; }
+    W.stats = {
+      land: landCount / diskCells.length, maxH, minH, longestKm: longest, maxFlow,
+      largestBasinKm2: W.basins.length ? W.basins[0].areaKm2 : 0, basins: list.length, lakeCells: lakes, plates: W.plates.length,
+    };
+  }
+
+  /* rivers above a discharge threshold, as chains of cells from source/confluence to the next confluence or the sea */
+  function traceRivers(W, threshold) {
+    const { h, rcv, order, flow, landCount, n } = W;
+    const isR = new Uint8Array(n), nUp = new Uint8Array(n);
+    for (let t = 0; t < landCount; t++) { const c = order[t]; if (flow[c] >= threshold) isR[c] = 1; }
+    for (let t = 0; t < landCount; t++) { const c = order[t]; if (isR[c]) { const r = rcv[c]; if (r >= 0 && isR[r]) nUp[r]++; } }
+    const rivers = [];
+    for (let t = 0; t < landCount; t++) {
+      const s = order[t]; if (!isR[s] || nUp[s] === 1) continue;
+      const cells = [s], flows = [flow[s]]; let c = rcv[s], prev = s;
+      while (c >= 0) {
+        if (h[c] <= 0 || !isR[c]) { cells.push(c); flows.push(flow[prev]); break; }
+        if (nUp[c] !== 1) { cells.push(c); flows.push(flow[prev]); break; }
+        cells.push(c); flows.push(flow[c]); prev = c; c = rcv[c];
+      }
+      if (cells.length > 1) rivers.push({ cells, flows, source: nUp[s] === 0 });
+    }
+    return rivers;
+  }
+
+  /* ---------- the pipeline ---------- */
+  const STAGES = ['Breaking the crust into plates', 'Raising mountains and trenches', 'Running winds and rain', 'Eroding', 'Tracing rivers and watersheds'];
+
+  async function generate(P, hooks) {
+    const rng = mulberry32(hashStr(String(P.seed)));
+    const noise = makeNoise(rng), noise2 = makeNoise(rng);
+    const W = createWorld(P);
+    const step = async (stage, label, frac) => { W.stage = stage; if (hooks && hooks.frame) await hooks.frame(W, stage, label, frac); };
+
+    genPlates(W, P, rng, noise);
+    await step(0, STAGES[0], 0.04);
+
+    genCrust(W, P, rng, noise, noise2);
+    // impacts are scheduled through the erosion run: early ones get worn down, late ones stay crisp
+    const iters = P.iters;
+    for (let k = 0; k < P.impacts; k++) {
+      const r = Math.sqrt(rng()) * 0.78, a = rng() * 6.283185, rk = 170 + Math.pow(rng(), 1.6) * 330;
+      W.impacts.push({ x: r * Math.cos(a), y: r * Math.sin(a), rk, depth: 500 + rk * 4.5,
+        at: k === 0 ? iters - 2 : Math.floor(rng() * (iters - 1)), floor: 0, done: false });
+    }
+    await step(1, STAGES[1], 0.1);
+
+    climate(W, P, noise);
+    await step(2, STAGES[2], 0.16);
+
+    const { h, U, diskCells } = W;
+    const kdt = P.erosion / iters, upIters = Math.max(1, Math.round(iters * 0.85)), uf = 0.7 / upIters;
+    for (let it = 0; it < iters; it++) {
+      for (const imp of W.impacts) if (!imp.done && imp.at === it) {
+        const ci = clamp(Math.floor((imp.x + 1) / 2 * W.N), 0, W.N - 1), cj = clamp(Math.floor((imp.y + 1) / 2 * W.N), 0, W.N - 1);
+        imp.floor = h[cj * W.N + ci]; applyImpact(W, imp); imp.done = true;
+      }
+      if (it < upIters) for (let t = 0; t < diskCells.length; t++) { const c = diskCells[t]; h[c] += U[c] * uf; }
+      route(W); erode(W, kdt); diffuse(W, 0.05);
+      if (it === Math.floor(iters / 2)) climate(W, P, noise);     // rain follows the mountains as they rise
+      await step(3, STAGES[3] + ' — pass ' + (it + 1) + ' of ' + iters, 0.16 + 0.76 * (it + 1) / iters);
+    }
+
+    climate(W, P, noise);
+    finalize(W);
+    W.ready = true;
+    await step(4, STAGES[4], 1);
+    return W;
+  }
+
+  function biomeName(T, Pm, h, lake, ice) {
+    if (lake) return 'Lake';
+    if (h <= 0) return ice ? 'Sea ice' : (h > -200 ? 'Shelf sea' : 'Ocean');
+    if (ice && T < -6) return 'Ice sheet';
+    if (T < 0) return 'Tundra';
+    if (T < 7) return Pm < 350 ? 'Cold steppe' : 'Boreal forest';
+    if (T < 18) return Pm < 300 ? 'Desert' : Pm < 700 ? 'Grassland' : Pm < 1600 ? 'Temperate forest' : 'Temperate rainforest';
+    return Pm < 300 ? 'Hot desert' : Pm < 900 ? 'Savanna' : Pm < 1800 ? 'Seasonal forest' : 'Tropical rainforest';
+  }
+
+  return { generate, traceRivers, biomeName, STAGES, R_KM, clamp, sstep };
+})();
+
+</script>
+<script>
+/* ===== Colour: turns world layers into per-cell RGB for each map view ===== */
+const Paint = (() => {
+  'use strict';
+  const ramp = (stops) => (v, out, o) => {
+    let k = 0; const m = stops.length;
+    if (v <= stops[0][0]) k = 0; else if (v >= stops[m - 1][0]) k = m - 2; else while (v > stops[k + 1][0]) k++;
+    const a = stops[k], b = stops[k + 1]; let t = (v - a[0]) / (b[0] - a[0]); t = t < 0 ? 0 : t > 1 ? 1 : t;
+    out[o] = a[1] + (b[1] - a[1]) * t; out[o + 1] = a[2] + (b[2] - a[2]) * t; out[o + 2] = a[3] + (b[3] - a[3]) * t;
+  };
+  const R = {
+    land: ramp([[0, 104, 160, 110], [250, 150, 190, 124], [700, 214, 208, 146], [1500, 202, 166, 108], [2800, 158, 112, 78], [4200, 150, 128, 118], [5600, 214, 206, 204], [7000, 255, 255, 255]]),
+    sea: ramp([[-8000, 10, 26, 62], [-5000, 20, 48, 100], [-3000, 34, 84, 142], [-1200, 62, 128, 178], [-200, 112, 178, 204], [0, 164, 212, 222]]),
+    seaUnder: ramp([[-8000, 8, 22, 60], [-4500, 24, 58, 118], [-2500, 44, 104, 160], [-600, 90, 170, 196], [-150, 150, 214, 214], [0, 196, 232, 220]]),
+    rain: ramp([[0, 222, 198, 150], [300, 206, 200, 128], [700, 150, 186, 108], [1300, 76, 150, 112], [2200, 30, 104, 130], [3400, 34, 58, 120]]),
+    temp: ramp([[-32, 244, 247, 255], [-16, 176, 208, 240], [-4, 110, 164, 204], [6, 128, 184, 150], [15, 214, 204, 112], [24, 228, 146, 78], [32, 190, 66, 60]]),
+  };
+  // biome palette: rows by temperature, columns by rainfall
+  const BT = [-14, -4, 6, 16, 26], BP = [0, 450, 1100, 2400];
+  const BIO = [
+    [[236, 240, 244], [238, 242, 246], [240, 244, 248], [242, 246, 250]],
+    [[166, 158, 140], [158, 162, 136], [146, 160, 138], [140, 158, 142]],
+    [[178, 166, 122], [112, 138, 96], [70, 110, 82], [56, 98, 80]],
+    [[214, 192, 144], [158, 172, 98], [84, 138, 76], [50, 112, 72]],
+    [[226, 202, 152], [186, 174, 96], [92, 148, 66], [36, 108, 54]],
+  ];
+  function biome(T, P, out, o) {
+    let ti = 0; while (ti < BT.length - 2 && T > BT[ti + 1]) ti++;
+    let pi = 0; while (pi < BP.length - 2 && P > BP[pi + 1]) pi++;
+    let tt = (T - BT[ti]) / (BT[ti + 1] - BT[ti]); tt = tt < 0 ? 0 : tt > 1 ? 1 : tt;
+    let tp = (P - BP[pi]) / (BP[pi + 1] - BP[pi]); tp = tp < 0 ? 0 : tp > 1 ? 1 : tp;
+    const a = BIO[ti][pi], b = BIO[ti][pi + 1], c = BIO[ti + 1][pi], d = BIO[ti + 1][pi + 1];
+    for (let k = 0; k < 3; k++) { const lo = a[k] + (b[k] - a[k]) * tp, hi = c[k] + (d[k] - c[k]) * tp; out[o + k] = lo + (hi - lo) * tt; }
+  }
+  function hsl(h, s, l) {
+    const f = (n) => { const k = (n + h * 12) % 12; return l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+    return [f(0) * 255, f(8) * 255, f(4) * 255];
+  }
+  const BASIN_PAL = [[230, 159, 0], [86, 180, 233], [0, 158, 115], [240, 228, 66], [204, 121, 167], [213, 94, 0], [120, 142, 220], [150, 200, 120], [220, 150, 140], [110, 190, 190], [190, 170, 230], [200, 190, 120]];
+  const LAKE = [70, 134, 190], ICE = [228, 236, 242];
+
+  /* out: Uint8Array(3n). Also fills W-independent display flags through `ice` (Uint8Array) */
+  function paint(W, view, out, ice, stride) {
+    stride = stride || 3;
+    const { diskCells, h, temp, rain, plate, bdist, conv, basin, lake, plates, ready } = W, iceM = W.ice;
+    const pcol = plates.map((p) => p.cont ? hsl((0.06 + p.hue * 0.12) % 1, 0.42, 0.5 + p.tone * 0.2) : hsl(0.52 + p.hue * 0.16, 0.36, 0.34 + p.tone * 0.2));
+    const stage = W.stage;
+    for (let t = 0; t < diskCells.length; t++) {
+      const c = diskCells[t], o = c * stride, hv = h[c], land = hv > 0;
+      let frozen = 0;
+      if (view === 'plates' || stage < 1) {
+        const pc = pcol[plate[c]], dk = bdist[c], cv = conv[c];
+        const sh = stage >= 1 && !land ? 0.72 : 1;
+        let r = pc[0] * sh, g = pc[1] * sh, b = pc[2] * sh;
+        const e = 1 - Sim.sstep(45, 110, dk);
+        if (e > 0) {
+          const bc = cv > 0.12 ? [214, 48, 62] : cv < -0.12 ? [70, 190, 235] : [244, 214, 96];
+          r += (bc[0] - r) * e; g += (bc[1] - g) * e; b += (bc[2] - b) * e;
+        }
+        out[o] = r; out[o + 1] = g; out[o + 2] = b;
+      } else if (view === 'elevation') {
+        if (land) R.land(hv, out, o); else R.sea(hv, out, o);
+      } else if (view === 'rain') {
+        if (stage < 2) { if (land) R.land(hv, out, o); else R.sea(hv, out, o); }
+        else if (land) R.rain(rain[c], out, o); else { out[o] = 52; out[o + 1] = 70; out[o + 2] = 96; }
+      } else if (view === 'temp') {
+        if (stage < 2) { if (land) R.land(hv, out, o); else R.sea(hv, out, o); } else R.temp(temp[c], out, o);
+      } else if (view === 'basins') {
+        if (!land) { out[o] = 44; out[o + 1] = 62; out[o + 2] = 88; }
+        else if (!ready) R.land(hv, out, o);
+        else {
+          const rk = basin[c];
+          if (rk > 0 && rk <= 48) { const p = BASIN_PAL[(rk - 1) % 12], d = rk > 36 ? 0.62 : rk > 24 ? 0.74 : rk > 12 ? 0.87 : 1; out[o] = p[0] * d; out[o + 1] = p[1] * d; out[o + 2] = p[2] * d; }
+          else { const g = 150 + ((rk * 37) % 5) * 7; out[o] = g; out[o + 1] = g; out[o + 2] = g - 6; }
+        }
+      } else { // terrain
+        if (land) {
+          if (stage < 2) R.land(hv, out, o); else if (iceM[c] && temp[c] < -6) { out[o] = 240; out[o + 1] = 244; out[o + 2] = 248; } else biome(temp[c], rain[c], out, o);
+        } else {
+          R.seaUnder(hv, out, o);
+          if (stage >= 2 && iceM[c]) { frozen = 1; out[o] = ICE[0]; out[o + 1] = ICE[1]; out[o + 2] = ICE[2]; }
+        }
+      }
+      if (ready && lake[c] && view !== 'plates' && view !== 'temp') {
+        if (temp[c] < -8 && view === 'terrain') { out[o] = ICE[0]; out[o + 1] = ICE[1]; out[o + 2] = ICE[2]; }
+        else { out[o] = LAKE[0]; out[o + 1] = LAKE[1]; out[o + 2] = LAKE[2]; }
+      }
+      if (ice) ice[c] = frozen;
+    }
+  }
+  return { paint, ramps: R, biome, BASIN_PAL };
+})();
+
+</script>
+<script>
+/* ===== App: WebGL view of the world, controls, probe, export ===== */
+(() => {
+  'use strict';
+  const $ = (s) => document.querySelector(s);
+  const canvas = $('#gl');
+  const gl = canvas.getContext('webgl2', { antialias: true, alpha: false }) || canvas.getContext('webgl', { antialias: true, alpha: false });
+  const isGL2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
+  if (!gl || (!isGL2 && !gl.getExtension('OES_element_index_uint'))) {
+    $('#fatal').hidden = false;
+    $('#fatal').textContent = 'This browser can’t start WebGL, which the 3D view needs. Try another browser or turn on hardware acceleration.';
+    return;
+  }
+
+  const M2U = 100 / (Sim.R_KM * 1000);          // metres -> scene units at 1x (disk radius = 100 units)
+  const FOV = 40 * Math.PI / 180, TAN = Math.tan(FOV / 2);
+  const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const nf = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+
+  const state = {
+    view: 'terrain', exag: 40, riverT: 0.5, sea: true, busy: false,
+    az: 0.55, el: 0.84, dist: 480, tx: 0, tz: 0, moved: false,
+    inset: { top: 0, bottom: 0, left: 0 }, probe: null, dark: true, bg: [0.05, 0.1, 0.18],
+  };
+  let W = null, T = null, runId = 0, dirty = true, downloads = null;
+
+  /* ---------- GL plumbing ---------- */
+  const VS = `
+attribute vec2 aXZ; attribute float aH; attribute vec2 aGrad; attribute vec4 aColor;
+uniform mat4 uMVP; uniform float uYS; uniform float uYO; uniform float uLit; uniform float uPoint; uniform vec3 uLight;
+varying vec4 vColor; varying vec2 vXZ;
+void main(){
+  vec3 n = normalize(vec3(-aGrad.x*uYS, 1.0, -aGrad.y*uYS));
+  float d = max(dot(n, uLight), 0.0);
+  float shade = mix(1.0, 0.36 + 0.14*n.y + 0.80*d, uLit);
+  vColor = vec4(aColor.rgb*shade, aColor.a);
+  vXZ = aXZ;
+  gl_Position = uMVP * vec4(aXZ.x, aH*uYS + uYO, aXZ.y, 1.0);
+  gl_PointSize = uPoint;
+}`;
+  const FS = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec4 vColor; varying vec2 vXZ; uniform float uClip; uniform vec4 uTint;
+void main(){
+  if (uClip > 0.0 && dot(vXZ, vXZ) > uClip*uClip) discard;
+  gl_FragColor = vColor * uTint;
+}`;
+  function shader(type, src) {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, shader(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, FS));
+  ['aXZ', 'aH', 'aGrad', 'aColor'].forEach((n, i) => gl.bindAttribLocation(prog, i, n));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  gl.useProgram(prog);
+  const U = {}; ['uMVP', 'uYS', 'uYO', 'uLit', 'uPoint', 'uLight', 'uClip', 'uTint'].forEach((n) => { U[n] = gl.getUniformLocation(prog, n); });
+
+  function makeMesh() { return { xz: gl.createBuffer(), h: gl.createBuffer(), grad: null, col: gl.createBuffer(), idx: null, count: 0, mode: gl.TRIANGLES }; }
+  function fillMesh(m, xz, h, col, idx, usage) {
+    usage = usage || gl.STATIC_DRAW;
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.xz); gl.bufferData(gl.ARRAY_BUFFER, xz, usage);
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.h); gl.bufferData(gl.ARRAY_BUFFER, h, usage);
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.col); gl.bufferData(gl.ARRAY_BUFFER, col, usage);
+    if (idx) { if (!m.idx) m.idx = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.idx); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, usage); m.count = idx.length; m.indexed = true; }
+    else { m.count = xz.length / 2; m.indexed = false; }
+  }
+  function drawMesh(m) {
+    if (!m || !m.count) return;
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.xz); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.h); gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 0, 0);
+    if (m.grad) { gl.bindBuffer(gl.ARRAY_BUFFER, m.grad); gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 2, gl.FLOAT, false, 0, 0); }
+    else { gl.disableVertexAttribArray(2); gl.vertexAttrib2f(2, 0, 0); }
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.col); gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+    if (m.indexed) { gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.idx); gl.drawElements(m.mode, m.count, gl.UNSIGNED_INT, 0); }
+    else gl.drawArrays(m.mode, 0, m.count);
+  }
+  const M = { terrain: makeMesh(), wall: makeMesh(), water: makeMesh(), fall: makeMesh(), rivers: makeMesh(), arrows: makeMesh(), stars: makeMesh() };
+  M.terrain.grad = gl.createBuffer(); M.terrain.idx = gl.createBuffer(); M.stars.mode = gl.POINTS;
+
+  /* small matrix kit (column-major) */
+  function perspective(fovy, aspect, near, far) {
+    const f = 1 / Math.tan(fovy / 2), o = new Float32Array(16);
+    o[0] = f / aspect; o[5] = f; o[10] = (far + near) / (near - far); o[11] = -1; o[14] = 2 * far * near / (near - far);
+    return o;
+  }
+  function lookAt(e, c) {
+    let fx = c[0] - e[0], fy = c[1] - e[1], fz = c[2] - e[2]; const fl = Math.hypot(fx, fy, fz); fx /= fl; fy /= fl; fz /= fl;
+    let rx = -fz, ry = 0, rz = fx; const rl = Math.hypot(rx, rz) || 1; rx /= rl; rz /= rl;       // f x up(0,1,0)
+    const ux = ry * fz - rz * fy, uy = rz * fx - rx * fz, uz = rx * fy - ry * fx;
+    const o = new Float32Array(16);
+    o[0] = rx; o[4] = ry; o[8] = rz; o[12] = -(rx * e[0] + ry * e[1] + rz * e[2]);
+    o[1] = ux; o[5] = uy; o[9] = uz; o[13] = -(ux * e[0] + uy * e[1] + uz * e[2]);
+    o[2] = -fx; o[6] = -fy; o[10] = -fz; o[14] = fx * e[0] + fy * e[1] + fz * e[2];
+    o[15] = 1;
+    return { m: o, f: [fx, fy, fz], r: [rx, ry, rz], u: [ux, uy, uz] };
+  }
+  function mul(a, b) {
+    const o = new Float32Array(16);
+    for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
+    return o;
+  }
+
+  /* ---------- camera ---------- */
+  let cam = null;
+  function camera() {
+    const w = canvas.clientWidth || 1, h = canvas.clientHeight || 1, aspect = w / h;
+    const ce = Math.cos(state.el), se = Math.sin(state.el);
+    const eye = [state.tx + state.dist * ce * Math.sin(state.az), state.dist * se, state.tz + state.dist * ce * Math.cos(state.az)];
+    const la = lookAt(eye, [state.tx, 0, state.tz]);
+    const near = Math.max(0.5, state.dist * 0.04), far = state.dist + 1400;
+    const proj = perspective(FOV, aspect, near, far);
+    const sx = state.inset.left / w, sy = (state.inset.bottom - state.inset.top) / h;        // keep the disk centred in the free area
+    const shift = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, sx, sy, 0, 1]);
+    cam = { w, h, aspect, eye, f: la.f, r: la.r, u: la.u, sx, sy, mvp: mul(shift, mul(proj, la.m)) };
+    return cam;
+  }
+  function fitDistance() {
+    const w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
+    const fw = Math.max(120, w - state.inset.left), fh = Math.max(120, h - state.inset.top - state.inset.bottom);
+    const k = h / (2 * TAN);
+    return Math.max(205 / (0.95 * fw), (200 * Math.sin(state.el) + 30) / (0.9 * fh)) * k;
+  }
+  function clampCam() {
+    state.el = Sim.clamp(state.el, 0.16, 1.54); state.dist = Sim.clamp(state.dist, 55, 1500);
+    const tr = Math.hypot(state.tx, state.tz); if (tr > 105) { state.tx *= 105 / tr; state.tz *= 105 / tr; }
+  }
+  const invalidate = () => { dirty = true; };
+
+  /* ---------- terrain mesh ---------- */
+  function ensureTerrain(w) {
+    if (T && T.w === w) return;
+    const N = w.N, n = w.n, xz = new Float32Array(n * 2), quads = [];
+    for (let c = 0; c < n; c++) { xz[c * 2] = w.X[c] * 100; xz[c * 2 + 1] = w.Y[c] * 100; }
+    for (let j = 0; j < N - 1; j++) for (let i = 0; i < N - 1; i++) {
+      const c = j * N + i; if (w.inDisk[c] && w.inDisk[c + 1] && w.inDisk[c + N] && w.inDisk[c + N + 1]) quads.push(c);
+    }
+    T = { w, N, n, quads: Int32Array.from(quads), disp: new Float32Array(n), grad: new Float32Array(n * 2), col: new Uint8ClampedArray(n * 4).fill(255),
+      ice: new Uint8Array(n), diag: new Uint8Array(n), idx: new Uint32Array(quads.length * 6), cu: 200 / N, clipR: 100 * (1 - 5.4 / N), rimDepth: 4300, shellExag: -1 };
+    gl.bindBuffer(gl.ARRAY_BUFFER, M.terrain.xz); gl.bufferData(gl.ARRAY_BUFFER, xz, gl.STATIC_DRAW);
+    M.terrain.count = 0; M.rivers.count = 0; M.arrows.count = 0;
+  }
+  function updateTerrain() {
+    if (!T) return;
+    const w = T.w, { disp, grad, col, ice, diag, idx, quads, N, cu } = T, { h, filled, lake, diskCells } = w;
+    Paint.paint(w, state.view, col, ice, 4);
+    const ready = w.ready;
+    for (let t = 0; t < diskCells.length; t++) {
+      const c = diskCells[t]; let hv = h[c];
+      if (ready && lake[c]) hv = filled[c]; else if (ice[c]) hv = 45;
+      disp[c] = hv * M2U;
+    }
+    const k = 1 / (2 * cu);
+    for (let t = 0; t < diskCells.length; t++) {
+      const c = diskCells[t];
+      grad[c * 2] = (disp[c + 1] - disp[c - 1]) * k; grad[c * 2 + 1] = (disp[c + N] - disp[c - N]) * k;
+    }
+    let o = 0;
+    for (let q = 0; q < quads.length; q++) {
+      const c = quads[q], a = disp[c], b = disp[c + 1], d = disp[c + N], e = disp[c + N + 1];
+      if (Math.abs(a - e) <= Math.abs(b - d)) { diag[c] = 0; idx[o++] = c; idx[o++] = c + N; idx[o++] = c + N + 1; idx[o++] = c; idx[o++] = c + N + 1; idx[o++] = c + 1; }
+      else { diag[c] = 1; idx[o++] = c; idx[o++] = c + N; idx[o++] = c + 1; idx[o++] = c + 1; idx[o++] = c + N; idx[o++] = c + N + 1; }
+    }
+    const m = M.terrain;
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.h); gl.bufferData(gl.ARRAY_BUFFER, disp, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.grad); gl.bufferData(gl.ARRAY_BUFFER, grad, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.col); gl.bufferData(gl.ARRAY_BUFFER, col, gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.idx); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.DYNAMIC_DRAW);
+    m.count = o; m.indexed = true;
+    if (w.stage >= 1) {
+      let s = 0, cnt = 0; for (let t = 0; t < diskCells.length; t += 7) { const c = diskCells[t]; if (w.R[c] > 0.955) { s += h[c]; cnt++; } }
+      if (cnt) T.rimDepth = Math.max(500, -s / cnt);
+    }
+    if (T.shellExag !== state.exag * T.rimDepth) buildShell();
+    invalidate();
+  }
+  function recolour() {
+    if (!T) return;
+    updateTerrain();
+  }
+  /* exact height of the drawn surface (1x units) at a scene position */
+  function surf(x, z) {
+    const N = T.N, fx = (x / 100 + 1) / 2 * N - 0.5, fy = (z / 100 + 1) / 2 * N - 0.5, i = Math.floor(fx), j = Math.floor(fy);
+    if (i < 0 || j < 0 || i >= N - 1 || j >= N - 1) return 0;
+    const c = j * N + i, tx = fx - i, ty = fy - j, d = T.disp, a = d[c], b = d[c + 1], e = d[c + N], g = d[c + N + 1];
+    if (T.diag[c] === 0) return tx >= ty ? a + tx * (b - a) + ty * (g - b) : a + ty * (e - a) + tx * (g - e);
+    return tx + ty <= 1 ? a + tx * (b - a) + ty * (e - a) : g + (1 - tx) * (e - g) + (1 - ty) * (b - g);
+  }
+
+  /* ---------- the slab the world sits on: sea in cross-section, crust below, water spilling off the rim ---------- */
+  function buildShell() {
+    const R = T.clipR, seg = 144, seaD = T.rimDepth * M2U * state.exag;
+    T.shellExag = state.exag * T.rimDepth;
+    const rings = [[0, 40, 96, 140], [-seaD, 14, 42, 84], [-seaD, 104, 94, 84], [-seaD - 2.6, 66, 56, 54], [-seaD - 5.5, 30, 24, 28]];
+    const nv = rings.length * (seg + 1), xz = new Float32Array(nv * 2), h = new Float32Array(nv), col = new Uint8ClampedArray(nv * 4), idx = [];
+    rings.forEach((rg, k) => {
+      for (let s = 0; s <= seg; s++) {
+        const a = s / seg * Math.PI * 2, v = k * (seg + 1) + s, ca = Math.cos(a), sa = Math.sin(a);
+        const sh = 0.72 + 0.28 * Math.max(0, -0.58 * ca - 0.81 * sa);
+        xz[v * 2] = R * ca; xz[v * 2 + 1] = R * sa; h[v] = rg[0];
+        col[v * 4] = rg[1] * sh; col[v * 4 + 1] = rg[2] * sh; col[v * 4 + 2] = rg[3] * sh; col[v * 4 + 3] = 255;
+        if (k > 0 && s < seg) { const p = v - (seg + 1); idx.push(p, v, p + 1, p + 1, v, v + 1); }
+      }
+    });
+    fillMesh(M.wall, xz, h, col, new Uint32Array(idx));
+    // sea surface: flat disk with a pale lip where it runs off the edge
+    {
+      const rr = [0, 0.93 * R, R], cc = [[20, 58, 104, 150], [20, 58, 104, 150], [170, 210, 224, 215]];
+      const nv2 = 1 + 2 * (seg + 1), x2 = new Float32Array(nv2 * 2), h2 = new Float32Array(nv2), c2 = new Uint8ClampedArray(nv2 * 4), i2 = [];
+      c2.set(cc[0], 0);
+      for (let k = 1; k <= 2; k++) for (let s = 0; s <= seg; s++) {
+        const a = s / seg * Math.PI * 2, v = 1 + (k - 1) * (seg + 1) + s;
+        x2[v * 2] = rr[k] * Math.cos(a); x2[v * 2 + 1] = rr[k] * Math.sin(a); c2.set(cc[k], v * 4);
+        if (s < seg) { if (k === 1) i2.push(0, v, v + 1); else { const p = v - (seg + 1); i2.push(p, v, p + 1, p + 1, v, v + 1); } }
+      }
+      fillMesh(M.water, x2, h2, c2, new Uint32Array(i2));
+    }
+    // rimfall
+    {
+      const rg = [[0, 215, 235, 240, 150], [-2.5, 150, 200, 226, 80], [-seaD - 14, 120, 180, 220, 0]], Rf = R + 0.25;
+      const nv3 = rg.length * (seg + 1), x3 = new Float32Array(nv3 * 2), h3 = new Float32Array(nv3), c3 = new Uint8ClampedArray(nv3 * 4), i3 = [];
+      rg.forEach((g, k) => { for (let s = 0; s <= seg; s++) {
+        const a = s / seg * Math.PI * 2, v = k * (seg + 1) + s;
+        x3[v * 2] = Rf * Math.cos(a); x3[v * 2 + 1] = Rf * Math.sin(a); h3[v] = g[0]; c3.set([g[1], g[2], g[3], g[4]], v * 4);
+        if (k > 0 && s < seg) { const p = v - (seg + 1); i3.push(p, v, p + 1, p + 1, v, v + 1); }
+      } });
+      fillMesh(M.fall, x3, h3, c3, new Uint32Array(i3));
+    }
+  }
+  function buildStars() {
+    const n = 760, xz = new Float32Array(n * 2), h = new Float32Array(n), col = new Uint8ClampedArray(n * 4);
+    let s = 12345; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+    for (let i = 0; i < n; i++) {
+      const y = rnd() * 2 - 1, a = rnd() * Math.PI * 2, r = Math.sqrt(Math.max(0, 1 - Math.min(1, y * y)));
+      xz[i * 2] = 1000 * r * Math.cos(a); xz[i * 2 + 1] = 1000 * r * Math.sin(a); h[i] = 1000 * y;
+      const b = 150 + rnd() * 105; col[i * 4] = b; col[i * 4 + 1] = b; col[i * 4 + 2] = Math.min(255, b + 18); col[i * 4 + 3] = 50 + rnd() * 170;
+    }
+    fillMesh(M.stars, xz, h, col, null);
+  }
+
+  /* ---------- rivers as draped ribbons ---------- */
+  const riverThreshold = () => 420000 * Math.pow(0.05, state.riverT);
+  let riverData = [], riverScale = 1;
+  function buildRivers() {
+    if (!W || !W.ready) { M.rivers.count = 0; return; }
+    riverData = Sim.traceRivers(W, riverThreshold());
+    riverScale = Sim.clamp(state.dist / 430, 0.22, 1.25);
+    const maxF = W.stats.maxFlow || 1, xzA = [], hA = [], idx = [];
+    for (const rv of riverData) {
+      let px = rv.cells.map((c) => W.X[c] * 100), pz = rv.cells.map((c) => W.Y[c] * 100), pf = rv.flows.slice();
+      for (let pass = 0; pass < 2; pass++) {
+        const nx = [px[0]], nz = [pz[0]], nfl = [pf[0]];
+        for (let k = 0; k < px.length - 1; k++) {
+          nx.push(0.75 * px[k] + 0.25 * px[k + 1], 0.25 * px[k] + 0.75 * px[k + 1]);
+          nz.push(0.75 * pz[k] + 0.25 * pz[k + 1], 0.25 * pz[k] + 0.75 * pz[k + 1]);
+          nfl.push(0.75 * pf[k] + 0.25 * pf[k + 1], 0.25 * pf[k] + 0.75 * pf[k + 1]);
+        }
+        nx.push(px[px.length - 1]); nz.push(pz[pz.length - 1]); nfl.push(pf[pf.length - 1]);
+        px = nx; pz = nz; pf = nfl;
+      }
+      const m = px.length, base = xzA.length / 2;
+      for (let k = 0; k < m; k++) {
+        const k0 = Math.max(0, k - 1), k1 = Math.min(m - 1, k + 1);
+        let dx = px[k1] - px[k0], dz = pz[k1] - pz[k0]; const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl;
+        let hw = 0.5 * riverScale * (0.2 + 1.3 * Math.sqrt(pf[k] / maxF));
+        if (rv.source) hw *= 0.3 + 0.7 * Math.min(1, k / 8);
+        for (let s = -1; s <= 1; s++) {
+          const x = px[k] - dz * hw * s, z = pz[k] + dx * hw * s;
+          xzA.push(x, z); hA.push(Math.max(0, surf(x, z)));
+        }
+        if (k < m - 1) { const v = base + k * 3; idx.push(v, v + 3, v + 1, v + 1, v + 3, v + 4, v + 1, v + 4, v + 2, v + 2, v + 4, v + 5); }
+      }
+    }
+    const col = new Uint8ClampedArray(hA.length * 4).fill(255);
+    fillMesh(M.rivers, new Float32Array(xzA), new Float32Array(hA), col, new Uint32Array(idx));
+    invalidate();
+  }
+
+  /* plate motion arrows */
+  function buildArrows() {
+    if (!W) return;
+    const K = W.plates.length, sx = new Float64Array(K), sy = new Float64Array(K), cnt = new Float64Array(K), dc = W.diskCells;
+    for (let t = 0; t < dc.length; t += 3) { const c = dc[t], p = W.plate[c]; sx[p] += W.X[c]; sy[p] += W.Y[c]; cnt[p]++; }
+    const xz = [], tri = (a, b, c) => { xz.push(a[0], a[1], b[0], b[1], c[0], c[1]); };
+    for (let k = 0; k < K; k++) {
+      if (cnt[k] < 12) continue;
+      const p = W.plates[k], cx = sx[k] / cnt[k], cy = sy[k] / cnt[k];
+      let vx = p.vx - p.om * (cy - p.y), vy = p.vy + p.om * (cx - p.x); const sp = Math.hypot(vx, vy) || 1; vx /= sp; vy /= sp;
+      const L = 7 + 11 * Math.min(1.3, sp), X0 = cx * 100, Z0 = cy * 100, px = -vy, pz = vx;
+      const tail = [X0 - vx * L / 2, Z0 - vy * L / 2], tip = [X0 + vx * L / 2, Z0 + vy * L / 2], nb = [tip[0] - vx * 3.6, tip[1] - vy * 3.6];
+      const off = (q, s) => [q[0] + px * s, q[1] + pz * s];
+      tri(off(tail, 0.6), off(tail, -0.6), off(nb, 0.6)); tri(off(nb, 0.6), off(tail, -0.6), off(nb, -0.6));
+      tri(off(nb, 2.1), off(nb, -2.1), tip);
+    }
+    const n = xz.length / 2, col = new Uint8ClampedArray(n * 4).fill(255);
+    fillMesh(M.arrows, new Float32Array(xz), new Float32Array(n), col, null);
+  }
+
+  /* ---------- draw ---------- */
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), w = Math.max(1, Math.round(canvas.clientWidth * dpr)), h = Math.max(1, Math.round(canvas.clientHeight * dpr));
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    return dpr;
+  }
+  const LIGHT = (() => { const v = [-0.5, 0.62, -0.6], l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; })();
+  const RIVER_TINT = { terrain: [0.2, 0.47, 0.76, 1], elevation: [0.14, 0.36, 0.72, 1], basins: [0.98, 0.98, 1, 1], rain: [0.1, 0.22, 0.5, 1], temp: [1, 1, 1, 0.9], plates: [1, 1, 1, 1] };
+  function render() {
+    const dpr = resize(), c = camera();
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(state.bg[0], state.bg[1], state.bg[2], 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.uniformMatrix4fv(U.uMVP, false, c.mvp); gl.uniform3fv(U.uLight, LIGHT);
+    const set = (ys, yo, lit, clip, tint) => { gl.uniform1f(U.uYS, ys); gl.uniform1f(U.uYO, yo); gl.uniform1f(U.uLit, lit); gl.uniform1f(U.uClip, clip); gl.uniform4fv(U.uTint, tint || [1, 1, 1, 1]); };
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    if (state.dark) { gl.disable(gl.DEPTH_TEST); gl.enable(gl.BLEND); gl.uniform1f(U.uPoint, 1.5 * dpr); set(1, 0, 0, 0); drawMesh(M.stars); }
+    if (!T) return;
+    gl.enable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.depthMask(true);
+    set(state.exag, 0, 1, T.clipR); drawMesh(M.terrain);
+    set(1, 0, 0, 0); drawMesh(M.wall);
+    const plates = state.view === 'plates', stage = T.w.stage;
+    if (T.w.ready && !plates && M.rivers.count) {
+      gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-2, -6);
+      set(state.exag, 0.06, 0, T.clipR, RIVER_TINT[state.view]); drawMesh(M.rivers);
+      gl.disable(gl.POLYGON_OFFSET_FILL);
+    }
+    gl.enable(gl.BLEND); gl.depthMask(false);
+    if (state.sea && !plates && stage >= 1) { gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1, 2); set(1, 0, 0, 0); drawMesh(M.water); gl.disable(gl.POLYGON_OFFSET_FILL); }
+    set(1, 0, 0, 0); drawMesh(M.fall);
+    if ((plates || stage < 1) && M.arrows.count) { gl.disable(gl.DEPTH_TEST); set(1, 0.4, 0, 0, [1, 1, 1, 0.92]); drawMesh(M.arrows); }
+    gl.depthMask(true);
+    placePin();
+  }
+  function loop() {
+    if (dirty) { dirty = false; try { render(); } catch (e) { console.error(e); } }
+    requestAnimationFrame(loop);
+  }
+
+  /* ---------- theme ---------- */
+  function readTheme() {
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--scene').trim();
+    const m = /^#([0-9a-f]{6})$/i.exec(v);
+    if (m) { const n = parseInt(m[1], 16); state.bg = [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255]; }
+    state.dark = 0.299 * state.bg[0] + 0.587 * state.bg[1] + 0.114 * state.bg[2] < 0.5;
+    invalidate();
+  }
+  if (window.matchMedia) matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTheme);
+  new MutationObserver(readTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  /* ---------- orbit, zoom, pan, tap ---------- */
+  const ptrs = new Map(); let gesture = null;
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  canvas.addEventListener('pointerdown', (e) => {
+    canvas.setPointerCapture(e.pointerId);
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size === 1) gesture = { t: performance.now(), x: e.clientX, y: e.clientY, travel: 0, pan: e.button === 2 || e.shiftKey, multi: false };
+    else if (gesture) gesture.multi = true;
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    const p = ptrs.get(e.pointerId); if (!p) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    if (ptrs.size === 1) {
+      if (gesture) gesture.travel += Math.abs(dx) + Math.abs(dy);
+      if (gesture && gesture.pan) pan(dx, dy);
+      else { state.az -= dx * 0.006; state.el += dy * 0.005; }
+    } else if (ptrs.size === 2) {
+      const other = [...ptrs.entries()].find(([id]) => id !== e.pointerId)[1];
+      const d0 = Math.hypot(p.x - other.x, p.y - other.y), d1 = Math.hypot(e.clientX - other.x, e.clientY - other.y);
+      if (d0 > 4) state.dist *= d0 / d1;
+      pan(dx * 0.5, dy * 0.5);
+    }
+    p.x = e.clientX; p.y = e.clientY;
+    if (!gesture || gesture.travel > 6 || gesture.multi) state.moved = true;
+    clampCam(); invalidate(); zoomedRivers();
+  });
+  const endPtr = (e) => {
+    if (!ptrs.has(e.pointerId)) return;
+    ptrs.delete(e.pointerId);
+    if (ptrs.size === 0 && gesture) {
+      if (!gesture.multi && gesture.travel < 7 && performance.now() - gesture.t < 500 && e.type === 'pointerup') probeAt(e.clientX, e.clientY);
+      gesture = null;
+    }
+  };
+  canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr);
+  canvas.addEventListener('wheel', (e) => { e.preventDefault(); state.dist *= Math.exp(e.deltaY * 0.0012); state.moved = true; clampCam(); invalidate(); zoomedRivers(); }, { passive: false });
+  canvas.addEventListener('keydown', (e) => {
+    const k = e.key; let used = true;
+    if (k === 'ArrowLeft') state.az -= 0.08; else if (k === 'ArrowRight') state.az += 0.08;
+    else if (k === 'ArrowUp') state.el += 0.06; else if (k === 'ArrowDown') state.el -= 0.06;
+    else if (k === '+' || k === '=') state.dist *= 0.88; else if (k === '-' || k === '_') state.dist *= 1.14;
+    else used = false;
+    if (used) { e.preventDefault(); state.moved = true; clampCam(); invalidate(); zoomedRivers(); }
+  });
+  function pan(dx, dy) {
+    const k = 2 * state.dist * TAN / (canvas.clientHeight || 1), sa = Math.sin(state.az), ca = Math.cos(state.az);
+    state.tx -= ca * dx * k; state.tz -= -sa * dx * k;
+    const f = k / Math.max(0.3, Math.sin(state.el));
+    state.tx += -sa * dy * f; state.tz += -ca * dy * f;
+  }
+  let riverTimer = 0;
+  function zoomedRivers() {
+    if (!W || !W.ready) return;
+    const want = Sim.clamp(state.dist / 430, 0.22, 1.25);
+    if (Math.abs(Math.log(want / riverScale)) > 0.14) { clearTimeout(riverTimer); riverTimer = setTimeout(buildRivers, 60); }
+  }
+
+  /* ---------- probe: what a chunk generator would read at this spot ---------- */
+  function probeAt(cx, cy) {
+    if (!T || !cam) return;
+    const rect = canvas.getBoundingClientRect(), c = cam;
+    const nx = ((cx - rect.left) / rect.width) * 2 - 1 - c.sx, ny = 1 - ((cy - rect.top) / rect.height) * 2 - c.sy;
+    let dx = c.f[0] + c.r[0] * nx * TAN * c.aspect + c.u[0] * ny * TAN, dy = c.f[1] + c.r[1] * nx * TAN * c.aspect + c.u[1] * ny * TAN, dz = c.f[2] + c.r[2] * nx * TAN * c.aspect + c.u[2] * ny * TAN;
+    const dl = Math.hypot(dx, dy, dz); dx /= dl; dy /= dl; dz /= dl;
+    const top = 12000 * M2U * state.exag;
+    if (dy >= 0) return clearProbe();
+    let t = Math.max(0, (c.eye[1] - top) / -dy), hit = -1; const tEnd = (c.eye[1] + 1) / -dy, step = T.cu * 0.35;
+    const sea = state.sea && state.view !== 'plates';
+    const hAt = (x, z) => { const s = surf(x, z) * state.exag; return sea && s < 0 ? 0 : s; };
+    let prev = t;
+    for (; t <= tEnd; t += step) {
+      const x = c.eye[0] + dx * t, z = c.eye[2] + dz * t;
+      if (x * x + z * z <= T.clipR * T.clipR && c.eye[1] + dy * t <= hAt(x, z)) { hit = t; break; }
+      prev = t;
+    }
+    if (hit < 0) return clearProbe();
+    let lo = prev, hi = hit;
+    for (let k = 0; k < 14; k++) { const mid = (lo + hi) / 2, x = c.eye[0] + dx * mid, z = c.eye[2] + dz * mid; if (c.eye[1] + dy * mid <= hAt(x, z)) hi = mid; else lo = mid; }
+    const x = c.eye[0] + dx * hi, z = c.eye[2] + dz * hi, N = T.N;
+    const i = Sim.clamp(Math.floor((x / 100 + 1) / 2 * N), 0, N - 1), j = Sim.clamp(Math.floor((z / 100 + 1) / 2 * N), 0, N - 1), cell = j * N + i;
+    if (!T.w.inDisk[cell]) return clearProbe();
+    state.probe = { x, z, cell };
+    showProbe(); invalidate();
+  }
+  function clearProbe() { state.probe = null; $('#pin').hidden = true; showInfo(); }
+  function placePin() {
+    const pin = $('#pin'); if (!state.probe || !T) { pin.hidden = true; return; }
+    const p = state.probe, m = cam.mvp, sea = state.sea && state.view !== 'plates';
+    let y = surf(p.x, p.z) * state.exag; if (sea && y < 0) y = 0;
+    const cx = m[0] * p.x + m[4] * y + m[8] * p.z + m[12], cy = m[1] * p.x + m[5] * y + m[9] * p.z + m[13], cw = m[3] * p.x + m[7] * y + m[11] * p.z + m[15];
+    if (cw <= 0) { pin.hidden = true; return; }
+    pin.hidden = false;
+    pin.style.transform = `translate(${((cx / cw + 1) / 2 * cam.w).toFixed(1)}px, ${((1 - cy / cw) / 2 * cam.h).toFixed(1)}px)`;
+  }
+
+  /* ---------- text panels ---------- */
+  const LEGEND = {
+    terrain: () => `<p class="hint">Drag to orbit, pinch or scroll to zoom. Tap the world to read the values a chunk generator would look up there.</p>`,
+    elevation: () => bar('linear-gradient(90deg,#0a1a3e 0%,#14306a 17%,#22548e 30%,#70b2cc 45%,#a4d4de 46%,#68a06e 46.5%,#d6d092 54%,#caa66c 62%,#9e704e 74%,#d6cecc 90%,#fff 100%)', ['−8 km', 'sea level', '+7 km'], [0, 46, 100]),
+    plates: () => `<ul class="keys"><li><i style="background:#d6303e"></i>Colliding</li><li><i style="background:#46beeb"></i>Spreading</li><li><i style="background:#f4d660"></i>Sliding past</li><li><i class="sw-land"></i>Continental plate</li><li><i class="sw-sea"></i>Oceanic plate</li></ul>`,
+    basins: () => `<p class="hint water">The 48 largest watersheds are colored. Gray land drains to the coast in small basins of its own.</p>`,
+    rain: () => bar('linear-gradient(90deg,#dec696,#cec880,#96ba6c,#4c9670,#1e6882,#223a78)', ['dry', '1,300 mm a year', '3,400'], [0, 40, 100]),
+    temp: () => bar('linear-gradient(90deg,#f4f7ff,#b0d0f0,#6ea4cc,#80b896,#d6cc70,#e4924e,#be423c)', ['−32 °C', '6 °C', '32 °C'], [0, 60, 100]),
+  };
+  function bar(grad, labels, pos) {
+    return `<div class="ramp"><div class="ramp-bar" style="background:${grad}"></div><div class="ramp-ticks">${labels.map((l, k) => `<span style="left:${pos[k]}%" class="${k === 0 ? 'first' : k === labels.length - 1 ? 'last' : ''}">${l}</span>`).join('')}</div></div>`;
+  }
+  const big = (km2) => km2 >= 1e6 ? (km2 / 1e6).toFixed(1) + ' M km²' : nf.format(Math.round(km2 / 1000) * 1000) + ' km²';
+  function showInfo() {
+    if (state.probe) return;
+    const el = $('#info'); let html = LEGEND[state.view]();
+    if (W && W.ready) {
+      const s = W.stats;
+      html += `<dl class="stats"><div><dt>Land</dt><dd>${Math.round(s.land * 100)}%</dd></div><div><dt>Highest peak</dt><dd>${nf.format(s.maxH)} m</dd></div>` +
+        `<div class="water"><dt>Longest river</dt><dd>${nf.format(s.longestKm)} km</dd></div><div class="water"><dt>Largest watershed</dt><dd>${big(s.largestBasinKm2)}</dd></div></dl>`;
+    }
+    el.innerHTML = html;
+    measure();
+  }
+  function showProbe() {
+    const p = state.probe, w = T.w, c = p.cell, h = w.h[c], land = h > 0, isLake = w.ready && w.lake[c];
+    const xk = p.x / 100 * Sim.R_KM, zk = p.z / 100 * Sim.R_KM, rk = Math.hypot(xk, zk);
+    const where = rk < 150 ? 'At the hub' : `${nf.format(Math.abs(xk))} km ${xk >= 0 ? 'east' : 'west'}, ${nf.format(Math.abs(zk))} km ${zk >= 0 ? 'south' : 'north'} of the hub`;
+    const pl = w.plates[w.plate[c]], cv = w.conv[c];
+    const edge = cv > 0.12 ? 'colliding' : cv < -0.12 ? 'spreading' : 'sliding past';
+    const rows = [];
+    if (isLake) rows.push(['Lake surface', nf.format(w.filled[c]) + ' m', 1]);
+    else rows.push(land ? ['Elevation', nf.format(h) + ' m', 0] : ['Depth', nf.format(-h) + ' m', 1]);
+    if (w.stage >= 2) { rows.push(['Temperature', Math.round(w.temp[c]) + ' °C', 0]); rows.push(['Rain', nf.format(w.rain[c]) + ' mm a year', 1]); }
+    rows.push(['Plate', `No. ${w.plate[c] + 1}, ${pl.cont ? 'continental' : 'oceanic'}`, 0]);
+    rows.push(['Plate edge', `${edge}, ${nf.format(w.bdist[c])} km away`, 0]);
+    if (w.ready && land) {
+      const rkn = w.basin[c], b = w.basins[rkn - 1];
+      rows.push(['Watershed', b ? `No. ${rkn}, ${big(b.areaKm2)}` : `No. ${nf.format(rkn)} (small coastal)`, 1]);
+      const q = w.flow[c] * 0.0127;
+      rows.push(['Flow', (q >= 100 ? '≈ ' + nf.format(Math.round(q / 100) * 100) : '< 100') + ' m³/s' + (w.flow[c] >= riverThreshold() ? ', major river' : ''), 1]);
+    }
+    const title = w.stage >= 2 ? Sim.biomeName(w.temp[c], w.rain[c], h, isLake, w.ice[c]) : (land ? 'Land' : 'Ocean');
+    $('#info').innerHTML = `<div class="probe"><div class="probe-head"><div><h2>${title}</h2><p>${where}</p></div><button type="button" class="quiet" id="clearProbe">Clear</button></div>` +
+      `<dl class="rows">${rows.map((r) => `<div class="${r[2] ? 'water' : ''}"><dt>${r[0]}</dt><dd>${r[1]}</dd></div>`).join('')}</dl></div>`;
+    $('#clearProbe').addEventListener('click', clearProbe);
+    measure();
+  }
+  function setProgress(label, frac) {
+    const p = $('#progress'); p.hidden = false;
+    $('#progressLabel').textContent = label; $('#progressFill').style.transform = `scaleX(${Sim.clamp(frac, 0, 1)})`;
+  }
+
+  /* ---------- parameters ---------- */
+  const ADJ = ['amber', 'quiet', 'salt', 'basalt', 'pale', 'iron', 'drowned', 'high', 'ochre', 'slow', 'broken', 'far', 'green', 'cold', 'red', 'old', 'bright', 'hollow', 'long', 'storm'];
+  const NOUN = ['shoal', 'caldera', 'craton', 'atoll', 'massif', 'delta', 'rift', 'shelf', 'moraine', 'estuary', 'gyre', 'trench', 'mesa', 'fjord', 'basin', 'reef', 'scarp', 'isthmus', 'tarn', 'strait'];
+  const randomSeed = () => ADJ[(Math.random() * ADJ.length) | 0] + '-' + NOUN[(Math.random() * NOUN.length) | 0];
+  const F = { seed: $('#seed'), plates: $('#plates'), land: $('#land'), erosion: $('#erosion'), impacts: $('#impacts'), hotspots: $('#hotspots'), exag: $('#exag'), rivers: $('#rivers'), sea: $('#sea') };
+  const radio = (name) => (document.querySelector(`input[name="${name}"]:checked`) || {}).value;
+  function readParams() {
+    return { seed: F.seed.value.trim() || 'unnamed', N: +radio('grid') || 384, plates: +F.plates.value, land: +F.land.value / 100, erosion: +F.erosion.value,
+      iters: 48, impacts: +F.impacts.value, hotspots: +F.hotspots.value, climate: radio('climate') || 'coldhub' };
+  }
+  const OUT = {
+    plates: (v) => v, land: (v) => v + '%', erosion: (v) => (+v < 1.8 ? 'light' : +v < 3.2 ? 'moderate' : +v < 4.3 ? 'heavy' : 'severe'),
+    impacts: (v) => v, hotspots: (v) => v, exag: (v) => '×' + v, rivers: (v) => (+v < 25 ? 'the greatest only' : +v < 60 ? 'major rivers' : +v < 85 ? 'and their tributaries' : 'every sizeable river'),
+  };
+  function syncOutputs() { for (const k in OUT) $('#' + k + 'Out').textContent = OUT[k](F[k].value); }
+  function savePrefs() {
+    try {
+      localStorage.setItem('diskforge:v1', JSON.stringify({ seed: F.seed.value, plates: F.plates.value, land: F.land.value, erosion: F.erosion.value, impacts: F.impacts.value,
+        hotspots: F.hotspots.value, exag: F.exag.value, rivers: F.rivers.value, sea: F.sea.checked, grid: radio('grid'), climate: radio('climate') }));
+    } catch (e) { /* storage unavailable: settings just don't persist */ }
+  }
+  function loadPrefs() {
+    let p = null;
+    try { p = JSON.parse(localStorage.getItem('diskforge:v1') || 'null'); } catch (e) { p = null; }
+    const wide = window.innerWidth >= 900;
+    const pick = (name, v) => { const el = document.querySelector(`input[name="${name}"][value="${v}"]`); if (el) el.checked = true; };
+    pick('grid', wide ? 512 : 384);
+    if (p) {
+      for (const k of ['plates', 'land', 'erosion', 'impacts', 'hotspots', 'exag', 'rivers']) if (p[k] != null && p[k] !== '') F[k].value = p[k];
+      if (p.seed) F.seed.value = p.seed; if (typeof p.sea === 'boolean') F.sea.checked = p.sea;
+      if (p.grid) pick('grid', p.grid); if (p.climate) pick('climate', p.climate);
+    }
+    if (!F.seed.value) F.seed.value = randomSeed();
+    state.exag = +F.exag.value; state.riverT = +F.rivers.value / 100; state.sea = F.sea.checked;
+  }
+
+  /* ---------- build a world ---------- */
+  const CANCEL = {};
+  const nextFrame = (ms) => new Promise((res) => { if (ms > 0) setTimeout(() => requestAnimationFrame(res), ms); else requestAnimationFrame(res); });
+  async function build() {
+    const id = ++runId, P = readParams();
+    savePrefs(); syncOutputs();
+    state.busy = true; document.documentElement.dataset.state = 'busy';
+    state.probe = null; $('#pin').hidden = true; $('#info').innerHTML = ''; $('#caption').textContent = `${P.seed}, ${P.N} cells across`;
+    M.rivers.count = 0;
+    setProgress(Sim.STAGES[0], 0);
+    let lastStage = -1, lastDraw = 0;
+    try {
+      const w = await Sim.generate(P, {
+        frame: async (w, stage, label, frac) => {
+          if (id !== runId) throw CANCEL;
+          W = w; ensureTerrain(w);
+          setProgress(label, frac);
+          const first = stage !== lastStage; lastStage = stage;
+          if (stage === 0) buildArrows();
+          if (reduced && stage < 4) { await nextFrame(0); return; }
+          const now = performance.now();
+          if (first || stage !== 3 || now - lastDraw > 24) { updateTerrain(); lastDraw = now; }
+          await nextFrame(stage === 0 ? 520 : stage === 1 ? 480 : stage === 2 ? 260 : stage === 3 ? 18 : 0);
+          if (id !== runId) throw CANCEL;
+        },
+      });
+      if (id !== runId) return;
+      W = w; updateTerrain(); buildRivers();
+      state.busy = false; document.documentElement.dataset.state = 'ready';
+      $('#progress').hidden = true;
+      showInfo(); $('#export').disabled = false;
+    } catch (e) {
+      if (e === CANCEL) return;
+      console.error(e);
+      state.busy = false; document.documentElement.dataset.state = 'error';
+      $('#progressLabel').textContent = 'The build stopped: ' + (e && e.message ? e.message : 'unknown error') + '. Try a smaller grid.';
+    }
+  }
+
+  /* ---------- export the lookup tables ---------- */
+  function b64(view) {
+    const u8 = new Uint8Array(view.buffer, view.byteOffset, view.byteLength); let s = '';
+    for (let i = 0; i < u8.length; i += 32768) s += String.fromCharCode.apply(null, u8.subarray(i, i + 32768));
+    return btoa(s);
+  }
+  function exportData() {
+    const w = W, n = w.n, i16 = (f) => { const a = new Int16Array(n); for (let c = 0; c < n; c++) a[c] = Sim.clamp(Math.round(f(c)), -32768, 32767); return a; };
+    const u16 = (f) => { const a = new Uint16Array(n); for (let c = 0; c < n; c++) a[c] = Sim.clamp(Math.round(f(c)), 0, 65535); return a; };
+    const i8 = (f) => { const a = new Int8Array(n); for (let c = 0; c < n; c++) a[c] = Sim.clamp(Math.round(f(c)), -128, 127); return a; };
+    const L = (type, unit, note, arr) => ({ type, unit, note, base64: b64(arr) });
+    return {
+      format: 'diskforge-lookup/1', seed: w.params.seed, params: w.params,
+      grid: { size: w.N, cellKm: w.cellKm, radiusKm: Sim.R_KM, order: 'row-major, index = y * size + x', axes: 'x grows east, y grows south, the hub is the centre of the grid', encoding: 'little-endian typed arrays, base64' },
+      layers: {
+        mask: L('uint8', '', '1 inside the disk', w.inDisk),
+        height_m: L('int16', 'm', 'bedrock height, sea level is 0', i16((c) => w.h[c])),
+        lake_level_m: L('int16', 'm', 'water surface where a lake stands, otherwise -32768', i16((c) => (w.lake[c] ? w.filled[c] : -32768))),
+        plate: L('uint8', '', 'index into plates', w.plate),
+        plate_edge_km: L('uint16', 'km', 'distance to the nearest plate boundary', u16((c) => w.bdist[c])),
+        convergence: L('int8', '', 'relative plate motion at that boundary x100: positive colliding, negative spreading', i8((c) => w.conv[c] * 100)),
+        temperature_c: L('int8', '°C', 'annual mean', i8((c) => w.temp[c])),
+        rain_mm: L('uint16', 'mm/yr', 'annual rainfall', u16((c) => w.rain[c])),
+        ice: L('uint8', '', '1 where sea ice or an ice sheet stands', w.ice),
+        flow: L('float32', 'km²·m/yr', 'rain collected from everything upstream; x0.0127 is roughly m³/s', w.flow),
+        receiver: L('int32', '', 'index of the cell this one drains into, -1 at the rim', w.rcv),
+        watershed: L('uint16', '', 'rank of the watershed by area, 1 is the largest, 0 is sea', w.basin),
+      },
+      plates: w.plates.map((p) => ({ id: p.id, xKm: p.x * Sim.R_KM, yKm: p.y * Sim.R_KM, continental: p.cont, drift: [p.vx, p.vy], spin: p.om })),
+      watersheds: w.basins.slice(0, 200).map((b) => ({ rank: b.rank, outletCell: b.outlet, areaKm2: Math.round(b.areaKm2), mainStemKm: Math.round(b.lengthKm) })),
+      rivers: riverData.map((r) => ({ cells: r.cells, flow: r.flows.map((f) => Math.round(f)) })),
+      impacts: w.impacts.map((i) => ({ xKm: i.x * Sim.R_KM, yKm: i.y * Sim.R_KM, radiusKm: Math.round(i.rk) })),
+      stats: w.stats,
+    };
+  }
+  async function doExport() {
+    const note = $('#exportNote');
+    if (!W || !W.ready || !downloads) return;
+    note.textContent = 'Packing the layers…';
+    await nextFrame(0);
+    try {
+      const blob = new Blob([JSON.stringify(exportData())]);
+      const res = await downloads.save({ filename: `diskforge-${String(W.params.seed).replace(/[^a-z0-9-]+/gi, '_')}-${W.N}.json`, data: blob });
+      note.textContent = res && res.status === 'saved' ? 'Exported the lookup tables.' : 'Export sent.';
+    } catch (e) {
+      const code = e && e.code;
+      note.textContent = code === 'declined' ? 'Export cancelled.' : code === 'rate_limited' ? 'A save prompt is already open. Answer it, then export again.' : code === 'too_large' ? 'That file is too large to save here. Rebuild on a smaller grid and export again.' : 'Export isn’t available in this view.';
+    }
+  }
+
+  /* ---------- layout bookkeeping ---------- */
+  const sheet = $('#sheet'), dock = $('#dock'), topbar = $('#top');
+  const isWide = () => window.innerWidth >= 900;
+  function measure() {
+    const wide = isWide(), open = sheet.classList.contains('open');
+    const cr = canvas.getBoundingClientRect(), dr = dock.getBoundingClientRect(), tr = topbar.getBoundingClientRect(), sr = sheet.getBoundingClientRect();
+    const inset = { top: tr.bottom - cr.top, bottom: cr.bottom - dr.top + 6, left: 0 };
+    if (wide) inset.left = sr.right - cr.left + 8;
+    else if (open) inset.bottom = Math.max(inset.bottom, cr.bottom - sr.top + 6);
+    state.inset = inset;
+    if (!state.moved) state.dist = fitDistance();
+    clampCam(); invalidate();
+  }
+  function setSheet(open) {
+    sheet.classList.toggle('open', open);
+    if (!isWide()) { if (open) sheet.removeAttribute('inert'); else sheet.setAttribute('inert', ''); } else sheet.removeAttribute('inert');
+    $('#openSheet').setAttribute('aria-expanded', String(open));
+    setTimeout(measure, reduced ? 0 : 300); measure();
+  }
+  new ResizeObserver(() => { if (isWide()) sheet.removeAttribute('inert'); else if (!sheet.classList.contains('open')) sheet.setAttribute('inert', ''); measure(); }).observe(document.body);
+  new ResizeObserver(measure).observe(dock);
+
+  /* ---------- wiring ---------- */
+  $('#openSheet').addEventListener('click', () => setSheet(!sheet.classList.contains('open')));
+  $('#closeSheet').addEventListener('click', () => setSheet(false));
+  $('#newWorld').addEventListener('click', () => { F.seed.value = randomSeed(); build(); });
+  $('#reseed').addEventListener('click', () => { F.seed.value = randomSeed(); });
+  $('#rebuild').addEventListener('click', () => { if (!isWide()) setSheet(false); build(); });
+  F.seed.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); build(); } });
+  for (const k of ['plates', 'land', 'erosion', 'impacts', 'hotspots']) F[k].addEventListener('input', syncOutputs);
+  F.exag.addEventListener('input', () => { state.exag = +F.exag.value; syncOutputs(); if (T) buildShell(); invalidate(); savePrefs(); });
+  F.rivers.addEventListener('input', () => { state.riverT = +F.rivers.value / 100; syncOutputs(); buildRivers(); if (state.probe) showProbe(); savePrefs(); });
+  F.sea.addEventListener('change', () => { state.sea = F.sea.checked; invalidate(); savePrefs(); });
+  const viewsEl = $('#views');
+  const viewsEdge = () => { viewsEl.classList.toggle('more', viewsEl.scrollLeft + viewsEl.clientWidth < viewsEl.scrollWidth - 4); };
+  viewsEl.addEventListener('scroll', viewsEdge, { passive: true }); window.addEventListener('resize', viewsEdge); viewsEdge();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(viewsEdge);
+  document.querySelectorAll('#views button').forEach((b) => b.addEventListener('click', () => {
+    state.view = b.dataset.view;
+    document.querySelectorAll('#views button').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+    recolour(); if (state.probe) showProbe(); else showInfo();
+  }));
+  $('#export').addEventListener('click', doExport);
+  if (window.claude && typeof window.claude.use === 'function') {
+    window.claude.use('downloads').then((d) => { if (d) { downloads = d; $('#exportWrap').hidden = false; } }).catch(() => {});
+  }
+
+  loadPrefs(); syncOutputs(); readTheme(); buildStars();
+  if (isWide()) sheet.classList.add('open'); else sheet.setAttribute('inert', '');
+  measure();
+  requestAnimationFrame(loop);
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(measure);
+  build();
+})();
+
+</script>
+</body>
+</html>

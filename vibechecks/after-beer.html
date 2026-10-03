@@ -1,0 +1,1365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>After Beer: cybernetics since 1972</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --paper:#F2F4F1; --panel:#FAFBF9; --ink:#1A2233; --muted:#566173; --line:#CBD2CC; --grid:rgba(26,34,51,.055);
+  --c-org:#0F766E; --c-second:#4338CA; --c-soft:#A85A0B; --c-complex:#4D7C0F; --c-cog:#BE185D;
+  --c-safety:#B91C1C; --c-ai:#0369A1; --c-social:#7E22CE; --c-hist:#57534E; --c-origins:#64748B;
+  --serif:'Newsreader',Georgia,'Times New Roman',serif;
+  --sans:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#11161E; --panel:#19202B; --ink:#E6EAF0; --muted:#98A3B4; --line:#2B3442; --grid:rgba(230,234,240,.05);
+    --c-org:#2DD4BF; --c-second:#A5B4FC; --c-soft:#F0B24A; --c-complex:#A3D65C; --c-cog:#F472B6;
+    --c-safety:#F87171; --c-ai:#60A5FA; --c-social:#C99BFF; --c-hist:#B4ADA6; --c-origins:#94A3B8;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11161E; --panel:#19202B; --ink:#E6EAF0; --muted:#98A3B4; --line:#2B3442; --grid:rgba(230,234,240,.05);
+  --c-org:#2DD4BF; --c-second:#A5B4FC; --c-soft:#F0B24A; --c-complex:#A3D65C; --c-cog:#F472B6;
+  --c-safety:#F87171; --c-ai:#60A5FA; --c-social:#C99BFF; --c-hist:#B4ADA6; --c-origins:#94A3B8;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:auto;scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px);scroll-behavior:smooth}
+body{
+  margin:0;background-color:var(--paper);color:var(--ink);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px;
+  font-family:var(--serif);font-size:18px;line-height:1.55;
+  -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+a{color:inherit}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--c-ai);outline-offset:2px;border-radius:4px}
+
+/* header */
+.top{padding:clamp(28px,6vw,64px) 0 clamp(12px,2vw,20px)}
+h1{font-weight:400;font-size:clamp(46px,9vw,104px);line-height:.95;letter-spacing:-.025em;margin:0 0 .18em}
+.lede{max-width:44rem;font-size:clamp(18px,2.2vw,22px);color:var(--muted);margin:0}
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--paper) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;gap:clamp(14px,3vw,30px);overflow-x:auto;font-family:var(--sans);font-size:15px;font-weight:500;scrollbar-width:none}
+.nav a{padding:14px 0;text-decoration:none;color:var(--muted);white-space:nowrap;border-bottom:2px solid transparent}
+.nav a:hover,.nav a.on{color:var(--ink);border-bottom-color:var(--ink)}
+section{padding:clamp(36px,6vw,72px) 0 0}
+h2{font-weight:600;font-size:clamp(28px,4vw,42px);line-height:1.1;letter-spacing:-.015em;margin:0 0 .3em}
+.sub{font-family:var(--sans);font-size:15px;color:var(--muted);max-width:46rem;margin:0 0 24px}
+
+/* map */
+.mapgrid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(20px,3vw,40px);align-items:start}
+.mapsvg{width:100%;height:auto;display:block}
+.node{cursor:pointer}
+.node circle.n{stroke-width:2;transition:stroke-width .15s,fill .15s}
+.node.sel circle.n{stroke-width:5}
+.node text{font-family:var(--sans);fill:var(--ink);pointer-events:none}
+.node .l{font-size:17px;font-weight:600;text-anchor:middle}
+.node .cnt{font-size:13px;fill:var(--muted);text-anchor:middle}
+.spoke{stroke:var(--line);stroke-width:1.5;fill:none}
+.xlink{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:5 6;fill:none;opacity:.35;transition:opacity .15s}
+.xlink.hi{opacity:.95;stroke-width:2.5}
+.mapsvg.has-sel .node:not(.sel):not(.rel){opacity:.5}
+.center circle{fill:var(--ink)}
+.center text{fill:var(--paper);font-family:var(--serif);text-anchor:middle}
+.tree{display:none;list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--ink)}
+.tree li{margin:0 0 8px}
+.tree .root{font-family:var(--serif);font-size:18px;margin:0 0 12px -14px;padding-left:14px;font-weight:600}
+.tree button{width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--c);border-radius:6px;padding:10px 12px;cursor:pointer;font-family:var(--sans)}
+.tree button[aria-pressed=true]{background:color-mix(in srgb,var(--c) 14%,var(--panel));border-color:var(--c)}
+.tree b{display:block;font-size:16px}
+.tree span{font-size:13.5px;color:var(--muted);line-height:1.35;display:block}
+@media(max-width:820px){
+  .mapgrid{grid-template-columns:1fr}
+  .mapsvg{display:none}
+  .tree{display:block}
+}
+.panel{background:var(--panel);border:1px solid var(--line);border-top:6px solid var(--c,var(--ink));border-radius:6px;padding:clamp(16px,3vw,28px);position:sticky;top:76px;max-height:calc(100vh - 96px);overflow:auto}
+@media(max-width:820px){.panel{position:static;max-height:none}}
+.panel h3{font-size:clamp(24px,3vw,32px);line-height:1.1;margin:0 0 6px;font-weight:600}
+.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--sans);font-size:14px;color:var(--muted);margin:0 0 14px}
+.stats b{color:var(--ink);font-weight:600}
+.panel p{margin:0 0 14px}
+.panel h4{font-family:var(--sans);font-size:14px;font-weight:600;margin:20px 0 8px;color:var(--c)}
+.ideas{margin:0;padding:0;list-style:none}
+.ideas li{margin:0 0 8px;font-size:16.5px;line-height:1.45}
+.ideas b{font-weight:600}
+.arg{margin:0 0 10px;font-size:16px;line-height:1.45;border-left:3px solid var(--line);padding-left:12px}
+.arg i{font-style:normal;font-family:var(--sans);font-size:13.5px;font-weight:600;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-family:var(--sans);font-size:13.5px;background:color-mix(in srgb,var(--c,var(--muted)) 12%,var(--panel));border:1px solid color-mix(in srgb,var(--c,var(--muted)) 40%,var(--line));border-radius:99px;padding:3px 10px;line-height:1.35}
+.chip small{color:var(--muted);font-size:12px}
+button.chip{cursor:pointer}
+.start li{margin:0 0 6px;font-size:16px;line-height:1.4}
+.start{margin:0;padding:0;list-style:none}
+.start em{font-style:italic}
+.start span{font-family:var(--sans);font-size:13px;color:var(--muted)}
+.rel-list{margin:0;padding:0;list-style:none}
+.rel-list li{font-size:15.5px;line-height:1.4;margin:0 0 8px}
+.rel-list button{background:none;border:0;padding:0;cursor:pointer;font-family:var(--sans);font-weight:600;font-size:14.5px;color:var(--c);text-decoration:underline;text-underline-offset:3px}
+
+/* timeline */
+.scroller{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.tl{display:block;min-width:960px;width:100%;height:auto}
+.tl text{font-family:var(--sans);fill:var(--ink)}
+.tl .yr{font-size:11.5px;fill:var(--muted)}
+.tl .rl{font-size:13px;font-weight:600}
+.tl .band{font-size:12px;fill:var(--muted)}
+.tl .dot{cursor:pointer}
+.tl .dot:focus-visible{outline:none;stroke:var(--ink);stroke-width:3}
+.tlinfo{font-family:var(--sans);font-size:15px;min-height:3.2em;padding:12px 2px 0;color:var(--muted)}
+.tlinfo b{color:var(--ink);font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--sans);font-size:13px;color:var(--muted);margin:10px 0 0}
+.legend svg{vertical-align:-3px;margin-right:5px}
+
+/* debates */
+.deb{border-top:1px solid var(--line)}
+.deb:last-of-type{border-bottom:1px solid var(--line)}
+.deb summary{list-style:none;cursor:pointer;padding:16px 0;display:flex;gap:14px;align-items:baseline;justify-content:space-between}
+.deb summary::-webkit-details-marker{display:none}
+.deb summary strong{font-size:clamp(20px,2.6vw,26px);font-weight:600;line-height:1.2}
+.deb summary .tags{display:flex;gap:5px;flex:none}
+.deb summary .tags i{width:11px;height:11px;border-radius:50%;background:var(--c);display:block}
+.deb summary::after{content:"+";font-family:var(--sans);font-size:24px;line-height:1;color:var(--muted);flex:none;width:20px;text-align:right}
+.deb[open] summary::after{content:"\2212"}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0 0 6px}
+.vs>div{padding:4px 22px 6px 0}
+.vs>div+div{padding:4px 0 6px 22px;border-left:2px solid var(--ink)}
+.vs h5{font-family:var(--sans);font-size:14px;font-weight:600;margin:0 0 4px}
+.vs p{margin:0 0 8px;font-size:16.5px;line-height:1.5}
+.vs .who{font-family:var(--sans);font-size:13.5px;color:var(--muted)}
+.stand{font-size:16.5px;margin:6px 0 20px;padding:10px 14px;background:color-mix(in srgb,var(--ink) 6%,transparent);border-radius:6px}
+.stand b{font-family:var(--sans);font-size:14px}
+@media(max-width:700px){
+  .deb summary .tags{display:none}
+  .vs{grid-template-columns:1fr}
+  .vs>div,.vs>div+div{padding:4px 0 6px 0;border-left:0}
+  .vs>div+div{border-top:2px solid var(--ink);padding-top:12px;margin-top:8px}
+}
+
+/* reading */
+.paths{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.paths button{font-family:var(--sans);font-size:14.5px;font-weight:500;background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:7px 14px;cursor:pointer}
+.paths button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.pathbox{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px 20px;margin:0 0 32px}
+.pathbox ol{margin:0;padding-left:24px}
+.pathbox li{margin:6px 0;font-size:16.5px}
+.pathbox li span{font-family:var(--sans);font-size:13.5px;color:var(--muted)}
+.filters{display:flex;flex-direction:column;gap:10px;margin:0 0 18px;font-family:var(--sans)}
+.frow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.frow>label{font-size:13.5px;color:var(--muted);width:64px;flex:none}
+.fb{font-size:13.5px;background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:4px 11px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.fb i{width:9px;height:9px;border-radius:50%;background:var(--c);display:block}
+.fb[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+input[type=search]{font:inherit;font-family:var(--sans);font-size:15px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);width:min(100%,340px)}
+.count{font-family:var(--sans);font-size:13.5px;color:var(--muted);margin:0 0 6px}
+.rrow{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:4px 16px;padding:12px 0;border-top:1px solid var(--line)}
+.rrow .y{font-family:var(--sans);font-size:14px;color:var(--muted);padding-top:3px}
+.rrow .t{font-size:18px;line-height:1.3;font-style:italic;font-weight:400}
+.rrow .a{font-family:var(--sans);font-size:14px;color:var(--muted)}
+.rrow .nt{font-size:15.5px;line-height:1.4;margin-top:2px}
+.rrow .meta{display:flex;flex-direction:column;gap:5px;align-items:flex-end;font-family:var(--sans);font-size:12.5px;color:var(--muted);text-align:right}
+.rrow .dots{display:flex;gap:4px}
+.rrow .dots i{width:10px;height:10px;border-radius:50%;background:var(--c);display:block}
+.empty{padding:24px 0;font-family:var(--sans);color:var(--muted)}
+@media(max-width:640px){
+  .rrow{grid-template-columns:1fr}
+  .rrow .meta{flex-direction:row;align-items:center;text-align:left;gap:10px;flex-wrap:wrap}
+  .frow>label{width:100%}
+}
+
+/* people */
+.prow{display:grid;grid-template-columns:minmax(150px,1.1fr) 92px minmax(0,2.6fr) 150px;gap:4px 16px;padding:10px 0;border-top:1px solid var(--line);font-size:16.5px;line-height:1.4}
+.prow .n{font-weight:600}
+.prow .d,.prow .b{font-family:var(--sans);font-size:13.5px;color:var(--muted)}
+.prow .b{display:flex;gap:6px;flex-wrap:wrap}
+.prow .b span{display:inline-flex;gap:5px;align-items:center}
+.prow .b i{width:9px;height:9px;border-radius:50%;background:var(--c);display:block}
+@media(max-width:760px){.prow{grid-template-columns:1fr}.prow .d{display:inline}}
+
+footer{padding:56px 0 64px;font-family:var(--sans);font-size:13.5px;color:var(--muted);max-width:46rem}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+
+/* ===== goals track additions ===== */
+[hidden]{display:none!important}
+:root{--ev-strong:#2F7D4F;--ev-moderate:#1D6FA5;--ev-mixed:#A86A10;--ev-contested:#B91C1C;--ev-practitioner:#6B7280;--ev-emerging:#7E3FBF}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ev-strong:#6FCF97;--ev-moderate:#6DB6F0;--ev-mixed:#F0B24A;--ev-contested:#F87171;--ev-practitioner:#A3ACB9;--ev-emerging:#C99BFF}}
+:root[data-theme="dark"]{--ev-strong:#6FCF97;--ev-moderate:#6DB6F0;--ev-mixed:#F0B24A;--ev-contested:#F87171;--ev-practitioner:#A3ACB9;--ev-emerging:#C99BFF}
+
+.ctrl{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;margin:22px 0 0}
+.seg{display:inline-flex;border:1.5px solid var(--ink);border-radius:10px;overflow:hidden;font-family:var(--sans);font-size:14px;max-width:100%}
+.seg button{background:transparent;border:0;padding:9px 13px;cursor:pointer;font-weight:500;white-space:nowrap}
+.seg button+button{border-left:1.5px solid var(--ink)}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--paper)}
+@media(max-width:420px){.seg button{padding:9px 9px;font-size:13px}}
+.diff{font-family:var(--sans);font-size:14.5px;line-height:1.45;color:var(--muted);max-width:54rem;margin:14px 0 0;padding:8px 12px;border-left:5px solid #FDE047;background:color-mix(in srgb,#FDE047 12%,transparent)}
+.diff b{color:var(--ink);font-weight:600}
+.sw{display:inline-flex;gap:8px;align-items:center;background:none;border:0;padding:14px 0;cursor:pointer;font-family:var(--sans);font-size:15px;font-weight:500;color:var(--muted);white-space:nowrap;border-bottom:2px solid transparent}
+.sw .trk{width:34px;height:20px;border-radius:99px;border:1.5px solid var(--ink);position:relative;flex:none;transition:background .15s}
+.sw .trk::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:var(--ink);transition:transform .15s}
+.sw[aria-checked=true] .trk{background:#FDE047}
+.sw[aria-checked=true] .trk::after{transform:translateX(14px);background:#3A2E00}
+.sw[aria-checked=true]{color:var(--ink)}
+.newpill{display:inline-block;font-family:var(--sans);font-size:11.5px;font-weight:600;background:#FDE047;color:#3A2E00;border-radius:99px;padding:1px 8px;margin-left:8px;vertical-align:middle;line-height:1.6;white-space:nowrap}
+.adds{background:color-mix(in srgb,#FDE047 15%,transparent);border-left:4px solid #FDE047;padding:8px 12px;margin:0 0 14px;font-size:16px;line-height:1.45}
+.adds b{font-family:var(--sans);font-size:13.5px;font-weight:600}
+.grows{font-family:var(--sans);font-size:14px;color:var(--muted);margin:0 0 12px}
+.grows button{background:none;border:0;padding:0;font:inherit;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer;color:var(--ink)}
+body[data-mode=both] .mapgrid,body[data-mode=new] .mapgrid{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
+@media(max-width:820px){body[data-mode=both] .mapgrid,body[data-mode=new] .mapgrid{grid-template-columns:1fr}}
+.mapsvg .grow{stroke:var(--ink);stroke-width:3;opacity:.45}
+.mapsvg .xlink{opacity:.22}
+.mapsvg .xlink.hi{opacity:.95}
+.mapsvg .xlink.nl{stroke:var(--ink)}
+.node.newn .l{font-size:14.5px}
+.mapsvg .node.ctx:not(.sel):not(.rel){opacity:.3}
+.mapsvg .spoke.ctxs{opacity:.35}
+.tree .pillrow{display:inline-block}
+.sq{border-radius:2px!important}
+.rrow .flag{font-style:italic}
+
+/* goal loop */
+.loopgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(20px,3vw,40px);align-items:start}
+@media(max-width:820px){.loopgrid{grid-template-columns:1fr}}
+.loopsvg{width:100%;height:auto;display:block;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.lbox{cursor:pointer}
+.lbox rect,.lbox circle{fill:var(--panel);stroke:var(--ink);stroke-width:2;transition:fill .15s}
+.lbox text{font-family:var(--sans);fill:var(--ink);text-anchor:middle;pointer-events:none}
+.lbox .lt{font-size:15px;font-weight:600}
+.lbox .ls{font-size:12px;fill:var(--muted)}
+.lbox.on rect,.lbox.on circle{fill:var(--ink)}
+.lbox.on text{fill:var(--paper)}
+.lbox.on .ls{fill:var(--paper);opacity:.8}
+.lbox:focus-visible{outline:none}
+.lbox:focus-visible rect,.lbox:focus-visible circle{stroke:var(--c-ai);stroke-width:4}
+.lp{fill:none;stroke:var(--muted);stroke-width:2}
+.lo{font-family:var(--sans);font-size:12px;fill:var(--muted);text-anchor:middle;pointer-events:none}
+.ld{background:var(--panel);border:1px solid var(--line);border-top:6px solid var(--ink);border-radius:6px;padding:clamp(16px,3vw,24px)}
+.ld h3{font-size:clamp(21px,2.6vw,26px);line-height:1.15;margin:0 0 6px;font-weight:600}
+.ld p{margin:0 0 10px;font-size:16.5px;line-height:1.5}
+.ld .brk{padding:8px 12px;border-left:4px solid var(--ink);background:color-mix(in srgb,var(--ink) 6%,transparent)}
+.ld h4{font-family:var(--sans);font-size:14px;font-weight:600;margin:16px 0 4px}
+.lever{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:8px 0;border-top:1px solid var(--line);font-size:16px;line-height:1.4}
+.lever small{grid-column:1/-1;font-family:var(--sans);font-size:13px;color:var(--muted)}
+.ev{font-family:var(--sans);font-size:12px;font-weight:600;border:1.5px solid var(--e);color:var(--e);border-radius:99px;padding:1px 9px;white-space:nowrap;align-self:start}
+.ev-strong{--e:var(--ev-strong)}.ev-moderate{--e:var(--ev-moderate)}.ev-mixed{--e:var(--ev-mixed)}.ev-contested{--e:var(--ev-contested)}.ev-practitioner{--e:var(--ev-practitioner)}.ev-emerging{--e:var(--ev-emerging)}
+.ask{margin:0 0 4px;padding-left:18px;font-size:16px}
+.evkey{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--sans);font-size:13px;color:var(--muted);margin:14px 0 0}
+.evkey span{display:inline-flex;gap:6px;align-items:center}
+.ladder{margin:30px 0 0;max-width:46rem}
+.ladder h3{font-size:clamp(20px,2.4vw,24px);margin:0 0 4px;font-weight:600}
+.ladder .rung{margin:0 0 0 0;padding:10px 14px;border:1.5px solid var(--ink);background:var(--panel);font-size:16.5px;line-height:1.4}
+.ladder .rung:nth-of-type(2){margin-left:clamp(12px,4vw,36px)}
+.ladder .rung:nth-of-type(3){margin-left:clamp(24px,8vw,72px)}
+.ladder .rung+.rung{margin-top:-1.5px}
+.ladder .rung b{font-family:var(--sans);font-size:14px;font-weight:600}
+.ladder .cap{font-family:var(--sans);font-size:14px;color:var(--muted);margin:10px 0 0}
+
+/* identity chain */
+.chain{list-style:none;margin:0;padding:0;counter-reset:s}
+.chain li{display:grid;grid-template-columns:40px minmax(0,1fr);gap:0 16px;padding:0 0 26px;position:relative}
+.chain li::before{counter-increment:s;content:counter(s);width:40px;height:40px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-family:var(--sans);font-weight:600;position:relative;z-index:1}
+.chain li::after{content:"";position:absolute;left:19px;top:40px;bottom:0;width:2px;background:var(--ink)}
+.chain li:last-child::after{display:none}
+.chain .body{grid-column:2}
+.chain h3{font-size:clamp(20px,2.6vw,26px);margin:2px 0 4px;font-weight:600;line-height:1.2}
+.chain p{margin:0 0 8px;font-size:17px;max-width:46rem}
+.chain .src,.chain .fail{font-family:var(--sans);font-size:14px;line-height:1.45;color:var(--muted);max-width:46rem;margin-bottom:4px}
+.chain .fail{color:var(--ink)}
+.chain b{font-weight:600}
+.read{max-width:46rem;padding:12px 16px;border-left:5px solid #FDE047;background:color-mix(in srgb,#FDE047 12%,transparent);font-size:17px;margin:4px 0 0}
+.read b{font-family:var(--sans);font-size:14px}
+
+/* alignment techniques */
+.four{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--panel);margin:0 0 20px}
+.four>div{padding:14px 16px;border-left:1px solid var(--line)}
+.four>div:first-child{border-left:0}
+.four h4{margin:0 0 4px;font-family:var(--sans);font-size:15px;font-weight:600}
+.four p{margin:0;font-size:15.5px;line-height:1.4}
+@media(max-width:900px){.four{grid-template-columns:1fr 1fr}.four>div:nth-child(3){border-left:0}.four>div:nth-child(n+3){border-top:1px solid var(--line)}}
+@media(max-width:560px){.four{grid-template-columns:1fr}.four>div{border-left:0;border-top:1px solid var(--line)}.four>div:first-child{border-top:0}}
+.callout{max-width:46rem;padding:10px 14px;border-left:5px solid #FDE047;background:color-mix(in srgb,#FDE047 12%,transparent);font-size:17px;margin:0 0 20px}
+.tech{border-top:1px solid var(--line);padding:14px 0}
+.tech h3{font-size:clamp(19px,2.4vw,22px);margin:0 0 6px;font-weight:600;line-height:1.25}
+.tech .tags{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px;align-items:center}
+.tech p{margin:0 0 6px;font-size:16.5px;line-height:1.5;max-width:50rem}
+.tech p b{font-family:var(--sans);font-size:13.5px;font-weight:600}
+.tech .lp2{font-style:italic;color:var(--muted)}
+.caveat{font-family:var(--sans);font-size:14px;color:var(--muted);max-width:46rem;margin:14px 0 0}
+
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <h1>After Beer</h1>
+    <p class="lede">Nine lineages that grew out of cybernetics between Stafford Beer’s <i>Brain of the Firm</i> in 1972 and the present: what each one contributed, who argued with whom, and what to read.</p>
+    <div class="ctrl"><div class="seg" role="group" aria-label="Choose what to show"><button data-m="orig" aria-pressed="false">Original map</button><button data-m="both" aria-pressed="true">With goals track</button><button data-m="new" aria-pressed="false">Goals track only</button></div></div>
+    <p class="diff" id="diff"></p>
+  </div>
+</header>
+
+<nav class="nav" aria-label="Sections">
+  <div class="wrap">
+    <button class="sw" id="sw" role="switch" aria-checked="true"><span class="trk"></span>Goals track</button><a href="#map">Map</a><a href="#timeline">Timeline</a><a href="#debates">Debates</a><a class="newonly" href="#loop" hidden>Goal loop</a><a class="newonly" href="#identity" hidden>Identity</a><a class="newonly" href="#align" hidden>Aligning people</a><a href="#reading">Reading</a><a href="#people">People</a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<section id="map">
+  <h2>The map</h2>
+  <p class="sub" id="mapsub"></p>
+  <div class="mapgrid">
+    <div>
+      <svg class="mapsvg" id="mapsvg" viewBox="0 0 800 800" role="group" aria-label="Map of nine cybernetics lineages around Stafford Beer"></svg>
+      <ul class="tree" id="tree"></ul>
+    </div>
+    <aside class="panel" id="panel" aria-live="polite"></aside>
+  </div>
+</section>
+
+<section id="timeline">
+  <h2>Timeline</h2>
+  <p class="sub">Each row is a lineage. Dots are the works in the reading list, placed by year. Diamonds are events. Select any mark for details. Scroll sideways on a small screen.</p>
+  <div class="scroller"><svg class="tl" id="tl" role="img" aria-label="Timeline of works and events by lineage, 1940 to 2030"></svg></div>
+  <div class="tlinfo" id="tlinfo">Select a dot or diamond to see what it is.</div>
+  <div class="legend">
+    <span><svg width="14" height="14"><circle cx="7" cy="7" r="5.5" fill="var(--ink)"/></svg>Book</span>
+    <span><svg width="14" height="14"><circle cx="7" cy="7" r="4.5" fill="var(--panel)" stroke="var(--ink)" stroke-width="2"/></svg>Paper or essay</span>
+    <span><svg width="14" height="14"><path d="M7 1 13 7 7 13 1 7Z" fill="var(--ink)"/></svg>Event</span>
+    <span>Eras are one possible periodisation, not a settled one.</span>
+    <span class="newonly" hidden>Yellow-tinted rows are the goals track.</span>
+  </div>
+</section>
+
+<section id="debates">
+  <h2>Arguments and rebuttals</h2>
+  <p class="sub" id="debsub"></p>
+  <div id="debs"></div>
+</section>
+
+<section id="loop" class="newonly" hidden>
+  <h2>The goal loop</h2>
+  <p class="sub">A control-loop reading of why some people finish and others stall. Choose a part of the loop to see what tends to break there, the levers researchers have tested, and how strong the evidence looks. The evidence labels are my rough summary, not a systematic review.</p>
+  <div class="paths" id="loopbtns" role="group" aria-label="Parts of the loop"></div>
+  <div class="loopgrid">
+    <svg class="loopsvg" id="loopsvg" viewBox="0 0 520 290" role="group" aria-label="Feedback loop: reference, gap, action, world and perception"></svg>
+    <div id="loopdetail" aria-live="polite"></div>
+  </div>
+  <div class="evkey">
+    <span><span class="ev ev-strong">strong</span> many studies or a meta-analysis</span>
+    <span><span class="ev ev-moderate">moderate</span> replicated, modest or context-dependent</span>
+    <span><span class="ev ev-mixed">mixed</span> conflicting results</span>
+    <span><span class="ev ev-contested">contested</span> replications disputed</span>
+    <span><span class="ev ev-emerging">emerging</span> few studies so far</span>
+    <span><span class="ev ev-practitioner">practitioner</span> widely used, little controlled evidence</span>
+  </div>
+  <div class="ladder">
+    <h3>Loops stack</h3>
+    <div class="rung"><b>Be goals.</b> Identity and values: “someone who keeps their word.” They set the reference for the level below.</div>
+    <div class="rung"><b>Do goals.</b> Programs and projects: “finish the draft this week.”</div>
+    <div class="rung"><b>Motor goals.</b> Movements and habits: “open the document at nine.”</div>
+    <p class="cap">Each level’s output is the reference for the level below (Powers; Carver and Scheier). A rough rule of thumb, and my own gloss: failures near the top look like motivation problems, and failures near the bottom look like forgetting.</p>
+  </div>
+</section>
+
+<section id="identity" class="newonly" hidden>
+  <h2>From goals to group boundaries</h2>
+  <p class="sub">Five steps that connect the goal literature to identity, symbols and in-group control. Each step has sources; the chain itself is a synthesis, one way of assembling them.</p>
+  <ol class="chain" id="chain"></ol>
+  <div class="read"><b>One reading, not a finding.</b> The goal hierarchy supplies the reference, symbols carry it between people, boundaries define who shares it, and sanctions correct deviation. On this view, alignment work has to touch the reference (shared goals), the carrier (symbols) or the boundary (contact), not only the argument.</div>
+</section>
+
+<section id="align" class="newonly" hidden>
+  <h2>Aligning people: what exists beyond listening</h2>
+  <p class="sub">Reflective listening, where one person speaks and the other repeats without adding, is one technique among many. Sorting the techniques by what they change shows where it fits and what else is on the table. Evidence labels are my rough summary.</p>
+  <div class="four">
+    <div><h4>Channel</h4><p>Can each side speak and be heard? Listening, motivational interviewing.</p></div>
+    <div><h4>Model</h4><p>What does each side believe about the facts and about the other side? Corrections, canvassing, prebunking.</p></div>
+    <div><h4>Reference</h4><p>What is each side trying to achieve, and is any goal shared? Common tasks, interest-based negotiation.</p></div>
+    <div><h4>Structure</h4><p>How does the group decide, and what gets amplified? Deliberation, bridging, facilitated methods.</p></div>
+  </div>
+  <div class="callout"><b>Where listening sits.</b> Reflective listening repairs the channel. It usually has to come first, but repairing the channel does not by itself change what anyone is trying to achieve.</div>
+  <div class="filters" id="techf"></div>
+  <div id="tech"></div>
+  <p class="caveat">Every lever here works in both directions. The knowledge of goals, identity and channels that supports alignment also supports manipulation, and the difference is largely transparency and consent. Influence operations, including the Russian concept of reflexive control, pull the same levers without consent.</p>
+</section>
+
+<section id="reading">
+  <h2>Reading</h2>
+  <p class="sub">Curated, not exhaustive. Level runs from accessible to specialist. Check editions and dates before citing; several books have later editions than the year shown.</p>
+  <div class="paths" id="paths" role="group" aria-label="Reading paths"></div>
+  <div class="pathbox" id="pathbox"></div>
+  <div class="filters" id="filters"></div>
+  <p class="count" id="rcount"></p>
+  <div id="rlist"></div>
+</section>
+
+<section id="people">
+  <h2>People</h2>
+  <p class="sub">Dates are given where they are well established. A blank means the person is living or I am not certain.</p>
+  <div class="filters">
+    <div class="frow"><input type="search" id="pq" placeholder="Search names or contributions" aria-label="Search people"></div>
+  </div>
+  <div id="plist"></div>
+</section>
+
+<footer>
+  Built from general knowledge of the field, not from a live literature search. Titles, years and attributions are worth verifying before you rely on them, and works marked “check details” are the ones I am least sure of. The grouping into branches, the goal-loop reading, the identity chain and the evidence labels are my own syntheses, and reasonable people would draw them differently.
+</footer>
+</main>
+
+<script>
+/* ---------- data ---------- */
+const B = {
+  org:{name:"Organizational cybernetics",lab:["Organizational","cybernetics"],start:1972,tag:"Viable systems, recursion, variety",
+    summary:"The Viable System Model reads any organization as five interacting functions (operations, coordination, control, intelligence and policy) that repeat at every scale. After Beer it became a diagnostic method, a consulting practice and an academic field, with hubs in the UK, Latin America and St. Gallen.",
+    ideas:[["Viable System Model","Five functions: operations (S1), coordination (S2), delivery and control (S3), intelligence (S4), identity and policy (S5)."],["Recursion","Every viable system contains and is contained in viable systems, so the same model applies at each level."],["Variety engineering","Attenuate the variety coming in and amplify the capacity to respond, after Ashby’s law of requisite variety."],["Algedonic signals","A fast alarm channel that lets bad news bypass the hierarchy."],["Team Syntegrity","A group process built on an icosahedron so thirty people deliberate as one connected whole."],["Cybersyn","Chile, 1971 to 1973: an experiment in networked economic management, ended by the coup."]],
+    args:[["It is technocratic control dressed up as science.","Beer and Espejo answered that the VSM prescribes structure, not goals, and that autonomy at every level is the point."],["Recursion is hard to apply consistently.","Practitioners treat it as a discipline for choosing the system in focus, and much of the modern literature is about doing that well."]]},
+  second:{name:"Second-order cybernetics",lab:["Second-order","cybernetics"],start:1968,tag:"The observer inside the system",
+    summary:"First-order cybernetics studies systems an observer stands outside of. Second-order cybernetics puts the observer inside and asks how any description, model or goal gets produced. It gave the field autopoiesis, constructivism and conversation theory, and shaped design, education and family therapy.",
+    ideas:[["Autopoiesis","Living systems produce and maintain themselves, defining their own boundary."],["Eigenforms","Stable patterns that emerge when observation feeds back on itself (von Foerster)."],["Radical constructivism","Knowledge is judged by whether it works, not by matching a reality we cannot step outside."],["Conversation theory","Knowing is agreement reached between perspectives that can answer back (Pask)."],["Ethical imperative","Von Foerster: act so as to increase the number of choices."]],
+    args:[["Radical constructivism slides into solipsism.","Glasersfeld held that experience constrains what survives: some constructions fail, so the world still pushes back."],["It is philosophy, not engineering.","Its influence shows in design, educational technology and facilitation, and Pask’s conversation theory produced working teaching systems."]]},
+  soft:{name:"Soft and critical systems thinking",lab:["Soft & critical","systems"],start:1968,tag:"Whose purposes? Whose boundaries?",
+    summary:"A response to the “hard” systems approach that treated problems as having agreed goals and needing only optimization. Soft and critical thinkers hold that in human affairs the goals are the problem: people frame situations differently, and power decides whose framing counts. Methods here work through dialogue, model-building as learning, and boundary critique.",
+    ideas:[["Wicked problems","Problems with no definitive formulation and no stopping rule (Rittel and Webber)."],["Soft Systems Methodology","Model purposeful activity from different worldviews, then use the models to structure debate (Checkland)."],["Messes","Managers face tangled systems of problems, not isolated ones (Ackoff)."],["Boundary critique","Ask who is inside the system and who decides, and expose those judgments (Ulrich)."],["Methodological pluralism","No single method fits every situation; choose and combine by context (Jackson, Midgley, Flood)."]],
+    args:[["Soft methods are too loose to guide action.","Critical systems thinkers added rigor: pluralist frameworks for choosing methods and explicit ethics for boundary judgments."],["Pluralism hides real clashes between paradigms.","Unresolved. Midgley argues for a third position, systemic intervention, that treats the choice of boundaries as the central act."]]},
+  complex:{name:"System dynamics and complexity science",lab:["Dynamics &","complexity"],start:1961,tag:"Feedback models and emergence",
+    summary:"These fields grew in parallel with cybernetics and borrowed its central ideas: feedback, circular causality, self-organization. System dynamics turns them into simulation models of stocks, flows and delays. Complexity science, centred on the Santa Fe Institute from 1984, studies adaptive agents, emergence and networks.",
+    ideas:[["Stocks, flows and delays","Accumulations and time lags make systems behave counter-intuitively (Forrester, Sterman)."],["Leverage points","Meadows ranked places to intervene, from parameters up to paradigms."],["World3","A global model of population, resources and pollution behind The Limits to Growth."],["Complex adaptive systems","Many agents adapting to each other produce patterns nobody designed (Holland, Kauffman)."],["Dissipative structures","Order can arise far from equilibrium in open systems (Prigogine)."]],
+    args:[["Global models cannot predict anything.","Their authors call them scenarios, not forecasts. A 2008 comparison with data (Turner), updated in 2021, reported that observed trends tracked the standard run, a reading critics contest."],["Complexity science rediscovered cybernetics without credit.","Some historians and cyberneticians say so. Complexity researchers point to new tools: cheap computation, network science, agent-based models."]]},
+  cog:{name:"Cognition and the brain",lab:["Cognition","& brain"],start:1970,tag:"Regulators, enactivism, prediction",
+    summary:"The line from Ashby’s good-regulator theorem to modern theories of mind. Enactivism, from Varela, treats cognition as sense-making by a living body. Predictive processing and the free energy principle treat the brain as a controller that minimizes surprise using an internal model. The camps still argue over whether that model is a representation.",
+    ideas:[["Good regulator theorem","Every good regulator of a system must be a model of that system (Conant and Ashby)."],["Enactivism","Cognition is sense-making through embodied action, not inner picture-making (Varela, Thompson)."],["Predictive processing","The brain predicts its inputs and updates on error (Clark, Hohwy)."],["Free energy principle","A single principle covering perception, action and self-maintenance in living systems (Friston)."],["Beast machine","Consciousness is rooted in the brain’s regulation of the body (Seth)."]],
+    args:[["Enactivism cannot explain abstract thought.","Enactivists reply that abstract thought is built from embodied skills. How, exactly, is open research."],["The free energy principle explains everything, so it explains nothing.","Defenders call it a framework from which testable models follow. Critics such as Bruineberg and colleagues argue key formal notions are misapplied."]]},
+  safety:{name:"Safety and resilience engineering",lab:["Safety &","resilience"],start:1984,tag:"Accidents as control failures",
+    summary:"Safety engineering absorbed cybernetics quietly. Rasmussen, Leveson and Hollnagel replaced chain-of-events accident models with control models: accidents happen when constraints on behaviour go unenforced, or when a system drifts toward its limits under pressure. Resilience engineering then shifted attention from preventing failure to sustaining success.",
+    ideas:[["Migration toward the boundary","Competing pressures push operations toward the edge of safe behaviour (Rasmussen)."],["STAMP","Model safety as enforcing constraints in a hierarchical control structure (Leveson)."],["Normal accidents","Tight coupling plus interactive complexity makes some accidents inevitable (Perrow)."],["Safety-II","Study how things usually go right, not only how they fail (Hollnagel)."],["High reliability organizing","Preoccupation with failure, sensitivity to operations, deference to expertise (Weick and Sutcliffe)."]],
+    args:[["Some systems are too complex and coupled to be made safe.","HRO researchers point to organizations running hazardous systems with few accidents. Leveson argues for better control structure, not less complexity."],["Safety-II is hard to measure.","Proponents say that is the point: success is invisible, so organizations need methods for studying everyday adjustments."]]},
+  ai:{name:"AI, machine learning and control",lab:["AI, ML","& control"],start:1943,tag:"Purpose as feedback, then alignment",
+    summary:"Cybernetics and artificial intelligence began together in the 1943 work on neurons and purposive machines, then split over method: the 1956 Dartmouth workshop chose a new name partly to set itself apart. Cybernetic ideas returned through reinforcement learning, behaviour-based robotics and, lately, the alignment problem: how to give a controller the purpose we actually intend.",
+    ideas:[["Purpose as feedback","The 1943 paper on behaviour, purpose and teleology treated goal-directed action as negative feedback."],["Reinforcement learning","Trial-and-error control with a reward signal, a direct descendant of adaptive control (Sutton, Barto)."],["Behaviour-based robotics","Intelligence from tight sensor-action loops, without a central world model (Brooks)."],["Specification and alignment","Wiener warned in 1960 that a machine’s built-in purpose had better be the one we want. Alignment research works on the same gap."],["Goodhart-style failure","When a measure becomes a target it stops measuring well, in reward design and in management alike."]],
+    args:[["Alignment is a control problem with one fixed objective.","Russell and others reject fixed objectives and propose machines that stay uncertain about what people want. Systems thinkers add that human purposes are plural."],["Cybernetics was replaced by AI, so it is history.","Its vocabulary of feedback, control and requisite variety is now standard in robotics, control theory and machine learning, mostly without the label."]]},
+  social:{name:"Social, ecological and therapeutic cybernetics",lab:["Social &","therapeutic"],start:1956,tag:"Bateson, family systems, Luhmann",
+    summary:"Bateson carried cybernetics into anthropology, psychiatry and ecology, arguing that mind is a pattern of circular communication, not something inside a skull. His double-bind work fed systemic family therapy. Luhmann built a general theory of society as self-reproducing communication.",
+    ideas:[["Double bind","Contradictory messages at different levels with no way to comment on them (Bateson and colleagues)."],["Ecology of mind","Mind as circuits of difference that include the organism and its environment."],["Pragmatics of communication","Every message carries content and a statement about the relationship (Watzlawick and colleagues)."],["Systemic family therapy","Treat the family, not the patient, as the system in which symptoms make sense."],["Social systems theory","Society consists of communications that produce more communications (Luhmann)."]],
+    args:[["Applying biological ideas to society is a category mistake.","Luhmann claimed autopoiesis in an abstract, non-biological sense. Maturana rejected the extension."],["Family systems thinking blames or ignores individuals.","Later systemic therapists moved toward second-order stances: the therapist is part of the system and clients are authorities on their own lives."]]},
+  hist:{name:"Histories and critiques",lab:["Histories &","critiques"],start:1991,tag:"Who was cybernetics for?",
+    summary:"Historians reopened cybernetics from the 1990s. Some traced it to wartime fire control and Cold War command. Others recovered an alternative tradition of adaptive, performative, unpredictable systems in Beer, Pask and Bateson. The Cybersyn story made Beer visible far beyond management circles.",
+    ideas:[["Macy conferences","Interdisciplinary meetings from 1946 to 1953 that made cybernetics a shared project (Heims)."],["Ontology of the enemy","Wartime fire control shaped a picture of the adversary as a machine-like system (Galison)."],["The posthuman","Cybernetics loosened the idea of the human as separate from information and machines (Hayles)."],["Nonmodern ontology","Cybernetics as a way of dealing with the unknown by adapting, not by representing (Pickering)."],["The cybernetics moment","A rise and fall across the 1940s to the 1970s (Kline)."]],
+    args:[["Cybernetics was a Cold War tool of military and managerial control.","Pickering, Turner and Medina point to Beer’s work in Chile, Bateson and the counterculture as evidence its politics were plural."],["Cybernetics disappeared.","Kline dates its moment to mid-century. Others argue it dispersed into control theory, cognitive science and systems approaches that still use its ideas."]]},
+  origins:{name:"Foundations",start:1943}
+};
+const ORDER=["org","second","cog","ai","safety","complex","soft","social","hist"];
+const LINKS=[
+ ["org","soft","Soft-systems thinkers challenged the VSM as technocratic; VSM practitioners answered with participative use."],
+ ["org","second","Beer and Pask were close collaborators, and both worked at the boundary of first- and second-order thinking."],
+ ["org","hist","Medina’s history of Cybersyn opened Beer’s work to a general audience."],
+ ["org","complex","Ashby’s requisite variety underlies both the VSM and much of complexity science."],
+ ["second","cog","Varela carried autopoiesis into enactive cognitive science."],
+ ["second","social","Bateson and Luhmann carried observer-dependence into therapy and social theory."],
+ ["second","soft","Both reject an observer-independent definition of the problem."],
+ ["cog","ai","Predictive processing and reinforcement learning share a control-loop view of intelligence."],
+ ["ai","safety","Control-theoretic safety and AI alignment both ask how constraints and specifications fail."],
+ ["safety","complex","Perrow’s coupling and Rasmussen’s drift draw on complexity thinking."],
+ ["complex","soft","Practitioners moved between simulation and facilitation: Senge built on Forrester, Ackoff argued for participative planning."],
+ ["hist","ai","Histories of cybernetics trace how AI and cognitive science split off."]
+];
+
+/* [id,title,author,year,kind,level,[branches],note] */
+const R=[
+["wiener48","Cybernetics: Or Control and Communication in the Animal and the Machine","Norbert Wiener",1948,"book",3,["origins","ai"],"The founding text. The mathematics is dense; the framing chapters are not."],
+["wiener50","The Human Use of Human Beings","Norbert Wiener",1950,"book",1,["ai","origins"],"Cybernetics for general readers, with early worries about automation."],
+["ashby52","Design for a Brain","W. Ross Ashby",1952,"book",3,["origins","cog"],"The homeostat and adaptive behaviour as ultrastability."],
+["ashby56","An Introduction to Cybernetics","W. Ross Ashby",1956,"book",2,["origins","complex","org"],"Where requisite variety is stated. Clear and self-contained."],
+["wiener60","Some Moral and Technical Consequences of Automation","Norbert Wiener",1960,"paper",1,["ai"],"Warns that a machine’s purpose had better be the one we really want."],
+["pask61","An Approach to Cybernetics","Gordon Pask",1961,"book",1,["second","origins"],"A short introduction built on Pask’s teaching-machine examples."],
+["forrester61","Industrial Dynamics","Jay Forrester",1961,"book",2,["complex"],"The founding text of system dynamics."],
+["churchman68","The Systems Approach","C. West Churchman",1968,"book",1,["soft"],"Asks whose purposes a system serves."],
+["minsky69","Perceptrons","Marvin Minsky & Seymour Papert",1969,"book",3,["ai"],"A turning point in the split between symbolic AI and neural approaches."],
+["conant70","Every Good Regulator of a System Must Be a Model of That System","R. C. Conant & W. R. Ashby",1970,"paper",2,["cog","org"],"The theorem behind the representation-versus-enaction argument."],
+["beer72","Brain of the Firm","Stafford Beer",1972,"book",2,["org"],"First full statement of the VSM, framed as a firm’s nervous system."],
+["meadows72","The Limits to Growth","Donella Meadows, Dennis Meadows, Jørgen Randers & William Behrens",1972,"book",1,["complex"],"The World3 model in a report for the Club of Rome."],
+["bateson72","Steps to an Ecology of Mind","Gregory Bateson",1972,"book",2,["social","second"],"Essays on communication, learning and mind."],
+["rittel73","Dilemmas in a General Theory of Planning","Horst Rittel & Melvin Webber",1973,"paper",1,["soft"],"Where “wicked problems” comes from."],
+["beer74","Designing Freedom","Stafford Beer",1974,"book",1,["org"],"Lectures on cybernetics and society. The most approachable Beer."],
+["ackoff74","Redesigning the Future","Russell Ackoff",1974,"book",2,["soft"],"From “messes” to interactive, participative planning."],
+["pask76","Conversation Theory: Applications in Education and Epistemology","Gordon Pask",1976,"book",3,["second"],"Knowing as conversation between perspectives. Hard going."],
+["pragmatics67","Pragmatics of Human Communication","Paul Watzlawick, Janet Beavin & Don Jackson",1967,"book",1,["social"],"Axioms of communication that shaped family therapy."],
+["beer79","The Heart of Enterprise","Stafford Beer",1979,"book",3,["org"],"The VSM formalised, with recursion and the five systems worked through."],
+["bateson79","Mind and Nature: A Necessary Unity","Gregory Bateson",1979,"book",2,["social","second"],"Bateson’s late, more accessible statement."],
+["mv80","Autopoiesis and Cognition: The Realization of the Living","Humberto Maturana & Francisco Varela",1980,"book",3,["second","cog"],"The formal statement of autopoiesis."],
+["check81","Systems Thinking, Systems Practice","Peter Checkland",1981,"book",2,["soft"],"Soft Systems Methodology, grown out of action research."],
+["vf81","Observing Systems","Heinz von Foerster",1981,"book",3,["second"],"Collected essays at the core of second-order thinking."],
+["ulrich81","A Critique of Pure Cybernetic Reason: The Chilean Experience with Cybernetics","Werner Ulrich",1981,"paper",3,["soft","org"],"A well-known critical reading of Beer’s work in Chile."],
+["ulrich83","Critical Heuristics of Social Planning","Werner Ulrich",1983,"book",3,["soft"],"Boundary critique: who is in and who is out."],
+["jk84","Towards a System of Systems Methodologies","M. C. Jackson & P. Keys",1984,"paper",2,["soft"],"Sorts methods by kind of system and relations among participants."],
+["prigogine84","Order Out of Chaos","Ilya Prigogine & Isabelle Stengers",1984,"book",2,["complex"],"Dissipative structures and time, for a general audience."],
+["perrow84","Normal Accidents","Charles Perrow",1984,"book",1,["safety"],"Why tight coupling and complexity make some accidents inevitable."],
+["beer85","Diagnosing the System for Organizations","Stafford Beer",1985,"book",2,["org"],"The practical manual for VSM diagnosis."],
+["mv87","The Tree of Knowledge","Humberto Maturana & Francisco Varela",1987,"book",1,["second","cog"],"Autopoiesis for general readers."],
+["espejo89","The Viable System Model: Interpretations and Applications of Stafford Beer’s VSM","Raúl Espejo & Roger Harnden (eds.)",1989,"book",3,["org"],"Applications and critiques from the first generation."],
+["senge90","The Fifth Discipline","Peter Senge",1990,"book",1,["complex"],"System dynamics brought into management practice."],
+["reason90","Human Error","James Reason",1990,"book",2,["safety"],"Source of the Swiss cheese model of accidents."],
+["fj91","Creative Problem Solving: Total Systems Intervention","Robert Flood & Michael Jackson",1991,"book",2,["soft"],"Combining methods across paradigms."],
+["vtr91","The Embodied Mind: Cognitive Science and Human Experience","Francisco Varela, Evan Thompson & Eleanor Rosch",1991,"book",2,["cog"],"The founding text of enactivism."],
+["brooks91","Intelligence Without Representation","Rodney Brooks",1991,"paper",2,["ai","cog"],"Behaviour-based robotics as a challenge to internal world models."],
+["heims91","The Cybernetics Group","Steve Heims",1991,"book",2,["hist"],"A history of the Macy conferences."],
+["sagan93","The Limits of Safety","Scott Sagan",1993,"book",2,["safety"],"Tests normal-accident theory against nuclear weapons safety."],
+["beer94","Beyond Dispute: The Invention of Team Syntegrity","Stafford Beer",1994,"book",3,["org","second"],"Structured group deliberation on an icosahedron."],
+["galison94","The Ontology of the Enemy","Peter Galison",1994,"paper",3,["hist"],"Wiener, fire control and the cybernetic picture of the adversary."],
+["glas95","Radical Constructivism: A Way of Knowing and Learning","Ernst von Glasersfeld",1995,"book",2,["second"],"Knowledge as fit with experience, not a picture of reality."],
+["kauffman95","At Home in the Universe","Stuart Kauffman",1995,"book",2,["complex"],"Self-organization and the origins of order."],
+["holland95","Hidden Order: How Adaptation Builds Complexity","John Holland",1995,"book",2,["complex"],"Complex adaptive systems from one of their founders."],
+["luhmann95","Social Systems","Niklas Luhmann",1995,"book",3,["social"],"English edition of the 1984 German work."],
+["rasmussen97","Risk Management in a Dynamic Society: A Modelling Problem","Jens Rasmussen",1997,"paper",3,["safety"],"The migration-toward-the-boundary model."],
+["sb18","Reinforcement Learning: An Introduction (2nd ed.)","Richard Sutton & Andrew Barto",2018,"book",2,["ai"],"The standard text; first edition 1998."],
+["hayles99","How We Became Posthuman","N. Katherine Hayles",1999,"book",3,["hist"],"Three waves of cybernetics and what they did to ideas of the human."],
+["meadows99","Leverage Points: Places to Intervene in a System","Donella Meadows",1999,"paper",1,["complex"],"Twelve places to intervene, ranked."],
+["dupuy00","On the Origins of Cognitive Science: The Mechanization of the Mind","Jean-Pierre Dupuy",2000,"book",2,["hist","cog"],"Cybernetics as the seedbed of cognitive science."],
+["midgley00","Systemic Intervention: Philosophy, Methodology, and Practice","Gerald Midgley",2000,"book",3,["soft"],"Boundary judgments and methodological pluralism."],
+["sterman00","Business Dynamics","John Sterman",2000,"book",3,["complex"],"The standard system dynamics textbook."],
+["weick01","Managing the Unexpected","Karl Weick & Kathleen Sutcliffe",2001,"book",1,["safety"],"High reliability organizing for managers."],
+["vf03","Understanding Understanding: Essays on Cybernetics and Cognition","Heinz von Foerster",2003,"book",2,["second","cog"],"A broader later collection."],
+["scott04","Second-Order Cybernetics: An Historical Introduction","Bernard Scott",2004,"paper",1,["second"],"A good overview of the field in Kybernetes."],
+["schwaninger06","Intelligent Organizations: Powerful Models for Systemic Management","Michael Schwaninger",2006,"book",2,["org"],"Places the VSM inside wider management and systems theory."],
+["hwl06","Resilience Engineering: Concepts and Precepts","Erik Hollnagel, David Woods & Nancy Leveson (eds.)",2006,"book",3,["safety"],"The founding collection of resilience engineering."],
+["turner06","From Counterculture to Cyberculture","Fred Turner",2006,"book",2,["hist"],"Stewart Brand, the Whole Earth network and cybernetic ideas."],
+["thompson07","Mind in Life: Biology, Phenomenology, and the Sciences of Mind","Evan Thompson",2007,"book",3,["cog"],"The most complete philosophical account of enactivism."],
+["hoverstadt08","The Fractal Organization: Creating Sustainable Organizations with the Viable System Model","Patrick Hoverstadt",2008,"book",1,["org"],"A practitioner’s introduction with worked examples."],
+["meadows08","Thinking in Systems: A Primer","Donella Meadows",2008,"book",1,["complex"],"The best short introduction to systems thinking."],
+["turner08","A Comparison of The Limits to Growth with 30 Years of Reality","Graham Turner",2008,"paper",2,["complex"],"Compares World3 runs with observed data."],
+["mitchell09","Complexity: A Guided Tour","Melanie Mitchell",2009,"book",1,["complex"],"A clear survey of complexity science."],
+["friston10","The Free-Energy Principle: A Unified Brain Theory?","Karl Friston",2010,"paper",3,["cog"],"The standard short statement of the principle."],
+["pickering10","The Cybernetic Brain: Sketches of Another Future","Andrew Pickering",2010,"book",2,["hist","org","second"],"Beer, Pask, Ashby, Bateson and others as a nonmodern tradition."],
+["medina11","Cybernetic Revolutionaries: Technology and Politics in Allende’s Chile","Eden Medina",2011,"book",1,["hist","org"],"The definitive history of Cybersyn."],
+["espejo11","Organizational Systems: Managing Complexity with the Viable System Model","Raúl Espejo & Alfonso Reyes",2011,"book",2,["org"],"A modern, rigorous treatment of the VSM and its foundations."],
+["leveson11","Engineering a Safer World: Systems Thinking Applied to Safety","Nancy Leveson",2011,"book",2,["safety"],"STAMP and systems-theoretic safety; an open-access edition exists."],
+["hutto13","Radicalizing Enactivism","Daniel Hutto & Erik Myin",2013,"book",3,["cog"],"Cognition without content at the base."],
+["hohwy13","The Predictive Mind","Jakob Hohwy",2013,"book",2,["cog"],"A philosophical case for predictive processing."],
+["hollnagel14","Safety-I and Safety-II","Erik Hollnagel",2014,"book",1,["safety"],"Why study success as well as failure."],
+["kline15","The Cybernetics Moment","Ronald Kline",2015,"book",2,["hist"],"How cybernetics rose and fell as a public idea."],
+["clark16","Surfing Uncertainty: Prediction, Action, and the Embodied Mind","Andy Clark",2016,"book",2,["cog"],"The most readable account of predictive processing."],
+["rid16","Rise of the Machines","Thomas Rid",2016,"book",1,["hist","ai"],"A cultural history of cybernetics and control."],
+["amodei16","Concrete Problems in AI Safety","Dario Amodei and co-authors",2016,"paper",2,["ai"],"Reward hacking, side effects and other specification failures."],
+["jackson19","Critical Systems Thinking and the Management of Complexity","Michael C. Jackson",2019,"book",2,["soft","org"],"A survey of systems approaches, including the VSM."],
+["russell19","Human Compatible","Stuart Russell",2019,"book",1,["ai"],"Alignment reframed as uncertainty about human objectives."],
+["christian20","The Alignment Problem","Brian Christian",2020,"book",1,["ai"],"A readable history of how machine objectives go wrong."],
+["seth21","Being You: A New Science of Consciousness","Anil Seth",2021,"book",1,["cog"],"Consciousness as controlled hallucination and bodily regulation."],
+["bruineberg22","The Emperor’s New Markov Blankets","Jelle Bruineberg and co-authors",2022,"paper",3,["cog"],"A critique of how the free energy literature uses Markov blankets."],
+["davies24","The Unaccountability Machine","Dan Davies",2024,"book",1,["org","hist"],"Beer’s ideas applied to why large systems escape accountability."]
+];
+const RB={};R.forEach(r=>RB[r[0]]=r);
+
+/* extra events [year,row,text] */
+const EV=[
+ [1943,"ai","McCulloch and Pitts publish a logical model of neurons; Rosenblueth, Wiener and Bigelow publish on behaviour, purpose and teleology."],
+ [1946,"origins","Macy Conferences begin, running to 1953."],
+ [1956,"ai","Dartmouth workshop names the field “artificial intelligence”."],
+ [1956,"social","Bateson and colleagues publish the double-bind hypothesis."],
+ [1968,"second","Margaret Mead’s address on the “cybernetics of cybernetics” at the American Society for Cybernetics conference."],
+ [1971,"org","Project Cybersyn begins in Chile. It ends with the coup in September 1973."],
+ [1972,"second","Maturana and Varela introduce autopoiesis (Spanish original)."],
+ [1984,"complex","Santa Fe Institute founded."],
+ [1984,"social","Luhmann’s Soziale Systeme appears in German."],
+ [2012,"ai","Deep-learning boom begins with ImageNet results."],
+ [2021,"complex","Herrington updates the comparison of World3 with empirical data."]
+];
+
+/* debates */
+const D=[
+ {t:"Control or conversation?",b:["second","org","ai"],
+  A:{h:"First-order view",p:"A designer outside the system can model it and steer it with feedback, provided the controller has enough variety to match the system.",w:"Wiener, Ashby, early Beer"},
+  Bx:{h:"Second-order reply",p:"The designer belongs to the system. Goals and models are made by observers, so steering is a negotiation, and claims to objective control hide whose purposes are served.",w:"von Foerster, Pask, Glanville, Maturana"},
+  s:"Beer sits on both sides: his models are control-theoretic, yet he insisted on autonomy at every level and worked closely with Pask. Most current practitioners treat the two as complementary, first-order for design and second-order for asking whose goals a design serves."},
+ {t:"Structure or participation?",b:["org","soft"],
+  A:{h:"Structuralist view",p:"Viability has necessary structural conditions that hold whatever people believe. The VSM says nothing about goals, only about what any system must do to survive.",w:"Beer, Espejo, Schwaninger"},
+  Bx:{h:"Critical view",p:"A model that fixes the structure in advance treats the purpose as given, hides power and disagreement, and can become a tool of managerial control.",w:"Checkland, Ulrich, Jackson"},
+  s:"Cybersyn is the test case. Medina’s history shows a mixed record: Beer pushed for worker autonomy but clashed with officials who wanted top-down control. Critical systems thinking settled on pluralism, using the VSM as one lens among several."},
+ {t:"Representation or enaction?",b:["cog","second"],
+  A:{h:"Model-based view",p:"Every good regulator must be a model of what it regulates. Predictive processing generalizes this: brains run generative models and act to confirm them.",w:"Conant and Ashby, Clark, Hohwy, Friston"},
+  Bx:{h:"Enactive view",p:"Cognition is sense-making by a living, acting body. Inner models over-intellectualize, and basic minds do not need mental content.",w:"Varela, Thompson, Di Paolo, Hutto and Myin"},
+  s:"Live. Active inference tries to bridge the two; critics reply that the bridge works by stretching the word “model” until the disagreement disappears."},
+ {t:"Are social systems autopoietic?",b:["social","second"],
+  A:{h:"Luhmann",p:"Society is a self-reproducing network of communications. Autopoiesis is an abstract form that applies beyond cells.",w:"Niklas Luhmann"},
+  Bx:{h:"Maturana",p:"Autopoiesis was defined for living systems that produce their own physical components. Human societies are networks of coexistence, not autopoietic wholes.",w:"Humberto Maturana"},
+  s:"Luhmann’s version is widely used in sociology and law. Theorists working from the biological definition tend to side with Maturana’s stricter usage."},
+ {t:"Did the Limits to Growth models fail?",b:["complex"],
+  A:{h:"Critics",p:"The model ignored price signals and technological substitution, and its early collapse dates did not arrive. Its authors were alarmist.",w:"Cole et al., Nordhaus and other economists"},
+  Bx:{h:"Defenders",p:"The runs were scenarios, not forecasts. Comparisons with data report that the standard run has tracked observed trends, and the point about overshoot was about delays.",w:"Meadows and colleagues, Turner, Herrington"},
+  s:"Still contested on method. It remains the standard example of a simulation model used to open a public argument."},
+ {t:"Normal accidents or high reliability?",b:["safety","complex"],
+  A:{h:"Normal accident theory",p:"In systems that are interactively complex and tightly coupled, serious accidents are inevitable however good the management.",w:"Perrow, Sagan"},
+  Bx:{h:"High reliability view",p:"Some organizations run hazardous systems for long periods with few accidents, through practices such as preoccupation with failure and deference to expertise.",w:"Weick and Sutcliffe, La Porte, Roberts"},
+  s:"Leveson’s systems-theoretic approach reframes both as questions about control structure: which constraints are enforced, by whom, with what feedback. It has been adopted in aerospace, automotive and other industries."},
+ {t:"Is the free energy principle science?",b:["cog"],
+  A:{h:"Proponents",p:"One principle unifies perception, action, learning and self-organization. It is a framework from which testable process theories follow.",w:"Friston, Clark, Hohwy"},
+  Bx:{h:"Critics",p:"It is flexible enough to accommodate any data. The formal tools, especially Markov blankets, are applied in ways that blur distinct technical notions.",w:"Bruineberg and colleagues, others"},
+  s:"Influential in neuroscience, robotics and philosophy of mind, with its empirical status still debated."},
+ {t:"Is alignment a control problem?",b:["ai","soft"],
+  A:{h:"Control framing",p:"A powerful optimizer pursuing a slightly wrong objective is dangerous. The task is to specify, or learn, the right objective and keep the system correctable.",w:"Wiener 1960, Russell, Amodei et al."},
+  Bx:{h:"Systems critique",p:"There is no single coherent human objective to specify. Purposes are plural and contested, so the hard part is who decides, and that is a political problem, not an engineering one.",w:"Soft-systems and critical thinkers, some ethicists"},
+  s:"Active. Cybernetic vocabulary (feedback, requisite variety, Goodhart effects) is increasingly used on both sides of the argument."},
+ {t:"Militarist tool or liberatory idea?",b:["hist","org","social"],
+  A:{h:"Critical histories",p:"Cybernetics came from anti-aircraft fire control and Cold War command systems, and it carried a managerial picture of people as components.",w:"Galison, Rid"},
+  Bx:{h:"Recovered tradition",p:"Beer, Pask, Bateson and others built an adaptive, participatory line. Cybersyn was an attempt at democratic socialist management, and the counterculture took up cybernetic ideas.",w:"Pickering, Medina, Turner"},
+  s:"Both are true of different people and moments. Kline’s “moment” framing adds that the label faded by the 1970s while the ideas dispersed into successor fields."}
+];
+
+const PATHS={
+ beer:["From Beer to the present in nine books",["beer85","hoverstadt08","medina11","check81","mv87","meadows08","leveson11","clark16","russell19"]],
+ critics:["The critics and the historians",["rittel73","ulrich81","check81","jackson19","galison94","pickering10","medina11"]],
+ mind:["Minds and machines",["wiener50","conant70","vtr91","clark16","brooks91","sb18","russell19"]],
+ safety:["Safety and resilience",["perrow84","reason90","rasmussen97","leveson11","hollnagel14"]]
+};
+
+/* [name,dates,branches,contribution] */
+const P=[
+ ["Norbert Wiener","1894–1964","origins ai","Founded cybernetics; later warned about automation and machine purpose."],
+ ["W. Ross Ashby","1903–1972","origins complex cog","Law of requisite variety, the homeostat, the good-regulator theorem."],
+ ["Warren McCulloch","1898–1969","origins ai","Logical models of neurons; chaired the Macy conferences."],
+ ["Stafford Beer","1926–2002","org","Viable System Model, Cybersyn, Team Syntegrity."],
+ ["Gordon Pask","1928–1996","second","Conversation theory; adaptive teaching machines; collaborator of Beer."],
+ ["Heinz von Foerster","1911–2002","second","Biological Computer Laboratory; eigenforms; second-order cybernetics."],
+ ["Margaret Mead","1901–1978","second hist","Called for a “cybernetics of cybernetics” in 1968."],
+ ["Humberto Maturana","1928–2021","second cog","Autopoiesis and the biology of cognition."],
+ ["Francisco Varela","1946–2001","second cog","Autopoiesis, enactivism, neurophenomenology."],
+ ["Ernst von Glasersfeld","1917–2010","second","Radical constructivism."],
+ ["Ranulph Glanville","1946–2014","second","Second-order cybernetics and design."],
+ ["Gregory Bateson","1904–1980","social second","Double bind, ecology of mind, cybernetics in the human sciences."],
+ ["Niklas Luhmann","1927–1998","social","Social systems theory built on communication and autopoiesis."],
+ ["Raúl Espejo","","org","Cybersyn collaborator; VSM scholarship and practice."],
+ ["Allenna Leonard","","org","Beer’s collaborator on the VSM and Team Syntegrity."],
+ ["Michael Schwaninger","","org","VSM within organization theory, at St. Gallen."],
+ ["Patrick Hoverstadt","","org","VSM practitioner and author of The Fractal Organization."],
+ ["Fredmund Malik","","org","Management cybernetics in the St. Gallen tradition."],
+ ["Dan Davies","","org hist","Brought Beer to a general audience with The Unaccountability Machine."],
+ ["Peter Checkland","b. 1930","soft","Soft Systems Methodology."],
+ ["Russell Ackoff","1919–2009","soft","Messes, interactive planning, systems thinking in management."],
+ ["C. West Churchman","1913–2004","soft","The systems approach and its ethics."],
+ ["Horst Rittel","1930–1990","soft","Wicked problems (with Melvin Webber)."],
+ ["Werner Ulrich","b. 1948","soft","Critical systems heuristics; critique of the VSM in Chile."],
+ ["Michael C. Jackson","","soft","Critical systems thinking and methodological pluralism."],
+ ["Gerald Midgley","","soft","Systemic intervention and boundary critique."],
+ ["Robert Flood","","soft","Total systems intervention (with Jackson)."],
+ ["Jay Forrester","1918–2016","complex","System dynamics."],
+ ["Donella Meadows","1941–2001","complex","World3, leverage points, Thinking in Systems."],
+ ["Peter Senge","b. 1947","complex","The learning organization."],
+ ["John Sterman","","complex","Business Dynamics; modelling and decision-making."],
+ ["Stuart Kauffman","b. 1939","complex","Self-organization and the origins of order."],
+ ["John Holland","1929–2015","complex","Complex adaptive systems; genetic algorithms."],
+ ["Ilya Prigogine","1917–2003","complex","Dissipative structures."],
+ ["Evan Thompson","b. 1962","cog","Enactivism and the philosophy of mind."],
+ ["Andy Clark","b. 1957","cog","Predictive processing and the extended mind."],
+ ["Karl Friston","b. 1959","cog","Free energy principle and active inference."],
+ ["Jakob Hohwy","","cog","Philosophy of predictive processing."],
+ ["Anil Seth","","cog","Interoceptive inference; the beast-machine theory of consciousness."],
+ ["Jens Rasmussen","1926–2018","safety","Risk management as a control problem; migration toward the boundary."],
+ ["Nancy Leveson","","safety","STAMP and systems-theoretic safety engineering."],
+ ["Erik Hollnagel","","safety","Safety-II and resilience engineering."],
+ ["David Woods","","safety","Resilience engineering and cognitive systems engineering."],
+ ["Charles Perrow","1925–2019","safety","Normal accident theory."],
+ ["James Reason","","safety","The Swiss cheese model; human error."],
+ ["Karl Weick","","safety","Sensemaking and high reliability organizing."],
+ ["Marvin Minsky","1927–2016","ai","Symbolic AI; co-author of Perceptrons."],
+ ["John McCarthy","1927–2011","ai","Organized the Dartmouth workshop; coined “artificial intelligence”."],
+ ["Rodney Brooks","","ai","Behaviour-based robotics."],
+ ["Richard Sutton","","ai","Reinforcement learning."],
+ ["Stuart Russell","","ai","Human-compatible AI; alignment under uncertainty."],
+ ["Steve Heims","","hist","Historian of the Macy conferences."],
+ ["Peter Galison","","hist","The ontology of the enemy."],
+ ["N. Katherine Hayles","","hist","Cybernetics and the posthuman."],
+ ["Fred Turner","","hist","Cybernetics and the counterculture."],
+ ["Andrew Pickering","","hist","The Cybernetic Brain; nonmodern ontology."],
+ ["Eden Medina","","hist org","Historian of Cybersyn."],
+ ["Ronald Kline","","hist","The cybernetics moment."],
+ ["Thomas Rid","","hist ai","Cultural history of cybernetics and control."]
+];
+
+/* ================= GOALS TRACK: data ================= */
+const NEW=["g1","g2","g3","g4"];
+const PARENT={g1:"safety",g2:"cog",g3:"social",g4:"soft"};
+Object.assign(B,{
+ g1:{track:true,name:"Goal models and assurance",lab:["Goal models","& assurance"],start:1971,tag:"KAOS, GSN, plans, missions",
+  summary:"Engineers needed a way to write down what a system is for and to argue that it achieves it. Requirements engineering answered with goal models (KAOS, i*): goals refine into sub-goals until each is assigned to an agent, human or machine. Safety engineering answered with assurance cases (GSN): a top goal is supported by claims, strategies and evidence. Robotics and game AI added executable versions: planners, behavior trees, BDI agents and temporal-logic missions.",
+  ideas:[["Goal refinement","Break a goal into AND/OR sub-goals until each can be assigned to an agent. The tree records why every requirement exists (KAOS, van Lamsweerde)."],["Conflicts and obstacles","Model what could block a goal and where goals collide, then add goals to handle them (KAOS)."],["Softgoals and contribution links","Qualities such as security or usability are never simply met. They are helped or hurt, made or broken (the NFR framework, i*)."],["Actors and dependencies","i* models actors, roles and positions that depend on each other for goals, the nearest thing in this tradition to membership and identity."],["Argument structure","GSN lays a safety case out as goals, strategies, context, assumptions and evidence, in the tradition of Toulmin (Kelly)."],["Executable goals","Planners (STRIPS, GOAP), behavior trees and BDI agents let a machine pursue goals and re-plan. Temporal-logic specifications let robot missions be checked (Kress-Gazit)."],["Fundamental and means objectives","Decision analysis separates what you ultimately want from what merely leads there, and maps how means serve ends (Keeney)."],["Assurance 2.0","Add defeaters and a confidence assessment so a case is challenged, not just assembled (Bloomfield and Rushby)."],["Graph analysis of goals","Signed goal graphs can be tested for structural balance (Heider; Cartwright and Harary), argumentation frameworks find coherent sets of claims (Dung), and network robustness asks which nodes hold a graph together (Albert and colleagues)."]],
+  args:[["A goal tree is theater: a tidy diagram proves nothing.","The Nimrod Review and Leveson made this charge against safety cases. Assurance 2.0 answers with explicit defeaters and confidence assessment, so the argument is challenged, not merely assembled."],["Decomposing a top-level goal hides value conflicts.","Requirements researchers added conflict and obstacle analysis. Soft-systems critics add that the top-level goal is itself negotiated, which no notation can settle."]]},
+ g2:{track:true,name:"Human goal pursuit and self-regulation",lab:["Goal pursuit","& efficacy"],start:1960,tag:"Why some people finish and others stall",
+  summary:"Psychology has a cybernetic core. Miller, Galanter and Pribram’s TOTE unit (1960), Powers’s control of perception and Carver and Scheier’s self-regulation model treat behavior as a loop that compares a perceived state with a reference. The applied literature on goal-setting, implementation intentions, habits, self-monitoring, efficacy and autonomy reads as fixes for different parts of that loop. The findings are uneven: several famous effects, including ego depletion and the 21-day habit, have not held up well.",
+  ideas:[["TOTE and control of perception","Behavior is test, operate, test, exit: act until the perceived state matches the reference. Powers made this a full theory of behavior as control of perception, and Carver and Scheier applied it to self-regulation."],["Goal-setting theory","Specific, difficult goals held with commitment and given feedback beat vague ones (Locke and Latham), at the cost of side effects such as narrow focus and gaming."],["Goal systems and conflict","Goals form networks of means and ends. One means can serve several goals, and competing goals crowd each other out (Kruglanski)."],["Implementation intentions","If–then plans that tie an action to a cue improve goal attainment with a medium-to-large average effect (Gollwitzer and Sheeran)."],["Progress monitoring","Tracking progress, especially recording it or reporting it to others, improves attainment on average (Harkin and colleagues)."],["Habits","Repetition in a stable context builds cue-triggered behavior. Formation time varies widely, with a median near 66 days in one study, not 21 (Lally; Wood)."],["Situation over willpower","People who look self-controlled often avoid temptation instead of resisting it (Duckworth; Milyavskaya and Inzlicht). Chronic shortage of time or money also taxes planning (Mullainathan and Shafir), though parts of that work are disputed."],["Autonomy and efficacy","Goals held for one’s own reasons, and belief that one can carry them out, predict persistence (Deci and Ryan; Bandura)."],["Strategy","Good strategy names the problem, sets a guiding policy and coordinates actions (Rumelt). Boyd’s observe–orient–decide–act cycle is the competitive version."]],
+  args:[["Goal-setting is oversold: it narrows attention and invites gaming.","Ordóñez and colleagues make this case under the label “goals gone wild.” Locke and Latham reply that the side effects are real but come from overloaded or badly chosen goals, not from goal-setting itself."],["Willpower is a limited resource that runs down.","A large multi-lab replication (Hagger and colleagues) found an ego-depletion effect near zero. Later work shifted attention to temptation avoidance and to how effort is valued."]]},
+ g3:{track:true,name:"Identity, symbols and group boundaries",lab:["Identity &","symbols"],start:1912,tag:"How goals become identity, and identity a boundary",
+  summary:"Identity does several jobs at once: it places a person in a group, makes their behavior predictable to others, compresses many goals into one self-description, and carries a sense of continuity through change. It forms from a person’s own goals and from goals others ascribe to them. Groups share it through symbols, which act as cheap pointers to a whole bundle of goals and values. The same machinery that supports cooperation also sorts people into in-groups and out-groups, so control of the symbols becomes control of the group.",
+  ideas:[["Identity control theory","Identity is a set of meanings held as a standard. Behavior adjusts until the meanings others reflect back match it, which is cybernetic control applied to the self (Burke; Stets)."],["Own goals and ascribed goals","Gaps between the actual, ideal and ‘ought’ self produce distress (Higgins). Categories imposed by others change the people categorized, who respond to them (Goffman on stigma; Hacking on looping effects)."],["Possible selves and narrative","People organize goals around images of who they might become and stories about who they have been (Markus and Nurius; McAdams)."],["Social identity and self-categorization","Group membership alone, even arbitrary, produces in-group favoritism. People act as group members when the group identity is salient (Tajfel and Turner)."],["Symbols as shared pointers","A symbol lets a group point at the same thing without restating it: the significant symbol (Mead), the totem (Durkheim), identification (Burke)."],["Costly signals and boundary work","Demanding markers screen out free riders (Iannaccone), groups draw symbolic and social boundaries through taste and status (Bourdieu; Lamont and Molnár), and identity can attach norms and payoffs to categories (Akerlof and Kranton)."],["Identity-protective cognition","People process evidence in ways that protect their standing in their group (Kahan; Van Bavel and Pereira)."],["Schismogenesis","Bateson’s term for runaway differentiation: each side’s behavior provokes more of the same or of the opposite from the other, a positive feedback loop between groups."]],
+  args:[["Identity accounts overstate group loyalty: people hold many identities that cross-cut.","Cross-cutting identities do soften conflict in some studies. The counter is that political identity has become bundled with religion, race and place, which makes conflicts reinforce each other (Mason)."],["Symbols are noise; interests drive politics.","Edelman argued symbols do real political work: they reassure, mobilize and mark loyalty, while material interests are settled elsewhere."],["‘Identity’ is too vague a word to explain anything.","Brubaker and Cooper make this argument and propose separate terms for categorization, self-understanding and groupness."]]},
+ g4:{track:true,name:"Aligning people: dialogue, persuasion and disinformation",lab:["Human","alignment"],start:1954,tag:"Listening, contact, deliberation, manipulation",
+  summary:"How do people with different goals come to act together, or at least stop working against each other? The toolkit runs from repairing the channel (reflective listening, motivational interviewing), through changing the model each side holds of the other (correcting misperceptions, deep canvassing), to building shared reference points (superordinate goals, cooperative contact, interest-based negotiation) and shared decision structures (deliberation, bridging systems). The adversarial mirror is influence work, which uses the same knowledge of goals and identity to steer people without their consent.",
+  ideas:[["Reflective listening","The listener restates what they heard and checks it with the speaker, adding nothing. It is a round-trip test on the channel, and it lowers defensiveness (Rogers; Itzchakov and Kluger)."],["Motivational interviewing","Open questions, affirmations, reflections and summaries that draw out the person’s own reasons for change (Miller and Rollnick)."],["Deep canvassing","Long, nonjudgmental conversations in which the canvasser listens, shares a personal story and asks about the other person’s experience. Field experiments show durable shifts on some issues (Broockman and Kalla)."],["Cooperative contact and superordinate goals","Contact reduces prejudice most when groups have equal status and work together on a shared goal (Allport; Sherif; Lowe)."],["Interest-based negotiation","Move from stated positions to underlying interests, and invent options for mutual gain (Fisher and Ury)."],["Deliberation and bridging","Structured deliberation, and ranking systems that surface statements approved across divides (Polis; Community Notes)."],["Information disorder","Wardle and Derakhshan separate misinformation (false, no intent to harm), disinformation (false, intended to harm) and malinformation (true, used to harm)."],["Reflexive control","A Russian military concept, linked to Vladimir Lefebvre’s reflexive theory, of steering an adversary by shaping the information they use to decide (Thomas)."]],
+  args:[["Listening builds rapport, not agreement.","Largely fair. Rapport lowers defensiveness, which is a precondition for change, but ordinary campaign contact has almost no persuasive effect (Kalla and Broockman). The deep canvassing results pair listening with personal stories and long conversations."],["Disinformation is the problem.","Budak and colleagues and Mercier argue its effects are overstated: exposure is concentrated in a small, already committed audience, and demand (identity, distrust) matters more than supply."],["Aligning goals is the wrong target: disagreement is healthy.","Mouffe argues for turning enemies into adversaries instead of dissolving conflict. Ashby’s requisite variety points the same way: a group that removes all diversity loses its ability to respond to change."]]}
+});
+
+const ADDS={
+ org:"Gives System 5 a formal language. The VSM says identity and policy must be set somewhere but not how; goal models (KAOS, GSN) make purposes, conflicts and evidence explicit, and the alignment techniques offer ways to negotiate them.",
+ second:"Supplies mechanisms for observer-made distinctions. Identity control theory and social identity theory ask how distinctions harden into goals, symbols and group boundaries, and how they get steered.",
+ soft:"Adds field evidence. Soft and critical methods assume that structured dialogue can produce accommodation; the alignment track tests versions of that claim, with mixed results.",
+ complex:"Adds a person-scale version of the same loops. Progress tracking, delays and habit formation are system dynamics inside one head; polarization and schismogenesis are reinforcing loops between groups.",
+ cog:"Adds the behavioral side of control. Predictive processing describes goals as expectations the body works to fulfil; self-regulation theory runs the same loop at the level of plans, habits and identity standards.",
+ safety:"Adds argument structure for goals. GSN safety cases are the safety tradition’s way of showing that a goal is met, and the critique that they become theater connects to Leveson’s emphasis on enforced constraints.",
+ ai:"Adds the human side of alignment. Machine alignment assumes human goals can be stated and agree; this track shows how goals form, conflict and get manipulated. Goal-conditioned learning and inverse RL are the machine versions of goal pursuit and goal inference.",
+ social:"Adds measurable claims. Social identity, identity control and polarization studies turn Bateson’s and Luhmann’s themes into testable accounts of group boundaries.",
+ hist:"Adds the adversarial history. Cybernetic ideas were also used to model and steer opponents: reflexive control is the dark mirror of second-order thinking."
+};
+
+const LINKS2=[
+ ["g1","safety","GSN is a safety-case notation, and the “theater” critique meets Leveson’s emphasis on enforced constraints."],
+ ["g1","ai","Planners, BDI agents and goal-conditioned learning are the executable side of goal models."],
+ ["g1","org","System 5 sets purpose in the VSM. Goal models make that purpose explicit and checkable."],
+ ["g1","soft","Soft-systems thinkers ask whose goals sit at the top of the tree."],
+ ["g1","g2","Goal models assign goals to agents. The human literature says what goes on inside a person who is an agent."],
+ ["g1","g3","i* actors and roles are goal-model versions of membership, and signed goal graphs relate to structural balance."],
+ ["g1","g4","Models can expose goal conflicts, but resolving them is a negotiation."],
+ ["g2","cog","Self-regulation theory and predictive processing both treat behavior as reducing error against a reference."],
+ ["g2","complex","Progress tracking, delays and habit formation are system dynamics at the scale of one person."],
+ ["g2","ai","Reinforcement learning and human habit research share a vocabulary of reward and cue."],
+ ["g2","g3","Identity sits above goals: what people persist at depends on who they take themselves to be, and failing at goals can threaten identity."],
+ ["g2","g4","Competing commitments in one person and misaligned goals in a group are the same problem at two scales."],
+ ["g3","second","Identity as drawing a distinction ties to second-order cybernetics."],
+ ["g3","social","Schismogenesis and Luhmann’s system and environment are the cybernetic side of group boundaries."],
+ ["g3","g4","Symbols and boundaries are what alignment techniques have to work across."],
+ ["g4","soft","Checkland’s accommodation and Ulrich’s boundary critique are alignment methods in the soft-systems toolbox."],
+ ["g4","org","Team Syntegrity is an alignment technique built from cybernetics."],
+ ["g4","ai","Machine alignment and human alignment share the problem of specifying purposes. AI dialogue is now also an alignment tool."],
+ ["g4","hist","Reflexive control and Cold War influence work are the adversarial history."]
+];
+
+/* [id,title,author,year,kind,level,[branches],note,verify?] */
+const R2=[
+["fikes71","STRIPS: A New Approach to the Application of Theorem Proving to Problem Solving","Richard Fikes & Nils Nilsson",1971,"paper",3,["g1","ai"],"The planner that made goals, preconditions and effects the vocabulary of robot planning."],
+["bratman87","Intention, Plans, and Practical Reason","Michael Bratman",1987,"book",3,["g1","ai"],"The philosophy behind BDI agents: intentions as commitments that structure planning."],
+["toulmin58","The Uses of Argument","Stephen Toulmin",1958,"book",2,["g1","soft"],"The claim, warrant and evidence model behind assurance cases."],
+["dardenne93","Goal-Directed Requirements Acquisition","Anne Dardenne, Axel van Lamsweerde & Stephen Fickas",1993,"paper",3,["g1"],"The original KAOS paper."],
+["chung00","Non-Functional Requirements in Software Engineering","Lawrence Chung, Brian Nixon, Eric Yu & John Mylopoulos",2000,"book",3,["g1"],"The NFR framework: softgoals with make, help, hurt and break links."],
+["yu97","Towards Modelling and Reasoning Support for Early-Phase Requirements Engineering","Eric Yu",1997,"paper",3,["g1","org"],"The i* framework: actors, dependencies and intentions."],
+["kelly98","Arguing Safety: A Systematic Approach to Managing Safety Cases","Tim Kelly",1998,"paper",3,["g1","safety"],"University of York doctoral thesis, where GSN comes from."],
+["kw04","The Goal Structuring Notation: A Safety Argument Notation","Tim Kelly & Rob Weaver",2004,"paper",2,["g1","safety"],"The short introduction to GSN."],
+["vl09","Requirements Engineering: From System Goals to UML Models to Software Specifications","Axel van Lamsweerde",2009,"book",3,["g1"],"The full KAOS method, with obstacle and conflict analysis."],
+["keeney92","Value-Focused Thinking: A Path to Creative Decision Making","Ralph Keeney",1992,"book",2,["g1"],"Fundamental versus means objectives, and how to build a means–ends network."],
+["orkin06","Three States and a Plan: The A.I. of F.E.A.R.","Jeff Orkin",2006,"paper",2,["g1","ai"],"Goal-oriented action planning in a shipped game; the usual GOAP reference."],
+["rao95","BDI Agents: From Theory to Practice","Anand Rao & Michael Georgeff",1995,"paper",3,["g1","ai"],"Beliefs, desires and intentions as an agent architecture."],
+["kgfp09","Temporal-Logic-Based Reactive Mission and Motion Planning","Hadas Kress-Gazit, Georgios Fainekos & George Pappas",2009,"paper",3,["g1"],"Robot missions written as temporal-logic specifications and turned into controllers."],
+["co18","Behavior Trees in Robotics and AI: An Introduction","Michele Colledanchise & Petter Ögren",2018,"book",2,["g1","ai"],"Behavior trees as a modular structure for pursuing goals."],
+["ngr00","Algorithms for Inverse Reinforcement Learning","Andrew Ng & Stuart Russell",2000,"paper",3,["g1","ai"],"Inferring the goal behind observed behavior."],
+["chm16","Cooperative Inverse Reinforcement Learning","Dylan Hadfield-Menell and co-authors",2016,"paper",3,["g1","ai"],"A human and a machine, where the machine is unsure of the human’s goal."],
+["leveson11b","The Use of Safety Cases in Certification and Regulation","Nancy Leveson",2011,"paper",2,["g1","safety"],"The argument that safety cases invite confirmation bias."],
+["nimrod09","The Nimrod Review","Charles Haddon-Cave",2009,"paper",2,["g1","safety"],"Inquiry into the loss of an RAF aircraft that judged the safety case exercise a failure."],
+["br20","Assurance 2.0: A Manifesto","Robin Bloomfield & John Rushby",2020,"paper",2,["g1","safety"],"Proposes defeaters and confidence assessment for assurance cases."],
+["heider46","Attitudes and Cognitive Organization","Fritz Heider",1946,"paper",2,["g1","g3"],"Balance theory: which signed relations among people and things are stable."],
+["ch56","Structural Balance: A Generalization of Heider’s Theory","Dorwin Cartwright & Frank Harary",1956,"paper",3,["g1","g3"],"Signed graphs and the formal test for balance."],
+["dung95","On the Acceptability of Arguments and Its Fundamental Role in Nonmonotonic Reasoning, Logic Programming and n-Person Games","Phan Minh Dung",1995,"paper",3,["g1"],"Abstract argumentation: which sets of claims survive attacks."],
+["abj00","Error and Attack Tolerance of Complex Networks","Réka Albert, Hawoong Jeong & Albert-László Barabási",2000,"paper",2,["g1","complex"],"Which nodes hold a network together, and what happens when they are removed."],
+
+["mgp60","Plans and the Structure of Behavior","George Miller, Eugene Galanter & Karl Pribram",1960,"book",2,["g2","origins"],"The TOTE unit: a cybernetic model of plans."],
+["powers73","Behavior: The Control of Perception","William T. Powers",1973,"book",3,["g2","cog"],"Behavior as control of perception, with a hierarchy of reference levels."],
+["bandura77","Self-Efficacy: Toward a Unifying Theory of Behavioral Change","Albert Bandura",1977,"paper",2,["g2"],"Belief in one’s own capacity to act as a driver of persistence."],
+["cs98","On the Self-Regulation of Behavior","Charles Carver & Michael Scheier",1998,"book",2,["g2"],"Self-regulation as feedback loops, with goals from “be” to “do” to motor control."],
+["ll02","Building a Practically Useful Theory of Goal Setting and Task Motivation: A 35-Year Odyssey","Edwin Locke & Gary Latham",2002,"paper",2,["g2"],"The summary statement of goal-setting theory."],
+["kruglanski02","A Theory of Goal Systems","Arie Kruglanski and co-authors",2002,"paper",3,["g2"],"Goals and means as networks: multifinality, equifinality and shielding."],
+["dr00","The “What” and “Why” of Goal Pursuits: Human Needs and the Self-Determination of Behavior","Edward Deci & Richard Ryan",2000,"paper",2,["g2"],"Autonomy, competence and relatedness as the needs behind goals."],
+["gs06","Implementation Intentions and Goal Achievement: A Meta-Analysis of Effects and Processes","Peter Gollwitzer & Paschal Sheeran",2006,"paper",2,["g2"],"The evidence base for if–then planning."],
+["og09","Goals Gone Wild: The Systematic Side Effects of Overprescribing Goal Setting","Lisa Ordóñez, Maurice Schweitzer, Adam Galinsky & Max Bazerman",2009,"paper",1,["g2"],"The best-known critique of goal-setting."],
+["lally10","How Are Habits Formed: Modelling Habit Formation in the Real World","Phillippa Lally and co-authors",2010,"paper",1,["g2"],"Source of the 66-day median and the wide spread."],
+["wr16","Psychology of Habit","Wendy Wood & Dennis Rünger",2016,"paper",2,["g2"],"Habits as context-triggered responses, and how they differ from goals."],
+["harkin16","Does Monitoring Goal Progress Promote Goal Attainment? A Meta-Analysis of the Experimental Evidence","Benjamin Harkin and co-authors",2016,"paper",2,["g2"],"Monitoring helps, more so when it is recorded or reported."],
+["dgg16","Situational Strategies for Self-Control","Angela Duckworth, Tamar Gendler & James Gross",2016,"paper",1,["g2"],"Shaping the situation as a route to self-control."],
+["mi17","What’s So Great About Self-Control? Examining the Importance of Effortful Self-Control and Temptation in Predicting Real-Life Depletion and Goal Attainment","Marina Milyavskaya & Michael Inzlicht",2017,"paper",2,["g2"],"People with good self-control report fewer temptations."],
+["hagger16","A Multilab Preregistered Replication of the Ego-Depletion Effect","Martin Hagger and co-authors",2016,"paper",2,["g2"],"Found an effect near zero."],
+["cte17","Much Ado About Grit: A Meta-Analytic Synthesis of the Grit Literature","Marcus Credé, Michael Tynan & Peter Harms",2017,"paper",2,["g2"],"Grit overlaps heavily with conscientiousness."],
+["ms13","Scarcity: Why Having Too Little Means So Much","Sendhil Mullainathan & Eldar Shafir",2013,"book",1,["g2"],"How shortage of money or time taxes attention; parts are disputed."],
+["oettingen14","Rethinking Positive Thinking: Inside the New Science of Motivation","Gabriele Oettingen",2014,"book",1,["g2"],"Mental contrasting and the WOOP method."],
+["kl09","Immunity to Change","Robert Kegan & Lisa Lahey",2009,"book",1,["g2","g4"],"Hidden competing commitments. A practitioner framework with little trial evidence."],
+["rumelt11","Good Strategy/Bad Strategy","Richard Rumelt",2011,"book",1,["g2"],"Diagnosis, guiding policy and coherent action."],
+["flyvbjerg06","From Nobel Prize to Project Management: Getting Risks Right","Bent Flyvbjerg",2006,"paper",2,["g2"],"Reference-class forecasting as a cure for optimistic plans."],
+["deyoung15","Cybernetic Big Five Theory","Colin DeYoung",2015,"paper",3,["g2","cog"],"Personality as individual differences in goal-directed control."],
+["osinga07","Science, Strategy and War: The Strategic Theory of John Boyd","Frans Osinga",2007,"book",3,["g2"],"Boyd’s OODA loop in its full cybernetic and complexity context."],
+["gtd01","Getting Things Done","David Allen",2001,"book",1,["g2"],"Popular practitioner method for tasks; consistent with the research, not itself evidence."],
+["clear18","Atomic Habits","James Clear",2018,"book",1,["g2"],"Popular practitioner book on habits; ideas track the research, the book is not evidence."],
+["doerr18","Measure What Matters","John Doerr",2018,"book",1,["g2"],"OKRs from the practitioner side; little controlled evidence."],
+
+["durkheim12","The Elementary Forms of Religious Life","Émile Durkheim",1912,"book",3,["g3","social"],"Totems as the group’s symbol of itself."],
+["mead34","Mind, Self, and Society","George Herbert Mead",1934,"book",3,["g3","social"],"The self arises through symbolically mediated interaction."],
+["bateson36","Naven","Gregory Bateson",1936,"book",3,["g3","social"],"Where schismogenesis is introduced."],
+["burke50","A Rhetoric of Motives","Kenneth Burke",1950,"book",3,["g3","g4"],"Identification as the core of persuasion."],
+["goffman59","The Presentation of Self in Everyday Life","Erving Goffman",1959,"book",1,["g3"],"Identity as performance for an audience."],
+["goffman63","Stigma: Notes on the Management of Spoiled Identity","Erving Goffman",1963,"book",2,["g3"],"How categories applied by others shape the self."],
+["edelman64","The Symbolic Uses of Politics","Murray Edelman",1964,"book",2,["g3","g4"],"Political symbols as reassurance, mobilization and loyalty tests."],
+["erikson68","Identity: Youth and Crisis","Erik Erikson",1968,"book",2,["g3"],"Identity formation and identity crisis."],
+["sb69","Laws of Form","George Spencer-Brown",1969,"book",3,["g3","second"],"Draw a distinction: the calculus behind identity as boundary."],
+["tajfel79","An Integrative Theory of Intergroup Conflict","Henri Tajfel & John Turner",1979,"paper",2,["g3"],"Social identity theory in its standard statement."],
+["anderson83","Imagined Communities","Benedict Anderson",1983,"book",2,["g3"],"Nations as communities held together by shared symbols and media."],
+["bourdieu84","Distinction: A Social Critique of the Judgement of Taste","Pierre Bourdieu",1984,"book",3,["g3"],"Taste as a marker of class boundaries. French original 1979."],
+["hacking95","The Looping Effects of Human Kinds","Ian Hacking",1995,"paper",2,["g3"],"How classifying people changes the people classified."],
+["markus86","Possible Selves","Hazel Markus & Paula Nurius",1986,"paper",2,["g3","g2"],"Goals organized around who a person might become."],
+["mcadams01","The Psychology of Life Stories","Dan McAdams",2001,"paper",2,["g3"],"Identity as an evolving narrative."],
+["higgins87","Self-Discrepancy: A Theory Relating Self and Affect","E. Tory Higgins",1987,"paper",2,["g3","g2"],"Actual, ideal and ought selves, and the distress from gaps between them."],
+["burke91","Identity Processes and Social Stress","Peter Burke",1991,"paper",3,["g3","g2"],"Identity control theory: a standard, a comparator and behavior that restores match."],
+["bs09","Identity Theory","Peter Burke & Jan Stets",2009,"book",3,["g3","g2"],"The full statement of identity control theory."],
+["iannaccone92","Sacrifice and Stigma: Reducing Free-Riding in Cults, Communes, and Other Collectives","Laurence Iannaccone",1992,"paper",2,["g3"],"Costly demands as a screen against free riders."],
+["lm02","The Study of Boundaries in the Social Sciences","Michèle Lamont & Virág Molnár",2002,"paper",2,["g3"],"Symbolic and social boundaries, and how groups draw them."],
+["akerlof00","Economics and Identity","George Akerlof & Rachel Kranton",2000,"paper",2,["g3"],"Identity as norms and payoffs attached to social categories."],
+["bc00","Beyond “Identity”","Rogers Brubaker & Frederick Cooper",2000,"paper",2,["g3"],"Why the word does too many jobs, and what to use instead."],
+["lorde84","Sister Outsider","Audre Lorde",1984,"book",2,["g3"],"Essays on simultaneous identities and difference."],
+["crenshaw91","Mapping the Margins: Intersectionality, Identity Politics, and Violence Against Women of Color","Kimberlé Crenshaw",1991,"paper",2,["g3"],"Overlapping identities and how institutions treat them."],
+["schwartz92","Universals in the Content and Structure of Values","Shalom Schwartz",1992,"paper",2,["g3","g4"],"A map of basic values showing which are compatible and which conflict."],
+["kahan12","The Polarizing Impact of Science Literacy and Numeracy on Perceived Climate Change Risks","Dan Kahan and co-authors",2012,"paper",1,["g3","g4"],"The standard reference for identity-protective cognition."],
+["vbp18","The Partisan Brain: An Identity-Based Model of Political Belief","Jay Van Bavel & Andrea Pereira",2018,"paper",2,["g3","g4"],"Political belief as an expression of group identity."],
+["finkel20","Political Sectarianism in America","Eli Finkel and co-authors",2020,"paper",1,["g3","g4"],"Othering, aversion and moralization as the parts of polarization."],
+["mason18","Uncivil Agreement: How Politics Became Our Identity","Lilliana Mason",2018,"book",1,["g3"],"How aligned identities intensify partisan hostility."],
+
+["allport54","The Nature of Prejudice","Gordon Allport",1954,"book",2,["g4","g3"],"The contact hypothesis and its conditions."],
+["rogers57","Active Listening","Carl Rogers & Richard Farson",1957,"paper",1,["g4"],"The classic short statement: listen for meaning and reflect it back."],
+["sherif61","Intergroup Conflict and Cooperation: The Robbers Cave Experiment","Muzafer Sherif and co-authors",1961,"book",2,["g4","g3"],"Superordinate goals as a way to reduce group hostility."],
+["cm63","A Behavioral Theory of the Firm","Richard Cyert & James March",1963,"book",3,["g4","org"],"Organizations as coalitions with conflicting goals, resolved locally and in sequence."],
+["kerr75","On the Folly of Rewarding A, While Hoping for B","Steven Kerr",1975,"paper",1,["g4","org"],"How incentives pull people away from the goals an organization states."],
+["fu81","Getting to Yes","Roger Fisher & William Ury",1981,"book",1,["g4"],"Interest-based negotiation."],
+["msb94","Fighting for Your Marriage","Howard Markman, Scott Stanley & Susan Blumberg",1994,"book",1,["g4"],"Source of the speaker–listener technique, the structured form of mirroring."],
+["pt06","A Meta-Analytic Test of Intergroup Contact Theory","Thomas Pettigrew & Linda Tropp",2006,"paper",2,["g4","g3"],"Contact typically reduces prejudice across hundreds of studies."],
+["mr13","Motivational Interviewing: Helping People Change (3rd ed.)","William Miller & Stephen Rollnick",2013,"book",2,["g4"],"The standard text; first edition 1991."],
+["wardle17","Information Disorder: Toward an Interdisciplinary Framework for Research and Policy Making","Claire Wardle & Hossein Derakhshan",2017,"paper",1,["g4"],"Misinformation, disinformation and malinformation."],
+["nr10","When Corrections Fail: The Persistence of Political Misperceptions","Brendan Nyhan & Jason Reifler",2010,"paper",2,["g4"],"The original backfire-effect paper."],
+["wp19","The Elusive Backfire Effect: Mass Attitudes’ Steadfast Factual Adherence","Thomas Wood & Ethan Porter",2019,"paper",2,["g4"],"Finds backfire to be rare."],
+["bk16","Durably Reducing Transphobia: A Field Experiment on Door-to-Door Canvassing","David Broockman & Joshua Kalla",2016,"paper",1,["g4"],"The deep canvassing field experiment."],
+["kb18","The Minimal Persuasive Effects of Campaign Contact in General Elections: Evidence from 49 Field Experiments","Joshua Kalla & David Broockman",2018,"paper",2,["g4"],"Ordinary campaign contact has near-zero effects."],
+["kb20","Reducing Exclusionary Attitudes Through Interpersonal Conversation: Evidence from Three Field Experiments","Joshua Kalla & David Broockman",2020,"paper",2,["g4"],"Further deep canvassing field experiments."],
+["ovadya23","Bridging Systems: Open Problems for Countering Destructive Divisiveness Across Ranking, Recommenders, and Governance","Aviv Ovadya & Luke Thorburn",2023,"paper",2,["g4"],"Ranking that rewards agreement across divides."],
+["itz17","I Am Aware of My Inconsistencies but Can Tolerate Them: The Effect of High Quality Listening on Speakers’ Attitude Ambivalence","Guy Itzchakov, Avraham Kluger & Dotan Castro",2017,"paper",2,["g4"],"High-quality listening and how speakers hold their own views."],
+["ki22","The Power of Listening at Work","Avraham Kluger & Guy Itzchakov",2022,"paper",1,["g4"],"A review of the listening literature."],
+["weger14","The Relative Effectiveness of Active Listening in Initial Interactions","Harry Weger and co-authors",2014,"paper",2,["g4"],"Found paraphrasing no better than simple acknowledgment at conveying understanding.",1],
+["lowe21","Types of Contact: A Field Experiment on Collaborative and Adversarial Caste Integration","Matthew Lowe",2021,"paper",2,["g4","g3"],"Cooperating on a team reduced prejudice; competing across teams did not."],
+["paluck19","The Contact Hypothesis Re-Evaluated","Elizabeth Levy Paluck, Seth Green & Donald Green",2019,"paper",2,["g4","g3"],"Reviews the field evidence and what it does and does not show."],
+["mb20","Exaggerated Meta-Perceptions Predict Intergroup Hostility Between American Political Partisans","Samantha Moore-Berg and co-authors",2020,"paper",2,["g4","g3"],"Each side overestimates the other’s hostility."],
+["voelkel24","Megastudy Testing 25 Treatments to Reduce Antidemocratic Attitudes and Partisan Animosity","Jan Voelkel and co-authors",2024,"paper",2,["g4","g3"],"Compares many short interventions in a single design.",1],
+["pr19","Lazy, Not Biased: Susceptibility to Partisan Fake News Is Better Explained by Lack of Reasoning Than by Motivated Reasoning","Gordon Pennycook & David Rand",2019,"paper",2,["g4","g3"],"The main challenge to the identity-protective account."],
+["pennycook21","Shifting Attention to Accuracy Can Reduce Misinformation Online","Gordon Pennycook and co-authors",2021,"paper",2,["g4"],"Accuracy prompts and sharing."],
+["roozenbeek22","Psychological Inoculation Improves Resilience Against Misinformation on Social Media","Jon Roozenbeek and co-authors",2022,"paper",2,["g4"],"Prebunking tested on video platforms."],
+["bail18","Exposure to Opposing Views on Social Media Can Increase Political Polarization","Christopher Bail and co-authors",2018,"paper",2,["g4","g3"],"A field experiment against the simple echo-chamber story."],
+["guess23","How Do Social Media Feed Algorithms Affect Attitudes and Behavior in an Election Campaign?","Andrew Guess and co-authors",2023,"paper",2,["g4"],"One of the 2020 election studies with Meta."],
+["benkler18","Network Propaganda: Manipulation, Disinformation, and Radicalization in American Politics","Yochai Benkler, Robert Faris & Hal Roberts",2018,"book",2,["g4"],"Network analysis of the 2016 US election media ecosystem."],
+["mercier20","Not Born Yesterday: The Science of Who We Trust and What We Believe","Hugo Mercier",2020,"book",1,["g4","g3"],"The case that people are less gullible than assumed."],
+["budak24","Misunderstanding the Harms of Online Misinformation","Ceren Budak and co-authors",2024,"paper",2,["g4"],"Argues the effects of misinformation are overstated."],
+["rid20","Active Measures: The Secret History of Disinformation and Political Warfare","Thomas Rid",2020,"book",1,["g4","hist"],"A history of disinformation as state practice."],
+["thomas04","Russia’s Reflexive Control Theory and the Military","Timothy Thomas",2004,"paper",3,["g4","hist"],"Reflexive control as a concept in Russian military thought."],
+["lefebvre82","Algebra of Conscience","Vladimir Lefebvre",1982,"book",3,["g4","second"],"A formal model of agents who model one another; often cited as a source of reflexive control.",1],
+["costello24","Durably Reducing Conspiracy Beliefs Through Dialogues with AI","Thomas Costello, Gordon Pennycook & David Rand",2024,"paper",2,["g4","ai"],"Chatbot conversations reduced conspiracy belief for months."],
+["tessler24","AI Can Help Humans Find Common Ground in Democratic Deliberation","Michael Tessler and co-authors",2024,"paper",2,["g4","ai"],"The “Habermas Machine”: AI-drafted group statements."],
+["mouffe05","On the Political","Chantal Mouffe",2005,"book",2,["g4","soft"],"Agonism: turning enemies into adversaries."]
+];
+R2.forEach(r=>{RB[r[0]]=r;});
+
+const EV2=[
+ [1954,"g4","Sherif’s Robbers Cave camp study of intergroup conflict and cooperation (published 1961)."],
+ [1971,"g3","Tajfel and colleagues’ minimal group experiments show in-group favoritism from arbitrary categories."],
+ [2016,"g4","The US election and the Brexit referendum make disinformation a mainstream research and policy topic."],
+ [2023,"g4","Meta-academic studies of the 2020 US election begin to report results."],
+ [2024,"g4","Science publishes AI-dialogue experiments on conspiracy belief and on finding common ground."]
+];
+
+const D2=[
+ {t:"Do goals help, or do they backfire?",b:["g2","g1"],
+  A:{h:"Goal-setting theory",p:"Specific, challenging goals, with commitment and feedback, raise performance more reliably than vague “do your best” goals. Decades of lab and field studies support this.",w:"Locke and Latham"},
+  Bx:{h:"“Goals gone wild”",p:"Goals narrow attention, encourage cutting corners, erode intrinsic motivation and reward risk-taking. Overprescribing them is like overprescribing a drug.",w:"Ordóñez, Schweitzer, Galinsky, Bazerman"},
+  s:"Both are partly right. The gap is between a goal as the reference for a feedback loop, which works, and a goal as a target tied to rewards, which invites gaming (Goodhart’s law). The same design question faces any goal graph: what counts as evidence that a goal is met, and who can game it?"},
+ {t:"Willpower, habit or circumstance?",b:["g2"],
+  A:{h:"Individual capacity",p:"People differ in self-control, grit and conscientiousness, and those differences predict outcomes. Building willpower and habits is the lever.",w:"Baumeister, early grit research, popular habit books"},
+  Bx:{h:"Situation and structure",p:"Apparent self-control is often avoided temptation, stable cues and slack. Shortage of money, time and sleep taxes planning. Fix the situation and behavior follows.",w:"Milyavskaya and Inzlicht, Wood, Mullainathan and Shafir"},
+  s:"The best-replicated findings favor the middle: if–then plans, progress monitoring and context design. Ego depletion largely failed replication, grit overlaps heavily with conscientiousness, and some scarcity findings are contested. Advice that amounts to “try harder” has the weakest support."},
+ {t:"What kind of thing is identity?",b:["g3","g2","g1"],
+  A:{h:"A standard to be controlled",p:"Identity is a set of meanings held as a reference. People act to keep how others see them, and how they see themselves, matched to it, and identity threats trigger corrective action.",w:"Burke and Stets, Carver and Scheier"},
+  Bx:{h:"A story or a relation, not a set-point",p:"Identity is retold to different audiences and often ascribed by others. Treating it as a fixed reference misses how it shifts, and the single word covers categorization, self-understanding and group feeling.",w:"McAdams, Hacking, Brubaker and Cooper"},
+  s:"Unresolved. Brubaker and Cooper recommend replacing the one word with separate concepts, which is one way of reading the two camps as describing different things. Goal models such as KAOS and GSN have no node for identity at all; i* actors and roles come closest."},
+ {t:"Identity-protective or just lazy?",b:["g3","g4"],
+  A:{h:"Motivated reasoning",p:"People process political facts to protect their standing in their group, and more analytic people can do it more skillfully.",w:"Kahan, Van Bavel and Pereira"},
+  Bx:{h:"Lazy, not biased",p:"Susceptibility to false claims is better explained by not stopping to think than by defending the group, and nudges toward accuracy help.",w:"Pennycook and Rand"},
+  s:"Live. Both find real effects; the dispute is how much work identity does compared with inattention. It matters for remedies: if identity drives belief, facts do little; if inattention does, small nudges may work."},
+ {t:"Do corrections backfire?",b:["g4"],
+  A:{h:"Backfire",p:"Correcting a false belief can entrench it among people whose identity is tied to it.",w:"Nyhan and Reifler (2010)"},
+  Bx:{h:"Corrections work, modestly",p:"Across many topics people generally update toward the facts when corrected, and backfire is rare.",w:"Wood and Porter (2019) and later replications"},
+  s:"The general backfire effect has mostly not replicated, and corrections usually move beliefs a little. But change on facts often does not carry over to attitudes or votes, which is the gap identity-based accounts point to."},
+ {t:"Does listening change minds?",b:["g4"],
+  A:{h:"Listening matters",p:"High-quality listening lowers defensiveness and increases attitude clarity, and workplace studies link it to better relationships. Deep canvassing pairs listening with narratives and shows durable shifts.",w:"Rogers, Itzchakov and Kluger, Broockman and Kalla"},
+  Bx:{h:"Skeptics",p:"Paraphrasing on its own may add little beyond simple acknowledgment, since what people register is sincere attention. Rapport is not persuasion, and ordinary campaign contact has near-zero effects.",w:"Weger and colleagues, Kalla and Broockman (2018)"},
+  s:"Reflective listening is best read as channel repair: it makes the next exchange possible and makes people feel heard. Whether goals then move depends on what is added: a story, shared stakes, a task in common. It is necessary in many settings and sufficient in few."},
+ {t:"Are echo chambers driving polarization?",b:["g4","g3"],
+  A:{h:"Filter bubbles",p:"Recommendation feeds sort people into like-minded streams, and exposure to only one side drives polarization.",w:"Pariser, Sunstein"},
+  Bx:{h:"Exposure is not the cause",p:"Many people do meet opposing views, and a field experiment found that following opposing accounts increased polarization for some. Changing feed algorithms in a 2020 election study left attitudes largely unchanged.",w:"Bail and colleagues, Guess and colleagues"},
+  s:"The 2020 studies covered one platform, one election and a few months, so they limit the claim but do not close the question. The identity account predicts this pattern: exposure alone does not move people whose identity is at stake, and hostile exposure can harden it (schismogenesis)."},
+ {t:"Is disinformation a cause or a symptom?",b:["g4"],
+  A:{h:"Supply-side view",p:"Coordinated campaigns, partisan media ecosystems and engagement-driven platforms produce and amplify falsehood, with real political effects.",w:"Wardle and Derakhshan, Benkler and colleagues, Rid"},
+  Bx:{h:"Demand-side view",p:"People are not gullible. Most false-news sharing comes from a small, already committed group, and beliefs follow existing identity and distrust.",w:"Mercier, Budak and colleagues"},
+  s:"Both can hold. Supply may matter most at the margins and in crises, while demand explains why the audience is receptive. Remedies differ: moderation and transparency target supply, trust-building and identity-aware messaging target demand."},
+ {t:"Consensus or managed disagreement?",b:["g4","soft","org"],
+  A:{h:"Aim for shared goals",p:"Legitimate decisions need agreement reached through reasoned dialogue among equals. Aligning goals is the point.",w:"Habermas, deliberative democrats"},
+  Bx:{h:"Aim for adversaries, not enemies",p:"Politics is irreducibly conflictual. The task is to turn antagonism into agonism, where opponents contest without denying each other’s legitimacy. Forced consensus hides power.",w:"Mouffe; Checkland (accommodation, not consensus)"},
+  s:"Ashby’s law adds a cybernetic argument for the second view: a group that removes all variety loses its ability to respond to change. A workable middle is shared procedures and a few shared superordinate goals, with disagreement kept open elsewhere. Checkland’s accommodation is an example: a version of the situation that conflicting parties can live with."},
+ {t:"Are safety cases argument or theater?",b:["g1","safety"],
+  A:{h:"Assurance cases",p:"A structured argument with explicit claims, context and evidence makes safety reasoning reviewable and forces a system’s goals to be stated.",w:"Kelly, Bloomfield and Rushby"},
+  Bx:{h:"The theater critique",p:"Cases invite confirmation bias, turn into paperwork, and gave false comfort in the loss of a Nimrod aircraft. Better to analyze hazards directly and enforce constraints.",w:"Haddon-Cave (Nimrod Review), Leveson"},
+  s:"Assurance 2.0 responds with explicit defeaters and confidence assessment. One design lesson for any goal graph: make it easy to challenge and hard to merely decorate, since evidence that can be re-run is harder to fake than evidence that is cited."}
+];
+
+const PATHS2={
+ goals:["Why people finish or stall",["ll02","og09","gs06","harkin16","lally10","dgg16","hagger16","ms13"]],
+ ident:["Identity, symbols and boundaries",["goffman59","tajfel79","burke91","higgins87","hacking95","kahan12","mason18","bateson36"]],
+ align:["Aligning people beyond listening",["rogers57","fu81","bk16","kb20","pt06","lowe21","costello24","mouffe05"]],
+ models:["Goal models and assurance",["dardenne93","chung00","kw04","vl09","keeney92","br20","leveson11b","co18"]]
+};
+
+/* [name,dates,branches,contribution] */
+const P2=[
+ ["Axel van Lamsweerde","","g1","KAOS goal-oriented requirements engineering."],
+ ["Eric Yu","","g1","The i* framework for actors, dependencies and intentions."],
+ ["Tim Kelly","","g1","Goal Structuring Notation and safety cases."],
+ ["John Rushby","","g1 safety","Assurance cases and Assurance 2.0, with Robin Bloomfield."],
+ ["Michael Bratman","","g1","Philosophy of intention and planning behind BDI agents."],
+ ["Stephen Toulmin","1922–2009","g1 soft","Model of argument behind assurance cases."],
+ ["Ralph Keeney","","g1","Value-focused thinking; fundamental and means objectives."],
+ ["Jeff Orkin","","g1","Goal-oriented action planning in game AI."],
+ ["Hadas Kress-Gazit","","g1","Temporal-logic mission specification for robots."],
+ ["Fritz Heider","1896–1988","g1 g3","Balance theory."],
+ ["Frank Harary","1921–2005","g1","Signed graphs and structural balance."],
+ ["George A. Miller","1920–2012","g2","The TOTE unit; cognitive science."],
+ ["William T. Powers","1926–2013","g2 cog","Perceptual control theory."],
+ ["Charles Carver and Michael Scheier","","g2","Self-regulation as feedback loops."],
+ ["Albert Bandura","1925–2021","g2","Self-efficacy and social cognitive theory."],
+ ["Edwin Locke and Gary Latham","","g2","Goal-setting theory."],
+ ["Peter Gollwitzer","","g2","Implementation intentions."],
+ ["Edward Deci and Richard Ryan","","g2","Self-determination theory."],
+ ["Wendy Wood","","g2","Habit research."],
+ ["Angela Duckworth","","g2","Grit and situational self-control."],
+ ["Gabriele Oettingen","","g2","Mental contrasting and WOOP."],
+ ["Sendhil Mullainathan and Eldar Shafir","","g2","Scarcity and cognitive bandwidth."],
+ ["Richard Rumelt","","g2","Strategy as diagnosis, policy and coherent action."],
+ ["John Boyd","1927–1997","g2","The OODA loop."],
+ ["Colin DeYoung","","g2 cog","Cybernetic Big Five Theory."],
+ ["Robert Kegan","","g2 g4","Immunity to change; competing commitments."],
+ ["Émile Durkheim","1858–1917","g3 social","Symbols as the group’s representation of itself."],
+ ["George Herbert Mead","1863–1931","g3 social","The self as formed through symbolic interaction."],
+ ["Erving Goffman","1922–1982","g3","Presentation of self; stigma."],
+ ["Kenneth Burke","1897–1993","g3 g4","Identification as the heart of rhetoric."],
+ ["Murray Edelman","1919–2001","g3 g4","Symbolic politics."],
+ ["George Spencer-Brown","1923–2016","g3 second","Laws of Form; distinction as the primitive act."],
+ ["Henri Tajfel","1919–1982","g3","Minimal groups and social identity theory."],
+ ["Benedict Anderson","1936–2015","g3","Imagined communities."],
+ ["Pierre Bourdieu","1930–2002","g3","Taste, distinction and symbolic capital."],
+ ["Peter Burke and Jan Stets","","g3 g2","Identity control theory."],
+ ["E. Tory Higgins","","g3 g2","Self-discrepancy theory."],
+ ["Ian Hacking","1936–2023","g3","Looping effects of human kinds."],
+ ["Rogers Brubaker","","g3","Critique of “identity” as an analytic category."],
+ ["Hazel Markus","","g3 g2","Possible selves."],
+ ["Audre Lorde","1934–1992","g3","Simultaneous identities and difference."],
+ ["Dan Kahan","","g3 g4","Identity-protective cognition."],
+ ["Jay Van Bavel","","g3 g4","The partisan brain."],
+ ["Lilliana Mason","","g3","Aligned identities and partisan hostility."],
+ ["Shalom Schwartz","","g3 g4","Structure of basic human values."],
+ ["George Akerlof and Rachel Kranton","","g3","Identity economics."],
+ ["Carl Rogers","1902–1987","g4","Client-centered therapy and active listening."],
+ ["William Miller and Stephen Rollnick","","g4","Motivational interviewing."],
+ ["Roger Fisher","1922–2012","g4","Principled negotiation, with William Ury."],
+ ["Muzafer Sherif","1906–1988","g4","Robbers Cave; superordinate goals."],
+ ["Gordon Allport","1897–1967","g4 g3","The contact hypothesis."],
+ ["Thomas Pettigrew","1931–2021","g4 g3","Meta-analytic tests of contact theory."],
+ ["Elizabeth Levy Paluck","","g4 g3","Field experiments on prejudice reduction."],
+ ["Joshua Kalla and David Broockman","","g4","Deep canvassing and campaign persuasion field experiments."],
+ ["Guy Itzchakov and Avraham Kluger","","g4","High-quality listening research."],
+ ["Claire Wardle","","g4","Information disorder framework."],
+ ["Gordon Pennycook and David Rand","","g4 g3","Accuracy and reasoning in belief in misinformation; AI dialogue experiments."],
+ ["Hugo Mercier","","g4 g3","The case that people are not gullible."],
+ ["Yochai Benkler","","g4","Network propaganda."],
+ ["Chantal Mouffe","b. 1943","g4 soft","Agonistic pluralism."],
+ ["Vladimir Lefebvre","b. 1936","g4 second","Reflexive theory; a source of reflexive control."],
+ ["Timothy Thomas","","g4 hist","Analyst of Russian reflexive control."],
+ ["Aviv Ovadya","","g4","Bridging systems."],
+ ["Christopher Bail","","g4 g3","Social media and polarization field experiments."],
+ ["Richard Cyert and James March","","g4 org","Behavioral theory of the firm."],
+ ["Steven Kerr","","g4 org","On the folly of rewarding A while hoping for B."]
+];
+
+/* goal loop stations: [key,name,role,breaks,levers[[text,evidence,source]],diagnostics] */
+const LOOP=[
+ {k:"ref",name:"Reference: the goal, and who you take yourself to be",role:"The state the loop tries to hold. In this tradition the top of the hierarchy is identity and values, which set the goals below them.",breaks:"No clear target, several targets that collide, or a target that belongs to someone else.",
+  levers:[["Specific, challenging goals with commitment","strong","Locke and Latham (2002)"],["Goals held for your own reasons","moderate","Deci and Ryan (2000)"],["Goals that fit the self you want to be","moderate","Carver and Scheier; Markus and Nurius"],["Fewer goals, with conflicts made explicit","moderate","Kruglanski and colleagues (2002)"],["Naming competing commitments","practitioner","Kegan and Lahey (2009)"]],
+  ask:["Could someone else tell, from your description, whether the goal was met?","Is there another goal that wins whenever the two collide?"]},
+ {k:"perc",name:"Perception: seeing where you actually are",role:"Sensing the current state and how it is changing.",breaks:"No feedback, feedback that arrives too late, or a measure that drifts away from the goal.",
+  levers:[["Recording progress, especially in writing or shared with others","moderate","Harkin and colleagues (2016)"],["Outside-view estimates instead of gut estimates","moderate","Kahneman and Lovallo; Flyvbjerg (2006)"],["Habit and task trackers, streak counters","practitioner","Little direct trial evidence; whether streaks help or backfire is largely untested"],["Measures that resist gaming","practitioner","Goodhart’s law; Kerr (1975)"]],
+  ask:["How soon after acting do you find out whether it worked?","Could the number improve while the goal gets worse?"]},
+ {k:"comp",name:"Comparator: noticing the gap without quitting",role:"Turning a difference into a signal rather than a verdict.",breaks:"The gap is not noticed, or it is read as failure and the loop shuts down.",
+  levers:[["Mental contrasting with an if–then plan (WOOP)","moderate","Oettingen (2014)"],["Planning for lapses in advance","moderate","Marlatt and Gordon (1985)"],["Self-compassion after a miss","emerging","Small experiments so far"]],
+  ask:["What do you do in the first hour after missing?","Does one miss end the streak and the attempt?"]},
+ {k:"act",name:"Action: plans, habits and strategy",role:"What you do about the gap.",breaks:"The intention never meets a trigger, or the plan goes after the wrong obstacle.",
+  levers:[["If–then plans that tie an action to a cue","strong","Gollwitzer and Sheeran (2006)"],["Repetition in a stable context, so the cue triggers the act","moderate","Wood and Rünger (2016); Lally and colleagues (2010)"],["Diagnose, pick a guiding policy, coordinate actions","practitioner","Rumelt (2011)"],["Next-action lists and a regular review","practitioner","Allen (2001)"],["Fast observe–orient–decide–act cycles","practitioner","Boyd; Osinga (2007)"]],
+  ask:["Is there a named cue that starts the action?","Does the plan go after the biggest obstacle or the easiest one?"]},
+ {k:"world",name:"World: the disturbances",role:"Everything that pushes the state away from the goal: temptation, other people, shortage, shocks.",breaks:"Disturbances are stronger or more frequent than the loop can correct.",
+  levers:[["Change the situation: remove temptations, add friction or cues","moderate","Duckworth and colleagues (2016); Milyavskaya and Inzlicht (2017)"],["Commitment devices and accountability partners","moderate","Bryan, Karlan and Nelson (2010)"],["Temptation bundling","mixed","Milkman and colleagues (2014); early gains faded"],["Reduce shortage of time, money and sleep","contested","Mullainathan and Shafir (2013); the cognitive-bandwidth findings are disputed"]],
+  ask:["Which disturbance wins most often, and can it be removed instead of resisted?","What in your circumstances makes any plan harder to follow?"]}
+];
+
+const CHAIN=[
+ {h:"Goals harden into commitments",p:"A goal that is pursued long enough, and shared with others, becomes a commitment that the person defends. Several goals coexist, and some are the person’s own while others are ascribed by other people.",src:"Carver and Scheier; Markus and Nurius; Higgins",fail:"The reference gets stuck: people defend goals after the world has changed, and goals set by others can feel like their own."},
+ {h:"Commitments compress into identity",p:"“The kind of person who…” packages many goals into one self-description. It is cheaper to hold and to act on than a list, and it lets other people predict what the person will do.",src:"Burke and Stets; McAdams; Akerlof and Kranton",fail:"A threat to one goal feels like a threat to the self, so criticism triggers defense instead of revision."},
+ {h:"Identity is shared through symbols",p:"Words, dress, flags, food and rituals become pointers to a whole bundle of goals and values. A symbol lets a group coordinate without restating what it wants.",src:"Mead; Durkheim; Burke; Edelman",fail:"The pointer detaches from the bundle: people defend the symbol whether or not it still stands for the goals."},
+ {h:"Symbols draw boundaries",p:"Shared symbols separate insiders from outsiders. Costly or hard-to-fake markers screen out free riders, and taste and language mark status.",src:"Tajfel and Turner; Bourdieu; Iannaccone; Lamont and Molnár",fail:"Minimal cues are enough to produce favoritism, and boundaries can be redrawn quickly by whoever controls the symbols."},
+ {h:"Boundaries regulate behavior",p:"Groups keep members near their shared reference through approval and shunning, and evidence that threatens it is processed defensively. Between groups, each side’s reaction to the other can feed the split.",src:"Kahan; Van Bavel and Pereira; Bateson on schismogenesis; Akerlof and Kranton",fail:"Influence campaigns aim here: attach a claim to a group symbol and it inherits the group’s defenses. Reflexive control is the deliberate version."}
+];
+
+/* alignment techniques: [name,[changes],what,evidence,evidenceNote,limits,loopReading] */
+const TECH=[
+ ["Reflective listening (mirroring)",["channel"],"One person speaks; the other restates what they heard and checks it, adding nothing. Versions include Rogers’s active listening, the speaker–listener technique from PREP, Imago dialogue and listening circles.","moderate","Makes people feel understood and lowers defensiveness in workplace and lab studies. Whether paraphrase itself is the active ingredient, or sincere attention, is disputed.","On its own it does not move goals, it can feel mechanical, and it can be used as a tactic.","A round-trip test on the channel: the message goes out, comes back restated, and the sender checks it against what they meant."],
+ ["Motivational interviewing",["channel","reference"],"Open questions, affirmations, reflections and summaries that help the person voice their own reasons for change.","moderate","Many trials, mostly in health behavior, with small to moderate effects.","Assumes some ambivalence and willingness to talk. Little direct evidence on political goals.","Works on the person’s own reference instead of supplying one."],
+ ["Deep canvassing",["model","channel"],"Long, nonjudgmental conversations: the canvasser listens, shares a personal story and asks about the other person’s experience.","moderate","Field experiments show attitude shifts on some issues that lasted for months.","Expensive per conversation, issue-specific, and effects on votes are not established.","Changes a person’s model of the out-group through a lived example instead of an argument."],
+ ["Correcting misperceptions of the other side",["model"],"Show people that the other side is less extreme or hostile than they assume.","moderate","Exaggerated meta-perceptions are well documented, and a large 2024 test found several corrections reduced animosity.","Effects on behavior and on support for democratic norms are smaller and may fade.","Repairs the model of the other, a common source of error in identity conflict."],
+ ["Cooperative contact and shared goals",["reference"],"People from different groups work on a common task with equal status and institutional backing.","strong","Meta-analyses of contact find reduced prejudice. Robbers Cave and a caste-integration field experiment show the role of shared goals.","Contact without cooperation or equal status can fail. Durable effects on behavior are less well shown.","Creates a shared reference, so the groups’ loops point the same way."],
+ ["Interest-based negotiation",["reference","structure"],"Move from stated positions to underlying interests, invent options for mutual gain, and use objective criteria.","moderate","Long-standing in negotiation research, with good evidence for integrative outcomes in experiments.","Struggles with power gaps, low trust and sacred values that cannot be traded.","Searches for goals that are compatible beneath goals that look opposed."],
+ ["Structured dialogue and deliberation",["structure","channel"],"Citizens’ assemblies, deliberative polls and facilitated dialogue give groups rules, information and time.","moderate","Participants gain knowledge and often shift opinions, and some assemblies have shaped policy.","Small samples, self-selection and uneven uptake by decision-makers.","Builds a decision structure that can hold disagreement."],
+ ["Bridging and consensus mapping",["structure"],"Ranking systems surface statements approved by people who usually disagree (Polis, Community Notes).","emerging","Platform data and early studies, mostly observational.","Can be gamed, works best on well-defined claims, and depends on platform adoption.","Changes what gets amplified so that agreement, not outrage, is what spreads."],
+ ["AI-mediated dialogue",["channel","structure"],"Chatbots that respond to a person’s specific claims, or that draft group statements many members accept.","emerging","2024 online experiments: a reduction in conspiracy belief of roughly one fifth that lasted two months, and group statements that people rated highly.","Online samples, single research teams and unknown effects at scale. The same tools can be used for persuasion without consent.","A conversational partner in Pask’s sense, and also a new channel for influence."],
+ ["Prebunking and accuracy prompts",["model"],"Warn people about manipulation tactics in advance, or nudge them to consider accuracy before sharing.","moderate","Online experiments and some field studies show small improvements in spotting manipulation.","Effects are small and may decay. They reduce susceptibility instead of aligning goals.","Trains the sensor to reject bad input."],
+ ["Facilitated systems methods",["structure","reference"],"Team Syntegrity, Soft Systems Methodology and interactive planning give a group a structured process and models to argue over.","practitioner","Mostly case studies and practitioner reports.","Need willing participants and time, and rarely have controlled evaluation.","Cybernetic methods designed for exactly this problem, and ancestors of much of the list above."]
+];
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const isNewK=k=>NEW.includes(k);
+const col=k=>isNewK(k)?"var(--ink)":`var(--c-${k})`;
+const LV=["","Accessible","Some background","Specialist"];
+const SHORT={origins:"Foundations",org:"Organizational",second:"Second-order",cog:"Cognition",ai:"AI & control",safety:"Safety & resilience",complex:"Dynamics & complexity",soft:"Soft & critical",social:"Social & therapeutic",hist:"Histories",g1:"Goal models & assurance",g2:"Goal pursuit & efficacy",g3:"Identity & symbols",g4:"Human alignment"};
+let MODE="both";
+const showNew=()=>MODE!=="orig";
+const showOld=()=>MODE!=="new";
+const ALLR=R.concat(R2);
+const ALLD=D.map(d=>Object.assign({},d)).concat(D2.map(d=>Object.assign({n:true},d)));
+const ALLP=P.map(p=>p.slice()).concat(P2.map(p=>p.concat([true])));
+const ALLL=LINKS.map(l=>l.slice()).concat(LINKS2.map(l=>l.concat([true])));
+const isNewR=r=>isNewK(r[6][0]);
+const rVis=r=>isNewR(r)?showNew():showOld();
+const dVis=d=>d.n?showNew():showOld();
+const pVis=p=>p[4]?showNew():showOld();
+const lVis=l=>l[3]?showNew():showOld();
+const readingsOf=k=>ALLR.filter(r=>rVis(r)&&r[6].includes(k));
+const peopleOf=k=>ALLP.filter(p=>pVis(p)&&p[2].split(" ").includes(k));
+const f1=n=>n.toFixed(1);
+const newPill=t=>`<span class="newpill">${t||"new"}</span>`;
+
+/* ---------- map ---------- */
+const CX=400,CY=400,RAD=290,NR=64,RAD2=450,NR2=58;
+const pos={},ang={};
+ORDER.forEach((k,i)=>{ang[k]=(-90+i*40)*Math.PI/180;pos[k]={x:CX+RAD*Math.cos(ang[k]),y:CY+RAD*Math.sin(ang[k])};});
+NEW.forEach(k=>{const a=ang[PARENT[k]];pos[k]={x:CX+RAD2*Math.cos(a),y:CY+RAD2*Math.sin(a)};});
+let sel=null;
+
+function nodeSVG(k){
+  const p=pos[k],b=B[k],nw=isNewK(k),r=nw?NR2:NR,x=f1(p.x),y=f1(p.y);
+  const dim=!nw&&!showOld();
+  let s=`<g class="node${nw?" newn":""}${dim?" ctx":""}" data-k="${k}" tabindex="0" role="button" aria-label="${esc(b.name)}">`;
+  if(nw){
+    s+=`<circle class="n" cx="${x}" cy="${y}" r="${r}" style="stroke:var(--ink);fill:var(--panel)"/><circle cx="${x}" cy="${y}" r="${r}" style="fill:url(#hatch);stroke:none;pointer-events:none"/>`;
+  }else{
+    s+=`<circle class="n" cx="${x}" cy="${y}" r="${r}" style="stroke:${col(k)};fill:color-mix(in srgb,${col(k)} 15%,var(--panel))"/>`;
+  }
+  s+=`<text class="l" x="${x}" y="${f1(p.y-7)}">${esc(b.lab[0])}</text><text class="l" x="${x}" y="${f1(p.y+11)}">${esc(b.lab[1])}</text><text class="cnt" x="${x}" y="${f1(p.y+(nw?31:33))}">${readingsOf(k).length} works</text>`;
+  if(nw)s+=`<g transform="translate(${f1(p.x+18)} ${f1(p.y-r-3)})"><rect x="0" y="-11" width="40" height="19" rx="9.5" style="fill:#FDE047"/><text x="20" y="3" text-anchor="middle" style="font-size:12px;font-weight:700;fill:#3A2E00;font-family:var(--sans)">new</text></g>`;
+  return s+`</g>`;
+}
+
+function buildMap(){
+  const svg=$("#mapsvg");
+  svg.setAttribute("viewBox",showNew()?"-115 -115 1030 1030":"0 0 800 800");
+  const ctxMode=!showOld();
+  let h=`<defs><pattern id="hatch" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="9" style="stroke:var(--ink);stroke-width:1.6;opacity:.14"/></pattern></defs>`;
+  ORDER.forEach(k=>{h+=`<line class="spoke${ctxMode?" ctxs":""}" x1="${CX}" y1="${CY}" x2="${f1(pos[k].x)}" y2="${f1(pos[k].y)}"/>`;});
+  if(showNew())NEW.forEach(k=>{const a=pos[PARENT[k]],b=pos[k];h+=`<line class="grow" x1="${f1(a.x)}" y1="${f1(a.y)}" x2="${f1(b.x)}" y2="${f1(b.y)}"/>`;});
+  ALLL.forEach((l,i)=>{
+    if(!lVis(l))return;
+    const a=pos[l[0]],b=pos[l[1]];
+    const outer=isNewK(l[0])||isNewK(l[1]);
+    const f=outer?0.1:0.8;
+    const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    const qx=mx+(CX-mx)*f,qy=my+(CY-my)*f;
+    h+=`<path class="xlink${l[3]?" nl":""}" data-i="${i}" d="M${f1(a.x)} ${f1(a.y)} Q${f1(qx)} ${f1(qy)} ${f1(b.x)} ${f1(b.y)}"/>`;
+  });
+  h+=`<g class="center" style="opacity:${ctxMode?.35:1}"><circle cx="${CX}" cy="${CY}" r="78"/><text x="${CX}" y="${CY-6}" font-size="21" font-weight="600">Stafford Beer</text><text x="${CX}" y="${CY+18}" font-size="15" font-style="italic">Brain of the Firm, 1972</text></g>`;
+  ORDER.forEach(k=>{h+=nodeSVG(k);});
+  if(showNew())NEW.forEach(k=>{h+=nodeSVG(k);});
+  svg.innerHTML=h;
+  svg.querySelectorAll(".node").forEach(n=>{
+    n.addEventListener("click",()=>select(n.dataset.k,true));
+    n.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();select(n.dataset.k,true);}});
+  });
+  const tb=k=>`<li><button style="--c:${col(k)}" data-k="${k}" aria-pressed="false"><b>${esc(B[k].name)}${isNewK(k)?newPill():""}</b><span>${esc(B[k].tag)}, since ${B[k].start}${isNewK(k)?`. Grows out of ${esc(B[PARENT[k]].name.toLowerCase())}.`:""}</span></button></li>`;
+  const t=$("#tree");
+  t.innerHTML=`<li class="root">${showOld()?"Stafford Beer, <i>Brain of the Firm</i>, 1972":"The goals track"}</li>`+(showOld()?ORDER.map(tb).join(""):"")+(showNew()?NEW.map(tb).join(""):"");
+  t.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>select(b.dataset.k,true)));
+}
+
+function related(k){return ALLL.map((l,i)=>({l,i})).filter(o=>lVis(o.l)&&(o.l[0]===k||o.l[1]===k));}
+
+function select(k,user){
+  if(isNewK(k)&&!showNew())k="org";
+  sel=k;
+  const b=B[k],nw=isNewK(k);
+  const svg=$("#mapsvg");
+  svg.classList.add("has-sel");
+  const rel=related(k),relKeys=new Set(rel.map(o=>o.l[0]===k?o.l[1]:o.l[0]));
+  svg.querySelectorAll(".node").forEach(n=>{n.classList.toggle("sel",n.dataset.k===k);n.classList.toggle("rel",relKeys.has(n.dataset.k));});
+  svg.querySelectorAll(".xlink").forEach(x=>x.classList.toggle("hi",rel.some(o=>String(o.i)===x.dataset.i)));
+  document.querySelectorAll("#tree button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.k===k)));
+  const rs=readingsOf(k).slice().sort((a,c)=>a[5]-c[5]||a[3]-c[3]);
+  const start=rs.slice(0,4);
+  const ppl=peopleOf(k);
+  const debs=ALLD.map((d,i)=>({d,i})).filter(o=>dVis(o.d)&&o.d.b.includes(k));
+  const pn=$("#panel");
+  pn.style.setProperty("--c",col(k));
+  const adds=(!nw&&showNew()&&ADDS[k])?`<div class="adds"><b>What the goals track adds here.</b> ${esc(ADDS[k])}</div>`:"";
+  const grows=nw?`<p class="grows">Grows out of <button data-k="${PARENT[k]}">${esc(B[PARENT[k]].name)}</button>.</p>`:"";
+  pn.innerHTML=`
+    <h3>${esc(b.name)}${nw?newPill("new track"):""}</h3>
+    <div class="stats"><span>Active since <b>${b.start}</b></span><span><b>${rs.length}</b> works listed</span><span><b>${ppl.length}</b> key people</span></div>
+    ${grows}
+    <p>${esc(b.summary)}</p>
+    ${adds}
+    <h4>Main ideas</h4>
+    <ul class="ideas">${b.ideas.map(i=>`<li><b>${esc(i[0])}.</b> ${esc(i[1])}</li>`).join("")}</ul>
+    <h4>Objections and replies</h4>
+    ${b.args.map(a=>`<div class="arg"><i>Objection</i> ${esc(a[0])}<br><i>Reply</i> ${esc(a[1])}</div>`).join("")}
+    <h4>Key people</h4>
+    <div class="chips">${ppl.map(p=>`<span class="chip" style="--c:${col(k)}">${esc(p[0])}${p[1]?` <small>${esc(p[1])}</small>`:""}</span>`).join("")}</div>
+    <h4>Start here</h4>
+    <ul class="start">${start.map(r=>`<li><em>${esc(r[1])}</em>${isNewR(r)&&MODE==="both"?newPill():""}<br><span>${esc(r[2])}, ${r[3]}. ${LV[r[5]]}.</span></li>`).join("")}</ul>
+    <h4>Connects to</h4>
+    <ul class="rel-list">${rel.map(o=>{const other=o.l[0]===k?o.l[1]:o.l[0];return `<li><button style="--c:${col(other)}" data-k="${other}">${esc(B[other].name)}</button>${o.l[3]&&MODE==="both"?newPill():""}: ${esc(o.l[2])}</li>`;}).join("")}</ul>
+    ${debs.length?`<h4>Related debates</h4><div class="chips">${debs.map(o=>`<button class="chip" style="--c:${col(k)}" data-d="${o.i}">${esc(o.d.t)}</button>`).join("")}</div>`:""}`;
+  pn.querySelectorAll(".rel-list button,.grows button").forEach(x=>x.addEventListener("click",()=>select(x.dataset.k,true)));
+  pn.querySelectorAll("button[data-d]").forEach(x=>x.addEventListener("click",()=>openDebate(+x.dataset.d)));
+  if(user&&window.matchMedia("(max-width:820px)").matches){pn.scrollIntoView({behavior:"smooth",block:"start"});}
+}
+
+/* ---------- timeline ---------- */
+const TL=["origins","org","second","soft","complex","cog","safety","ai","social","hist"];
+const TLN={origins:"Foundations",org:"Organizational",second:"Second-order",soft:"Soft & critical",complex:"Dynamics & complexity",cog:"Cognition",safety:"Safety & resilience",ai:"AI & control",social:"Social & therapy",hist:"Histories",g1:"Goal models",g2:"Goal pursuit",g3:"Identity & symbols",g4:"Human alignment"};
+function buildTimeline(){
+  const rows=(showOld()?TL:[]).concat(showNew()?NEW:[]);
+  const W=1000,X0=175,X1=980,Y0=1930,Y1=2030,TOP=44,RH=56;
+  const X=y=>X0+(Math.max(y,Y0)-Y0)/(Y1-Y0)*(X1-X0);
+  const BOT=TOP+rows.length*RH,H=BOT+30;
+  const svg=$("#tl");
+  svg.setAttribute("viewBox",`0 0 ${W} ${H}`);
+  let h="";
+  const eras=[[1930,1956,"Founding"],[1956,1974,"Institutions and splits"],[1974,1995,"Beer’s era, fragmenting"],[1995,2030,"Dispersal into successors"]];
+  eras.forEach((e,i)=>{
+    h+=`<rect x="${f1(X(e[0]))}" y="${TOP-8}" width="${f1(X(e[1])-X(e[0]))}" height="${BOT-TOP+8}" style="fill:var(--ink);opacity:${i%2?0.035:0.075}"/>`;
+    h+=`<text class="band" x="${f1(X(e[0])+8)}" y="20">${e[2]}</text>`;
+  });
+  for(let y=1930;y<=2020;y+=10){
+    h+=`<line x1="${f1(X(y))}" x2="${f1(X(y))}" y1="${TOP-8}" y2="${BOT}" style="stroke:var(--line);stroke-width:1"/>`;
+    h+=`<text class="yr" x="${f1(X(y))}" y="${H-8}" text-anchor="middle">${y}</text>`;
+  }
+  const items=[];
+  ALLR.forEach(r=>{if(rVis(r)&&rows.includes(r[6][0]))items.push({y:r[3],row:r[6][0],kind:r[4],title:r[1],who:r[2]});});
+  EV.concat(EV2).forEach(e=>{if(rows.includes(e[1]))items.push({y:e[0],row:e[1],kind:"event",title:e[2]});});
+  rows.forEach((k,ri)=>{
+    const cy=TOP+ri*RH+RH/2,nw=isNewK(k);
+    if(nw)h+=`<rect x="6" y="${cy-13}" width="${X0-14}" height="26" rx="4" style="fill:#FDE047;opacity:.32"/>`;
+    h+=`<line x1="${X0-6}" x2="${X1}" y1="${cy+RH/2-1}" y2="${cy+RH/2-1}" style="stroke:var(--line);stroke-width:.8;opacity:.6"/>`;
+    h+=`<text class="rl" x="${X0-14}" y="${cy+4}" text-anchor="end" style="fill:${col(k)}">${TLN[k]}</text>`;
+    const s=B[k].start,e=k==="origins"?1956:2026;
+    h+=`<rect x="${f1(X(s))}" y="${cy-3}" width="${f1(X(e)-X(s))}" height="6" rx="3" style="fill:${col(k)};opacity:.22"/>`;
+    const its=items.filter(o=>o.row===k).sort((a,b)=>a.y-b.y);
+    const last=[-99,-99,-99];
+    its.forEach(o=>{
+      const x=X(o.y+(o.kind==="event"?.15:0));
+      let lv=0;while(lv<2&&x-last[lv]<13)lv++;
+      last[lv]=x;
+      const y=cy+(lv-1)*13;
+      const lab=o.kind==="event"?`${o.y}. ${o.title}`:`${o.y}. ${o.title}, ${o.who}`;
+      const att=`class="dot" tabindex="0" data-k="${k}" data-y="${o.y}" data-t="${esc(o.title)}" data-w="${esc(o.who||"")}" data-e="${o.kind}" role="button" aria-label="${esc(lab)}"`;
+      if(o.kind==="event"){
+        h+=`<path ${att} d="M${f1(x)} ${y-6.5} L${f1(x+6.5)} ${y} L${f1(x)} ${y+6.5} L${f1(x-6.5)} ${y}Z" style="fill:${col(k)}"/>`;
+      }else if(o.kind==="book"){
+        h+=`<circle ${att} cx="${f1(x)}" cy="${y}" r="5.5" style="fill:${col(k)}"/>`;
+      }else{
+        h+=`<circle ${att} cx="${f1(x)}" cy="${y}" r="4.5" style="fill:var(--panel);stroke:${col(k)};stroke-width:2.2"/>`;
+      }
+    });
+  });
+  svg.innerHTML=h;
+  $("#tlinfo").textContent="Select a dot or diamond to see what it is.";
+  const show=d=>{
+    const kl=d.e==="event"?"Event":d.e==="book"?"Book":"Paper or essay";
+    $("#tlinfo").innerHTML=d.e==="event"
+      ?`<b>${esc(d.y)}.</b> ${esc(d.t)}`
+      :`<b>${esc(d.y)}. <i>${esc(d.t)}</i></b> by ${esc(d.w)}. ${kl}, in the ${esc(TLN[d.k].toLowerCase())} row.`;
+  };
+  svg.querySelectorAll(".dot").forEach(el=>{
+    const f=()=>show(el.dataset);
+    el.addEventListener("click",f);el.addEventListener("focus",f);el.addEventListener("mouseenter",f);
+    el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f();}});
+  });
+}
+
+/* ---------- debates ---------- */
+function buildDebates(){
+  const idx=[];ALLD.forEach((d,i)=>{if(dVis(d))idx.push(i);});
+  $("#debsub").textContent=`${idx.length} fault lines that cut across the branches. Each gives the strongest form of both sides and a note on where things stand.`;
+  $("#debs").innerHTML=idx.map(i=>{
+    const d=ALLD[i];
+    return `<details class="deb" id="deb${i}">
+     <summary><strong>${esc(d.t)}${d.n&&MODE==="both"?newPill():""}</strong><span class="tags">${d.b.map(k=>`<i style="--c:${col(k)}" class="${isNewK(k)?"sq":""}" title="${esc(B[k].name)}"></i>`).join("")}</span></summary>
+     <div class="vs">
+       <div><h5>${esc(d.A.h)}</h5><p>${esc(d.A.p)}</p><div class="who">${esc(d.A.w)}</div></div>
+       <div><h5>${esc(d.Bx.h)}</h5><p>${esc(d.Bx.p)}</p><div class="who">${esc(d.Bx.w)}</div></div>
+     </div>
+     <div class="stand"><b>Where it stands.</b> ${esc(d.s)}</div>
+   </details>`;}).join("");
+}
+function openDebate(i){
+  const el=$("#deb"+i);if(!el)return;
+  el.open=true;el.scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+/* ---------- reading ---------- */
+const F={b:"all",k:"all",l:"all",q:""};
+function chipRow(label,key,opts){
+  return `<div class="frow"><label>${label}</label>${opts.map(o=>`<button class="fb" data-f="${key}" data-v="${o[0]}" aria-pressed="${F[key]===o[0]}">${o[2]?`<i class="${isNewK(o[2])?"sq":""}" style="--c:${col(o[2])}"></i>`:""}${esc(o[1])}</button>`).join("")}</div>`;
+}
+function buildFilters(){
+  const keys=(showOld()?["origins"].concat(ORDER):[]).concat(showNew()?NEW:[]);
+  if(F.b!=="all"&&!keys.includes(F.b))F.b="all";
+  const bopts=[["all","All"]].concat(keys.map(k=>[k,SHORT[k],k]));
+  $("#filters").innerHTML=chipRow("Branch","b",bopts)+chipRow("Type","k",[["all","All"],["book","Books"],["paper","Papers"]])+chipRow("Level","l",[["all","All"],["1","Accessible"],["2","Some background"],["3","Specialist"]])+`<div class="frow"><input type="search" id="rq" placeholder="Search titles, authors, notes" aria-label="Search readings"></div>`;
+  $("#rq").value=F.q;
+  $("#filters").querySelectorAll(".fb").forEach(b=>b.addEventListener("click",()=>{F[b.dataset.f]=b.dataset.v;buildFilters();renderReading();}));
+  $("#rq").addEventListener("input",e=>{F.q=e.target.value.toLowerCase();renderReading();});
+}
+function readingRow(r){
+  return `<div class="rrow"><div class="y">${r[3]}</div>
+    <div><div class="t">${esc(r[1])}${isNewR(r)&&MODE==="both"?newPill():""}</div><div class="a">${esc(r[2])}</div>${r[7]?`<div class="nt">${esc(r[7])}</div>`:""}</div>
+    <div class="meta"><span>${r[4]==="book"?"Book":"Paper"}, ${LV[r[5]].toLowerCase()}</span>${r[8]?`<span class="flag">check details</span>`:""}<span class="dots">${r[6].map(k=>`<i class="${isNewK(k)?"sq":""}" style="--c:${col(k)}" title="${esc(B[k].name)}"></i>`).join("")}</span></div></div>`;
+}
+function renderReading(){
+  const q=F.q;
+  const list=ALLR.filter(r=>rVis(r)&&(F.b==="all"||r[6].includes(F.b))&&(F.k==="all"||r[4]===F.k)&&(F.l==="all"||String(r[5])===F.l)&&(!q||(r[1]+" "+r[2]+" "+(r[7]||"")).toLowerCase().includes(q))).sort((a,b)=>a[3]-b[3]);
+  const total=ALLR.filter(rVis).length;
+  $("#rcount").textContent=`Showing ${list.length} of ${total}, oldest first.`;
+  $("#rlist").innerHTML=list.length?list.map(readingRow).join(""):`<div class="empty">Nothing matches. Clear a filter or shorten the search.</div>`;
+}
+let curPath="beer";
+function pathKeys(){return (showOld()?Object.keys(PATHS):[]).concat(showNew()?Object.keys(PATHS2):[]);}
+function buildPaths(){
+  const keys=pathKeys();
+  if(!keys.includes(curPath))curPath=keys[0];
+  const data=k=>PATHS[k]||PATHS2[k];
+  $("#paths").innerHTML=keys.map(k=>`<button data-p="${k}" aria-pressed="${k===curPath}">${esc(data(k)[0])}${PATHS2[k]&&MODE==="both"?newPill():""}</button>`).join("");
+  $("#paths").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{curPath=b.dataset.p;buildPaths();}));
+  $("#pathbox").innerHTML=`<ol>${data(curPath)[1].map(id=>{const r=RB[id];return `<li><i>${esc(r[1])}</i> <span>${esc(r[2])}, ${r[3]}</span></li>`;}).join("")}</ol>`;
+}
+
+/* ---------- people ---------- */
+function renderPeople(){
+  const q=($("#pq").value||"").toLowerCase();
+  const list=ALLP.filter(p=>pVis(p)&&(!q||(p[0]+" "+p[3]).toLowerCase().includes(q)));
+  $("#plist").innerHTML=list.length?list.map(p=>`<div class="prow"><div class="n">${esc(p[0])}${p[4]&&MODE==="both"?newPill():""}</div><div class="d">${esc(p[1])}</div><div>${esc(p[3])}</div><div class="b">${p[2].split(" ").map(k=>`<span style="--c:${col(k)}"><i class="${isNewK(k)?"sq":""}"></i>${esc(k==="origins"?"Foundations":B[k].lab.join(" "))}</span>`).join("")}</div></div>`).join(""):`<div class="empty">No one matches that search.</div>`;
+}
+
+/* ---------- goal loop ---------- */
+const LB={ref:{x:10,y:70,w:104,h:56,t:"Reference",s:"goal, identity"},act:{x:225,y:70,w:104,h:56,t:"Action",s:"plan, habit"},world:{x:395,y:70,w:112,h:56,t:"World",s:"where it plays out"},perc:{x:225,y:200,w:104,h:56,t:"Perception",s:"tracking"}};
+let loopSel="ref";
+function buildLoop(){
+  const svg=$("#loopsvg");
+  let h=`<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" style="fill:var(--muted)"/></marker></defs>`;
+  const path=d=>`<path class="lp" d="${d}" marker-end="url(#ah)"/>`;
+  h+=path("M114 98 H147")+path("M201 98 H223")+path("M329 98 H393")+path("M451 24 V68")+path("M451 126 V228 H331")+path("M225 228 H175 V128");
+  h+=`<text class="lo" x="451" y="16">disturbances</text><text class="lo" x="175" y="60">comparator</text>`;
+  Object.keys(LB).forEach(k=>{const b=LB[k];h+=`<g class="lbox" data-s="${k}" tabindex="0" role="button" aria-label="${esc(b.t)}"><rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="8"/><text class="lt" x="${b.x+b.w/2}" y="${b.y+25}">${b.t}</text><text class="ls" x="${b.x+b.w/2}" y="${b.y+43}">${b.s}</text></g>`;});
+  h+=`<g class="lbox" data-s="comp" tabindex="0" role="button" aria-label="Comparator"><circle cx="175" cy="98" r="26"/><text class="lt" x="175" y="103">Gap</text></g>`;
+  svg.innerHTML=h;
+  svg.querySelectorAll(".lbox").forEach(g=>{
+    g.addEventListener("click",()=>selLoop(g.dataset.s));
+    g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();selLoop(g.dataset.s);}});
+  });
+  const nm={ref:"Reference",perc:"Perception",comp:"Comparator",act:"Action",world:"World"};
+  $("#loopbtns").innerHTML=LOOP.map(L=>`<button data-s="${L.k}" aria-pressed="false">${nm[L.k]}</button>`).join("");
+  $("#loopbtns").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>selLoop(b.dataset.s)));
+  selLoop(loopSel);
+}
+function selLoop(k){
+  loopSel=k;
+  document.querySelectorAll("#loopsvg .lbox").forEach(g=>g.classList.toggle("on",g.dataset.s===k));
+  document.querySelectorAll("#loopbtns button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.s===k)));
+  const L=LOOP.find(x=>x.k===k);
+  $("#loopdetail").innerHTML=`<div class="ld"><h3>${esc(L.name)}</h3><p>${esc(L.role)}</p><p class="brk"><b>Breaks when:</b> ${esc(L.breaks)}</p><h4>Levers researchers have tested</h4>${L.levers.map(v=>`<div class="lever"><span>${esc(v[0])}</span><span class="ev ev-${v[1]}">${v[1]}</span><small>${esc(v[2])}</small></div>`).join("")}<h4>Questions that locate the failure</h4><ul class="ask">${L.ask.map(a=>`<li>${esc(a)}</li>`).join("")}</ul></div>`;
+}
+
+/* ---------- identity chain ---------- */
+function buildChain(){
+  $("#chain").innerHTML=CHAIN.map(c=>`<li><div class="body"><h3>${esc(c.h)}</h3><p>${esc(c.p)}</p><div class="src"><b>Sources.</b> ${esc(c.src)}</div><div class="fail"><b>Where it goes wrong.</b> ${esc(c.fail)}</div></div></li>`).join("");
+}
+
+/* ---------- alignment techniques ---------- */
+let TF="all";
+function buildTech(){
+  const chips=[["all","All"],["channel","Channel"],["model","Model"],["reference","Reference"],["structure","Structure"]];
+  $("#techf").innerHTML=`<div class="frow"><label>Changes</label>${chips.map(c=>`<button class="fb" data-t="${c[0]}" aria-pressed="${TF===c[0]}">${c[1]}</button>`).join("")}</div>`;
+  $("#techf").querySelectorAll(".fb").forEach(b=>b.addEventListener("click",()=>{TF=b.dataset.t;buildTech();}));
+  const list=TECH.filter(t=>TF==="all"||t[1].includes(TF));
+  $("#tech").innerHTML=list.map(t=>`<div class="tech"><h3>${esc(t[0])}</h3><div class="tags">${t[1].map(c=>`<span class="chip">${c}</span>`).join("")}<span class="ev ev-${t[3]}">${t[3]}</span></div><p>${esc(t[2])}</p><p><b>Evidence.</b> ${esc(t[4])}</p><p><b>Limits.</b> ${esc(t[5])}</p><p class="lp2"><b>Loop reading.</b> ${esc(t[6])}</p></div>`).join("");
+}
+
+/* ---------- mode ---------- */
+function diffText(){
+  const c=`<b>${NEW.length}</b> branches, <b>${R2.length}</b> works, <b>${P2.length}</b> people, <b>${D2.length}</b> debates and <b>${LINKS2.length}</b> cross-links, plus three sections: the goal loop, the identity chain and a table of alignment techniques`;
+  $("#diff").innerHTML=MODE==="orig"
+    ?`Showing the original map. Switch the goals track on to see what a fourth line of research adds: ${c}.`
+    :MODE==="both"
+      ?`The goals track adds ${c}. Additions carry a yellow “new” tag or highlight.`
+      :`Showing only the goals track. The original branches stay on the map, faded, as anchors.`;
+}
+function applyMode(m){
+  MODE=m;
+  document.body.dataset.mode=m;
+  document.querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.m===m)));
+  $("#sw").setAttribute("aria-checked",String(m!=="orig"));
+  document.querySelectorAll(".newonly").forEach(el=>{el.hidden=!showNew();});
+  $("#mapsub").textContent=m==="orig"
+    ?"Choose a branch to see its main ideas, the standard objections and replies, the people, and where to start reading. Dashed lines are the cross-currents between branches."
+    :"Choose a branch to see its main ideas, the standard objections and replies, the people, and where to start reading. Hatched outer nodes with a yellow tag are the goals track; each grows out of the branch it is joined to. Dashed lines are cross-currents.";
+  buildMap();
+  select(sel&&!(isNewK(sel)&&!showNew())?sel:"org",false);
+  buildTimeline();buildDebates();buildPaths();buildFilters();renderReading();renderPeople();
+  diffText();
+}
+function navSpy(){
+  const links=[...document.querySelectorAll(".nav a")];
+  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+e.target.id));}});},{rootMargin:"-30% 0px -60% 0px"});
+  links.forEach(a=>{const s=document.querySelector(a.getAttribute("href"));if(s)io.observe(s);});
+}
+
+/* ---------- init ---------- */
+buildLoop();buildChain();buildTech();
+document.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>applyMode(b.dataset.m)));
+$("#sw").addEventListener("click",()=>applyMode(MODE==="orig"?"both":"orig"));
+$("#pq").addEventListener("input",renderPeople);
+applyMode("both");
+navSpy();
+</script>
+</body>
+</html>

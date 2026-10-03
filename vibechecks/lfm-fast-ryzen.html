@@ -1,0 +1,489 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<title>Making LFM2.5-2.6B fast on a Ryzen AI 9 HX 370</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --paper: #f6f7f8;
+  --surface: #ffffff;
+  --ink: #131a1f;
+  --muted: #5c6a73;
+  --faint: #8c99a1;
+  --rule: #dde3e7;
+  --grid: #e8edf0;
+  --accent: #0f7c86;
+  --cpu: #0098a8;
+  --gpu: #7048c4;
+  --ref: #8c99a1;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0d1215;
+    --surface: #141b1f;
+    --ink: #e6ebee;
+    --muted: #97a5ae;
+    --faint: #6b7981;
+    --rule: #243036;
+    --grid: #1d272c;
+    --accent: #54cfc4;
+    --cpu: #0fa3b4;
+    --gpu: #8f72e0;
+    --ref: #6b7981;
+  }
+}
+:root[data-theme="light"] {
+  --paper: #f6f7f8; --surface: #ffffff; --ink: #131a1f; --muted: #5c6a73;
+  --faint: #8c99a1; --rule: #dde3e7; --grid: #e8edf0; --accent: #0f7c86;
+  --cpu: #0098a8; --gpu: #7048c4; --ref: #8c99a1;
+}
+:root[data-theme="dark"] {
+  --paper: #0d1215; --surface: #141b1f; --ink: #e6ebee; --muted: #97a5ae;
+  --faint: #6b7981; --rule: #243036; --grid: #1d272c; --accent: #54cfc4;
+  --cpu: #0fa3b4; --gpu: #8f72e0; --ref: #6b7981;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 0 auto;
+  max-width: 54rem;
+  padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1rem, 4vw, 2rem) 4rem;
+}
+
+h1, h2 {
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+  text-wrap: balance;
+}
+h1 { font-size: clamp(2rem, 5vw, 2.8rem); letter-spacing: -0.015em; }
+h2 { font-size: 1.4rem; }
+p { margin: 0; max-width: 40em; }
+
+.mono, .eyebrow, .val, .axis span, th, td, .tip {
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.eyebrow {
+  color: var(--accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+header { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 3rem; }
+section { display: flex; flex-direction: column; gap: 1rem; margin-top: 3.25rem; }
+section > p { color: var(--muted); }
+
+.hero {
+  border-block: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.5rem;
+  margin-top: 1rem;
+  padding: 1.4rem 0;
+}
+.hero div { display: flex; flex-direction: column; gap: 0.1rem; }
+.hero dt {
+  color: var(--faint); font-size: 0.68rem;
+  letter-spacing: 0.12em; text-transform: uppercase;
+}
+.hero dd {
+  color: var(--accent);
+  font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  font-size: 1.8rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  margin: 0;
+}
+.hero dd .unit { color: var(--muted); font-size: 0.55em; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 1.25rem; }
+.legend span {
+  align-items: center; color: var(--muted);
+  display: flex; font-size: 0.8rem; gap: 0.45rem;
+}
+.swatch { border-radius: 2px; height: 0.7rem; width: 0.7rem; }
+.swatch.cpu { background: var(--cpu); }
+.swatch.gpu { background: var(--gpu); }
+.swatch.ref { background: repeating-linear-gradient(
+  45deg, var(--ref), var(--ref) 2px, transparent 2px, transparent 4px); }
+
+.chart {
+  --name-w: 4.5rem;
+  --val-w: 5.5rem;
+  --col-gap: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.chart.wide-names { --name-w: 8rem; }
+.chart.wide-values { --val-w: 6.75rem; }
+.group { display: flex; flex-direction: column; gap: 2px; }
+.group + .group { margin-top: 0.85rem; }
+.group-label { color: var(--muted); font-size: 0.8rem; margin-bottom: 0.15rem; }
+.group-label b { color: var(--ink); font-weight: 600; }
+
+.row {
+  align-items: center;
+  display: grid;
+  gap: var(--col-gap);
+  grid-template-columns: var(--name-w) minmax(0, 1fr) var(--val-w);
+}
+.row .name { color: var(--muted); font-size: 0.78rem; text-align: right; }
+.track { background: var(--grid); border-radius: 2px; height: 1.15rem; position: relative; }
+.bar {
+  border-radius: 0 4px 4px 0;
+  height: 100%;
+  min-width: 2px;
+  position: relative;
+  transition: filter 0.12s ease;
+}
+.bar.cpu { background: var(--cpu); }
+.bar.gpu { background: var(--gpu); }
+.bar.ref {
+  background: repeating-linear-gradient(
+    45deg, var(--ref), var(--ref) 3px, transparent 3px, transparent 6px);
+  outline: 1px dashed var(--ref);
+  outline-offset: -1px;
+}
+.track:hover .bar { filter: brightness(1.12); }
+.row .val { color: var(--ink); font-size: 0.85rem; }
+.row .val .unit { color: var(--faint); font-size: 0.8em; }
+
+.tip {
+  background: var(--ink);
+  border-radius: 3px;
+  bottom: calc(100% + 6px);
+  color: var(--paper);
+  font-size: 0.75rem;
+  left: 0;
+  line-height: 1.4;
+  opacity: 0;
+  padding: 0.4rem 0.6rem;
+  pointer-events: none;
+  position: absolute;
+  transition: opacity 0.12s ease;
+  white-space: nowrap;
+  z-index: 5;
+}
+.track:hover .tip, .track:focus-within .tip { opacity: 1; }
+.track:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Anchored to the bar track, not the full row: skip the name column, then
+   scale across the track's own width. */
+.ceiling {
+  border-left: 1px dashed var(--accent);
+  inset-block: -3px;
+  left: calc(
+    var(--name-w) + var(--col-gap) +
+    (100% - var(--name-w) - var(--val-w) - var(--col-gap) * 2) * var(--pct)
+  );
+  position: absolute;
+}
+.ceiling span {
+  color: var(--accent); font-size: 0.68rem;
+  position: absolute; right: 0.35rem; top: -1.3rem; white-space: nowrap;
+}
+.ceiling-pad { padding-top: 1.4rem; }
+
+.axis {
+  border-top: 1px solid var(--rule);
+  color: var(--faint);
+  display: flex;
+  font-size: 0.7rem;
+  justify-content: space-between;
+  margin-left: calc(var(--name-w) + var(--col-gap));
+  margin-right: calc(var(--val-w) + var(--col-gap));
+  padding-top: 0.3rem;
+}
+
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 0.82rem; min-width: 34rem; width: 100%; }
+th, td { border-bottom: 1px solid var(--rule); padding: 0.5rem 0.7rem; text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+thead th { color: var(--faint); font-size: 0.68rem; letter-spacing: 0.08em;
+  text-transform: uppercase; }
+tbody tr:hover { background: var(--surface); }
+td.best { color: var(--accent); }
+
+.takeaways { display: flex; flex-direction: column; gap: 0.9rem; padding-left: 1.1rem; }
+.takeaways li { max-width: 39em; padding-left: 0.3rem; }
+.takeaways li::marker { color: var(--accent); }
+
+footer {
+  border-top: 1px solid var(--rule);
+  color: var(--faint);
+  font-size: 0.78rem;
+  margin-top: 3.5rem;
+  padding-top: 1rem;
+}
+footer a { color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+@media (max-width: 34rem) {
+  .chart { --name-w: 3.4rem; --val-w: 4.8rem; --col-gap: 0.5rem; }
+  .chart.wide-names { --name-w: 6.5rem; }
+  .chart.wide-values { --val-w: 5.6rem; }
+  body { font-size: 16px; }
+}
+</style>
+<header>
+  <span class="eyebrow">Local inference benchmark</span>
+  <h1>Making LFM2.5-2.6B fast</h1>
+  <p>The same 2.6B model, same laptop, measured across three quantizations and two
+  backends. The starting point was PyTorch transformers at bfloat16; everything
+  after that is llama.cpp b10280.</p>
+  <dl class="hero">
+    <div><dt>Fastest generation</dt>
+      <dd>43.4<span class="unit"> tok/s</span></dd></div>
+    <div><dt>Speedup vs start</dt>
+      <dd>6.2<span class="unit">×</span></dd></div>
+    <div><dt>Fastest prefill</dt>
+      <dd>1,106<span class="unit"> tok/s</span></dd></div>
+  </dl>
+</header>
+
+<section>
+  <h2>Token generation</h2>
+  <p>What you feel while the model is typing. Quantization dominates: every halving
+  of weight size buys back nearly proportional speed, because each token must read
+  every weight from memory.</p>
+  <div class="legend"><span><i class="swatch cpu"></i>llama.cpp CPU</span><span><i class="swatch gpu"></i>llama.cpp iGPU (Vulkan)</span><span><i class="swatch ref"></i>PyTorch transformers baseline</span></div>
+  <div class="chart"><div class="group"><div class="group-label"><b>Q4_K_M</b> &middot; 1.56 GiB</div><div class="row">
+  <span class="name">CPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar cpu" style="width: 87.00%"></div>
+    <span class="tip">Q4_K_M on CPU — 38.5 tok/s · 1.56 GiB of weights</span>
+  </div>
+  <span class="val">38.5 <span class="unit">tok/s</span></span>
+</div><div class="row">
+  <span class="name">iGPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar gpu" style="width: 98.04%"></div>
+    <span class="tip">Q4_K_M on iGPU — 43.4 tok/s · 1.56 GiB of weights</span>
+  </div>
+  <span class="val">43.4 <span class="unit">tok/s</span></span>
+</div></div><div class="group"><div class="group-label"><b>Q8_0</b> &middot; 2.68 GiB</div><div class="row">
+  <span class="name">CPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar cpu" style="width: 51.96%"></div>
+    <span class="tip">Q8_0 on CPU — 23.0 tok/s · 2.68 GiB of weights</span>
+  </div>
+  <span class="val">23.0 <span class="unit">tok/s</span></span>
+</div><div class="row">
+  <span class="name">iGPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar gpu" style="width: 58.81%"></div>
+    <span class="tip">Q8_0 on iGPU — 26.0 tok/s · 2.68 GiB of weights</span>
+  </div>
+  <span class="val">26.0 <span class="unit">tok/s</span></span>
+</div></div><div class="group"><div class="group-label"><b>BF16</b> &middot; 5.03 GiB</div><div class="row">
+  <span class="name">CPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar cpu" style="width: 28.89%"></div>
+    <span class="tip">BF16 on CPU — 12.8 tok/s · 5.03 GiB of weights</span>
+  </div>
+  <span class="val">12.8 <span class="unit">tok/s</span></span>
+</div><div class="row">
+  <span class="name">iGPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar gpu" style="width: 32.39%"></div>
+    <span class="tip">BF16 on iGPU — 14.3 tok/s · 5.03 GiB of weights</span>
+  </div>
+  <span class="val">14.3 <span class="unit">tok/s</span></span>
+</div></div><div class="group"><div class="group-label"><b>transformers</b> &middot; bfloat16, unquantized</div><div class="row">
+  <span class="name">baseline</span>
+  <div class="track" tabindex="0">
+    <div class="bar ref" style="width: 15.83%"></div>
+    <span class="tip">PyTorch transformers, bfloat16, 12 threads — 7.0 tok/s</span>
+  </div>
+  <span class="val">7.0 <span class="unit">tok/s</span></span>
+</div></div><div class="axis"><span>0</span><span>22</span><span>44</span><span>tok/s</span></div></div>
+</section>
+
+<section>
+  <h2>Prompt processing</h2>
+  <p>How fast a long prompt is ingested before the first token appears. This stage is
+  compute-bound rather than memory-bound, which is why the integrated GPU pulls
+  far ahead here and barely ahead above.</p>
+  <div class="legend"><span><i class="swatch cpu"></i>llama.cpp CPU</span><span><i class="swatch gpu"></i>llama.cpp iGPU (Vulkan)</span></div>
+  <div class="chart wide-values"><div class="group"><div class="group-label"><b>Q4_K_M</b> &middot; 1.56 GiB</div><div class="row">
+  <span class="name">CPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar cpu" style="width: 20.67%"></div>
+    <span class="tip">Q4_K_M on CPU — 233.2 tok/s · 1.56 GiB of weights</span>
+  </div>
+  <span class="val">233 <span class="unit">tok/s</span></span>
+</div><div class="row">
+  <span class="name">iGPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar gpu" style="width: 97.06%"></div>
+    <span class="tip">Q4_K_M on iGPU — 1,095.3 tok/s · 1.56 GiB of weights</span>
+  </div>
+  <span class="val">1,095 <span class="unit">tok/s</span></span>
+</div></div><div class="group"><div class="group-label"><b>Q8_0</b> &middot; 2.68 GiB</div><div class="row">
+  <span class="name">CPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar cpu" style="width: 17.34%"></div>
+    <span class="tip">Q8_0 on CPU — 195.7 tok/s · 2.68 GiB of weights</span>
+  </div>
+  <span class="val">196 <span class="unit">tok/s</span></span>
+</div><div class="row">
+  <span class="name">iGPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar gpu" style="width: 98.04%"></div>
+    <span class="tip">Q8_0 on iGPU — 1,106.3 tok/s · 2.68 GiB of weights</span>
+  </div>
+  <span class="val">1,106 <span class="unit">tok/s</span></span>
+</div></div><div class="group"><div class="group-label"><b>BF16</b> &middot; 5.03 GiB</div><div class="row">
+  <span class="name">CPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar cpu" style="width: 14.81%"></div>
+    <span class="tip">BF16 on CPU — 167.2 tok/s · 5.03 GiB of weights</span>
+  </div>
+  <span class="val">167 <span class="unit">tok/s</span></span>
+</div><div class="row">
+  <span class="name">iGPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar gpu" style="width: 41.40%"></div>
+    <span class="tip">BF16 on iGPU — 467.2 tok/s · 5.03 GiB of weights</span>
+  </div>
+  <span class="val">467 <span class="unit">tok/s</span></span>
+</div></div><div class="axis"><span>0</span><span>564</span><span>1,128</span><span>tok/s</span></div></div>
+</section>
+
+<section>
+  <h2>Why quantization is the whole story</h2>
+  <p>Multiplying weight size by generation rate gives the memory bandwidth each
+  configuration actually achieves. Every llama.cpp build lands on the same ceiling
+  regardless of quantization — they are all reading memory as fast as this machine
+  physically can, so the only remaining lever is reading less of it.</p>
+  <div class="chart ceiling-pad wide-names"><div class="group" style="position: relative"><div class="ceiling" style="--pct: 0.8788"><span>measured ceiling 70 GB/s</span></div><div class="row">
+  <span class="name">Q4_K_M CPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar cpu" style="width: 75.67%"></div>
+    <span class="tip">Q4_K_M on CPU — reading 1.56 GiB × 38.5 tok/s</span>
+  </div>
+  <span class="val">60 <span class="unit">GB/s</span></span>
+</div><div class="row">
+  <span class="name">Q4_K_M iGPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar gpu" style="width: 85.28%"></div>
+    <span class="tip">Q4_K_M on iGPU — reading 1.56 GiB × 43.4 tok/s</span>
+  </div>
+  <span class="val">68 <span class="unit">GB/s</span></span>
+</div><div class="row">
+  <span class="name">Q8_0 CPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar cpu" style="width: 77.59%"></div>
+    <span class="tip">Q8_0 on CPU — reading 2.68 GiB × 23.0 tok/s</span>
+  </div>
+  <span class="val">62 <span class="unit">GB/s</span></span>
+</div><div class="row">
+  <span class="name">Q8_0 iGPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar gpu" style="width: 87.83%"></div>
+    <span class="tip">Q8_0 on iGPU — reading 2.68 GiB × 26.0 tok/s</span>
+  </div>
+  <span class="val">70 <span class="unit">GB/s</span></span>
+</div><div class="row">
+  <span class="name">BF16 CPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar cpu" style="width: 81.09%"></div>
+    <span class="tip">BF16 on CPU — reading 5.03 GiB × 12.8 tok/s</span>
+  </div>
+  <span class="val">64 <span class="unit">GB/s</span></span>
+</div><div class="row">
+  <span class="name">BF16 iGPU</span>
+  <div class="track" tabindex="0">
+    <div class="bar gpu" style="width: 90.91%"></div>
+    <span class="tip">BF16 on iGPU — reading 5.03 GiB × 14.3 tok/s</span>
+  </div>
+  <span class="val">72 <span class="unit">GB/s</span></span>
+</div></div><div class="axis"><span>0</span><span>40</span><span>79</span><span>GB/s</span></div></div>
+</section>
+
+<section>
+  <h2>Thread count</h2>
+  <p>More threads stop helping once memory is saturated. Past
+  8 threads the cores simply queue for the same bandwidth,
+  and using all 24 SMT threads is slower than using four.</p>
+  <div class="chart"><div class="group"><div class="row">
+  <span class="name">4 thr</span>
+  <div class="track" tabindex="0">
+    <div class="bar cpu" style="width: 69.96%"></div>
+    <span class="tip">4 threads — 27.8 tok/s</span>
+  </div>
+  <span class="val">27.8 <span class="unit">tok/s</span></span>
+</div><div class="row">
+  <span class="name">8 thr</span>
+  <div class="track" tabindex="0">
+    <div class="bar cpu" style="width: 98.04%"></div>
+    <span class="tip">8 threads — 39.0 tok/s  (fastest)</span>
+  </div>
+  <span class="val">39.0 <span class="unit">tok/s</span></span>
+</div><div class="row">
+  <span class="name">12 thr</span>
+  <div class="track" tabindex="0">
+    <div class="bar cpu" style="width: 96.44%"></div>
+    <span class="tip">12 threads — 38.3 tok/s</span>
+  </div>
+  <span class="val">38.3 <span class="unit">tok/s</span></span>
+</div><div class="row">
+  <span class="name">16 thr</span>
+  <div class="track" tabindex="0">
+    <div class="bar cpu" style="width: 94.30%"></div>
+    <span class="tip">16 threads — 37.5 tok/s</span>
+  </div>
+  <span class="val">37.5 <span class="unit">tok/s</span></span>
+</div><div class="row">
+  <span class="name">24 thr</span>
+  <div class="track" tabindex="0">
+    <div class="bar cpu" style="width: 63.63%"></div>
+    <span class="tip">24 threads — 25.3 tok/s</span>
+  </div>
+  <span class="val">25.3 <span class="unit">tok/s</span></span>
+</div></div><div class="axis"><span>0</span><span>20</span><span>40</span><span>tok/s</span></div></div>
+</section>
+
+<section>
+  <h2>Every measurement</h2>
+  <div class="tablewrap"><table>
+<thead><tr><th>Build</th><th>Backend</th><th>Weights (GiB)</th>
+<th>Prefill (tok/s)</th><th>Generate (tok/s)</th><th>Eff. BW (GB/s)</th></tr></thead>
+<tbody><tr><td>Q4_K_M</td><td>CPU</td><td>1.56</td><td>233</td><td>38.5</td><td>60</td></tr><tr><td>Q4_K_M</td><td>iGPU</td><td>1.56</td><td>1,095</td><td class="best">43.4</td><td>68</td></tr><tr><td>Q8_0</td><td>CPU</td><td>2.68</td><td>196</td><td>23.0</td><td>62</td></tr><tr><td>Q8_0</td><td>iGPU</td><td>2.68</td><td class="best">1,106</td><td>26.0</td><td>70</td></tr><tr><td>BF16</td><td>CPU</td><td>5.03</td><td>167</td><td>12.8</td><td>64</td></tr><tr><td>BF16</td><td>iGPU</td><td>5.03</td><td>467</td><td>14.3</td><td>72</td></tr><tr><td>transformers bfloat16</td><td>CPU</td><td>5.03</td><td>&mdash;</td><td>7.0</td><td>35</td></tr></tbody></table></div>
+</section>
+
+<section>
+  <h2>What this means</h2>
+  <ul class="takeaways">
+    <li><b>Use Q4_K_M.</b> It is 6.2×
+    faster than where we started and small enough to leave most of your RAM free.</li>
+    <li><b>Parameter count is a red herring.</b> A 2.6B model at bfloat16 reads 5.03 GiB
+    per token — more than an 8B model at 4-bit. Bytes per token is what sets speed,
+    not billions of parameters.</li>
+    <li><b>The runtime mattered as much as the format.</b> At identical bfloat16
+    weights, llama.cpp reached
+    12.8
+    tok/s against transformers' 7.0 — same math, better kernels.</li>
+    <li><b>The iGPU is for prompts, not for typing.</b> Vulkan gives a
+    5.7×
+    prefill win but only a few tok/s on generation, because it shares the same memory.</li>
+  </ul>
+</section>
+
+<footer>
+  AMD Ryzen AI 9 HX 370 w/ Radeon 890M &middot; 12 cores /
+  24 threads &middot; measured read bandwidth
+  70 GB/s &middot; llama.cpp
+  b10280 &middot;
+  <a href="https://www.liquid.ai/blog/lfm2-5-2-6b">liquid.ai/blog/lfm2-5-2-6b</a>
+</footer>
+
+</body></html>

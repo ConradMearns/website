@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The goal loop, charted</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400;1,600&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E8EDEF; --panel:#F4F7F8; --ink:#1B2A41; --muted:#4F5F73; --rule:#B9C6CE;
+  --fn:#2C7A80; --store:#1B2A41; --storeText:#F4F7F8; --pred:#B07A1E; --err:#A8323F; --good:#3D7A4A;
+  --hl:rgba(44,122,128,.16);
+  --math:"STIX Two Text", "Cambria Math", "Times New Roman", serif;
+  --body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1826; --panel:#16223350; --ink:#DCE4EA; --muted:#9AAABB; --rule:#2C3B50;
+    --fn:#5FB7BD; --store:#DCE4EA; --storeText:#0F1826; --pred:#E0AE55; --err:#E0707C; --good:#7CC08A;
+    --hl:rgba(95,183,189,.18);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1826; --panel:#16223350; --ink:#DCE4EA; --muted:#9AAABB; --rule:#2C3B50;
+  --fn:#5FB7BD; --store:#DCE4EA; --storeText:#0F1826; --pred:#E0AE55; --err:#E0707C; --good:#7CC08A;
+  --hl:rgba(95,183,189,.18);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:1.0625rem;line-height:1.6}
+main{max-width:44rem;margin:0 auto;padding:2.5rem 1.25rem 4rem}
+h1{font-family:var(--math);font-weight:400;font-size:clamp(2.1rem,7vw,3rem);line-height:1.1;margin:0 0 .75rem}
+h2{font-family:var(--math);font-weight:600;font-size:1.6rem;line-height:1.2;margin:3.25rem 0 .75rem}
+h3{font-family:var(--math);font-weight:600;font-size:1.2rem;margin:1.75rem 0 .4rem}
+p{margin:0 0 1rem;max-width:38rem}
+.lede{font-size:1.15rem;color:var(--muted)}
+.m{font-family:var(--math);font-style:italic;font-size:1.12em;white-space:nowrap}
+.m sub,.m sup{font-size:.7em}
+.up{font-style:normal}
+.eq{font-family:var(--math);font-size:1.25rem;background:var(--panel);border-left:3px solid var(--fn);padding:1rem 1.1rem;margin:1.25rem 0;overflow-x:auto}
+.eq div{white-space:nowrap;margin:.2rem 0}
+.eq i{font-style:italic}
+.eq .note{font-family:var(--body);font-size:.85rem;color:var(--muted);margin-left:.6rem}
+.chart{margin:1.5rem auto 0;max-width:460px}
+.chart svg{width:100%;height:auto;display:block}
+.chart svg text{font-family:var(--math)}
+.chart .node{cursor:pointer}
+.chart .node:focus{outline:none}
+.chart .node:focus-visible .shape,.chart .node.on .shape{stroke:var(--err);stroke-width:3}
+.caption{font-size:.9rem;color:var(--muted);text-align:center;margin-top:.5rem}
+dl.dict{margin:1rem 0 0;border-top:1px solid var(--rule)}
+.entry{display:grid;grid-template-columns:4.2rem 1fr;gap:.25rem 1rem;padding:.9rem .5rem;border-bottom:1px solid var(--rule);scroll-margin-top:calc(env(safe-area-inset-top,0px) + 1rem);transition:background .25s}
+.entry.on{background:var(--hl)}
+.entry dt{font-family:var(--math);font-style:italic;font-size:1.7rem;line-height:1.1;text-align:center}
+.entry dt sub{font-size:.6em}
+.entry dd{margin:0}
+.entry .name{font-weight:700}
+.entry .ex{display:block;color:var(--muted);font-size:.95rem;margin-top:.2rem}
+.kind{font-size:.8rem;border:1px solid var(--rule);border-radius:1rem;padding:0 .5rem;margin-left:.4rem;color:var(--muted);white-space:nowrap}
+.glyphs{display:grid;grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr));gap:1rem;margin-top:1rem}
+.glyph{text-align:center;font-size:.92rem}
+.glyph svg{width:100%;max-width:140px;height:64px;display:block;margin:0 auto .3rem}
+.glyph b{display:block}
+.glyph span{color:var(--muted)}
+ol.story{list-style:none;padding:0;margin:1rem 0;counter-reset:pass}
+ol.story>li{position:relative;padding:0 0 1.25rem 2.6rem;border-left:2px solid var(--rule);margin-left:.9rem}
+ol.story>li:last-child{border-left-color:transparent}
+ol.story>li::before{content:attr(data-step);position:absolute;left:-1rem;top:0;width:2rem;height:2rem;border-radius:50%;background:var(--paper);border:2px solid var(--fn);font-family:var(--math);font-style:italic;display:grid;place-items:center;font-size:1rem;color:var(--ink)}
+ol.story>li.bad::before{border-color:var(--err)}
+ol.story>li.ok::before{border-color:var(--good)}
+.story h4{margin:0 0 .25rem;font-family:var(--math);font-size:1.1rem;font-weight:600}
+.data{font-family:var(--math);background:var(--panel);border:1px solid var(--rule);border-radius:.3rem;padding:.55rem .75rem;margin:.4rem 0 .6rem;overflow-x:auto;font-size:1rem}
+.data div{white-space:nowrap}
+.err{color:var(--err)} .pred{color:var(--pred)} .good{color:var(--good)}
+.aside{border:1px solid var(--rule);border-radius:.4rem;padding:1rem 1.1rem;margin:1.5rem 0;background:var(--panel)}
+.aside p:last-child{margin-bottom:0}
+.qs li{margin-bottom:.6rem}
+.theme{position:fixed;right:1rem;bottom:calc(1rem + env(safe-area-inset-bottom,0px));font:inherit;font-size:.85rem;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:1rem;padding:.3rem .8rem;cursor:pointer}
+@media (prefers-reduced-motion: reduce){.entry{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<h1>The goal loop, charted</h1>
+<p class="lede">How a goal map gets acted on, measured, and redrawn — one pass at a time, then as a tree of versions, then zoomed out.</p>
+
+<h2>The equations</h2>
+<p>Each pass is numbered <span class="m">i</span>. Everything with a subscript <span class="m">i</span> belongs to that pass; <span class="m">i</span>+1 is the next one.</p>
+<div class="eq">
+  <div><i>c<sub>i</sub></i>, <i>ŷ<sub>i</sub></i> = <i>π</i>(<i>G<sub>i</sub></i>, <i>M<sub>i</sub></i>)<span class="note">choose a command and say what you expect</span></div>
+  <div><i>E<sub>i</sub></i> = <i>D</i>(<i>c<sub>i</sub></i>)<span class="note">do the work; record what happened</span></div>
+  <div><i>M<sub>i+1</sub></i> = <i>J</i>(<i>M<sub>i</sub></i>, <i>E<sub>i</sub></i>)<span class="note">fold events into the world model</span></div>
+  <div><i>y<sub>i</sub></i> = <i>Q</i>(<i>q</i>, <i>M<sub>i+1</sub></i>)<span class="note">ask the world model</span></div>
+  <div><i>r<sub>i</sub></i> = <i>y<sub>i</sub></i> ⊖ <i>ŷ<sub>i</sub></i><span class="note">compare observed to expected</span></div>
+  <div><i>G<sub>i+1</sub></i> = <i>U</i>(<i>G<sub>i</sub></i>, <i>r<sub>i</sub></i>)<span class="note">redraw the goal map</span></div>
+</div>
+
+<h2>The chart</h2>
+<p>Tap any symbol to jump to its definition. Circles are functions that transform things, tags are data passed between them, and filled blocks are stores that persist between passes.</p>
+
+<div class="chart">
+<svg viewBox="0 0 360 790" role="img" aria-labelledby="chartTitle">
+  <title id="chartTitle">The goal loop: G sub i flows through pi, D, J, Q, compare and U to become G sub i plus one</title>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink)"/></marker>
+    <marker id="arP" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--pred)"/></marker>
+    <marker id="arE" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--err)"/></marker>
+    <marker id="arF" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--fn)"/></marker>
+  </defs>
+
+  <!-- main spine arrows -->
+  <g stroke="var(--ink)" stroke-width="1.6" fill="none" marker-end="url(#ar)">
+    <line x1="180" y1="66" x2="180" y2="100"/>
+    <line x1="180" y1="146" x2="180" y2="176"/>
+    <line x1="180" y1="210" x2="180" y2="244"/>
+    <line x1="180" y1="290" x2="180" y2="320"/>
+    <line x1="180" y1="354" x2="180" y2="388"/>
+    <line x1="180" y1="434" x2="180" y2="464"/>
+    <line x1="180" y1="500" x2="180" y2="534"/>
+    <line x1="180" y1="580" x2="180" y2="610"/>
+    <line x1="180" y1="644" x2="180" y2="672"/>
+    <line x1="180" y1="700" x2="180" y2="728"/>
+  </g>
+
+  <!-- prediction branch: c_i -> y-hat -> compare -->
+  <g stroke="var(--pred)" stroke-width="1.6" fill="none" stroke-dasharray="5 4">
+    <path d="M222 193 H292 V228" marker-end="url(#arP)"/>
+    <path d="M292 262 V686 H196" marker-end="url(#arP)"/>
+  </g>
+  <text x="300" y="470" font-size="12" fill="var(--pred)" transform="rotate(90 300 470)" text-anchor="middle" font-style="italic">expected, carried alongside</text>
+
+  <!-- query input from G (objective goals supply q) -->
+  <g stroke="var(--fn)" stroke-width="1.4" fill="none" stroke-dasharray="2 4">
+    <path d="M140 40 H40 V557 H132" marker-end="url(#arF)"/>
+  </g>
+  <text x="32" y="300" font-size="12" fill="var(--fn)" transform="rotate(-90 32 300)" text-anchor="middle" font-style="italic">objective goals supply the queries q</text>
+
+  <!-- M feeds back into pi (inner, single loop) -->
+  <g stroke="var(--muted)" stroke-width="1.4" fill="none" stroke-dasharray="6 3">
+    <path d="M140 482 H80 V123 H152" marker-end="url(#ar)"/>
+  </g>
+  <text x="88" y="300" font-size="11" fill="var(--muted)" transform="rotate(-90 88 300)" text-anchor="middle" font-style="italic">M feeds the next choice</text>
+
+  <!-- U back up to G (outer, double loop) -->
+  <g stroke="var(--err)" stroke-width="2" fill="none">
+    <path d="M203 752 H336 V10 H180 V14" marker-end="url(#arE)"/>
+  </g>
+  <text x="346" y="400" font-size="12" fill="var(--err)" transform="rotate(90 346 400)" text-anchor="middle" font-style="italic">Gᵢ₊₁ becomes the next pass's map</text>
+
+  <!-- NODES -->
+  <!-- G_i store -->
+  <g class="node" data-sym="G" tabindex="0" role="link" aria-label="G sub i, goal graph">
+    <rect class="shape" x="140" y="16" width="80" height="50" rx="8" fill="var(--store)" stroke="var(--store)"/>
+    <rect x="145" y="21" width="70" height="40" rx="5" fill="none" stroke="var(--storeText)" stroke-width="1" opacity=".5"/>
+    <text x="180" y="48" text-anchor="middle" font-size="22" font-style="italic" fill="var(--storeText)">G<tspan dy="6" font-size="13">i</tspan></text>
+  </g>
+  <!-- pi fn -->
+  <g class="node" data-sym="pi" tabindex="0" role="link" aria-label="pi, policy">
+    <circle class="shape" cx="180" cy="123" r="23" fill="var(--paper)" stroke="var(--fn)" stroke-width="2"/>
+    <text x="180" y="131" text-anchor="middle" font-size="24" font-style="italic" fill="var(--fn)">π</text>
+  </g>
+  <!-- c_i data -->
+  <g class="node" data-sym="c" tabindex="0" role="link" aria-label="c sub i, command">
+    <path class="shape" d="M150 176 H210 L222 193 L210 210 H150 z" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.6"/>
+    <text x="182" y="200" text-anchor="middle" font-size="20" font-style="italic" fill="var(--ink)">c<tspan dy="5" font-size="12">i</tspan></text>
+  </g>
+  <!-- y-hat data -->
+  <g class="node" data-sym="yhat" tabindex="0" role="link" aria-label="y hat sub i, expectation">
+    <path class="shape" d="M266 228 H310 L320 245 L310 262 H266 z" fill="var(--paper)" stroke="var(--pred)" stroke-width="1.6"/>
+    <text x="290" y="252" text-anchor="middle" font-size="20" font-style="italic" fill="var(--pred)">ŷ<tspan dy="5" font-size="12">i</tspan></text>
+  </g>
+  <!-- D fn -->
+  <g class="node" data-sym="D" tabindex="0" role="link" aria-label="D, procedure">
+    <circle class="shape" cx="180" cy="267" r="23" fill="var(--paper)" stroke="var(--fn)" stroke-width="2"/>
+    <text x="180" y="275" text-anchor="middle" font-size="22" font-style="italic" fill="var(--fn)">D</text>
+  </g>
+  <!-- E_i data -->
+  <g class="node" data-sym="E" tabindex="0" role="link" aria-label="E sub i, events">
+    <path class="shape" d="M150 320 H210 L222 337 L210 354 H150 z" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.6"/>
+    <text x="182" y="344" text-anchor="middle" font-size="20" font-style="italic" fill="var(--ink)">E<tspan dy="5" font-size="12">i</tspan></text>
+  </g>
+  <!-- J fn -->
+  <g class="node" data-sym="J" tabindex="0" role="link" aria-label="J, projection">
+    <circle class="shape" cx="180" cy="411" r="23" fill="var(--paper)" stroke="var(--fn)" stroke-width="2"/>
+    <text x="180" y="419" text-anchor="middle" font-size="22" font-style="italic" fill="var(--fn)">J</text>
+  </g>
+  <!-- M store -->
+  <g class="node" data-sym="M" tabindex="0" role="link" aria-label="M sub i plus 1, world model">
+    <rect class="shape" x="140" y="464" width="80" height="36" rx="8" fill="var(--store)" stroke="var(--store)"/>
+    <text x="176" y="489" text-anchor="middle" font-size="20" font-style="italic" fill="var(--storeText)">M<tspan dy="5" font-size="12">i+1</tspan></text>
+  </g>
+  <!-- Q fn -->
+  <g class="node" data-sym="Q" tabindex="0" role="link" aria-label="Q, querier">
+    <circle class="shape" cx="180" cy="557" r="23" fill="var(--paper)" stroke="var(--fn)" stroke-width="2"/>
+    <text x="180" y="565" text-anchor="middle" font-size="22" font-style="italic" fill="var(--fn)">Q</text>
+  </g>
+  <!-- q label -->
+  <g class="node" data-sym="q" tabindex="0" role="link" aria-label="q, query">
+    <rect class="shape" x="110" y="535" width="0" height="0" fill="none" stroke="none"/>
+    <text x="118" y="551" text-anchor="middle" font-size="18" font-style="italic" fill="var(--fn)">q</text>
+  </g>
+  <!-- y_i data -->
+  <g class="node" data-sym="y" tabindex="0" role="link" aria-label="y sub i, observation">
+    <path class="shape" d="M150 610 H210 L222 627 L210 644 H150 z" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.6"/>
+    <text x="182" y="634" text-anchor="middle" font-size="20" font-style="italic" fill="var(--ink)">y<tspan dy="5" font-size="12">i</tspan></text>
+  </g>
+  <!-- compare -->
+  <g class="node" data-sym="cmp" tabindex="0" role="link" aria-label="compare">
+    <circle class="shape" cx="180" cy="686" r="14" fill="var(--paper)" stroke="var(--ink)" stroke-width="1.6"/>
+    <text x="180" y="692" text-anchor="middle" font-size="18" fill="var(--ink)">⊖</text>
+  </g>
+  <!-- r_i -->
+  <g class="node" data-sym="r" tabindex="0" role="link" aria-label="r sub i, residual">
+    <text x="206" y="720" text-anchor="middle" font-size="18" font-style="italic" fill="var(--err)">r<tspan dy="5" font-size="11">i</tspan></text>
+  </g>
+  <!-- U fn -->
+  <g class="node" data-sym="U" tabindex="0" role="link" aria-label="U, update">
+    <circle class="shape" cx="180" cy="752" r="23" fill="var(--paper)" stroke="var(--err)" stroke-width="2"/>
+    <text x="180" y="760" text-anchor="middle" font-size="22" font-style="italic" fill="var(--err)">U</text>
+  </g>
+</svg>
+</div>
+<p class="caption">The grey dashed path is single-loop learning. The red path back to the top is double-loop learning.</p>
+
+<h2>The dictionary</h2>
+<dl class="dict">
+  <div class="entry" id="sym-i"><dt>i</dt><dd><span class="name">Pass index</span> Which trip around the loop this is. <span class="m">G<sub>i</sub></span> is the map during pass <span class="m">i</span>; <span class="m">G<sub>i+1</sub></span> is the map after it's been redrawn.<span class="ex">Attempt four is one pass; attempt five is the next.</span></dd></div>
+
+  <div class="entry" id="sym-G"><dt>G<sub>i</sub></dt><dd><span class="name">Goal graph</span><span class="kind">store</span><br>Your map of what matters and how you'd know: fundamental goals, objective goals, strategies connecting them, supports and hurts links, and known obstacles. It changes only when <span class="m">U</span> redraws it.<span class="ex">"The fly runs a farm" connected by a strategy to "24 wheat in the chest."</span></dd></div>
+
+  <div class="entry" id="sym-pi"><dt>π</dt><dd><span class="name">Policy</span><span class="kind">function</span><br>The rule that picks the next command. It reads the goal graph (what's worth doing, what's prioritized) and the world model (what's true right now), and outputs a command plus what that command should achieve. It's the conventional symbol in control theory and reinforcement learning, and has nothing to do with 3.14. Your prioritization step lives here.<span class="ex">"Nothing is ripe and my pockets are empty, so: wait."</span></dd></div>
+
+  <div class="entry" id="sym-c"><dt>c<sub>i</sub></dt><dd><span class="name">Command</span><span class="kind">data</span><br>An action described as data, like a Dizzy command. It says what to do, not how.<span class="ex">StoreWheat(chest).</span></dd></div>
+
+  <div class="entry" id="sym-yhat"><dt>ŷ<sub>i</sub></dt><dd><span class="name">Expectation</span><span class="kind">data</span><br>What the command predicts the queries will return afterward. The hat means "estimated." This is the piece that turns every command into a round-trip test: it states the answer before the world gives one.<span class="ex">"After this, chest wheat goes up."</span></dd></div>
+
+  <div class="entry" id="sym-D"><dt>D</dt><dd><span class="name">Procedure</span><span class="kind">function</span><br>The thing that actually does the work when handed a command, and reports what happened as events. Side effects it doesn't report are invisible to everything downstream.<span class="ex">The walking-and-clicking script, plus the game itself.</span></dd></div>
+
+  <div class="entry" id="sym-E"><dt>E<sub>i</sub></dt><dd><span class="name">Events</span><span class="kind">data</span><br>Facts about what happened during the pass. Rejections are events too, and usually the most informative ones.<span class="ex">CommandRejected(StoreWheat, "no wheat in inventory").</span></dd></div>
+
+  <div class="entry" id="sym-J"><dt>J</dt><dd><span class="name">Projection</span><span class="kind">function</span><br>Folds events into the world model. Its schema decides which facts exist at all. If <span class="m">J</span> never records a fact, no query can ever ask about it.<span class="ex">Adds one to the rejection count; keeps inventory wheat at 0.</span></dd></div>
+
+  <div class="entry" id="sym-M"><dt>M<sub>i+1</sub></dt><dd><span class="name">World model</span><span class="kind">store</span><br>The current state of the world as far as you've recorded it. It's <span class="m">i+1</span> because it already includes this pass's events.<span class="ex">Plots: 24. Ripe: 0. Inventory wheat: 0. Rejections: 12.</span></dd></div>
+
+  <div class="entry" id="sym-Q"><dt>Q</dt><dd><span class="name">Querier</span><span class="kind">function</span><br>Answers a question against the world model.<span class="ex">Reads the chest's contents out of the model.</span></dd></div>
+
+  <div class="entry" id="sym-q"><dt>q</dt><dd><span class="name">Query</span><span class="kind">data</span><br>The question, as an input/output pair. Each objective goal owns one or more of these; that's what makes it measurable.<span class="ex">(chest_wheat, ?) — the ? is filled in by Q.</span></dd></div>
+
+  <div class="entry" id="sym-y"><dt>y<sub>i</sub></dt><dd><span class="name">Observation</span><span class="kind">data</span><br>What the queries actually returned this pass. The same letter as <span class="m">ŷ</span>, minus the hat, because it's the real value of the thing you estimated.<span class="ex">chest_wheat = 0.</span></dd></div>
+
+  <div class="entry" id="sym-cmp"><dt class="up">⊖</dt><dd><span class="name">Compare</span><span class="kind">function</span><br>Lines up what you observed against what you expected. For numbers it's subtraction; for other types it's whatever "how far off" means for them.</dd></div>
+
+  <div class="entry" id="sym-r"><dt>r<sub>i</sub></dt><dd><span class="name">Residual</span><span class="kind">data</span><br>The gap left over after the comparison — the error signal. Zero means the world did what you predicted.<span class="ex">Expected more wheat, got none, plus a rejection.</span></dd></div>
+
+  <div class="entry" id="sym-U"><dt>U</dt><dd><span class="name">Update</span><span class="kind">function</span><br>Redraws the goal graph from the residuals. It works at two levels. Continuous: nudge confidence in strategies and evidence status on goals. Structural: add an obstacle, add an objective goal, split or drop a strategy — or change <span class="m">J</span> and <span class="m">Q</span> so a missing fact becomes visible. Structural edits fire when a residual is both persistent and concentrated in one kind of situation.<span class="ex">Twelve identical rejections, all when the field is young: add an obstacle and a new goal.</span></dd></div>
+  <div class="entry" id="sym-k"><dt>k</dt><dd><span class="name">Map version</span> The slow clock. Many passes <span class="m">i</span> run under one map <span class="m">G<sub>k</sub></span>; the version number only goes up at a checkpoint.<span class="ex">Each full farm attempt ran under one version of the map.</span></dd></div>
+
+  <div class="entry" id="sym-R"><dt>R<sub>k</sub></dt><dd><span class="name">Issue list</span><span class="kind">data</span><br>All the residuals collected since the last checkpoint, reviewed together. Wintergatan's test-fit list is exactly this.<span class="ex">"Walked to store wheat with empty pockets, twelve times, field all young."</span></dd></div>
+
+  <div class="entry" id="sym-T"><dt>T</dt><dd><span class="name">Search tree</span><span class="kind">store</span><br>Every version of the map, linked to the version it grew from. The spine is the path that worked; branches are dead ends.<span class="ex">Five attempts at the full farm: four branches, one spine.</span></dd></div>
+
+  <div class="entry" id="sym-sigma"><dt>σ</dt><dd><span class="name">Selection</span><span class="kind">function</span><br>The second policy. Where <span class="m">π</span> picks the next command inside one map, <span class="m">σ</span> picks which map in the tree to work from next — keep going, or back up and branch.<span class="ex">Reload the saved brain from the end of lesson four and start again.</span></dd></div>
+
+  <div class="entry" id="sym-B"><dt>B<sub>k</sub></dt><dd><span class="name">Branch prediction</span><span class="kind">data</span><br><span class="m">ŷ</span> for a whole branch: which objective goals should move, how far, within what budget. It lets a branch fail its own forecast, which turns "give up?" into a measurement.<span class="ex">"Within three attempts, the full run should finish."</span></dd></div>
+</dl>
+
+<h3>Symbols inside the goal graph</h3>
+<p>These are the glyphs that live inside <span class="m">G<sub>i</sub></span>. The strategy parallelogram follows GSN; the red obstacle follows KAOS.</p>
+<div class="glyphs">
+  <div class="glyph"><svg viewBox="0 0 140 64"><rect x="15" y="10" width="110" height="44" rx="22" fill="none" stroke="var(--ink)" stroke-width="2"/><rect x="21" y="16" width="98" height="32" rx="16" fill="none" stroke="var(--ink)" stroke-width="1"/><text x="70" y="38" text-anchor="middle" font-family="var(--math)" font-style="italic" font-size="18" fill="var(--ink)">F</text></svg><b>Fundamental goal</b><span>Intrinsic, not directly provable</span></div>
+  <div class="glyph"><svg viewBox="0 0 140 64"><rect x="20" y="10" width="100" height="44" fill="none" stroke="var(--ink)" stroke-width="2"/><text x="70" y="38" text-anchor="middle" font-family="var(--math)" font-style="italic" font-size="18" fill="var(--ink)">O</text></svg><b>Objective goal</b><span>Measured by a query</span></div>
+  <div class="glyph"><svg viewBox="0 0 140 64"><path d="M34 10 H126 L106 54 H14 z" fill="none" stroke="var(--fn)" stroke-width="2"/><text x="70" y="38" text-anchor="middle" font-family="var(--math)" font-style="italic" font-size="18" fill="var(--fn)">S</text></svg><b>Strategy</b><span>Why O counts as evidence for F</span></div>
+  <div class="glyph"><svg viewBox="0 0 140 64"><path d="M14 10 H106 L126 54 H34 z" fill="none" stroke="var(--err)" stroke-width="2"/><text x="70" y="38" text-anchor="middle" font-family="var(--math)" font-style="italic" font-size="18" fill="var(--err)">X</text></svg><b>Obstacle</b><span>A named way a goal gets blocked</span></div>
+  <div class="glyph"><svg viewBox="0 0 140 64"><line x1="15" y1="32" x2="118" y2="32" stroke="var(--good)" stroke-width="2" marker-end="url(#arG)"/><defs><marker id="arG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--good)"/></marker></defs><text x="66" y="24" text-anchor="middle" font-family="var(--math)" font-size="16" fill="var(--good)">+</text></svg><b>Supports</b><span>Progress on one helps the other</span></div>
+  <div class="glyph"><svg viewBox="0 0 140 64"><line x1="15" y1="32" x2="118" y2="32" stroke="var(--err)" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arH)"/><defs><marker id="arH" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--err)"/></marker></defs><text x="66" y="24" text-anchor="middle" font-family="var(--math)" font-size="16" fill="var(--err)">−</text></svg><b>Hurts</b><span>Progress on one costs the other</span></div>
+</div>
+
+<h2>A story: the empty chest</h2>
+<p>This follows the fly's fourth and fifth attempts at the full farm run, from the video. Everything the fly had learned was in place; it failed at the very end.</p>
+
+<ol class="story">
+  <li data-step="0"><h4>The map before anything happens</h4>
+    <p><span class="m">G<sub>0</sub></span> holds one fundamental goal, a strategy, and the objective goals it relies on.</p>
+    <div class="data">
+      <div><i>F</i>: the fly runs a farm on its own</div>
+      <div><i>S</i>: if each stage's objective passes in order, the farm runs</div>
+      <div><i>O</i><sub>1…4</sub>: logs ≥ 4, seeds ≥ 24, plots = 24, chest wheat ≥ 24</div>
+    </div>
+  </li>
+  <li data-step="i"><h4>Choose</h4>
+    <p>Twenty-four plots are planted. <span class="m">π</span> reads <span class="m">G<sub>i</sub></span> — the next unmet objective is "chest wheat ≥ 24" — and <span class="m">M<sub>i</sub></span>. It outputs a command and an expectation.</p>
+    <div class="data"><div><i>c<sub>i</sub></i> = StoreWheat(chest)</div><div class="pred"><i>ŷ<sub>i</sub></i>: chest_wheat increases</div></div>
+  </li>
+  <li data-step="i" class="bad"><h4>Act, record, fold</h4>
+    <p><span class="m">D</span> tries it. The game refuses.</p>
+    <div class="data"><div class="err"><i>E<sub>i</sub></i> = [ CommandRejected(StoreWheat, "no wheat in inventory") ]</div><div><i>M<sub>i+1</sub></i>: plots 24, ripe 0, inventory wheat 0, rejections 1</div></div>
+  </li>
+  <li data-step="i" class="bad"><h4>Ask and compare</h4>
+    <div class="data"><div><i>q</i> = (chest_wheat, ?) → <i>y<sub>i</sub></i> = 0</div><div class="err"><i>r<sub>i</sub></i>: expected an increase, got 0 and a rejection</div></div>
+    <p>Nothing in the world changed, so the next pass sees the same <span class="m">M</span>, <span class="m">π</span> picks the same command, and the same residual comes back. Twelve times. That's the single loop spinning without learning anything.</p>
+  </li>
+  <li data-step="U" class="bad"><h4>Redraw the map</h4>
+    <p>The residual is persistent (twelve in a row) and concentrated (every one happened when the field was all young wheat). That's the signal for a structural edit rather than a confidence nudge. <span class="m">U</span> produces:</p>
+    <div class="data">
+      <div class="err"><i>X</i>: no rule for idling when nothing is ripe</div>
+      <div><i>O</i><sub>5</sub>: maintain — wait while ripe = 0</div>
+      <div><i>O</i><sub>6</sub>: avoid — store attempts with empty pockets</div>
+      <div><i>S</i> weakened: stage objectives in order don't cover the gaps between stages</div>
+    </div>
+    <p>In the video, the concrete fix was practice material for exactly these situations. In map terms, that's a new strategy aimed at the obstacle.</p>
+  </li>
+  <li data-step="i+1" class="ok"><h4>The next pass</h4>
+    <p><span class="m">π</span> reads <span class="m">G<sub>i+1</sub></span>, which now contains <span class="m">O<sub>5</sub></span>.</p>
+    <div class="data"><div><i>c<sub>i+1</sub></i> = Wait</div><div class="pred"><i>ŷ<sub>i+1</sub></i>: nothing changes until something ripens</div><div class="good"><i>y<sub>i+1</sub></i> matches, so <i>r<sub>i+1</sub></i> ≈ 0</div></div>
+    <p>With a near-zero residual, <span class="m">U</span> only makes a small continuous update: a bit more confidence in the revised strategy. Twenty seconds later the first plot ripens, and the loop carries on to 24 wheat in the chest.</p>
+  </li>
+</ol>
+
+<div class="aside">
+<h3>A second, shorter story: when indicators disagree</h3>
+<p>Fundamental goal: fluent in Chinese. Two objective goals feed it through two strategies: daily flashcards at 95% or better, and holding a ten-minute conversation.</p>
+<p>After a month, <span class="m">y</span> says flashcards pass and the conversation fails. You can never query fluency directly, but you can see the two indicators contradict each other. <span class="m">U</span> lowers confidence in the flashcard strategy, since it's the one that claims fluency while the more direct measure disagrees. No structural edit is needed; this is the continuous half of <span class="m">U</span> doing its job.</p>
+</div>
+
+<h2>Two clocks</h2>
+<p>The chart above shows <span class="m">U</span> running every pass. In practice it shouldn't. The inner loop — command, events, query — runs many times under one fixed map. Residuals pile up. Then, at a deliberate checkpoint, you review them all at once and redraw the map once.</p>
+<div class="eq">
+  <div><i>r<sub>i</sub></i> for many passes <i>i</i> under <i>G<sub>k</sub></i><span class="note">fast clock: act and measure</span></div>
+  <div><i>R<sub>k</sub></i> = { <i>r<sub>i</sub></i> since the last checkpoint }<span class="note">the issue list</span></div>
+  <div><i>G<sub>k+1</sub></i> = <i>U</i>(<i>G<sub>k</sub></i>, <i>R<sub>k</sub></i>)<span class="note">slow clock: redraw once</span></div>
+</div>
+<p>This is Wintergatan's method: build, test fit, write down every issue, then redesign. Batching keeps the map from thrashing in response to every noisy result, and writing the list is where obstacles get their names.</p>
+
+<h2>The tree of maps</h2>
+<p>Each checkpoint produces a new version of the map, linked to the one it came from. Keep all of them and you get a tree, <span class="m">T</span>. <span class="m">U</span> adds a child; <span class="m">σ</span> decides which leaf to work from next. Here are the fly's five full-farm attempts drawn that way.</p>
+
+<div class="chart">
+<svg viewBox="0 0 360 460" role="img" aria-labelledby="treeTitle">
+  <title id="treeTitle">A spine of five map versions, with four failed attempts branching off, each naming an obstacle that feeds the next version</title>
+  <defs>
+    <marker id="arT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink)"/></marker>
+    <marker id="arTE" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--err)"/></marker>
+    <marker id="arTG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--good)"/></marker>
+  </defs>
+  <!-- spine -->
+  <line x1="60" y1="70" x2="60" y2="420" stroke="var(--ink)" stroke-width="3"/>
+  <g font-family="var(--math)">
+    <!-- rows at y=50,140,230,320,410 -->
+    <g>
+      <rect x="30" y="32" width="60" height="36" rx="7" fill="var(--store)"/><text x="60" y="56" text-anchor="middle" font-size="18" font-style="italic" fill="var(--storeText)">G<tspan dy="5" font-size="11">0</tspan></text>
+      <rect x="30" y="122" width="60" height="36" rx="7" fill="var(--store)"/><text x="60" y="146" text-anchor="middle" font-size="18" font-style="italic" fill="var(--storeText)">G<tspan dy="5" font-size="11">1</tspan></text>
+      <rect x="30" y="212" width="60" height="36" rx="7" fill="var(--store)"/><text x="60" y="236" text-anchor="middle" font-size="18" font-style="italic" fill="var(--storeText)">G<tspan dy="5" font-size="11">2</tspan></text>
+      <rect x="30" y="302" width="60" height="36" rx="7" fill="var(--store)"/><text x="60" y="326" text-anchor="middle" font-size="18" font-style="italic" fill="var(--storeText)">G<tspan dy="5" font-size="11">3</tspan></text>
+      <rect x="30" y="392" width="60" height="36" rx="7" fill="var(--store)"/><text x="60" y="416" text-anchor="middle" font-size="18" font-style="italic" fill="var(--storeText)">G<tspan dy="5" font-size="11">4</tspan></text>
+    </g>
+    <!-- branches: attempt lines -->
+    <g stroke="var(--ink)" stroke-width="1.6" fill="none" marker-end="url(#arT)">
+      <line x1="90" y1="50" x2="140" y2="50"/>
+      <line x1="90" y1="140" x2="140" y2="140"/>
+      <line x1="90" y1="230" x2="140" y2="230"/>
+      <line x1="90" y1="320" x2="140" y2="320"/>
+    </g>
+    <line x1="90" y1="410" x2="140" y2="410" stroke="var(--good)" stroke-width="1.6" marker-end="url(#arTG)"/>
+    <!-- attempt labels -->
+    <g font-size="13" fill="var(--ink)">
+      <text x="146" y="45">attempt 1</text>
+      <text x="146" y="135">attempt 2</text>
+      <text x="146" y="225">attempt 3</text>
+      <text x="146" y="315">attempt 4</text>
+      <text x="146" y="405">attempt 5</text>
+    </g>
+    <!-- obstacles -->
+    <g fill="none" stroke="var(--err)" stroke-width="1.8">
+      <path d="M150 54 H336 L346 84 H160 z"/>
+      <path d="M150 144 H336 L346 174 H160 z"/>
+      <path d="M150 234 H336 L346 264 H160 z"/>
+      <path d="M150 324 H336 L346 354 H160 z"/>
+    </g>
+    <g font-size="12.5" fill="var(--err)" font-style="italic" text-anchor="middle">
+      <text x="248" y="74">table farther than trained</text>
+      <text x="248" y="164">grabbed a log still falling</text>
+      <text x="248" y="254">crafted a second table</text>
+      <text x="248" y="344">stored with empty pockets</text>
+    </g>
+    <!-- farm done -->
+    <circle cx="170" cy="432" r="14" fill="none" stroke="var(--good)" stroke-width="2"/>
+    <path d="M163 432 l5 5 l9 -10" fill="none" stroke="var(--good)" stroke-width="2"/>
+    <text x="192" y="437" font-size="13" fill="var(--good)" font-style="italic">24 wheat in the chest</text>
+    <!-- backprop: obstacle -> next spine node -->
+    <g stroke="var(--err)" stroke-width="1.4" fill="none" stroke-dasharray="4 3" marker-end="url(#arTE)">
+      <path d="M160 84 C120 100, 110 128, 93 134"/>
+      <path d="M160 174 C120 190, 110 218, 93 224"/>
+      <path d="M160 264 C120 280, 110 308, 93 314"/>
+      <path d="M160 354 C120 370, 110 398, 93 404"/>
+    </g>
+  </g>
+</svg>
+</div>
+<p class="caption">Dashed red: each named obstacle is what U uses to grow the next version. This tree is narrow — every dead end is one attempt long. Real research trees are wide, with long dead ends.</p>
+
+<h3>Why the video reads so well</h3>
+<p>It shows the spine, and every dead end hangs off it as one short, named failure. Most research write-ups keep only the spine and delete the branches. A write-up in the video's style keeps them: what was tried, what the residual looked like, what obstacle it named, and why it was abandoned.</p>
+
+<h3>Search, step by step</h3>
+<p>Working the tree follows the same four steps as Monte Carlo tree search:</p>
+<ol>
+  <li><b>Select</b> a map to work from (<span class="m">σ</span>).</li>
+  <li><b>Expand</b> it into a new version (<span class="m">U</span>).</li>
+  <li><b>Roll out</b>: run commands and queries under it.</li>
+  <li><b>Backpropagate</b>: carry what the rollout found back up the tree.</li>
+</ol>
+<p>Step four is the one most processes skip. When a dead-end branch names an obstacle, that obstacle should move up to the shared ancestor so every sibling branch inherits it. That's what turns a dead end into knowledge. The empty chest in attempt four came back because the lesson from lesson eight never travelled that far.</p>
+
+<h2>A rule for persistence</h2>
+<p>Humans give up when a branch feels hopeless — a real signal, but noisy. AI mostly lacks it, which helps on the problems that need stubbornness and hurts on the ones that don't. The rule below replaces the feeling with a measurement.</p>
+<div class="aside">
+<p><b>When a branch opens</b>, it states <span class="m">B<sub>k</sub></span>: which objective goals should move, by how much, within what budget.</p>
+<p><b>At each checkpoint</b>, compare what happened to <span class="m">B<sub>k</sub></span>. If it's on track, continue. If it missed, there are exactly two legal moves:</p>
+<p>Backtrack, or continue with a new prediction that risks more than the last one.</p>
+<p>A branch can never continue by explaining its miss — only by predicting something new. Determination is allowed as long as it keeps producing testable claims.</p>
+</div>
+<p>Signals worth tracking at each checkpoint:</p>
+<ul class="qs">
+  <li><b>Residual trend.</b> Is the issue list getting shorter, or just changing shape?</li>
+  <li><b>Repeat obstacles.</b> The same obstacle under a new name means the branch is spinning.</li>
+  <li><b>Progressive ratio.</b> Of the edits on this branch, how many predicted a later success that happened, versus how many only explained the last failure?</li>
+  <li><b>Cost per unit of progress,</b> compared against what other branches bought for the same spend.</li>
+</ul>
+<p>Log every <span class="m">B<sub>k</sub></span> with its outcome, and you get calibration data: how often "a few more passes" actually paid off, for a person, an agent, or a kind of problem. Agent time estimates are branch predictions too; scored this way, they'd stop being guesses nobody checks.</p>
+
+<h2>Zooming out</h2>
+<p>The same structure shows up at every scale. There are four directions to move in.</p>
+<h3>Up: recursion</h3>
+<p>Zoom out far enough and a whole research tree looks like a single procedure <span class="m">D</span> one level up: a command goes in ("investigate X") and events come out (papers, results, a working farm). That level has its own goal graph, policy, and <span class="m">U</span>. This is Stafford Beer's recursion in the Viable System Model. It also explains fundamental goals: each level's hard core can't be revised by its own <span class="m">U</span>, only by the level above. A paradigm shift is the level above redrawing what the level below treated as fixed.</p>
+<h3>Sideways: a forest</h3>
+<p>Different research efforts share obstacles, strategies, and even objective goals, so the forest is really a lattice with shared nodes. Science's shared record publishes spines and drops branches, so groups keep rediscovering the same dead ends. A shared catalog of named obstacles, with the situations that trigger them, would be backpropagation for a whole field.</p>
+<h3>Forward: evolution</h3>
+<p>Over longer time, trees compete. Strategies that keep producing progressive branches get copied into other trees; degenerating ones fade. This is where Lakatos's research programmes live. What persists is the set of fundamental goals that many trees keep reaching back to.</p>
+<h3>Down: every command hides a tree</h3>
+<p>The fly's walking-and-clicking script was built through its own small tree of attempts that never appeared on screen. Any <span class="m">D</span>, opened up, is a loop with its own map. The only thing that changes between scales is which level gets to call its goals fundamental.</p>
+
+<h2>Where Argyris and Lakatos sit</h2>
+<p><b>Argyris.</b> Single-loop learning is the grey path: the world changes, <span class="m">π</span> picks again, the map stays fixed. Double-loop learning is the red path: <span class="m">U</span> changes the map itself. An organization that never takes the red path keeps trying harder at the same plan.</p>
+<p><b>Lakatos.</b> Fundamental goals are the hard core that <span class="m">U</span> never deletes. Strategies and objective goals are the protective belt that absorbs failures. His health check applies to <span class="m">U</span>'s edits: a progressive edit makes new predictions that come true on later passes; a degenerating one only explains away the last failure.</p>
+
+<h2>Open questions</h2>
+<ul class="qs">
+  <li>Does <span class="m">π</span> belong inside the goal system, or is it a separate navigator that only reads the map?</li>
+  <li>Should every command carry <span class="m">ŷ</span>? Without it, there's no residual to feed <span class="m">U</span>.</li>
+  <li>Do rejected commands emit events in your system, or fail silently?</li>
+  <li>If <span class="m">G</span> is itself a projection over its own event stream, what are the event types for "the map changed"?</li>
+  <li>Who sets the checkpoints, and what triggers one — a fixed cadence, a budget, or a residual threshold?</li>
+  <li>How do you interview someone to build <span class="m">G<sub>0</sub></span> in the first place? Goal extraction is its own problem.</li>
+</ul>
+</main>
+<button class="theme" type="button" id="themeBtn" aria-label="Toggle light or dark theme">Theme</button>
+<script>
+(function(){
+  var nodes=document.querySelectorAll('.chart .node');
+  function go(sym){
+    var el=document.getElementById('sym-'+sym); if(!el) return;
+    document.querySelectorAll('.entry.on').forEach(function(e){e.classList.remove('on')});
+    document.querySelectorAll('.chart .node.on').forEach(function(e){e.classList.remove('on')});
+    el.classList.add('on');
+    var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({behavior:reduce?'auto':'smooth',block:'center'});
+    setTimeout(function(){el.classList.remove('on')},2400);
+  }
+  nodes.forEach(function(n){
+    n.addEventListener('click',function(){n.classList.add('on');go(n.dataset.sym)});
+    n.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go(n.dataset.sym)}});
+  });
+  var root=document.documentElement,btn=document.getElementById('themeBtn');
+  try{var saved=localStorage.getItem('theme'); if(saved) root.setAttribute('data-theme',saved);}catch(e){}
+  btn.addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}
+    var next=cur==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('theme',next)}catch(e){}
+  });
+})();
+</script>
+</body>
+</html>

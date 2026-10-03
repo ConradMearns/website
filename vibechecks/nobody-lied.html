@@ -1,0 +1,980 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+<title>Nobody Lied</title>
+
+<style>
+/* ---------------------------------------------------------------------------
+   One hot hue, spent entirely on "these two pictures disagree".
+   Everything else is slate. That is the gate's rule (koditoki-0c88) and it is
+   also the whole design: if you see red, a mind is wrong about the world.
+   --------------------------------------------------------------------------- */
+:root {
+  --ground:      #E9ECEE;
+  --plate:       #F8F9FA;
+  --plate-sunk:  #E2E6E9;
+  --ink:         #171E25;
+  --ink-soft:    #4B5A67;
+  /* The quietest a WORD is allowed to be. Small type is what this page is
+     made of -- 8.5px provenance tags, 9.5px node labels, 11px rail ticks --
+     and the old --ink-faint put every one of them at ~2.5:1 on the plate,
+     about half of what AA asks for. This value clears 4.5:1 against all three
+     grounds (plate 5.70, plate-sunk 5.09, ground 5.39; the dark theme's
+     counterpart below clears 5.35 / 5.67 / 5.87), which is the point:
+     restraint is a hue that recedes, not a hue that cannot be read. */
+  --ink-faint:   #52616C;
+  /* The old faint, kept for MARKS -- bars and hairlines, never words. A rail
+     bar carries no text, so contrast law has nothing to say about it, and
+     dragging it darker with the type would have made a quiet beat shout.
+     One label is beyond this token's reach: app.ts dims a tick nobody has run
+     yet with an inline `opacity: 0.45`, and no ink is legible through that
+     (koditoki-8aab). */
+  --mark:        #8494A0;
+  --rule:        #CDD4D9;
+  --rule-soft:   #DFE4E8;
+  --wrong:       #A50E2C;
+  --wrong-wash:  rgba(165, 14, 44, 0.09);
+  --wrong-edge:  rgba(165, 14, 44, 0.42);
+  --shadow:      0 1px 2px rgba(23, 30, 37, .06), 0 8px 24px -14px rgba(23, 30, 37, .28);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:     #10151A;
+    --plate:      #181F26;
+    --plate-sunk: #131A20;
+    --ink:        #DFE5EA;
+    --ink-soft:   #98A7B4;
+    --ink-faint:  #86949F;
+    --mark:       #66757F;
+    --rule:       #2A333C;
+    --rule-soft:  #222A32;
+    --wrong:      #FF5C74;
+    --wrong-wash: rgba(255, 92, 116, 0.13);
+    --wrong-edge: rgba(255, 92, 116, 0.50);
+    --shadow:     0 1px 2px rgba(0,0,0,.4), 0 10px 28px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  --ground:     #10151A;
+  --plate:      #181F26;
+  --plate-sunk: #131A20;
+  --ink:        #DFE5EA;
+  --ink-soft:   #98A7B4;
+  --ink-faint:  #86949F;
+  --mark:       #66757F;
+  --rule:       #2A333C;
+  --rule-soft:  #222A32;
+  --wrong:      #FF5C74;
+  --wrong-wash: rgba(255, 92, 116, 0.13);
+  --wrong-edge: rgba(255, 92, 116, 0.50);
+  --shadow:     0 1px 2px rgba(0,0,0,.4), 0 10px 28px -16px rgba(0,0,0,.8);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Newsreader", Georgia, serif;
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px 22px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ---- masthead ----------------------------------------------------------- */
+
+header { display: flex; flex-direction: column; gap: 8px; }
+
+h1 {
+  font-family: "Archivo", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(28px, 4.4vw, 42px);
+  letter-spacing: -0.022em;
+  line-height: 1.02;
+  margin: 0;
+  text-wrap: balance;
+}
+h1 .qual {
+  display: block;
+  font-size: 0.42em;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 10px;
+}
+.sub {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--ink-soft);
+  font-size: 17px;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.chip {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 3px 8px;
+  background: var(--plate);
+}
+
+/* ---- scrubber ----------------------------------------------------------- */
+
+.scrub {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 10px;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 10px 0;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--ground);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+button:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: .5em;
+  font-family: "Archivo", system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0 14px;
+  white-space: nowrap;
+  background: var(--plate);
+  transition: color .12s, border-color .12s;
+}
+.arrow:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-soft); }
+.arrow:disabled { opacity: .32; cursor: default; }
+/* restart reads as a word; its glyph is held back until the words go */
+#restart .ico { display: none; }
+
+.ticks {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tk {
+  flex: 1 1 0;
+  min-width: 46px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 2px 3px;
+  border-radius: 2px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+  transition: color .12s, background .12s;
+}
+.tk:hover { color: var(--ink); background: var(--plate); }
+.tk .bar { width: 100%; height: 3px; border-radius: 2px; background: var(--rule); transition: background .12s, height .12s; }
+.tk[data-beat="hot"] .bar { background: var(--wrong-edge); }
+.tk[data-beat="quiet"] .bar { background: var(--mark); }
+.tk[aria-current="true"] { color: var(--ink); }
+.tk[aria-current="true"] .bar { background: var(--ink); height: 6px; }
+.tk[aria-current="true"][data-beat="hot"] .bar { background: var(--wrong); }
+
+/* ---- the scrubber on a narrow screen -------------------------------------
+   The rail is a flex item with fixed-width buttons either side of it, and it
+   is the only one of them that can shrink -- so it did: at a 485px viewport
+   the eight ticks were folded into 15px of rail with 396px of content. It
+   loses gracefully instead. First the rail takes a row of its own (the
+   buttons keep theirs, `order` groups them without touching the DOM order the
+   keyboard walks). Then the buttons drop their words and keep their glyphs,
+   which is what `aria-label` on each of them is for. Below that the rail
+   still scrolls, but every tick is a full-size target before it has to.
+   --------------------------------------------------------------------- */
+@media (max-width: 880px) {
+  .scrub { row-gap: 8px; }
+  .ticks { order: 2; flex: 1 0 100%; }
+  .arrow, .theme { order: 1; }
+}
+@media (max-width: 560px) {
+  .arrow .lbl { display: none; }
+  .arrow .ico, #restart .ico { display: inline; }
+  .arrow { padding: 0 11px; }
+  .tk { min-width: 40px; }
+}
+
+/* ---- the two plates ------------------------------------------------------ */
+
+.plates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 760px) { .plates { grid-template-columns: 1fr; } }
+
+.plate {
+  background: var(--plate);
+  border: 1px solid var(--rule-soft);
+  border-radius: 3px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.plate > figcaption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule-soft);
+  font-family: "Archivo", system-ui, sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.plate > figcaption .note {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-weight: 400;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  text-transform: none;
+  color: var(--ink-faint);
+}
+/* The drawing gets a gutter of its own. A mark at the rightmost node is a
+   whole label wide, and with the svg flush to the plate the last letter of
+   `carcass` was painted in the border column. The svg may also spill into
+   that gutter (`overflow: visible`) rather than have the viewBox guillotine
+   a descender or a final `s`. */
+/* The graph area takes the slack, so when one plate carries a footnote and the
+   other does not, the extra height on the quiet plate stays part of ITS
+   drawing rather than showing as a bare band of the plate's own background.
+   The two graphs must stay the same size to be comparable at a glance. */
+#plate-truth, #plate-belief { background: var(--plate-sunk); padding: 0 12px; flex: 1; }
+.plate svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+/* graph ink */
+.edge { stroke: var(--rule); stroke-width: 2; }
+.node-ring { fill: none; stroke: var(--rule); stroke-width: 1.5; }
+.node-label {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  fill: var(--ink-faint);
+  text-anchor: middle;
+  text-transform: uppercase;
+}
+
+/* ---- entity markers -----------------------------------------------------
+   A marker is a glyph, a name and a provenance line, hung a FIXED drop below
+   the node its base puts it in. The layout stacks nodes a fixed pitch apart.
+   Nothing in the drawing code compares those two numbers, so the marker's
+   text simply ran on past the bottom of its own cell and into the next one:
+   at tick 1, in BOTH plates, `b`'s provenance landed on the RIVER label --
+   same anchor, same x, one baseline apart -- and rendered as mush. It was
+   never about `b` or about RIVER. It fires for any entity standing at a node
+   that has a neighbour below it in the same column.
+
+   So the marker is given a floor and told to stack upward from it. The floor
+   is derived, not chosen: the next row's ring, expressed in the same three
+   lengths the TS lays the picture out with. Change DY, DROP or the ring
+   radius over there and these follow; they are restated here because the
+   shell owns type sizes and plates.ts owns coordinates, and neither can see
+   the other (koditoki-11ac).
+   --------------------------------------------------------------------- */
+.plate svg {
+  --row-pitch: 69px;   /* graph.ts DY -- centre-to-centre, one column */
+  --node-r: 21px;      /* plates.ts -- the node ring */
+  --thing-drop: 38px;  /* plates.ts DROP -- marker origin below its node */
+  /* the last baseline a marker may leave ink on: the top of the ring below */
+  --mk-floor: calc(var(--row-pitch) - var(--node-r) - var(--thing-drop));
+  --mk-line: 9px;      /* baseline pitch of the marker's two label lines */
+}
+.thing { transition: transform .42s cubic-bezier(.4,.02,.2,1), opacity .22s; }
+/* Each child is placed against --mk-floor and then corrected by the `y` the
+   TS gave it, so the stack is defined by the floor rather than by the
+   attributes: glyph, then name one line above the floor, then provenance on
+   it. The whole marker now ends where the next row's ring begins. */
+.thing text.glyph {
+  font-size: 13px;
+  text-anchor: middle;
+  /* baseline two lines above the floor; the 6px undoes its own `y` */
+  transform: translateY(calc(var(--mk-floor) - 21px - 6px));
+}
+.thing .halo {
+  fill: none;
+  stroke: none;
+  /* scaled about the marker's own origin, so it stays a disc centred on the
+     glyph without needing the CSS `r` and `cy` geometry properties. */
+  transform-origin: 0 0;
+  transform: translateY(calc(var(--mk-floor) - 25px)) scale(.62);  /* cy=0 */
+}
+.thing.wrong .halo { fill: var(--wrong-wash); stroke: var(--wrong-edge); stroke-width: 2.3; }
+/* Ignorance, not error. A dashed neutral ring says "the other picture does not
+   have this at all", which is a different fact from "the other picture puts it
+   somewhere else" and must not borrow the one hue that means the mind is wrong. */
+.thing.unheard .halo { fill: none; stroke: var(--rule); stroke-width: 1.4; stroke-dasharray: 2 3; }
+.thing.unheard text.glyph { opacity: .55; }
+.thing.wrong text.tag { fill: var(--wrong); }
+.thing text.tag {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 8.5px;
+  fill: var(--ink-faint);
+  text-anchor: middle;
+  /* one line above the floor; the 25px undoes its own `y` */
+  transform: translateY(calc(var(--mk-floor) - var(--mk-line) - 25px));
+}
+.thing text.src {
+  font-size: 7.5px;
+  /* the floor itself; the 35px undoes its own `y` */
+  transform: translateY(calc(var(--mk-floor) - 35px));
+}
+/* Retracted: gone from the picture AND gone from the hit test. `opacity: 0`
+   alone left the marker hoverable, so the empty gap where B's fish used to be
+   still popped a tooltip asserting `(at fish cave)` -- a belief B had just
+   retracted, still claimed by the page in a tooltip. The visibility flip is
+   delayed by the length of the fade so the leaving is still seen. */
+.thing.gone {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform .42s cubic-bezier(.4,.02,.2,1), opacity .22s, visibility 0s .22s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .thing, .thing.gone { transition: none; }
+}
+
+/* ---- beat banner --------------------------------------------------------- */
+
+.beat {
+  border: 1px solid var(--wrong-edge);
+  background: var(--wrong-wash);
+  border-radius: 3px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.beat .kind {
+  font-family: "Archivo", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--wrong);
+}
+.beat .what { font-size: 17px; }
+.beat .what code { color: var(--wrong); }
+.beat ul { margin: 4px 0 0; padding-left: 18px; color: var(--ink-soft); font-size: 15px; }
+.beat.quiet { border-color: var(--rule); background: var(--plate); }
+.beat.quiet .kind { color: var(--ink-faint); }
+.beat.quiet .what code { color: var(--ink); }
+
+/* ---- the readout rail ---------------------------------------------------- */
+
+.rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+@media (max-width: 760px) { .rail { grid-template-columns: 1fr; } }
+
+.card {
+  background: var(--plate);
+  border: 1px solid var(--rule-soft);
+  border-radius: 3px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.card h2 {
+  margin: 0;
+  font-family: "Archivo", system-ui, sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+dl.kv { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; align-items: baseline; }
+dl.kv dt {
+  font-family: "Archivo", system-ui, sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+dl.kv dd { margin: 0; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px; overflow-wrap: anywhere; }
+
+.verdict {
+  display: inline-block;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 1px 7px;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.verdict[data-v="exhausted"] { border-color: var(--wrong-edge); color: var(--wrong); }
+
+ol.plan { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; }
+ol.plan li {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  display: flex;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+ol.plan li .cur { color: var(--ink-faint); width: 1.1em; flex: none; }
+ol.plan li[data-now="1"] { color: var(--ink); }
+ol.plan li[data-now="1"] .cur { color: var(--ink); }
+
+.delta { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; }
+.delta li {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  display: grid;
+  grid-template-columns: 1.1em minmax(0, auto) 1fr;
+  gap: 8px;
+  align-items: baseline;
+}
+.delta li .s { color: var(--ink-faint); }
+.delta li .w { color: var(--ink-faint); font-size: 10.5px; text-align: right; }
+.delta li[data-s="-"] .t { text-decoration: line-through; color: var(--ink-faint); }
+
+.narration {
+  margin: 0;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+  overflow-x: auto;
+  max-height: 260px;
+}
+.empty { color: var(--ink-faint); font-style: italic; font-size: 14px; }
+
+.fuelbar { height: 4px; background: var(--rule-soft); border-radius: 2px; overflow: hidden; }
+.fuelbar i { display: block; height: 100%; background: var(--ink-soft); border-radius: 2px; transition: width .3s; }
+
+/* ---- epilogue ------------------------------------------------------------ */
+
+.epilogue:empty { display: none; }
+.epilogue {
+  border-top: 2px solid var(--ink);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.epilogue h2 {
+  margin: 0 0 2px;
+  font-family: "Archivo", system-ui, sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.epilogue p { margin: 0; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 12.5px; color: var(--ink-soft); }
+
+footer {
+  color: var(--ink-faint);
+  font-size: 13px;
+  border-top: 1px solid var(--rule);
+  padding-top: 14px;
+  max-width: 68ch;
+}
+footer code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 11.5px; }
+kbd {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  border: 1px solid var(--rule);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 0 5px;
+  color: var(--ink-soft);
+}
+
+/* ---- the machine region -------------------------------------------------
+   The world plates are the hero; the evaluator is one click below them. It is
+   a plate like the others so it reads as part of the same page, but it never
+   spends the hot hue: red on this page means "a mind is wrong about the
+   world", and a machine in an error state is not that. The evaluator gets
+   weight (rules, bold, tabular figures) instead of colour.
+   ------------------------------------------------------------------------- */
+
+.machine {
+  background: var(--plate);
+  border: 1px solid var(--rule-soft);
+  border-radius: 3px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.machine > header {
+  display: flex;
+  /* explicit: the masthead's bare `header` rule sets column, and inheriting it
+     here stacked the title above the disclosure button. */
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.machine > header h2 {
+  margin: 0;
+  font-family: "Archivo", system-ui, sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.machine > header .note {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+
+/* collapsed by default: the substrate is one click away, not in the way */
+.machine[data-open="0"] > .machine-body { display: none; }
+.disclose {
+  font-family: "Archivo", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 3px 10px;
+  background: var(--plate-sunk);
+}
+.disclose:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+.machine-body { display: flex; flex-direction: column; min-width: 0; }
+
+/* ---- the proof picker + machine scrubber --------------------------------- */
+
+.cekbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--rule-soft);
+  background: var(--plate-sunk);
+}
+.cekbar select, .cekbar input[type="range"] { font: inherit; }
+.cekbar select {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11.5px;
+  color: var(--ink);
+  background: var(--plate);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 3px 6px;
+  max-width: 100%;
+}
+.cekbar input[type="range"] {
+  flex: 1 1 200px;
+  min-width: 140px;
+  accent-color: var(--ink-soft);
+}
+.cekbar .pos {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.step-btn {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 2px 9px;
+  background: var(--plate);
+}
+.step-btn:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-soft); }
+.step-btn:disabled { opacity: .32; cursor: default; }
+
+/* ---- tabs ---------------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--rule-soft);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.tab {
+  font-family: "Archivo", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: 9px 12px;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--ink-soft); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+
+.tabpane { padding: 14px; min-width: 0; }
+.tabpane[hidden] { display: none; }
+
+/* ---- machine ink: control, value, frames, continuations ------------------ */
+
+.mono, .kont li, .frame, .srcline {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+.slot {
+  display: grid;
+  grid-template-columns: 5.5em minmax(0, 1fr);
+  gap: 6px 12px;
+  align-items: baseline;
+  margin: 0 0 8px;
+}
+.slot > dt {
+  font-family: "Archivo", system-ui, sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.slot > dd {
+  margin: 0;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.status {
+  display: inline-block;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 1px 7px;
+}
+/* An evaluator that stopped is worth weight, never the hot hue. */
+.status[data-s="error"], .status[data-s="out-of-fuel"] {
+  border-color: var(--ink);
+  border-bottom-width: 2px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* continuation stack: innermost LAST, mirroring m.kont, so the reader watches
+   the top of the list stay still while the bottom grows. */
+.kont { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column-reverse; gap: 2px; }
+.kont li {
+  display: grid;
+  grid-template-columns: 2.2em minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  padding: 3px 6px;
+  border-left: 2px solid var(--rule-soft);
+  background: var(--plate-sunk);
+  color: var(--ink-soft);
+}
+.kont li:last-child { border-left-color: var(--ink); color: var(--ink); }
+.kont li .ix { color: var(--ink-faint); font-variant-numeric: tabular-nums; font-size: 11px; }
+.kont li .t { color: var(--ink-faint); font-size: 11px; letter-spacing: .04em; }
+
+.frames { display: flex; flex-direction: column; gap: 8px; }
+.frame {
+  border: 1px solid var(--rule-soft);
+  border-radius: 2px;
+  background: var(--plate-sunk);
+  padding: 7px 10px;
+}
+.frame > .head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--ink-faint);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.frame.here { border-color: var(--ink-soft); }
+.binds { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 12px; align-items: baseline; }
+.binds dt { color: var(--ink); }
+.binds dd { margin: 0; color: var(--ink-soft); overflow-wrap: anywhere; }
+/* a letrec hole is a binding that exists and has no value yet; it is drawn as
+   absence, not as a name that is missing. */
+.binds dd.hole { color: var(--ink-faint); font-style: italic; border-bottom: 1px dashed var(--rule); }
+
+.proofmeta { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--ink-faint); font-size: 11px; font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+/* a place a mind believes in that the shared layout cannot position. It is
+   text because text is the only medium that can say "somewhere" without
+   saying where. */
+.strip {
+  padding: 7px 14px;
+  border-top: 1px solid var(--rule-soft);
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+.strip:empty { display: none; }
+
+.theme {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ink-faint);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 2px 8px;
+  background: var(--plate);
+}
+.theme:hover { color: var(--ink); border-color: var(--ink-soft); }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1><span class="qual" id="qual">Demo v1 · stepped by tick</span><span id="title">nobody lied</span></h1>
+    <p class="sub" id="sub"></p>
+    <div class="chips" id="chips"></div>
+  </header>
+
+  <div class="strip" id="fault" role="status"></div>
+
+  <nav class="scrub" aria-label="ticks">
+    <button class="arrow" id="prev" aria-keyshortcuts="ArrowLeft" aria-label="previous tick"><span class="ico">←</span><span class="lbl">prev</span></button>
+    <div class="ticks" id="ticks" role="tablist"></div>
+    <button class="arrow" id="next" aria-keyshortcuts="ArrowRight" aria-label="next tick"><span class="lbl">next</span><span class="ico">→</span></button>
+    <button class="arrow" id="runend" title="step every remaining tick" aria-label="step every remaining tick"><span class="lbl">run</span><span class="ico">▸▸</span></button>
+    <button class="arrow" id="restart" title="fresh world, same substrate" aria-label="restart: fresh world, same substrate"><span class="lbl">restart</span><span class="ico">↺</span></button>
+    <button class="theme" id="theme" title="light / dark / system">◐</button>
+  </nav>
+
+  <div class="plates">
+    <figure class="plate" style="margin:0">
+      <figcaption>Ground truth <span class="note">what is the case</span></figcaption>
+      <div id="plate-truth"></div>
+      <div class="strip" id="strip-truth"></div>
+    </figure>
+    <figure class="plate" style="margin:0">
+      <figcaption>B's belief <span class="note">what one mind holds</span></figcaption>
+      <div id="plate-belief"></div>
+      <div class="strip" id="strip-belief"></div>
+    </figure>
+  </div>
+
+  <div id="beat"></div>
+
+  <div class="rail">
+    <section class="card">
+      <h2>Goal &amp; plan</h2>
+      <dl class="kv" id="kv"></dl>
+      <ol class="plan" id="plan"></ol>
+      <div class="fuelbar" title="thought spent, cumulative"><i id="fuel"></i></div>
+    </section>
+    <section class="card">
+      <h2>What belief gained and lost this tick</h2>
+      <ul class="delta" id="delta"></ul>
+    </section>
+  </div>
+
+  <section class="machine" id="machine" data-open="0">
+    <header>
+      <h2>The evaluator <span class="note" id="machine-note"></span></h2>
+      <button class="disclose" id="machine-toggle" aria-expanded="false" aria-controls="machine-body">show</button>
+    </header>
+    <div class="machine-body" id="machine-body">
+      <div class="cekbar">
+        <select id="proof-pick" aria-label="proof run"></select>
+        <button class="step-btn" id="cek-first" title="first transition">|◂</button>
+        <button class="step-btn" id="cek-prev">◂ step</button>
+        <input type="range" id="cek-slider" min="0" max="0" value="0" aria-label="CEK transition">
+        <button class="step-btn" id="cek-next">step ▸</button>
+        <button class="step-btn" id="cek-last" title="last transition">▸|</button>
+        <span class="pos" id="cek-pos"></span>
+      </div>
+      <div class="tabs" role="tablist" id="machine-tabs">
+        <button class="tab" role="tab" id="tab-control" aria-controls="pane-control" aria-selected="true">Control</button>
+        <button class="tab" role="tab" id="tab-env" aria-controls="pane-env" aria-selected="false">Environment</button>
+        <button class="tab" role="tab" id="tab-kont" aria-controls="pane-kont" aria-selected="false">Continuation</button>
+        <button class="tab" role="tab" id="tab-proof" aria-controls="pane-proof" aria-selected="false">Proof</button>
+      </div>
+      <div class="tabpane" role="tabpanel" id="pane-control" aria-labelledby="tab-control"></div>
+      <div class="tabpane" role="tabpanel" id="pane-env" aria-labelledby="tab-env" hidden></div>
+      <div class="tabpane" role="tabpanel" id="pane-kont" aria-labelledby="tab-kont" hidden></div>
+      <div class="tabpane" role="tabpanel" id="pane-proof" aria-labelledby="tab-proof" hidden></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Trace</h2>
+    <pre class="narration" id="narration"></pre>
+  </section>
+
+  <div class="epilogue" id="epilogue"></div>
+
+  <footer>
+    <kbd>←</kbd> <kbd>→</kbd> to step ticks, <kbd>Home</kbd> / <kbd>End</kbd> to jump, <kbd>,</kbd> <kbd>.</kbd>
+    to step the evaluator. Nothing on this page was baked: the browser imports the same modules
+    <code>bun test</code> imports and runs the substrate here, in this tab. Every node and edge is read
+    from <code>(adjacent a b)</code> facts in the KB that panel is drawing, so a mind that does not know
+    an edge cannot draw one. Red marks the one thing it is allowed to mark: the two pictures disagreeing.
+  </footer>
+</div>
+<script>
+(()=>{class G${name;data=new Map;constructor($){this.name=$}set($,Z){return this.data.set($,Z),Z}get($){return this.data.get($)}expect($){let Z=this.data.get($);if(Z===void 0)throw Error(`entity ${$} has no ${this.name}`);return Z}has($){return this.data.has($)}remove($){this.data.delete($)}*entries(){yield*this.data}get size(){return this.data.size}}class N0{nextEntity=0;stores=new Map;systems=[];tick=0;spawn(){return this.nextEntity++}component($){let Z=this.stores.get($);if(!Z)Z=new G$($),this.stores.set($,Z);return Z}addSystem($){return this.systems.push($),this}step(){this.tick++;for(let $ of this.systems)$.run(this)}run($){for(let Z=0;Z<$;Z++)this.step()}}var P=($)=>typeof $==="string",h=($)=>typeof $==="object"&&$!==null&&("str"in $),D=($)=>Array.isArray($),V$=($)=>typeof $==="object"&&$!==null&&$.t==="closure",e=($)=>typeof $==="object"&&$!==null&&$.t==="prim",p$=($)=>$!==!1&&$!==null;class F extends Error{}var t0={hole:!0};function C0($){return $===t0||typeof $==="object"&&$!==null&&!Array.isArray($)&&$.hole===!0}var q$=-1;function g8($){for(let Z in $)if(C0($[Z]))return!0;return!1}class A${frames=[];root($={}){return this.push({vars:{...$},parent:q$})}extend($,Z={}){return this.push({vars:{...Z},parent:$})}bind($,Z,J){return this.extend($,{[Z]:J})}bindSelfRef($,Z,J){let X={},Q={vars:X,parent:$};this.frames.push(Q);let z=this.frames.length-1;return X[Z]=J(z),Object.freeze(X),Object.freeze(Q),z}bindAll($,Z,J){if(Z.length!==J.length)throw new F(`arity: expected ${Z.length} arg(s), got ${J.length}`);let X={};for(let Q=0;Q<Z.length;Q++)X[Z[Q]]=J[Q];return this.extend($,X)}has($,Z){for(let J=$;J!==q$;J=this.frame(J).parent)if(Object.hasOwn(this.frame(J).vars,Z))return!0;return!1}lookup($,Z){for(let J=$;J!==q$;J=this.frame(J).parent){let X=this.frame(J).vars;if(Object.hasOwn(X,Z)){let Q=X[Z];if(C0(Q))throw new F(`used before defined: ${Z}`);return Q}}throw new F(`unbound symbol: ${Z}`)}letrecFrame($,Z){let J={};for(let Q of Z)J[Q]=t0;let X={vars:J,parent:$,open:!0};return this.frames.push(X),this.frames.length-1}fill($,Z,J){let X=this.frames[$];if(!X||X.open!==!0||!Object.hasOwn(X.vars,Z))return!1;if(!C0(X.vars[Z]))return!1;if(X.vars[Z]=J,!g8(X.vars))this.seal($);return!0}seal($){let Z=this.frames[$];if(!Z||Z.open!==!0)return;delete Z.open,Object.freeze(Z.vars),Object.freeze(Z)}flatten($){let Z={},J=[];for(let X=$;X!==q$;X=this.frame(X).parent)J.push(X);for(let X=J.length-1;X>=0;X--)Object.assign(Z,this.frame(J[X]).vars);return Z}depth($){let Z=0;for(let J=$;J!==q$;J=this.frame(J).parent)Z++;return Z}get size(){return this.frames.length}toJSON(){return this.frames}static fromJSON($){let Z=new A$;for(let J of $)if(J.open!==!0)Object.freeze(J.vars),Object.freeze(J);return Z.frames=$,Z}frame($){let Z=this.frames[$];if(!Z)throw new F(`bad env id: ${$}`);return Z}push($){if($.open!==!0)Object.freeze($.vars),Object.freeze($);return this.frames.push($),this.frames.length-1}}function C($){if($===null)return"nil";if($===!0)return"#t";if($===!1)return"#f";if(typeof $==="number")return String($);if(typeof $==="string")return $;if(Array.isArray($))return`(${$.map(C).join(" ")})`;if(h($))return JSON.stringify($.str);if(V$($))return`#<lambda (${$.params.join(" ")})>`;if(e($))return`#<prim ${$.name}>`;return String($)}var e0=new Map;function K0($,Z){return e0.set($,Z),{t:"prim",name:$}}function $6($){let Z=e0.get($);if(!Z)throw new F(`unknown primitive: ${$}`);return Z}var Z6=($,Z)=>{if(typeof $!=="number")throw new F(`${Z}: expected number, got ${C($)}`);return $},$$=($,Z)=>$.map((J)=>Z6(J,Z));function F0($,Z){if($===Z)return!0;if(D($)&&D(Z))return $.length===Z.length&&$.every((J,X)=>F0(J,Z[X]));if(h($)&&h(Z))return $.str===Z.str;if(e($)&&e(Z))return $.name===Z.name;return!1}var J6={"+":($)=>$$($,"+").reduce((Z,J)=>Z+J,0),"-":($)=>{let Z=$$($,"-");if(Z.length===0)return 0;if(Z.length===1)return-Z[0];return Z.slice(1).reduce((J,X)=>J-X,Z[0])},"*":($)=>$$($,"*").reduce((Z,J)=>Z*J,1),"/":($)=>{let Z=$$($,"/");if(Z.length<2)throw new F("/: needs 2 args");return Z.slice(1).reduce((J,X)=>{if(X===0)throw new F("division by zero");return J/X},Z[0])},mod:($)=>{let[Z,J]=$$($,"mod");if(!J)throw new F("mod: division by zero");return Z%J},"<":($)=>i$($$($,"<"),(Z,J)=>Z<J),">":($)=>i$($$($,">"),(Z,J)=>Z>J),"<=":($)=>i$($$($,"<="),(Z,J)=>Z<=J),">=":($)=>i$($$($,">="),(Z,J)=>Z>=J),"=":($)=>$.length<2||$.slice(1).every((Z)=>F0($[0],Z)),not:($)=>!p$($[0]??null),list:($)=>$,cons:($)=>{let Z=$[1]??null;if(!D(Z))throw new F("cons: second arg must be a list");return[$[0]??null,...Z]},car:($)=>{let Z=$[0];if(!D(Z)||Z.length===0)throw new F(`car: ${C(Z??null)}`);return Z[0]},cdr:($)=>{let Z=$[0];if(!D(Z)||Z.length===0)throw new F(`cdr: ${C(Z??null)}`);return Z.slice(1)},len:($)=>{let Z=$[0];if(!D(Z))throw new F("len: expected list");return Z.length},nth:($)=>{let Z=$[0],J=Z6($[1]??null,"nth");if(!D(Z))throw new F("nth: expected list");return Z[J]??null},append:($)=>{let Z=[];for(let J of $){if(!D(J))throw new F("append: expected lists");Z.push(...J)}return Z},"nil?":($)=>($[0]??null)===null,"list?":($)=>D($[0]??null),"sym?":($)=>P($[0]??null),"num?":($)=>typeof $[0]==="number","str?":($)=>h($[0]??null),"fn?":($)=>V$($[0]??null)||e($[0]??null),equal:($)=>F0($[0]??null,$[1]??null),print:($)=>({str:$.map(C).join(" ")})};function i$($,Z){for(let J=0;J+1<$.length;J++)if(!Z($[J],$[J+1]))return!1;return!0}for(let[$,Z]of Object.entries(J6))K0($,Z);function n$(){let $={};for(let Z of Object.keys(J6))$[Z]={t:"prim",name:Z};return $}var x=($)=>typeof $==="string"&&$.charCodeAt(0)===63;function T($){if(x($))return!1;if(D($)){if($.length===2&&$[0]==="quote")return!0;return $.every(T)}return!0}function Z$($){if(D($)&&$.length>0&&P($[0]))return $[0];if(P($))return $;return null}function H$($,Z=[]){if(x($)){if(!Z.includes($))Z.push($)}else if(D($))for(let J of $)H$(J,Z);return Z}var X6="<=";function o$($){if(!D($)||$[0]!==X6||$.length<2)return null;return{head:$[1],body:$.slice(2)}}function v8($){let Z=$.length;if(Z===0)return!1;if($.charCodeAt(0)===33)return!1;for(let J=0;J<Z;J++){let X=$.charCodeAt(J);if(X===32||X===40||X===41)return!1}return!0}function Q6($){if(typeof $==="string")return v8($)?$:"!y"+$.length+":"+$;if(Array.isArray($))return"("+$.map(Q6).join(" ")+")";if(typeof $==="number")return"!n"+$;if($===null)return"!z";if(typeof $==="boolean")return $?"!b1":"!b0";return"!s"+$.str.length+":"+$.str}class j{byKey=new Map;byId=[];static key($){return Q6($)}intern($){if(!T($))throw Error(`cannot intern a term with variables: ${C($)}`);let Z=j.key($),J=this.byKey.get(Z);if(J!==void 0)return J;let X=this.byId.length;return this.byId.push($),this.byKey.set(Z,X),X}idOf($){return this.byKey.get(j.key($))}term($){let Z=this.byId[$];if(Z===void 0)throw Error(`unknown fact id: ${$}`);return Z}get size(){return this.byId.length}toJSON(){return this.byId}static fromJSON($){let Z=new j;for(let J of $)Z.intern(J);return Z}}class o{root;shift;size;constructor($,Z,J){this.root=$;this.shift=Z;this.size=J}static empty(){return new o(null,0,0)}static from($){let Z=o.empty();for(let[J,X]of $)Z=Z.set(J,X);return Z}get capacity(){return 1<<this.shift+5}get($){if(this.root===null||$<0||$>=this.capacity)return;let Z=this.root;for(let J=this.shift;J>0;J-=5){let X=Z[$>>>J&31];if(X===void 0)return;Z=X}return Z[$&31]}has($){return this.get($)!==void 0}set($,Z){if($<0)throw RangeError(`key must be non-negative: ${$}`);if(Z===void 0)throw TypeError(`value must not be undefined (key ${$})`);let J=this.root,X=this.shift;while($>=1<<X+5){let W=Array(32);if(J!==null)W[0]=J;J=W,X+=5}let Q=this.get($)!==void 0,z=R0(J,X,$,Z);return new o(z,X,Q?this.size:this.size+1)}delete($){if(this.get($)===void 0)return this;let Z=R0(this.root,this.shift,$,void 0);return new o(Z,this.shift,this.size-1)}*entries(){if(this.root!==null)yield*z6(this.root,this.shift,0)}*keys(){for(let[$]of this.entries())yield $}*values(){for(let[,$]of this.entries())yield $}toJSON(){return[...this.entries()]}static fromJSON($){let Z=o.empty();for(let[J,X]of $)Z=Z.set(J,X);return Z}static*diff($,Z,J=Object.is){let X=$.root,Q=Z.root,z=$.shift,W=Z.shift;while(z<W){let Y=Array(32);if(X!==null)Y[0]=X;X=Y,z+=5}while(W<z){let Y=Array(32);if(Q!==null)Y[0]=Q;Q=Y,W+=5}yield*W6(X,Q,z,0,J)}}function R0($,Z,J,X){let Q=$===null?Array(32):$.slice(),z=J>>>Z&31;if(Z===0)Q[z]=X;else Q[z]=R0(Q[z]??null,Z-5,J,X);return Q}function*z6($,Z,J){if(Z===0){for(let X=0;X<32;X++){let Q=$[X];if(Q!==void 0)yield[J|X,Q]}return}for(let X=0;X<32;X++){let Q=$[X];if(Q!==void 0)yield*z6(Q,Z-5,J|X<<Z)}}function*W6($,Z,J,X,Q){if($===Z)return;if(J===0){for(let z=0;z<32;z++){let W=$?.[z],Y=Z?.[z];if(W===void 0&&Y===void 0)continue;if(W!==void 0&&Y!==void 0&&Q(W,Y))continue;yield{key:X|z,a:W,b:Y}}return}for(let z=0;z<32;z++){let W=$?.[z]??null,Y=Z?.[z]??null;if(W===Y)continue;yield*W6(W,Y,J-5,X|z<<J,Q)}}var k8={via:"seeded"};class u{interner;facts;clauses;nextClauseId;constructor($,Z,J,X){this.interner=$;this.facts=Z;this.clauses=J;this.nextClauseId=X}static empty($=new j){return new u($,o.empty(),[],0)}fork(){return new u(this.interner,this.facts,this.clauses,this.nextClauseId)}get size(){return this.facts.size}get clauseCount(){return this.clauses.length}assert($,Z,J,X){if(!T($))throw Error(`cannot assert a term with variables: ${C($)}`);let Q=Y6($),z=this.interner.intern(Q),W=X===void 0?{term:Q,support:Z,tick:J}:{term:Q,support:Z,tick:J,confidence:X};return new u(this.interner,this.facts.set(z,W),this.clauses,this.nextClauseId)}retract($){let Z=this.interner.idOf($);if(Z===void 0)return this;let J=this.facts.delete(Z);if(J===this.facts)return this;return new u(this.interner,J,this.clauses,this.nextClauseId)}holds($){let Z=this.interner.idOf($);return Z===void 0?!1:this.facts.has(Z)}get($){let Z=this.interner.idOf($);return Z===void 0?void 0:this.facts.get(Z)}byId($){return this.facts.get($)}idOf($){return this.interner.idOf($)}termOf($){return this.interner.term($)}supportOf=($)=>this.facts.get($)?.support;*assertions(){for(let[,$]of this.facts.entries())yield $}*withHead($){for(let Z of this.assertions()){let J=Z.term;if(Array.isArray(J)&&J[0]===$)yield Z}}addClause($,Z,J=k8){let X=Object.freeze({id:this.nextClauseId,head:$,body:Z,support:J});return new u(this.interner,this.facts,Object.freeze([...this.clauses,X]),this.nextClauseId+1)}removeClause($){let Z=this.clauses.filter((J)=>J.id!==$);if(Z.length===this.clauses.length)return this;return new u(this.interner,this.facts,Z,this.nextClauseId)}clause($){return this.clauses.find((Z)=>Z.id===$)}allClauses(){return this.clauses}*diff($){for(let Z of o.diff(this.facts,$.facts,(J,X)=>J===X))yield{term:this.interner.term(Z.key),mine:Z.a,theirs:Z.b}}toJSON(){let $=[],Z=new Set,J=(Q)=>{if(Z.has(Q))return;Z.add(Q),$.push([Q,this.interner.term(Q)])},X=this.facts.toJSON();for(let[Q,z]of X)if(J(Q),z.support.via==="derived")for(let W of z.support.premises)J(W);return{vocab:$,facts:X,clauses:this.clauses,nextClauseId:this.nextClauseId}}static fromJSON($,Z){let J=new Map;for(let[z,W]of $.vocab)J.set(z,Z.intern(W));let X=(z)=>{let W=J.get(z);if(W===void 0)throw Error(`fact id ${z} is not in the snapshot vocabulary`);return W},Q=$.facts.map(([z,W])=>[X(z),W.support.via==="derived"?{...W,support:{...W.support,premises:W.support.premises.map(X)}}:W]);return new u(Z,o.fromJSON(Q),$.clauses,$.nextClauseId)}}function Y6($){if(Array.isArray($))return Object.freeze($.map(Y6));if(typeof $==="object"&&$!==null)return Object.freeze({str:$.str});return $}class D0{adj=new Map;addPlace($){if(!this.adj.has($))this.adj.set($,new Set);return this}connect($,Z){return this.addPlace($).addPlace(Z),this.adj.get($).add(Z),this.adj.get(Z).add($),this}has($){return this.adj.has($)}get places(){return[...this.adj.keys()]}neighbors($){return[...this.adj.get($)??[]]}within($,Z){if(!this.adj.has($))return[];let J=new Set([$]),X=[$],Q=[$];for(let z=0;z<Z;z++){let W=[];for(let Y of Q)for(let V of this.adj.get(Y)??[]){if(J.has(V))continue;J.add(V),X.push(V),W.push(V)}if(W.length===0)break;Q=W}return X}distance($,Z){if($===Z)return this.adj.has($)?0:1/0;let J=new Set([$]),X=[$];for(let Q=1;X.length>0;Q++){let z=[];for(let W of X)for(let Y of this.adj.get(W)??[]){if(Y===Z)return Q;if(J.has(Y))continue;J.add(Y),z.push(Y)}X=z}return 1/0}toFacts(){let $=[];for(let Z of this.adj.keys())$.push(["place",Z]);for(let[Z,J]of this.adj)for(let X of J)$.push(["adjacent",Z,X]);return $}}var a$={via:"seeded"};class V6 extends N0{graph=new D0;interner=new j;envs=new A$;rootEnv;at=new G$("at");kind=new G$("kind");named=new G$("named");minds=new G$("mind");constructor(){super();this.rootEnv=this.envs.root(n$())}spawnAt($,Z,J){let X=this.spawn();return this.kind.set(X,$),this.at.set(X,Z),this.named.set(X,J??`${$}${X}`),X}move($,Z){if(!this.graph.has(Z))throw Error(`no such place: ${Z}`);this.at.set($,Z)}entitiesAt($){let Z=[];for(let[J,X]of this.at.entries())if(X===$)Z.push(J);return Z}entitiesWithin($,Z){let J=new Set(this.graph.within($,Z)),X=[];for(let[Q,z]of this.at.entries())if(J.has(z))X.push(Q);return X}atFact($){return["at",this.named.expect($),this.at.expect($)]}groundTruth(){let $=u.empty(this.interner);for(let Z of this.graph.toFacts())$=$.assert(Z,a$,this.tick);for(let[Z]of this.at.entries())$=$.assert(this.atFact(Z),a$,this.tick),$=$.assert(["kind",this.named.expect(Z),this.kind.expect(Z)],a$,this.tick);return $}freshBelief(){let $=u.empty(this.interner);for(let Z of this.graph.toFacts())$=$.assert(Z,a$,this.tick);return $}}function q6(){let $=new V6;return $.graph.connect("camp","clearing").connect("clearing","river").connect("clearing","ridge").connect("ridge","cave"),$.spawnAt("fish","river","fish"),$.spawnAt("carcass","cave","carcass"),$}class r${pending=[];nextId=0;issue($,Z,J){let X={id:this.nextId++,actor:$,action:Z,issuedTick:J};return this.pending.push(X),X}get size(){return this.pending.length}peek(){return this.pending}take(){let $=this.pending;return this.pending=[],$}carry($){if($.length>0)this.pending=[...$,...this.pending]}toJSON(){return{pending:[...this.pending],nextId:this.nextId}}static fromJSON($){let Z=new r$;return Z.pending=[...$.pending],Z.nextId=$.nextId,Z}}class M6{handlers=new Map;define($,Z){return this.handlers.set($,Z),this}get($){return this.handlers.get($)}has($){return this.handlers.has($)}get heads(){return[...this.handlers.keys()].sort()}}function U6($){return{head:Z$($),args:D($)?$.slice(1):[]}}function s$($,Z){if(!P(Z))return null;for(let[J,X]of $.named.entries())if(X===Z)return J;return null}var f8=2;function H6($,Z,J){return f8}var h8="walking",v$="held-by";function u8($,Z,J){if(!$.graph.has(Z)||!$.graph.has(J))return null;if(Z===J)return[Z];let X=new Map,Q=new Set([Z]),z=[Z];while(z.length>0){let W=[];for(let Y of z)for(let V of $.graph.neighbors(Y)){if(Q.has(V))continue;if(Q.add(V),X.set(V,Y),V===J){let H=[J];for(let q=J;q!==Z;){let M=X.get(q);H.push(M),q=M}return H.reverse()}W.push(V)}z=W}return null}function b8($,Z){let J=$.component(v$),X=[];for(let[Q,z]of J.entries())if(z===Z)X.push(Q);return X.sort((Q,z)=>Q-z)}var c8=($,Z,J)=>{let X=J[0];if(!P(X)||!$.graph.has(X))return;let Q=$.component(h8),z=Q.get(Z);if(!z||z.dest!==X){let H=$.at.get(Z);if(H===void 0)return;let q=u8($,H,X);if(q===null||q.length<2){Q.remove(Z);return}z={dest:X,path:q,step:0,ticksLeft:H6($,q[0],q[1])}}let W=z.ticksLeft-1;if(W>0)return Q.set(Z,{...z,ticksLeft:W}),"running";let Y=z.step+1,V=z.path[Y];$.move(Z,V);for(let H of b8($,Z))$.move(H,V);if(Y>=z.path.length-1){Q.remove(Z);return}return Q.set(Z,{...z,step:Y,ticksLeft:H6($,V,z.path[Y+1])}),"running"},l8=($,Z,J)=>{let X=s$($,J[0]??null);if(X===null||X===Z)return;let Q=$.at.get(Z);if(Q===void 0||$.at.get(X)!==Q)return;let z=$.component(v$);if(z.has(X))return;z.set(X,Z)},d8=($,Z,J)=>{let X=s$($,J[0]??null);if(X===null)return;let Q=$.component(v$);if(Q.get(X)!==Z)return;Q.remove(X);let z=$.at.get(Z);if(z!==void 0)$.move(X,z)};function _6(){return new M6().define("walk-to",c8).define("take",l8).define("drop",d8)}function P$($){let Z=(J)=>{if(Array.isArray(J))return J.every(Z);if(J===null||typeof J==="number"||typeof J==="boolean")return!0;if(typeof J==="string")return!0;return typeof J==="object"&&J!==null&&"str"in J&&!("t"in J)};return Z($)&&T($)}var m8=new Map;function t$($,Z){let J=0;while(x($)&&Z.has($))if($=Z.get($),++J>1e4)throw Error("cyclic substitution");return $}function b($,Z){let J=t$($,Z);if(D(J))return J.map((X)=>b(X,Z));return J}function J$($,Z,J=m8,X=!0){let Q=t$($,J),z=t$(Z,J);if(Q===z)return J;if(x(Q)){if(X&&B0(Q,z,J))return null;return G6(J,Q,z)}if(x(z)){if(X&&B0(z,Q,J))return null;return G6(J,z,Q)}if(D(Q)&&D(z)){if(Q.length!==z.length)return null;let W=J;for(let Y=0;Y<Q.length;Y++)if(W=J$(Q[Y],z[Y],W,X),W===null)return null;return W}if(h(Q)&&h(z))return Q.str===z.str?J:null;return null}function G6($,Z,J){let X=new Map($);return X.set(Z,J),X}function B0($,Z,J){let X=t$(Z,J);if(X===$)return!0;if(D(X))return X.some((Q)=>B0($,Q,J));return!1}var p8=0;function i8($,Z){let J=H$($.head,H$($.body));if(J.length===0)return $;let X=Z===void 0?`c${++p8}`:Z,Q=new Map;for(let z of J)Q.set(z,`${z}_${X}`);return{id:$.id,head:b($.head,Q),body:$.body.map((z)=>b(z,Q))}}function N6($,Z){return $.map((J,X)=>i8(J,`${Z}_${X}`))}class O0{last={};collect($){let Z=[],J=new Set,X={};for(let[Q,z]of $.at.entries()){X[Q]=z;let W=this.last[Q];if(W===z)continue;if(Z.push({entity:Q,from:W??null,to:z}),W!==void 0)J.add(W);J.add(z)}for(let Q of Object.keys(this.last)){let z=Number(Q);if(X[z]!==void 0)continue;let W=this.last[z];Z.push({entity:z,from:W,to:null}),J.add(W)}return this.last=X,{tick:$.tick,moves:Z,nodes:[...J]}}}class e${items=[];push(...$){for(let Z of $)this.items.push(Z)}get size(){return this.items.length}peek(){return this.items}drain($,Z=[]){let J=this.items;this.items=[];for(let X of Z)J=X(J,$);return[...J]}}var n8=($,Z)=>`${$} ${C(Z.pattern)}`,C6=($)=>$.via==="percept"?$.daemon:null;function $0($,Z){let J=new Map;for(let X of Z){let Q=J.get(X.subject);if(Q)Q.push(X);else J.set(X.subject,[X])}for(let[X,Q]of J){let z=$.minds.get(X);if(!z)continue;let W=new Map;for(let V of Q){let H=C6(V.support);if(!V.scope||H===null)continue;let q=n8(H,V.scope),M=W.get(q);if(!M)W.set(q,M={daemon:H,scope:V.scope,seen:new Set});if(V.term!==null)M.seen.add(j.key(V.term))}let Y=z.kb;for(let{daemon:V,scope:H,seen:q}of W.values()){let M=Z$(H.pattern),U=M===null?[...Y.assertions()]:[...Y.withHead(M)];for(let G of U){if(C6(G.support)!==V)continue;if(q.has(j.key(G.term)))continue;if(J$(H.pattern,G.term)===null)continue;Y=Y.retract(G.term)}}for(let V of Q){if(V.term===null)continue;let H=o$(V.term);if(H!==null){Y=Y.addClause(H.head,H.body,V.support);continue}if(!T(V.term))continue;Y=Y.assert(V.term,V.support,V.tick,V.confidence)}z.kb=Y}}class A0{byNode=new Map;static build($,Z){let J=new A0;for(let X of Z)for(let Q of $.graph.within(X.node,X.range)){let z=J.byNode.get(Q);if(z)z.push(X);else J.byNode.set(Q,[X])}return J}woken($){let Z=new Set,J=[];for(let X of $)for(let Q of this.byNode.get(X)??[]){if(Z.has(Q.entity))continue;Z.add(Q.entity),J.push(Q)}return J}}class P0{daemons;queue=new e$;filters=[];tracker=new O0;lastChanges={tick:-1,moves:[],nodes:[]};constructor($=[]){this.daemons=$}addFilter($){return this.filters.push($),this}produce($){let Z=this.tracker.collect($);if(this.lastChanges=Z,Z.nodes.length===0)return Z;for(let J of this.daemons){let X=A0.build($,J.subscribers($));for(let Q of X.woken(Z.nodes))this.queue.push(...J.sense($,Q,Z))}return Z}run($){this.produce($),$0($,this.queue.drain($,this.filters))}}function Z0($,Z,J){let X=$.graph.within(Z.node,Z.range);if(J.moves.some((z)=>z.entity===Z.entity))return X;let Q=new Set(J.nodes);return X.filter((z)=>Q.has(z))}function M$($,Z,J){let X=[];for(let[Q,z]of $.component(Z).entries()){let W=$.at.get(Q);if(W===void 0)continue;X.push({entity:Q,range:z.range??J,node:W})}return X}function F6($,Z){return{mode:"eval",ctrl:$,val:null,env:Z,kont:[],status:"running",result:null,yielded:null,error:null,fuelUsed:0}}function k$($,Z,J){if($.status==="out-of-fuel")$.status="running";let X=J;while($.status==="running"){if(X<=0)return $.status="out-of-fuel",$.status;X--,$.fuelUsed++;try{K6($,Z)}catch(Q){$.status="error",$.error=Q instanceof Error?Q.message:String(Q)}}return $.status}function K6($,Z){if($.mode==="eval")o8($,Z);else a8($,Z)}function o8($,Z){let J=$.ctrl;if(J===null||typeof J==="number"||typeof J==="boolean"||h(J))return U$($,J);if(P(J))return U$($,Z.lookup($.env,J));if(V$(J)||e(J))return U$($,J);if(!D(J))throw new F(`cannot evaluate: ${C(J)}`);if(J.length===0)throw new F("cannot evaluate empty list");let X=J[0];if(P(X))switch(X){case"quote":return U$($,I$(J,1,"quote"));case"if":{$.kont.push({t:"if",then:I$(J,2,"if"),else:J[3]??null}),$.ctrl=I$(J,1,"if");return}case"lambda":{let Q=I$(J,1,"lambda");if(!D(Q)||!Q.every(P))throw new F("lambda: parameter list must be symbols");let z={t:"closure",params:Q,body:J.slice(2),env:$.env};return U$($,z)}case"begin":{let Q=J.slice(1);if(Q.length===0)return U$($,null);R6($,Z,Q);return}case"define":{let Q=I$(J,1,"define");if(!P(Q))throw new F("define: name must be a symbol");$.kont.push({t:"def",name:Q}),$.ctrl=J[2]??null;return}case"let":{let Q=I$(J,1,"let");if(!D(Q))throw new F("let: bad binding list");let z=[],W=[];for(let Y of Q){if(!D(Y)||!P(Y[0]))throw new F("let: bad binding");z.push(Y[0]),W.push(Y[1]??null)}$.ctrl=[["lambda",z,...J.slice(2)],...W];return}case"yield":{$.kont.push({t:"yield"}),$.ctrl=J[1]??null;return}}$.kont.push({t:"app",done:[],rest:J.slice(1)}),$.ctrl=X}function a8($,Z){let J=$.kont.pop();if(!J){$.status="done",$.result=$.val;return}switch(J.t){case"if":{$.mode="eval",$.ctrl=p$($.val)?J.then:J.else;return}case"seq":{if(J.rest.length===0)return;if(J.rest.length>1)$.kont.push({t:"seq",rest:J.rest.slice(1)});$.mode="eval",$.ctrl=J.rest[0];return}case"def":{if(Z.fill($.env,J.name,$.val)){$.val=J.name;return}if(V$($.val)&&$.val.env===$.env){let X=$.val;$.env=Z.bindSelfRef($.env,J.name,(Q)=>({...X,env:Q}))}else $.env=Z.bind($.env,J.name,$.val);$.val=J.name;return}case"restore":{$.env=J.env;return}case"yield":{$.status="yielded",$.yielded=$.val;return}case"app":{let X=[...J.done,$.val];if(J.rest.length>0){$.kont.push({t:"app",done:X,rest:J.rest.slice(1)}),$.mode="eval",$.ctrl=J.rest[0];return}r8($,Z,X[0],X.slice(1));return}}}function r8($,Z,J,X){if(e(J))return U$($,$6(J.name)(X));if(V$(J)){let Q=Z.bindAll(J.env,J.params,X);if(D6($),$.env=Q,J.body.length===0)return U$($,null);R6($,Z,J.body);return}throw new F(`not applicable: ${C(J)}`)}function R6($,Z,J){let X=s8(J);if(X.length>0)D6($),$.env=Z.letrecFrame($.env,X);if(J.length>1)$.kont.push({t:"seq",rest:J.slice(1)});$.mode="eval",$.ctrl=J[0]}function s8($){let Z=[];for(let J of $)if(D(J)&&J[0]==="define"&&P(J[1]))Z.push(J[1]);return Z}function D6($){if($.kont[$.kont.length-1]?.t!=="restore")$.kont.push({t:"restore",env:$.env})}function U$($,Z){$.mode="ret",$.val=Z}function I$($,Z,J){if(Z>=$.length)throw new F(`${J}: missing argument ${Z}`);return $[Z]}function B6($,Z,J){let X=Z.take(),Q=[],z=[],W=[];for(let Y of X){if(!P$(Y.action)){W.push(Y);continue}let{head:V,args:H}=U6(Y.action),q=V===null?void 0:J.get(V);if(!q){W.push(Y);continue}if(q($,Y.actor,H)==="running")z.push(Y);else Q.push(Y)}return Z.carry(z),{tick:$.tick,completed:Q,running:z,unknown:W}}var N$="body",t8={via:"percept",daemon:N$},A6=3,I0=64;function e8($,Z=A6){let J=J0($),X=Math.round(J*I0);return $9(Z)[X]}var O6=new Map;function $9($){let Z=O6.get($);if(Z===void 0){let J=[];for(let X=0;X<=I0;X++)J.push(Math.round(Math.pow(X/I0,$)*1000)/1000);O6.set($,Z=J)}return Z}var J0=($)=>$<0?0:$>1?1:$;function Z9($){let Z=1-J0($.satiation);return e8(Z*($.gain??1)+($.bias??0),$.k??A6)}var J9=($)=>({pattern:["hungry",$,"?s"]});function T0($=N$){return{name:$,subscribers:(Z)=>M$(Z,N$,0),sense(Z,J,X){let Q=Z.component(N$).get(J.entity),z=Z.named.get(J.entity);if(Q===void 0||z===void 0)return[];let W=Z9(Q),Y=J9(z);return[{subject:J.entity,term:W===0?null:["hungry",z,W],support:t8,tick:Z.tick,scope:Y}]}}}function P6($,Z,J){$.component(N$).set(Z,J)}function X9($,Z=0.01){let J=$.component(N$);for(let[X,Q]of[...J.entries()]){let z=Q.metabolism??Z;if(z===0)continue;J.set(X,{...Q,satiation:J0(Q.satiation-z)})}}function I6($,Z,J){let X=$.component(N$),Q=X.get(Z);if(Q===void 0)return;X.set(Z,{...Q,satiation:J0(Q.satiation+J)})}function T6($=0.01){return{name:"metabolism",run:(Z)=>X9(Z,$)}}function j6($,Z=T0()){return{name:"interoception",run:(J)=>{let X={tick:J.tick,moves:[],nodes:[]};for(let Q of Z.subscribers(J))$.queue.push(...Z.sense(J,Q,X))}}}function Q9($){return D($)&&$.length===2&&$[0]==="not"}function X$($){if(Q9($))return{term:$[1],sign:!1};return{term:$,sign:!0}}function E6($){if($===null)return!0;switch(typeof $){case"number":case"boolean":case"string":return!0;case"object":if(Array.isArray($))return $.every(E6);return Object.keys($).length===1&&typeof $.str==="string";default:return!1}}function S6($){if($===null||typeof $!=="object"||Array.isArray($))return"schema is not an object";let Z=$;if(typeof Z.name!=="string")return"schema has no name";let J=Z.name;if(!Array.isArray(Z.params))return`params of ${J} is missing or not an array`;for(let z of Z.params)if(!x(z))return`param ${String(z)} is not a variable`;for(let z of["pre","add","del"]){let W=Z[z];if(!Array.isArray(W))return`${z} of ${J} is missing or not an array`;for(let Y of W)if(!E6(Y))return`${z} of ${J} contains a non-term`}if(typeof Z.cost!=="number"||!Number.isFinite(Z.cost)||Z.cost<0)return`cost of ${J} must be finite and >= 0`;if(Z.provenance!=="seeded"&&Z.provenance!=="abduced"&&Z.provenance!=="transmitted"&&Z.provenance!=="derived")return`provenance of ${J} is missing or unknown`;let X=$,Q=new Set(X.params);for(let z of[...X.pre,...X.add,...X.del])for(let W of H$(z))if(!Q.has(W))return`free variable ${W} is not a param of ${J}`;for(let z of X.add){let W=X$(z);for(let Y of X.del)if(JSON.stringify(W.term)===JSON.stringify(X$(Y).term))return`${J} both adds and deletes the same literal`}return null}function L6($,Z){return[$.name,...$.params.map((J)=>Z[J]??J)]}function z9($){return new Map(Object.entries($))}function C$($,Z){let J=z9(Z);return $.map((X)=>b(X,J))}var f$="agent-mind";function x6($,Z,J=[],X={}){return{entity:$,self:Z,table:{reactions:X.reactions??[],replanEveryTick:X.replanEveryTick??!1},plan:null,freshPercepts:[],awaiting:null,beliefsChanged:!0,goalsChanged:!0,schemasChanged:!0,schemas:[...J],goal:null,lastPlanTick:0,lastVerdict:null}}function h$($){if($.table.replanEveryTick)return!0;return $.beliefsChanged||$.goalsChanged||$.schemasChanged}var y6=h$;function w6($){$.beliefsChanged=!1,$.goalsChanged=!1,$.schemasChanged=!1}function u$($){let Z=$.plan;if(Z===null||Z.cursor>=Z.steps.length)return null;return Z.steps[Z.cursor]}function b$($){if($.plan!==null)$.plan.cursor++}function g6($,Z,J=null){let X=[...$].sort((Q,z)=>z.priority-Q.priority);for(let Q of X){if(Q.name===J)continue;for(let z of Z){let W=J$(Q.when,z);if(W===null)continue;let Y=Q.then.map((V)=>b(V,W));if(!Y.every(T))continue;return{reaction:Q,steps:Y}}}return null}var j0="hearing",W9=($)=>({via:"told",speaker:$}),Y9={via:"percept",daemon:j0};var v6="utterance";function V9($=2){return{name:j0,subscribers:(Z)=>M$(Z,j0,$),sense(Z,J,X){let Q=Z.component(v6),z=[];for(let W of Z.graph.within(J.node,J.range))for(let Y of Z.entitiesAt(W)){if(Y===J.entity)continue;let V=Q.get(Y);if(V===void 0||V.tick!==Z.tick)continue;if(z.push({subject:J.entity,term:V.form,support:W9(V.speaker),tick:Z.tick}),T(V.form))z.push({subject:J.entity,term:["uttered",V.speaker,V.form],support:Y9,tick:Z.tick})}return z}}}function k6($){let Z=$.component(v6);for(let[J,X]of[...Z.entries()])if(X.tick!==$.tick)Z.remove(J)}function f6($,Z,J=V9()){let X={tick:$.tick,moves:[],nodes:[]},Q=0;for(let z of J.subscribers($)){let W=J.sense($,z,X);Z.push(...W),Q+=W.length}return Q}var c6=64;function q9($,Z){return{mask:$,val:Z&$}}var T$=null;var l6=["adjacent","place","kind"],d6=1,m6=4096;function p6($,Z){return`${$}:${Z?1:0}`}function i6($,Z,J,X){let Q=X.bits??c6,z=X.maxOps??m6,W=new Set(X.rigid??l6),Y=H9($,X),V=[],H=new Map,q=[],M=(N)=>{let R=j.key(N),B=H.get(R);if(B!==void 0)return B;if(q.length>=Q)return null;let A=q.length;return q.push(N),H.set(R,A),A};for(let N of Z){let R=S6(N);if(R!==null)throw Error(`unusable schema: ${R}`);if(U9($,N,Y,W,(A)=>{return V.push(A),V.length<=z}))return null}let U=[];for(let N of V){let R=h6(N.pre,M);if(R===null)return null;let B=h6(N.eff,M);if(B===null)return null;if(R===E0||B===E0)continue;U.push({schema:N.schema,binding:N.binding,pre:R,eff:B,cost:N.schema.cost})}let G=new Map;for(let N of U)for(let R=0;R<q.length;R++){let B=1n<<BigInt(R);if((N.eff.mask&B)===0n)continue;let A=p6(R,(N.eff.val&B)!==0n),l=G.get(A);if(l)l.push(N);else G.set(A,[N])}return Object.freeze({vocab:q,index:H,ops:U,byEffect:G,key:J,full:(1n<<BigInt(q.length))-1n})}function n6($,Z){let J=[...new Set(Z.rigid??l6)].sort(),X=[];for(let z of new Set(["at","adjacent",...J]))for(let W of $.withHead(z))X.push(JSON.stringify(W.term));return X.sort(),`${JSON.stringify([Z.self,Z.from,Z.kHops??d6,Z.bits??c6,Z.maxOps??m6,J,Z.extraObjects??[]])}
+${X.join(`
+`)}`}var E0={mask:-1n,val:-1n};function h6($,Z){let J=0n,X=0n;for(let Q of $){let z=Z(Q.term);if(z===null)return null;let W=1n<<BigInt(z);if((J&W)!==0n&&(X&W)!==0n!==Q.sign)return E0;if(J|=W,Q.sign)X|=W}return{mask:J,val:X}}function H9($,Z){let J=M9($,Z.from,Z.kHops??d6),X=new Set(J),Q=[Z.self,...J.filter((Y)=>Y!==Z.self)],z=new Set(Q.map(C)),W=[];for(let Y of $.withHead("at")){let V=Y.term,H=V[1],q=V[2];if(typeof H!=="string"||typeof q!=="string")continue;if(!X.has(q))continue;if(z.has(H))continue;z.add(H),W.push(H)}W.sort(),Q.push(...W);for(let Y of Z.extraObjects??[]){let V=j.key(Y);if(z.has(V))continue;z.add(V),Q.push(Y)}return Q}function M9($,Z,J){let X=new Set([Z]),Q=[Z];if(J<=0)return Q;let z=new Map,W=(V,H)=>{let q=z.get(V);if(q)q.push(H);else z.set(V,[H])};for(let V of $.withHead("adjacent")){let H=V.term,q=H[1],M=H[2];if(typeof q!=="string"||typeof M!=="string")continue;W(q,M),W(M,q)}let Y=[Z];for(let V=0;V<J&&Y.length>0;V++){let H=[];for(let q of Y)for(let M of z.get(q)??[]){if(X.has(M))continue;X.add(M),Q.push(M),H.push(M)}Y=H}return[Q[0],...Q.slice(1).sort()]}function U9($,Z,J,X,Q){let z=Z.pre.map(X$),W=z.filter((M)=>u6(M.term,X)),Y=z.filter((M)=>!u6(M.term,X)),V={},H=!1,q=(M)=>{if(H)return;if(M===Z.params.length){if(!b6($,W,V))return;let G={...V},N=[...C$(Z.del,G).map((B)=>({...X$(B),sign:!1})),...C$(Z.add,G).map((B)=>({...X$(B),sign:!0}))],R=C$(Y.map((B)=>B.term),G).map((B,A)=>({term:B,sign:Y[A].sign}));if(!Q({schema:Z,binding:G,pre:R,eff:N}))H=!0;return}let U=Z.params[M];for(let G of J){if(V[U]=G,b6($,W,V))q(M+1);if(H)return}delete V[U]};return q(0),H}function u6($,Z){return Array.isArray($)&&typeof $[0]==="string"&&Z.has($[0])}function b6($,Z,J){for(let X of Z){let[Q]=C$([X.term],J);if(Q===void 0||!T(Q))continue;if($.holds(Q)!==X.sign)return!1}return!0}function _9($,Z){return $.index.get(j.key(Z))}function o6($,Z){let J=0n,X=0n;for(let Q of Z){let z=X$(Q),W=_9($,z.term);if(W===void 0)return null;let Y=1n<<BigInt(W);if((J&Y)!==0n&&(X&Y)!==0n!==z.sign)return T$;if(J|=Y,z.sign)X|=Y}return{mask:J,val:X}}function a6($,Z){let J=0n;for(let X=0;X<Z.vocab.length;X++)if($.holds(Z.vocab[X]))J|=1n<<BigInt(X);return{mask:Z.full,val:J}}function r6($,Z){return($.val&Z.mask)===Z.val}function s6($,Z){let J=$.eff.mask&Z.mask;if(J===0n)return!1;return($.eff.val&J)===(Z.val&J)}function t6($,Z){let J=$.mask&~Z.eff.mask,X=J&Z.pre.mask;if((($.val^Z.pre.val)&X)!==0n)return T$;return q9(J|Z.pre.mask,$.val&J|Z.pre.val&Z.pre.mask)}function e6($,Z){let J=[],X=new Set;for(let Q=0;Q<$.vocab.length;Q++){let z=1n<<BigInt(Q);if((Z.mask&z)===0n)continue;for(let W of $.byEffect.get(p6(Q,(Z.val&z)!==0n))??[]){if(X.has(W))continue;X.add(W),J.push(W)}}return J}function X0($,Z){return 2*$+(Z?1:0)}function G9($,Z){let J=$.vocab.length,X=Array(2*J).fill(1/0);for(let z=0;z<J;z++)X[X0(z,(Z.val&1n<<BigInt(z))!==0n)]=0;let Q=!0;while(Q){Q=!1;for(let z of $.ops){let W=0;for(let V=0;V<J&&W!==1/0;V++){let H=1n<<BigInt(V);if((z.pre.mask&H)===0n)continue;let q=X[X0(V,(z.pre.val&H)!==0n)];if(q>W)W=q}if(W===1/0)continue;let Y=W+z.cost;for(let V=0;V<J;V++){let H=1n<<BigInt(V);if((z.eff.mask&H)===0n)continue;let q=X0(V,(z.eff.val&H)!==0n);if(Y<X[q])X[q]=Y,Q=!0}}}return X}function $7($,Z){let J=0;for(let X=0;X<$.frame.vocab.length;X++){let Q=1n<<BigInt(X);if((Z.mask&Q)===0n)continue;let z=$.hcost[X0(X,(Z.val&Q)!==0n)];if(z===1/0)return 1/0;if(z>J)J=z}return J}function L0($){return`${$.mask.toString(36)}:${$.val.toString(36)}`}function S0($,Z){return $.f!==Z.f?$.f<Z.f:$.g>Z.g}function Z7($,Z){let{open:J,nodes:X}=$;J.push(Z);let Q=J.length-1;while(Q>0){let z=Q-1>>1;if(!S0(X[J[Q]],X[J[z]]))break;let W=J[Q];J[Q]=J[z],J[z]=W,Q=z}}function N9($){let{open:Z,nodes:J}=$,X=Z[0];if(X===void 0)return;let Q=Z.pop();if(Z.length>0){Z[0]=Q;let z=0;for(;;){let W=2*z+1,Y=W+1,V=z;if(W<Z.length&&S0(J[Z[W]],J[Z[V]]))V=W;if(Y<Z.length&&S0(J[Z[Y]],J[Z[V]]))V=Y;if(V===z)break;let H=Z[z];Z[z]=Z[V],Z[V]=H,z=V}}return X}function J7($,Z,J){let X={frame:$,init:Z,goal:J,nodes:[],open:[],best:new Map,hcost:G9($,Z),expansions:0,generated:0,status:"planning",goalNode:-1},Q=$7(X,J);if(Q!==1/0)X.nodes.push({state:J,parent:-1,op:null,g:0,f:Q}),X.best.set(L0(J),0),Z7(X,0);else X.status="exhausted";return X}function X7($,Z){for(let J=0;J<Z&&$.status==="planning";J++){let X=N9($);if(X===void 0){$.status="exhausted";break}let Q=$.nodes[X],z=L0(Q.state);if(($.best.get(z)??1/0)<Q.g){J--;continue}if(r6($.init,Q.state)){$.status="found",$.goalNode=X;break}$.expansions++,C9($,X,Q)}return $.status}function C9($,Z,J){for(let X of e6($.frame,J.state)){if(!s6(X,J.state))continue;let Q=t6(J.state,X);if(Q===T$)continue;let z=J.g+X.cost,W=$7($,Q);if(W===1/0)continue;let Y=L0(Q),V=$.best.get(Y);if(V!==void 0&&V<=z)continue;$.best.set(Y,z),$.nodes.push({state:Q,parent:Z,op:X,g:z,f:z+W}),$.generated++,Z7($,$.nodes.length-1)}}function F9($){if($.status!=="found")return null;let Z=[];for(let J=$.goalNode;J!==-1;){let X=$.nodes[J];if(X.op!==null)Z.push(X.op);J=X.parent}return Z}function Q7($){if($.status==="found")return{status:"plan",steps:F9($),cost:$.nodes[$.goalNode].g};if($.status==="exhausted")return{status:"exhausted"};return{status:"out-of-fuel"}}var K9=/[\s()]/;function z7($){let Z=new W7($),J=[];for(;;){if(Z.skipTrivia(),Z.atEnd)return J;J.push(Z.form())}}class W7{src;pos=0;constructor($){this.src=$}get atEnd(){return this.pos>=this.src.length}skipTrivia(){for(;;){while(!this.atEnd&&/\s/.test(this.src[this.pos]))this.pos++;if(this.src[this.pos]===";"){while(!this.atEnd&&this.src[this.pos]!==`
+`)this.pos++;continue}return}}form(){if(this.skipTrivia(),this.atEnd)throw new F("unexpected end of input");let $=this.src[this.pos];if($==="(")return this.list();if($===")")throw new F(`unexpected ')' at ${this.pos}`);if($==="'")return this.pos++,["quote",this.form()];if($==='"')return this.string();return this.atom()}list(){this.pos++;let $=[];for(;;){if(this.skipTrivia(),this.atEnd)throw new F("unclosed '('");if(this.src[this.pos]===")")return this.pos++,$;$.push(this.form())}}string(){this.pos++;let $="";for(;;){if(this.atEnd)throw new F("unclosed string");let Z=this.src[this.pos++];if(Z==='"')return{str:$};if(Z==="\\"){let J=this.src[this.pos++];$+=J==="n"?`
+`:J==="t"?"\t":J??"";continue}$+=Z}}atom(){let $=this.pos;while(!this.atEnd&&!K9.test(this.src[this.pos]))this.pos++;let Z=this.src.slice($,this.pos);if(Z==="#t"||Z==="true")return!0;if(Z==="#f"||Z==="false")return!1;if(Z==="nil")return null;if(/^[+-]?(\d+\.?\d*|\.\d+)$/.test(Z))return Number(Z);return Z}}var R9=String.raw`
+(define empty? (lambda (l) (= (len l) 0)))
+
+(define rev
+  (lambda (l acc) (if (empty? l) acc (rev (cdr l) (cons (car l) acc)))))
+(define reverse (lambda (l) (rev l (list))))
+
+; The single early-exit test. prove = limit 1; prove-all = limit huge.
+; The accumulator carries a generation counter as its head, so clause renaming
+; is a function of machine state rather than of process history. A resumed
+; proof therefore reproduces the names it was suspended among.
+(define gen-of (lambda (acc) (car acc)))
+(define sols-of (lambda (acc) (cdr acc)))
+(define bump (lambda (acc) (cons (+ (car acc) 1) (cdr acc))))
+(define full? (lambda (acc) (>= (len (cdr acc)) *limit*)))
+
+; Establish GOAL under SUBST, calling K once per way of doing it.
+;
+; VISITED is the chain of goals already open on THIS branch. Without it
+; (reachable ?a ?b) over a symmetric adjacency relation walks camp -> clearing
+; -> camp forever, and symmetric adjacency is every graph worth having.
+; The guard is a variant check rather than equality because the looping goal
+; usually comes back renamed, not identical.
+(define solve-goal
+  (lambda (goal subst visited k acc)
+    (if (full? acc)
+        acc
+        (let ((g (subst-apply goal subst)))
+          (if (goal-variant? g visited)
+              acc
+              (let ((after-facts (try-facts (facts-for *kb* g) g subst k acc)))
+                ; Facts before clauses: an asserted fact is the cheapest proof
+                ; and its own support is already grounded.
+                (let ((cs (clauses-for *kb* g (gen-of after-facts))))
+                  (try-clauses cs
+                               g subst (cons g visited) k (bump after-facts)))))))))
+
+(define try-facts
+  (lambda (fs goal subst k acc)
+    (if (full? acc)
+        acc
+        (if (empty? fs)
+            acc
+            (let ((f (car fs)))
+              (let ((s2 (unify goal (nth f 1) subst)))
+                (let ((acc1 (if (nil? s2)
+                                acc
+                                (k s2 (list (quote fact) (nth f 0) (nth f 1)) acc))))
+                  (try-facts (cdr fs) goal subst k acc1))))))))
+
+(define try-clauses
+  (lambda (cs goal subst visited k acc)
+    (if (full? acc)
+        acc
+        (if (empty? cs)
+            acc
+            (let ((c (car cs)))
+              (let ((s2 (unify goal (nth c 1) subst)))
+                (let ((acc1
+                       (if (nil? s2)
+                           acc
+                           (solve-conj (nth c 2) s2 visited (list)
+                                       (lambda (s3 proofs a3)
+                                         (k s3
+                                            (list (quote rule)
+                                                  (nth c 0)
+                                                  (subst-apply goal s3)
+                                                  proofs)
+                                            a3))
+                                       acc))))
+                  (try-clauses (cdr cs) goal subst visited k acc1))))))))
+
+; A clause body. VISITED is shared by the siblings, so a body goal cannot
+; re-open the head that spawned it, but two independent branches do not
+; poison each other.
+(define solve-conj
+  (lambda (goals subst visited proofs k acc)
+    (if (full? acc)
+        acc
+        (if (empty? goals)
+            (k subst (reverse proofs) acc)
+            (solve-goal (car goals) subst visited
+                        (lambda (s2 p2 a2)
+                          (solve-conj (cdr goals) s2 visited (cons p2 proofs) k a2))
+                        acc)))))
+
+(define solve
+  (lambda (goal)
+    (reverse
+      (sols-of
+        (solve-goal goal (list) (list)
+                    (lambda (s p a) (cons (car a) (cons (list s p) (cdr a))))
+                    (list 0))))))
+`,D9=z7(R9);function Y7($){return["begin",...D9,["solve",["quote",$]]]}var j$=new Map,x0=1;function V7($,Z){if(Z===void 0){let X=x0++;return j$.set(X,$),X}if(!Number.isInteger(Z)||Z<1)throw new F(`not a kb handle: ${Z}`);let J=j$.get(Z);if(J!==void 0&&J!==$)throw new F(`kb handle ${Z} is live and holds a different base`);if(j$.set(Z,$),Z>=x0)x0=Z+1;return Z}function F$($){j$.delete($)}function q7($){return j$.has($)}var Q0=[];function E$($,Z){Q0.push($);try{return Z()}finally{Q0.pop()}}function y0($,Z){if(typeof $!=="number")throw new F(`${Z}: expected a kb handle`);let J=Q0[Q0.length-1];if(J===void 0)throw new F(`${Z}: no proof is running`);if($!==J)throw new F(`${Z}: kb handle ${$} is not the running proof's`);let X=j$.get($);if(!X)throw new F(`${Z}: stale kb handle ${$} -- rebind before resuming`);return X}function B9($){let Z=[];for(let[J,X]of $)Z.push([J,X]);return Z}function z0($,Z="subst"){if(!D($))throw new F(`${Z}: expected an association list`);let J=new Map;for(let X of $){if(!D(X)||X.length!==2||!P(X[0]))throw new F(`${Z}: bad binding ${C(X)}`);J.set(X[0],X[1])}return J}function O9($,Z){return H7($,Z,new Map,new Map)}function H7($,Z,J,X){if(x($)||x(Z)){if(!x($)||!x(Z))return!1;let Q=J.get($),z=X.get(Z);if(Q===void 0&&z===void 0)return J.set($,Z),X.set(Z,$),!0;return Q===Z&&z===$}if(D($)||D(Z)){if(!D($)||!D(Z)||$.length!==Z.length)return!1;for(let Q=0;Q<$.length;Q++)if(!H7($[Q],Z[Q],J,X))return!1;return!0}if(typeof $==="object"&&$!==null&&typeof Z==="object"&&Z!==null)return $.str===Z.str;return $===Z}function M7($,Z){if(x($))return!0;if(D($)){if(!D(Z)||Z.length!==$.length)return!1;let J=$[0],X=Z[0];if(P(J)&&!x(J)&&P(X))return J===X;return!0}return!0}function A9($,Z){if(T(Z)){let z=$.idOf(Z);if(z===void 0||$.byId(z)===void 0)return[];return[[z,Z]]}let J=Z$(Z),X=[],Q=J===null||x(J)?$.assertions():$.withHead(J);for(let z of Q){if(!M7(Z,z.term))continue;let W=$.idOf(z.term);if(W===void 0)continue;X.push([W,z.term])}return X}function P9($,Z,J){let X=[];for(let W of $.allClauses())if(M7(Z,W.head))X.push(W);let Q=[],z=N6(X,J);for(let W=0;W<X.length;W++){let Y=z[W];Q.push([X[W].id,Y.head,Y.body])}return Q}function I9($,Z){if(typeof $!=="number")throw new F(`${Z}: expected a generation number, got ${C($??null)}`);return $}var T9={"logic:unify":($)=>{let Z=J$($[0],$[1],z0($[2]??[],"unify"));return Z===null?null:B9(Z)},"logic:subst-apply":($)=>b($[0],z0($[1]??[],"subst-apply")),"logic:clauses-for":($)=>P9(y0($[0]??null,"clauses-for"),$[1],I9($[2],"clauses-for")),"logic:facts-for":($)=>A9(y0($[0]??null,"facts-for"),$[1]),"logic:fact-id":($)=>{let Z=y0($[0]??null,"fact-id"),J=$[1];if(!T(J))return null;let X=Z.idOf(J);return X===void 0||Z.byId(X)===void 0?null:X},"logic:goal-variant?":($)=>{let Z=$[0],J=$[1];if(!D(J))return!1;for(let X of J)if(O9(Z,X))return!0;return!1}};function j9(){let $={};for(let[Z,J]of Object.entries(T9))$[Z]=K0(Z,J);return $}var E9=j9();function U7($,Z=1){let J=E9;return{"*kb*":V7($),"*limit*":Z,unify:J["logic:unify"],"subst-apply":J["logic:subst-apply"],"clauses-for":J["logic:clauses-for"],"facts-for":J["logic:facts-for"],"fact-id":J["logic:fact-id"],"kb-holds?":J["logic:fact-id"],"goal-variant?":J["logic:goal-variant?"]}}function _7($){let Z=$["*kb*"];if(typeof Z!=="number")throw new F("bindings carry no kb handle");return Z}var p3=Number.MAX_SAFE_INTEGER;function K$($,Z,J=1){let X=new A$,Q=U7($,J),z=X.root({...n$(),...Q});return{status:"out-of-fuel",machine:F6(Y7(Z),z),envs:X,kb:$,goal:Z,limit:J,handle:_7(Q)}}function w0($,Z){if(!q7($.handle))throw new F(`proof of ${C($.goal)} has no registered kb: call rebindProof after thawing`);let J=E$($.handle,()=>k$($.machine,$.envs,Z));if(J==="out-of-fuel")return $;if(F$($.handle),J==="error")throw new F(`proof of ${C($.goal)} failed: ${$.machine.error}`);if(J!=="done")throw new F(`proof of ${C($.goal)} ${J}`);return{status:"complete",solutions:L9($.machine.result,$.kb,$.goal)}}function G7($){$.machine.kont=[],$.machine.status="error",$.machine.error="abandoned",F$($.handle)}function N7($,Z,J){return S9(w0(K$($,Z,1),J))}function S9($){if($.status==="out-of-fuel")return $;let Z=$.solutions[0];return Z===void 0?{status:"exhausted"}:{status:"proved",...Z}}function L9($,Z,J){if(!D($))throw new F(`resolver returned ${C($)}`);return $.map((X)=>{if(!D(X)||X.length!==2)throw new F(`bad solution ${C(X)}`);let Q=z0(X[0],"solution"),z=C7(X[1]),W=x9(J,Q);return{goal:b(J,Q),subst:W,support:y9(z,Z),proof:z}})}function x9($,Z){let J=new Map;for(let X of H$($)){let Q=b(X,Z);if(Q!==X)J.set(X,Q)}return J}function C7($){if(!D($)||!P($[0]))throw new F(`bad proof node ${C($)}`);if($[0]==="fact"){if(typeof $[1]!=="number")throw new F(`bad fact node ${C($)}`);return{kind:"fact",id:$[1],term:$[2]}}if($[0]==="rule"){let Z=$[3];if(typeof $[1]!=="number"||!D(Z))throw new F(`bad rule node ${C($)}`);return{kind:"rule",clause:$[1],goal:$[2],premises:Z.map(C7)}}throw new F(`unknown proof node ${C($)}`)}function y9($,Z){if($.kind==="fact")return Z.byId($.id)?.support??{via:"seeded"};return{via:"derived",clause:$.clause,premises:F7($)}}function F7($,Z=[]){if($.kind==="fact"){if(!Z.includes($.id))Z.push($.id);return Z}for(let J of $.premises)F7(J,Z);return Z}var w9=["wants","?who","?what","?severity"],g9=8,K7=200000,S$=($,Z,J,X)=>{let Q=K$($,Z,X),z=Q.machine.fuelUsed,W=w0(Q,J),Y=Q.machine.fuelUsed-z;if(W.status==="out-of-fuel")G7(W);return{result:W,fuelUsed:Y}};function v9($,Z=S$,J=K7,X={}){let Q=X.maxGoals??g9,z=J,W=[],Y="complete";for(let V=1;V<=Q;V++){if(z<=0){Y="out-of-fuel";break}let{result:H,fuelUsed:q}=Z($,w9,z,V);if(z-=q,H.status==="out-of-fuel"){Y="out-of-fuel";break}if(W=H.solutions,H.solutions.length<V)break}return{goals:k9(W).sort((V,H)=>H.severity-V.severity),status:Y,truncated:W.length>=Q,fuelUsed:J-Math.max(0,z)}}function k9($){let Z=[],J=new Set;for(let X of $){let Q=f9(X);if(Q===null)continue;let z=JSON.stringify(Q.term);if(J.has(z))continue;J.add(z),Z.push(Q)}return Z}function f9($){let Z=$.goal;if(!Array.isArray(Z)||Z.length!==4)return null;let J=Z[3];if(typeof J!=="number")return null;return{who:Z[1],what:Z[2],severity:J,term:Z,support:$.support}}function R7($){return $.addClause(["wants","?x",["not-hungry","?x"],"?s"],[["hungry","?x","?s"]])}function h9($,Z,J){let X=D7($);for(let Q of Z.goals)X=X.assert(Q.term,Q.support,J);return X}function D7($){let Z=$;for(let J of[...$.withHead("wants")])if(J.support.via==="derived")Z=Z.retract(J.term);return Z}function B7($,Z=S$,J=K7,X=0,Q={}){let z=D7($),W=v9(z,Z,J,Q);if(u9($,W))return{kb:$,goals:W};return{kb:h9(z,W,X),goals:W}}function u9($,Z){let J=new Map;for(let Q of Z.goals)J.set(JSON.stringify(Q.term),JSON.stringify(Q.support));let X=0;for(let Q of $.withHead("wants")){if(Q.support.via!=="derived")continue;if(X++,J.get(JSON.stringify(Q.term))!==JSON.stringify(Q.support))return!1}return X===J.size}function A7($,Z){let J=g6($.table.reactions,$.freshPercepts,$.plan?.source??null);if(J!==null){$.plan={goal:["reaction",J.reaction.name],steps:J.steps,cursor:0,source:J.reaction.name},$.awaiting=null;let X=u$($);if(X!==null&&O7($,X,Z))b$($);return"SWITCH"}if($.awaiting!==null){if(!Z.settled)return"CONTINUE";$.awaiting=null}if($.plan!==null&&!h$($)){let X=u$($);if(X===null)return $.plan=null,"STALL";if(O7($,X,Z))return b$($),"CONTINUE";return $.plan=null,"STALL"}return"STALL"}function O7($,Z,J){if(!P$(Z))return!1;return $.awaiting=J.emit($,Z),!0}var b9={expansions:20000,perMind:5000,goalFuel:200000};function P7($,Z,J,X,Q=[],z=b9){return{world:$,queue:Z,actions:J,perception:X,physics:Q,speech:null,scheduler:new j7,budget:z}}function c9($){return[...$.component(f$).entries()].map(([,Z])=>Z)}function I7($){return $.world.tick++,l9($)}function l9($){let Z=$.world,J=c9(Z),X=B6(Z,$.queue,$.actions);for(let q of $.physics)q.run(Z);if($.perception.produce(Z),$.speech)f6(Z,$.perception.queue,$.speech);let Q=$.perception.queue.drain(Z,$.perception.filters);if(d9(Z,J,Q),$.speech)k6(Z);let z=[],W=(q,M)=>$.queue.issue(q.entity,M,Z.tick).id,Y=(q)=>({settled:q.awaiting!==null&&(X.completed.some((M)=>M.id===q.awaiting)||X.unknown.some((M)=>M.id===q.awaiting)),emit:W}),V=[];for(let q of J){let M=A7(q,Y(q));if(z.push({entity:q.entity,outcome:M}),M==="STALL")V.push(q)}let H=$.scheduler.run(Z,V,$.budget,W);return{tick:Z.tick,drain:X,percepts:Q.length,outcomes:z,funded:H}}function d9($,Z,J){let X=new Map;for(let z of J){let W=X.get(z.subject);if(W)W.push(z);else X.set(z.subject,[z])}let Q=new Map;for(let z of Z){let W=X.get(z.entity)??[];z.freshPercepts=W.filter((V)=>V.term!==null).map((V)=>V.term);let Y=$.minds.get(z.entity);if(Y)Q.set(z.entity,Y.kb)}$0($,J);for(let z of Z){let W=$.minds.get(z.entity),Y=Q.get(z.entity);if(!W||!Y)continue;if((X.get(z.entity)??[]).length===0)continue;if(W.kb.size!==Y.size||z.freshPercepts.some((H)=>!Y.holds(H)))z.beliefsChanged=!0}}var T7=0.000000001;function m9($,Z,J){if(!y6($)&&!J)return T7;let X=Math.max($.goal?.severity??1,0.001),Q=Math.max(1,Z-$.lastPlanTick);return X*Q}class j7{searches=new Map;frames=new Map;planStarts=0;compiles=0;frameHits=0;deliberations=0;expansionsUsed=0;run($,Z,J,X){let Q=Z.map((Y)=>({m:Y,p:m9(Y,$.tick,this.searches.has(Y.entity))})).filter((Y)=>Y.p>T7).sort((Y,V)=>V.p-Y.p),z=J.expansions,W=[];for(let{m:Y}of Q){if(z<=0)break;let V=Math.min(J.perMind,z);z-=this.deliberate($,Y,V,J.goalFuel,X),W.push(Y.entity)}return W}frameOf($){return this.frames.get($)?.frame??null}deliberate($,Z,J,X,Q){let z=$.minds.get(Z.entity);if(!z)return 0;this.deliberations++;let W=h$(Z);w6(Z),Z.lastPlanTick=$.tick;let Y=B7(z.kb,S$,X,$.tick);z.kb=Y.kb;let V=Y.goals.goals[0];if(V===void 0)return Z.goal=null,Z.plan=null,Z.lastVerdict="no-goal",this.searches.delete(Z.entity),0;Z.goal={what:V.what,severity:V.severity};let H=this.frameFor(Z,z.kb);if(H===null)return Z.lastVerdict="no-frame",this.searches.delete(Z.entity),0;let q=o6(H,[V.what]);if(q===null||q===T$)return Z.plan=null,Z.lastVerdict="exhausted",this.searches.delete(Z.entity),0;let M=a6(z.kb,H),U=W?void 0:this.searches.get(Z.entity);if(U===void 0)U=J7(H,M,q),this.planStarts++,this.searches.set(Z.entity,U);let G=U.expansions;X7(U,J);let N=U.expansions-G;this.expansionsUsed+=N;let R=Q7(U);if(R.status==="plan"){Z.plan={goal:V.what,steps:R.steps.map((A)=>L6(A.schema,A.binding)),cursor:0,source:null},Z.lastVerdict="plan",this.searches.delete(Z.entity);let B=u$(Z);if(B!==null&&Z.awaiting===null&&P$(B))Z.awaiting=Q(Z,B),b$(Z)}else if(R.status==="exhausted")Z.plan=null,Z.lastVerdict="exhausted",this.searches.delete(Z.entity);else Z.lastVerdict="out-of-fuel";return N}frameFor($,Z){let J=p9(Z,$.self);if(J===null)return null;let X={self:$.self,from:J,kHops:1},Q=`${n6(Z,X)}
+${JSON.stringify($.schemas)}`,z=this.frames.get($.entity);if(z&&z.key===Q)return this.frameHits++,z.frame;let W=null;try{W=i6(Z,$.schemas,["plan",$.self],X)}catch{W=null}return this.compiles++,this.frames.set($.entity,{key:Q,frame:W}),W}}function p9($,Z){for(let J of $.withHead("at")){let X=J.term;if(X[1]===Z&&typeof X[2]==="string")return X[2]}return null}var i9=1,n9=($,Z,J)=>{let X=s$($,J[0]??null);if(X===null||X===Z)return;let Q=$.component(v$),z=$.at.get(Z);if(Q.get(X)!==Z&&(z===void 0||$.at.get(X)!==z))return;Q.remove(X),$.at.remove(X),I6($,Z,i9)};function E7(){return _6().define("eat",n9)}var L$="sight",g0={via:"percept",daemon:L$},o9=($)=>({pattern:["at","?x",$]});function S7($=1){return{name:L$,subscribers:(Z)=>M$(Z,L$,$),sense(Z,J,X){let Q=[];for(let z of Z0(Z,J,X)){let W=o9(z),Y=Z.entitiesAt(z);if(Y.length===0){Q.push({subject:J.entity,term:null,support:g0,tick:Z.tick,scope:W});continue}for(let V of Y){let H=Z.named.get(V);if(H===void 0)continue;Q.push({subject:J.entity,term:["at",H,z],support:g0,tick:Z.tick,scope:W});let q=Z.kind.get(V);if(q!==void 0)Q.push({subject:J.entity,term:["kind",H,q],support:g0,tick:Z.tick})}}return Q}}}function L7($,Z,J=1){$.component(L$).set(Z,{range:J})}var x$="smell",a9={via:"percept",daemon:x$},r9=["fish","carcass"],s9=($,Z)=>({pattern:[$,Z]});function x7($=2,Z="smells-fishy",J=r9){return{name:x$,subscribers:(X)=>M$(X,x$,$),sense(X,Q,z){let W=[];for(let Y of Z0(X,Q,z)){let V=s9(Z,Y),H=X.entitiesAt(Y).some((q)=>J.includes(X.kind.get(q)??""));W.push({subject:Q.entity,term:H?[Z,Y]:null,support:a9,tick:X.tick,scope:V})}return W}}}function y7($,Z,J=2){$.component(x$).set(Z,{range:J})}function y$($,Z,J=new Set){if($.via!=="derived")return[$];let X=[];for(let Q of $.premises){if(J.has(Q))continue;J.add(Q);let z=Z(Q);if(z)X.push(...y$(z,Z,J))}return X}function t9($,Z){let J=Z$($);if(J===null)return null;let X=Array.isArray($)?$.slice(1):[];for(let Q of Z){if(Q.name!==J||Q.params.length!==X.length)continue;let z={};for(let W=0;W<Q.params.length;W++)z[Q.params[W]]=X[W];return{schema:Q,binding:z}}return null}var v0=($,Z)=>C$($,Z).map((J)=>X$(J));function g7($,Z,J,X,Q){let z=[];for(let W of X){let Y=t9(W,Z);if(Y===null){z.push({action:W,pre:[],effects:[],rests:[]});continue}let V=v0(Y.schema.pre,Y.binding),H=[...v0(Y.schema.del,Y.binding).map((M)=>({term:M.term,sign:!1})),...v0(Y.schema.add,Y.binding)],q=V.map((M)=>M.sign?$.get(M.term)?.support??null:null);z.push({action:W,pre:V,effects:H,rests:q})}return{goal:J,steps:z,tick:Q}}var w7=($)=>$.via==="percept"?$.daemon:null;function v7($,Z,J){let X=new Map;for(let z of Z){if(z.subject!==J||!z.scope)continue;let W=w7(z.support);if(W===null)continue;let Y=`${W} ${j.key(z.scope.pattern)}`,V=X.get(Y);if(!V)X.set(Y,V={daemon:W,pattern:z.scope.pattern,listed:new Set});if(z.term!==null)V.listed.add(j.key(z.term))}let Q=[];for(let{daemon:z,pattern:W,listed:Y}of X.values()){let V=Z$(W),H=V===null?[...$.assertions()]:[...$.withHead(V)];for(let q of H){if(w7(q.support)===z)continue;if(Y.has(j.key(q.term)))continue;if(J$(W,q.term)===null)continue;Q.push({term:q.term,support:q.support,daemon:z,pattern:W})}}return Q}var W0=($)=>j.key($);function e9($,Z,J,X,Q){let z=new Map;for(let Y of X)z.set(W0(Y.term),Y);let W=new Map;for(let Y=Math.max(0,J);Y<Z.steps.length;Y++){let V=Z.steps[Y];for(let H=0;H<V.pre.length;H++){let q=V.pre[H];if(!q.sign)continue;if(W.has(W0(q.term)))continue;let M=z.get(W0(q.term));if(M!==void 0)return{site:"precondition",step:Y,action:V.action,expected:q,belief:M.term,support:M.support,observedBy:M.daemon,tick:Q};if(!$.holds(q.term))return{site:"precondition",step:Y,action:V.action,expected:q,belief:q.term,support:V.rests[H]??null,observedBy:null,tick:Q}}for(let H of V.effects)W.set(W0(H.term),H.sign)}return null}function $Z($,Z,J){if($.holds(Z.goal))return null;let X=Z.steps[Z.steps.length-1];return{site:"goal",goal:Z.goal,predicted:X?.effects??[],tick:J}}function k7($,Z,J,X,Q){let z=e9($,Z,J,X,Q);if(z!==null)return z;if(J>=Z.steps.length)return $Z($,Z,Q);return null}function f7(){let $={last:[],filter:(Z)=>{return $.last=Z,[...Z]}};return $}var k0=($)=>$[0],h7=($)=>$.ground.filter((Z)=>Z.via==="percept").map((Z)=>Z.daemon),ZZ=($)=>$.ground.filter((Z)=>Z.via==="told").map((Z)=>Z.speaker),u7=($)=>{if($.support?.via==="derived")return{kind:"clause",clause:$.support.clause};let Z=k0(h7($));if(Z!==void 0)return{kind:"percept",daemon:Z};return{kind:"world"}},JZ=($)=>{let Z=k0(ZZ($));if(Z!==void 0)return{kind:"informant",speaker:Z};let J=k0(h7($));if(J!==void 0)return{kind:"percept",daemon:J};return{kind:"world"}},XZ=()=>({kind:"world"}),h0={humble:u7,paranoid:JZ,stoic:XZ},b7="humble";function c7($){let Z=h0[$];if(Z===void 0)throw Error(`no attribution policy named ${$}`);return Z}function QZ($,Z){if(Z.site==="goal")return{error:Z,belief:null,support:null,ground:[]};let J=Z.support;return{error:Z,belief:Z.belief,support:J,ground:J===null?[]:y$(J,$.supportOf)}}function l7($,Z,J=u7,X="custom"){let Q=QZ($,Z);return{error:Z,evidence:Q,blame:J(Q),policy:X}}function f0($,Z,J=new Set,X=[]){if($.via!=="derived")return X;for(let Q of $.premises){if(J.has(Q))continue;J.add(Q);let z=Z.byId(Q)?.support;if(z===void 0)continue;if(z.via==="derived")f0(z,Z,J,X);else X.push(Q)}return X}function zZ($,Z){let J=[];for(let X of $.assertions())if(X.support.via==="derived"&&X.support.clause===Z)J.push(X.term);return J}function d7($,Z,J){let X=[],Q=[],z=$,W=null,Y=(V)=>{if(!z.holds(V))return;z=z.retract(V),X.push(V)};if(Z.evidence.belief!==null)Y(Z.evidence.belief);switch(Z.blame.kind){case"clause":{let V=Z.blame.clause;for(let H of zZ(z,V))Y(H);z=z.removeClause(V),W=V;break}case"percept":{let V=Z.blame.daemon;if(Z.evidence.support!==null)for(let q of f0(Z.evidence.support,$)){let M=$.byId(q);if(M&&M.support.via==="percept"&&M.support.daemon===V)Y(M.term)}let H=["distrusts",J.self,V];z=z.assert(H,{via:"seeded"},J.tick),Q.push(H);break}case"informant":{let V=Z.blame.speaker;if(Z.evidence.support!==null)for(let q of f0(Z.evidence.support,$)){let M=$.byId(q);if(M&&M.support.via==="told"&&M.support.speaker===V)Y(M.term)}let H=["distrusts",J.self,V];z=z.assert(H,{via:"seeded"},J.tick),Q.push(H);break}case"world":break}return{kb:z,retracted:X,removedClause:W,learned:Q}}function m7($,Z,J){let{result:X,fuelUsed:Q}=S$($,Z,J.fuel??200000,J.limit??32);if(X.status!=="complete")return{kb:$,added:[],fuelUsed:Q};let z=$,W=[];for(let Y of X.solutions){if(Y.support.via!=="derived")continue;if(!T(Y.goal)||z.holds(Y.goal))continue;z=z.assert(Y.goal,Y.support,J.tick),W.push(Y.goal)}return{kb:z,added:W,fuelUsed:Q}}function p7($,Z,J=200000){return N7($,Z,J).status==="proved"}var WZ={via:"seeded"},YZ={name:"walk-to",params:["?to","?a","?from"],pre:[["kind","?a","agent"],["at","?a","?from"],["adjacent","?from","?to"]],add:[["at","?a","?to"]],del:[["at","?a","?from"]],cost:2,provenance:"seeded"},VZ={name:"eat",params:["?f","?a","?p"],pre:[["kind","?a","agent"],["kind","?f","fish"],["at","?a","?p"],["at","?f","?p"]],add:[["not-hungry","?a"]],del:[["at","?f","?p"]],cost:1,provenance:"seeded"},qZ=[YZ,VZ],Y0={head:["at","fish","?x"],body:[["smells-fishy","?x"]]},HZ=["at","?x","?p"],MZ="cave";function UZ($=MZ){return(Z,J)=>{let X=new Set;for(let Q of J.entitiesAt($)){let z=J.named.get(Q);if(z!==void 0)X.add(z)}return Z.filter((Q)=>{if(Q.support.via!=="percept"||Q.support.daemon!==L$)return!0;if(J.at.get(Q.subject)===$)return!0;let z=Q.scope?.pattern??Q.term;if(z===null)return!0;return!i7(z,$,X)})}}function i7($,Z,J){if(Array.isArray($))return $.some((X)=>i7(X,Z,J));return typeof $==="string"&&($===Z||J.has($))}function _Z($={}){let Z=q6(),J=Z.spawnAt("agent","ridge","b");L7(Z,J,1),y7(Z,J,1),P6(Z,J,{satiation:0.2,k:3,metabolism:0});let X=R7(Z.freshBelief());X=X.assert(["kind","fish","fish"],WZ,0),X=X.addClause(Y0.head,Y0.body);let Q=X.allClauses(),z=Q[Q.length-1].id;Z.minds.set(J,{kb:X,machine:null,fuelPerTick:0,env:Z.rootEnv});let W=x6(J,"b",qZ);Z.component(f$).set(J,W);let Y=new P0([S7(1),x7(1)]);if($.darkCave!==!1)Y.addFilter(UZ());let V=f7();Y.addFilter(V.filter);let H=P7(Z,new r$,E7(),Y,[T6(0),j6(Y,T0())]);return{world:Z,loop:H,b:J,mind:W,tap:V,clause:z}}function b0($={}){let Z=$.policy??b7,J=c7(Z),X=$.ticks??8,Q=[],z=$.log===void 0?(k)=>console.log(k):$.log,W=(k)=>{if(Q.push(k),z)z(k)},Y=_Z({darkCave:$.darkCave}),{world:V,loop:H,b:q,mind:M,tap:U,clause:G}=Y,N=M.self,R=()=>V.minds.expect(q).kb,B=(k)=>{V.minds.expect(q).kb=k};W("=== koditoki demo v1 -- nobody lied ==="),W("truth: fish in the river, a carcass in the cave. B is on the ridge, hungry."),W(`attribution policy: ${Z}`),W("");let A=null,l=null,I=null,L=null,f=null,v=null,l$=null,B$=0,n=null,d=0,w$=0,z$=0,d$=null,W$=null,S8=()=>{let k=Q.length,O$=L,L8=I,x8=R(),y8=I7(H),_$=V.tick;if(V.groundTruth().holds(["at","fish","cave"]))B$++;let m$=H.scheduler.expansionsUsed-w$;w$=H.scheduler.expansionsUsed,d+=m$,W(`t${_$}  B at ${V.at.get(q)}   ${y8.percepts} percepts`+(m$>0?`, ${m$} expansions of thought`:""));for(let y of CZ(R(),x8))W(`      ${y}`);if(M.plan!==l){if(l=M.plan,A=M.plan===null?null:g7(R(),M.schemas,M.plan.goal,M.plan.steps,_$),M.plan!==null)W(`      plans: ${M.plan.steps.map((y)=>C(y)).join("  ->  ")}`)}if(M.plan===null&&M.goal!==null&&M.lastVerdict!==n)W(`      goal ${C(M.goal.what)} (severity ${M.goal.severity}) -- ${M.lastVerdict}`);if(n=M.lastVerdict,M.awaiting!==null&&M.plan!==null&&M.plan===l)W(`      ...${C(M.plan.steps[Math.max(0,M.plan.cursor-1)])} is still under way`);if(A!==null&&L===null){let y=R(),g$=v7(y,U.last,q),w8=M.plan===null?A.steps.length:Math.max(0,M.plan.cursor-(M.awaiting!==null?1:0)),m=k7(y,A,w8,g$,_$);if(m!==null){if(L=m,l$=y,W(""),W(`      !! PREDICTION ERROR (${m.site})`),m.site==="precondition"){if(W(`         step ${C(m.action)} needs ${C(m.expected.term)}`),W(`         believed because: ${u0(y,m.support)}`),m.observedBy!==null)W(`         denied by a complete ${m.observedBy} snapshot -- it is not there`)}else W(`         the plan ran out and ${C(m.goal)} still does not hold`);f=l7(y,m,J,Z),v=d7(y,f,{self:N,tick:_$}),B(v.kb),M.beliefsChanged=!0,A=null,l=M.plan,W(`         blames: ${NZ(f)}`);for(let G0 of v.retracted)W(`         - ${C(G0)}`);if(v.removedClause!==null)W(`         - clause ${v.removedClause}: ${n7()}   <- LEARNED`);for(let G0 of v.learned)W(`         + ${C(G0)}`);W("")}}let Y$=m7(R(),HZ,{tick:_$});if(d+=Y$.fuelUsed,Y$.added.length>0){B(Y$.kb),M.beliefsChanged=!0;for(let y of Y$.added){let g$=Y$.kb.get(y).support;if(W(`      + ${C(y)}   [inferred: ${u0(Y$.kb,g$)}]`),I===null&&C(y)==="(at fish cave)")I={term:y,support:g$,ground:y$(g$,Y$.kb.supportOf),tick:_$},W("      ^ nobody said this. B inferred it, from a true smell.")}}z$++;let _0={tick:_$,world:V,kb:R(),mind:M,lines:Q.slice(k),spent:m$,reasoned:Y$.fuelUsed,error:L===O$?null:L,attribution:L===O$?null:f,repair:L===O$?null:v,ghost:I===L8?null:I};return d$=_0,$.onTick?.(_0),_0};return{setup:Y,policyName:Z,ticks:X,get stepped(){return z$},get done(){return W$!==null||z$>=X},get lines(){return Q},get last(){return d$},kb:R,tick(){if(W$!==null)throw Error("v1 run has finished");if(z$>=X)throw Error(`v1 run has already stepped ${X} ticks`);return S8()},finish:()=>{if(W$!==null)return W$;let k=R(),O$=p7(k.assert(["smells-fishy","cave"],{via:"percept",daemon:x$},V.tick),["at","fish","cave"]);return W(""),W(`B is at ${V.at.get(q)}. Ground truth put the fish at ${V.at.get(GZ(V))} the whole time.`),W(`B still believes (at fish cave)? ${k.holds(["at","fish","cave"])}`),W(`B still holds the clause? ${k.clause(G)!==void 0}`),W(`if the nose reports the cave fishy again, B infers fish there: ${O$}`),W(`thought: ${d} units of fuel, ${H.scheduler.deliberations} deliberations.`),W$={world:V,loop:H,b:q,self:N,mind:M,clause:G,ghost:I,error:L,attribution:f,repair:v,kbAtError:l$,kb:k,stillCredulous:O$,truthViolations:B$,fuel:d,lines:Q}}}}var n7=()=>`${C(Y0.body[0])} -> ${C(Y0.head)}`;function GZ($){for(let[Z,J]of $.named.entries())if(J==="fish")return Z;throw Error("no fish in the world")}function NZ($){switch($.blame.kind){case"clause":return`its own clause ${$.blame.clause}  ("${n7()}")`;case"percept":return`its own ${$.blame.daemon}`;case"informant":return`${$.blame.speaker}`;case"world":return"nobody -- the world moved"}}function u0($,Z){if(Z===null)return"nothing held it";switch(Z.via){case"percept":return`percept from the ${Z.daemon} daemon`;case"told":return`${Z.speaker} said so`;case"seeded":return"innate";case"derived":{let J=y$(Z,$.supportOf).map((X)=>X.via==="percept"?`${X.daemon} daemon`:X.via==="told"?X.speaker:X.via);return`clause ${Z.clause}, resting on ${J.join(", ")||"nothing"}`}}}function CZ($,Z){let J=[];for(let X of $.diff(Z))if(X.mine!==void 0&&X.theirs===void 0)J.push(`+ ${C(X.term)}   [${u0($,X.mine.support)}]`);else if(X.mine===void 0&&X.theirs!==void 0)J.push(`- ${C(X.term)}`);return J}function V0($={}){let Z={...$},J=b0(o7(Z)),X=[],Q=0,z=0,W=0,Y=null,V=(q)=>{Q+=q.spent,z+=q.spent+q.reasoned;let M=q.mind,U=M.plan;return{tick:q.tick,kb:q.kb,truth:q.world.groundTruth(),lines:q.lines,spent:q.spent,reasoned:q.reasoned,expansions:Q,fuel:z,goal:M.goal===null?null:{what:M.goal.what,severity:M.goal.severity},verdict:M.lastVerdict,plan:U===null?null:{goal:U.goal,steps:U.steps.slice(),cursor:U.cursor,source:U.source},error:q.error,attribution:q.attribution,repair:q.repair,ghost:q.ghost}},H=()=>{if(J.done)return null;let q=V(J.tick());return X.push(q),W++,q};return{get options(){return Z},get run(){return J},get version(){return W},get world(){return J.setup.world},get loop(){return J.setup.loop},get mind(){return J.setup.mind},get b(){return J.setup.b},get envs(){return J.setup.world.envs},get rootEnv(){return J.setup.world.rootEnv},kb:()=>J.kb(),truth:()=>J.setup.world.groundTruth(),get tick(){return J.setup.world.tick},get stepped(){return J.stepped},get ticks(){return J.ticks},get done(){return J.done},get last(){return J.last},get frames(){return X},get lines(){return J.lines},get trace(){return Y},step:H,runToEnd(){let q=null;for(;;){let M=H();if(M===null)return q;q=M}},finish(){return Y=J.finish(),W++,Y},restart(q){if(q!==void 0)Z={...q};J=b0(o7(Z)),X=[],Q=0,z=0,Y=null,W++}}}function o7($){return{policy:$.policy,ticks:$.ticks,darkCave:$.darkCave,log:null}}function R$($){return typeof $==="string"?$:null}function a($,Z){return $<Z?-1:$>Z?1:0}function p($){let Z=new Set;for(let q of $.withHead("place")){let M=R$(q.term[1]);if(M!==null)Z.add(M)}let J=new Set,X=[];for(let q of $.withHead("adjacent")){let M=q.term,U=R$(M[1]),G=R$(M[2]);if(U===null||G===null||U===G)continue;Z.add(U),Z.add(G);let[N,R]=U<G?[U,G]:[G,U],B=`${N} ${R}`;if(J.has(B))continue;J.add(B),X.push([N,R])}let Q=new Map;for(let q of $.withHead("kind")){let M=q.term,U=R$(M[1]),G=R$(M[2]);if(U===null||G===null)continue;let N=Q.get(U);if(N===void 0||q.tick>N.tick||q.tick===N.tick&&a(G,N.kind)<0)Q.set(U,{kind:G,tick:q.tick})}let z=[],W=new Set,Y=new Set;for(let q of $.withHead("at")){let M=q.term,U=R$(M[1]),G=R$(M[2]);if(U===null||G===null)continue;if(W.add(U),!Z.has(G))Y.add(G);z.push({id:U,place:G,kind:Q.get(U)?.kind??null,support:q.support})}let V=[];for(let[q,M]of Q)if(!W.has(q))V.push({id:q,kind:M.kind});let H=(q,M)=>a(q.id,M.id);return Object.freeze({places:Object.freeze([...Z].sort(a)),edges:Object.freeze(X.sort((q,M)=>a(q[0],M[0])||a(q[1],M[1]))),entities:Object.freeze(z.sort((q,M)=>H(q,M)||a(q.place,M.place))),floating:Object.freeze(V.sort(H)),unknownPlaces:Object.freeze([...Y].sort(a))})}var FZ=145,KZ=69,RZ=40,DZ=4;function BZ($){let Z=new Map;for(let J of $.places)Z.set(J,[]);for(let[J,X]of $.edges)Z.get(J)?.push(X),Z.get(X)?.push(J);return Z}function c0($,Z){let J=new Map([[Z,0]]),X=[Z];for(let Q=1;X.length>0;Q++){let z=[];for(let W of X)for(let Y of $.get(W)??[]){if(J.has(Y))continue;J.set(Y,Q),z.push(Y)}X=z}return J}function a7($){let Z="",J=-1;for(let[X,Q]of[...$].sort((z,W)=>a(z[0],W[0])))if(Q>J)J=Q,Z=X;return Z}function r7($,Z={}){let J=Z.dx??FZ,X=Z.dy??KZ,Q=Z.pad??RZ,z=Z.sweeps??DZ,W=BZ($),Y=new Map,V=new Set,H=Q,q=0;for(let M of $.places){if(V.has(M))continue;let U=a7(c0(W,M)),G=a7(c0(W,U)),N=c0(W,G);for(let I of N.keys())V.add(I);let R=[];for(let I of[...N.keys()].sort(a)){let L=N.get(I)??0,f=R[L];if(f===void 0)R[L]=[I];else f.push(I)}for(let I=0;I<z;I++)for(let L=1;L<R.length;L++){let f=R[L-1]??[],v=R[L]??[],l$=new Map(f.map((n,d)=>[n,d])),B$=new Map;v.forEach((n,d)=>{let w$=0,z$=0;for(let d$ of W.get(n)??[]){let W$=l$.get(d$);if(W$!==void 0)w$+=W$,z$++}B$.set(n,z$===0?d:w$/z$)}),v.sort((n,d)=>(B$.get(n)??0)-(B$.get(d)??0)||a(n,d))}let B=1;for(let I of R)B=Math.max(B,I.length);let A=(B-1)*X,l=H+A/2;R.forEach((I,L)=>{I.forEach((f,v)=>{Y.set(f,{x:Q+L*J,y:l+(v-(I.length-1)/2)*X})})}),q=Math.max(q,R.length-1),H+=A+X}return Object.freeze({at:Y,width:Q*2+q*J,height:$.places.length===0?Q*2:H-X+Q})}function s7($,Z){let J=[],X=[];for(let W of $.places){let Y=Z.at.get(W);if(Y===void 0)X.push(W);else J.push({id:W,x:Y.x,y:Y.y})}let Q=[],z=[];for(let[W,Y]of $.edges){let V=Z.at.get(W),H=Z.at.get(Y);if(V===void 0||H===void 0)z.push([W,Y]);else Q.push({a:W,b:Y,x1:V.x,y1:V.y,x2:H.x,y2:H.y})}return Object.freeze({nodes:Object.freeze(J),edges:Object.freeze(Q),unplaced:Object.freeze(X),unplacedEdges:Object.freeze(z)})}function t7($){let Z={...$},J=new Set,X=!1,Q=!1,z=()=>{if(X){Q=!0;return}X=!0;try{do{Q=!1;for(let W of[...J])W(Z)}while(Q)}finally{X=!1}};return{get:()=>Z,set(W){let Y=!1;for(let V of Object.keys(W)){let H=W[V];if(!Object.is(Z[V],H))Z={...Z,[V]:H},Y=!0}if(Y)z()},subscribe(W){return J.add(W),()=>{J.delete(W)}}}}function K($){let Z=document.getElementById($);if(Z===null)throw Error(`vis: #${$} is not in the document`);return Z}function _($,Z={},...J){let X=document.createElement($);for(let[Q,z]of Object.entries(Z))X.setAttribute(Q,z);for(let Q of J)X.append(Q);return X}function w($,Z={}){let J=document.createElementNS("http://www.w3.org/2000/svg",$);for(let[X,Q]of Object.entries(Z))J.setAttribute(X,String(Q));return J}function S($){$.replaceChildren()}function e7($,Z){let J=document.createDocumentFragment();return J.append(_("dt",{},$),_("dd",{},Z)),J}function i($,Z,J=""){let X=_("dl",{class:"slot"}),Q=_("dd",J===""?{}:{class:J},Z);return X.append(_("dt",{},$),Q),X}function l0($){return _("li",{class:"empty"},$)}var g=($)=>C($);function Q$($){if(!$)return"no recorded support";switch($.via){case"percept":return`percept from the ${$.daemon} daemon`;case"told":return`told by ${$.speaker}`;case"seeded":return"seeded — held before the run began";case"derived":return`derived by clause ${$.clause}`}}function Z8($){if(!$)return"";switch($.via){case"percept":return $.daemon;case"told":return`told:${$.speaker}`;case"seeded":return"seeded";case"derived":return`clause ${$.clause}`}}function OZ($,Z){let J=[];if($===null)for(let X of Z.assertions())J.push({sign:"+",term:g(X.term),why:Q$(X.support)});else for(let X of $.diff(Z)){let Q=g(X.term);if(X.mine!==void 0&&X.theirs===void 0)J.push({sign:"-",term:Q,why:`was: ${Q$(X.mine.support)}`});else if(X.theirs!==void 0){let z=X.mine!==void 0;J.push({sign:"+",term:Q,why:z?`re-asserted — ${Q$(X.theirs.support)}`:Q$(X.theirs.support)})}}return J.sort((X,Q)=>X.term<Q.term?-1:X.term>Q.term?1:0),J}function c$($,Z){let J=new Map;for(let X of Z.entities){let Q=J.get(X.id);if(Q===void 0)J.set(X.id,Q=new Set);Q.add(X.place)}return $.entities.map((X)=>{let Q=J.get(X.id),z=Q!==void 0&&Q.size>0;return{id:X.id,place:X.place,kind:X.kind,support:X.support,diverges:z&&!Q.has(X.place),absent:!z}})}var AZ={agent:"\uD83E\uDDCD",fish:"\uD83D\uDC1F",carcass:"\uD83D\uDC80"};function J8($){return $===null?"●":AZ[$]??"●"}function X8($){if($.error!==null){let Z=$.error,J=[];if(Z.site==="precondition"){if(J.push(`step ${g(Z.action)} needs ${g(Z.expected.term)}`),J.push(`believed because: ${Q$(Z.support)}`),Z.observedBy!==null)J.push(`a complete ${Z.observedBy} snapshot says it is not there`)}else J.push(`the plan ran out and ${g(Z.goal)} still does not hold`);let X=$.attribution;if(X!==null)J.push(`policy ${X.policy} blames: ${Q8(X.blame)}`);let Q=$.repair;if(Q!==null){for(let z of Q.retracted)J.push(`retracted ${g(z)}`);if(Q.removedClause!==null)J.push(`gave up clause ${Q.removedClause} — this is the learning`);for(let z of Q.learned)J.push(`learned ${g(z)}`)}return J.push(IZ($)),{kind:"prediction error",text:PZ(Z.site),detail:J,hot:!0}}if($.ghost!==null){let Z=$.ghost;return{kind:"inference",text:`B now believes ${g(Z.term)}. Nobody said it.`,detail:[`${Q$(Z.support)}`,...Z.ground.map((J)=>`resting on: ${Q$(J)}`),$.truth.holds(Z.term)?"and it happens to be true -- ground truth contains it too.":"ground truth does not contain this fact."],hot:!0}}if($.plan===null&&$.goal!==null&&$.verdict==="exhausted")return{kind:"stall",text:`${g($.goal.what)} — exhausted`,detail:["the search space closed: nothing B believes reaches this goal."],hot:!1};return null}function PZ($){return $==="precondition"?"A step's precondition is denied by what B can see.":"The plan finished and the goal still does not hold."}function Q8($){switch($.kind){case"percept":return`its own ${$.daemon} sense`;case"clause":return`its own clause ${$.clause}`;case"informant":return`${$.speaker}, who told it`;default:return"the world for changing"}}function IZ($){let Z=c$(p($.kb),p($.truth)).filter((X)=>X.diverges);if(Z.length===0)return"and the two maps above agree: nothing B places is anywhere the world does not.";return`and the two maps above still disagree: B places ${Z.map((X)=>`${X.id} in ${X.place}`).join(", ")}, and the world does not.`}function z8($){let Z=X8($);if(Z===null)return"none";return Z.hot?"hot":"quiet"}function W8($){let Z=$.frame,J=Z.fuel-Z.expansions,X=[{key:"goal",value:Z.goal===null?"—":g(Z.goal.what),verdict:null},{key:"severity",value:Z.goal===null?"—":Z.goal.severity.toFixed(3),verdict:null},{key:"verdict",value:Z.verdict===null?"—":Z.verdict,verdict:Z.verdict===null?null:Z.verdict},{key:"planner",value:`${Z.spent} expansions this tick · ${Z.expansions} total`,verdict:null},{key:"resolver",value:`${Z.reasoned} transitions this tick · ${J} total`,verdict:null},{key:`clause ${$.clause}`,value:Z.kb.clause($.clause)===void 0?"given up":"still held",verdict:null},{key:"(at fish cave)",value:Z.kb.holds(["at","fish","cave"])?"believed":"not believed",verdict:null}],Q=Z.plan===null?null:Z.plan.steps.map((z,W)=>({text:g(z),now:W===Z.plan.cursor-1}));return{rows:X,steps:Q,emptyPlan:"no plan — nothing B believes reaches this goal",fuelPct:$.fuelScale===0?0:100*Z.reasoned/$.fuelScale,fuelTitle:`resolver transitions this tick: ${Z.reasoned}, against the most expensive tick run so far (${$.fuelScale}). Cumulative: ${J}. Planner expansions (${Z.expansions}) are a different unit and are in neither figure.`,delta:OZ($.previous===null?null:$.previous.kb,Z.kb),emptyDelta:"belief unchanged",beat:X8(Z),narration:Z.lines.join(`
+`)||"(quiet)"}}function Y8($){return $?"Everything B believes, once the first tick has run":"What belief gained and lost this tick"}function V8($){let Z=r7(p($.truth));return{layout:Z,slots:[{which:"truth",layout:Z},{which:"belief",layout:Z}]}}function q8($){if(!$.done)return"wait";return $.trace===null?"finish":"show"}function TZ($){let Z=p($.truth),J=new Map;for(let X of Z.entities){let Q=J.get(X.id);if(Q===void 0)J.set(X.id,[X.place]);else Q.push(X.place)}return c$(p($.kb),Z).filter((X)=>X.diverges).map((X)=>{let Q=J.get(X.id),z=Q===void 0||Q.length===0?"the world has no such thing anywhere":`the world has it in ${Q.join(" and ")}`;return`${X.id} in ${X.place} (${z})`})}function jZ($,Z){let J=[];for(let W of Z)if(c$(p(W.kb),p(W.truth)).some((Y)=>Y.diverges))J.push(W.tick);let X=Z[Z.length-1],Q=Z.find((W)=>W.attribution!==null),z=Z.find((W)=>W.repair!==null);return{policy:$,ticks:Z.length,divergentTicks:J,residue:X===void 0?[]:TZ(X),blame:Q===void 0?null:Q8(Q.attribution.blame),gaveUpClause:z?.repair?.removedClause??null,retracted:z===void 0?[]:z.repair.retracted.map(g),retractedButBack:z===void 0||X===void 0?[]:z.repair.retracted.filter((W)=>X.kb.holds(W)).map(g),learned:z===void 0?[]:z.repair.learned.map(g),lastTickReasoned:X===void 0?0:X.reasoned}}function H8($,Z){return $.map((J)=>{let X=V0({policy:J,ticks:Z});return X.runToEnd(),jZ(J,X.frames)})}function $8($){if($.length===0)return"";return $.every((J,X)=>X===0||J===$[X-1]+1)&&$.length>1?`${$[0]}–${$[$.length-1]}`:$.join(", ")}function M8($){if($.length===0)return[];let Z=[],J=$.map((X)=>X.policy);Z.push(`The two maps above are from one of these ${J.length} runs. This page has just run all ${J.length} attribution policies the substrate defines — ${J.join(", ")} — `+`for ${$[0].ticks} ticks each and compared each mind's map against its own ground truth, tick by tick. Every line below is read off those runs.`);for(let X of $){let Q=X.blame===null?"never erred, and blamed nobody":`blamed ${X.blame}`,z=X.gaveUpClause===null?X.learned.length===0?"gave up no clause":`gave up no clause, and learned ${X.learned.join(", ")}`:`gave up clause ${X.gaveUpClause}`,W=X.divergentTicks.length===X.ticks&&X.ticks>0,Y=X.residue.length===0,V;if(X.divergentTicks.length===0)V="Its map never disagreed with the world.";else if(W)V=`Its map disagreed with the world on every one of its ${X.ticks} ticks: at the end B still places ${X.residue.join("; ")}.`;else if(Y){let q=X.divergentTicks[X.divergentTicks.length-1]+1;V=`Its map disagreed with the world on ${X.divergentTicks.length===1?"tick":"ticks"} ${$8(X.divergentTicks)}, and agreed from tick ${q} to the end.`}else V=`Its map disagreed on ${X.divergentTicks.length===1?"tick":"ticks"} ${$8(X.divergentTicks)} and was wrong again by the end: B places ${X.residue.join("; ")}.`;let H=X.retractedButBack.length>0?` It retracted ${X.retractedButBack.join(", ")} and believed it again by the end${X.gaveUpClause===null?", having given up neither the clause nor the sense that produce it":""}.`:"";Z.push(`${X.policy} — ${Q}, ${z}. ${V}${H} Its last tick cost ${X.lastTickReasoned} resolver transitions.`)}return Z}function U8($){return[`policy · ${$.policy}`,`tick ${$.stepped} of ${$.ticks}`,`${$.facts} facts believed`,`${$.clauses} ${$.clauses===1?"clause":"clauses"} held`]}function _8($,Z){return`Demo v1 · tick ${$} of ${Z}`}var EZ=56,SZ=46,LZ=38;function xZ($,Z,J){let X=s7($,J),Q=new Map;for(let q of X.nodes)Q.set(q.id,q);let z=c$($,Z),W=new Map,Y=[];for(let q of z){if(!Q.has(q.place)){Y.push(`${q.id} in ${q.place}`);continue}let M=W.get(q.place);if(M===void 0)W.set(q.place,[q]);else M.push(q)}let V=[];for(let[q,M]of W){let U=Q.get(q),G=M.map((N,R)=>{let B=N.support;return{id:N.id,place:N.place,kind:N.kind,support:B,diverges:N.diverges,absent:N.absent,glyph:J8(N.kind),tag:Z8(B),title:`(at ${N.id} ${N.place}) — ${Q$(B)}${N.diverges?" — the other base puts it elsewhere":N.absent?" — the other base has never heard of it":""}`,x:U.x+(R-(M.length-1)/2)*SZ,y:U.y+LZ}});V.push({place:q,x:U.x,y:U.y,marks:G})}let H=[];if(X.unplaced.length>0)H.push(`believes in ${X.unplaced.join(", ")} — no position in the shared layout`);if(X.unplacedEdges.length>0)H.push(`${X.unplacedEdges.length} edge(s) undrawable`);if($.unknownPlaces.length>0)H.push(`something is in ${$.unknownPlaces.join(", ")}, which this base never called a place`);if($.floating.length>0)H.push(`knows ${$.floating.map((q)=>`${q.id} (a ${q.kind})`).join(", ")} exists, and not where`);if(Y.length>0)H.push(`unplaceable: ${Y.join(", ")}`);return{pic:X,groups:V,nowhere:Y,notes:H}}function G8($,Z,J){S($);let X=w("svg",{viewBox:`0 0 ${J.width} ${J.height+EZ}`,role:"img"}),Q=w("g"),z=w("g"),W=w("g");X.append(Q,z,W),$.append(X);let Y=new Map;return{draw(V,H){let q=xZ(V,H,J);S(Q);for(let U of q.pic.edges){let G=w("line",{class:"edge",x1:U.x1,y1:U.y1,x2:U.x2,y2:U.y2}),N=w("title");N.textContent=`(adjacent ${U.a} ${U.b})`,G.append(N),Q.append(G)}S(z);for(let U of q.pic.nodes){z.append(w("circle",{class:"node-ring",cx:U.x,cy:U.y,r:21}));let G=w("text",{class:"node-label",x:U.x,y:U.y+3.5});G.textContent=U.id,z.append(G)}let M=new Set;for(let U of q.groups)for(let G of U.marks){M.add(G.id);let N=Y.get(G.id);if(N===void 0)N=w("g",{class:"thing"}),N.append(w("circle",{class:"halo",r:14}),w("text",{class:"glyph",y:6}),w("text",{class:"tag",y:25}),w("text",{class:"tag src",y:35}),w("title")),W.append(N),Y.set(G.id,N);N.setAttribute("transform",`translate(${G.x}, ${G.y})`),N.classList.toggle("wrong",G.diverges),N.classList.toggle("unheard",G.absent),N.classList.remove("gone");let[,R,B,A,l]=[...N.children];R.textContent=G.glyph,B.textContent=G.id,A.textContent=G.tag,l.textContent=G.title}for(let[U,G]of Y)if(!M.has(U))G.classList.add("gone");Z.textContent=q.notes.join(" · ")}}}function N8($){let Z=W8($),J=K("kv");S(J);for(let H of Z.rows)J.append(e7(H.key,H.verdict===null?H.value:_("span",{class:"verdict","data-v":H.verdict},H.value)));let X=K("plan");if(S(X),Z.steps===null)X.append(l0(Z.emptyPlan));else for(let H of Z.steps)X.append(_("li",{"data-now":H.now?"1":"0"},_("span",{class:"cur"},H.now?"▸":""),H.text));let Q=K("fuel");Q.style.width=`${Z.fuelPct}%`;let z=Q.parentElement;if(z!==null)z.title=Z.fuelTitle;let W=K("delta");if(S(W),Z.delta.length===0)W.append(l0(Z.emptyDelta));else for(let H of Z.delta)W.append(_("li",{"data-s":H.sign},_("span",{class:"s"},H.sign),_("span",{class:"t"},H.term),_("span",{class:"w"},H.why)));let Y=K("beat");S(Y);let V=Z.beat;if(V!==null){let H=_("div",{class:V.hot?"beat":"beat quiet"});if(H.append(_("span",{class:"kind"},V.kind),_("span",{class:"what"},V.text)),V.detail.length>0){let q=_("ul");for(let M of V.detail)q.append(_("li",{},M));H.append(q)}Y.append(H)}K("narration").textContent=Z.narration}var yZ=["control","env","kont","proof"];function C8($){let Z=K("proof-pick"),J=$.specs.map((H)=>H.key).join("|");if(Z.dataset.keys!==J){Z.dataset.keys=J,S(Z);for(let H of $.specs)Z.append(_("option",{value:H.key},H.label))}if($.session!==null)Z.value=$.session.spec.key;let X=$.session,Q=K("machine-note");Q.textContent=X===null?"no proof open":`tick ${$.tick} · ${X.spec.label} · ${X.total} transitions${X.capped?" (capped)":""}`;let z=K("cek-slider");z.max=String(X===null?0:X.total),z.value=String(X===null?0:X.at),z.disabled=X===null;let W=X===null?0:X.at,Y=X===null?0:X.total;K("cek-first").disabled=X===null||W===0,K("cek-prev").disabled=X===null||W===0,K("cek-next").disabled=X===null||W>=Y,K("cek-last").disabled=X===null||W>=Y;let V=X===null?null:X.view();K("cek-pos").textContent=V===null?"—":`${W} / ${Y} · fuel ${V.fuelUsed}`;for(let H of yZ)K(`tab-${H}`).setAttribute("aria-selected",String(H===$.tab)),K(`pane-${H}`).toggleAttribute("hidden",H!==$.tab);gZ(K("pane-control"),V),vZ(K("pane-env"),V),fZ(K("pane-kont"),V),hZ(K("pane-proof"),$,V)}function wZ($){return _("span",{class:"status","data-s":$.status},$.status)}function gZ($,Z){if(S($),Z===null){$.append(_("p",{class:"empty"},"pick a goal above to open a proof."));return}if($.append(i("mode",Z.mode==="eval"?"eval — reducing an expression":"ret — a value looking for its continuation")),$.append(i("status",wZ(Z))),$.append(i("control",Z.ctrl,"mono")),$.append(i("value",Z.val,"mono")),$.append(i("env",`#${Z.env} · ${Z.envDepth} frame(s) deep`)),$.append(i("stack",`${Z.kontDepth} continuation frame(s)`)),$.append(i("fuel",`${Z.fuelUsed} transitions taken`)),Z.result!==null)$.append(i("result",Z.result,"mono"));if(Z.yielded!==null)$.append(i("yielded",Z.yielded,"mono"));if(Z.error!==null)$.append(i("error",Z.error,"mono"));$.append(_("div",{class:"proofmeta"},Z.text))}function vZ($,Z){if(S($),Z===null){$.append(_("p",{class:"empty"},"no proof open."));return}let J=_("div",{class:"frames"});for(let X of Z.chain){let Q=_("div",{class:X.depth===0?"frame here":"frame"}),z=_("div",{class:"head"});if(z.append(_("span",{},`#${X.id}`),_("span",{},`${X.open?"open · ":""}${X.bindings.length} binding(s)`)),Q.append(z),X.bindings.length>0){let W=_("dl",{class:"binds"});for(let Y of X.bindings)W.append(_("dt",{},Y.name)),W.append(_("dd",Y.hole?{class:"hole"}:{},Y.value));Q.append(W)}J.append(Q)}$.append(J),$.append(_("div",{class:"proofmeta"},`frame #${Z.env} is where a name resolves first; the root is last. `+"Frames are persistent — nothing above rebinds anything below."))}function kZ($){let Z=_("li"),J=_("span");if(J.append(_("span",{class:"t"},$.t),` ${$.waiting}`),$.op!==null)J.append(_("div",{class:"mono"},`operator ${$.op}`));if($.done.length>0)J.append(_("div",{class:"mono"},`in hand: ${$.done.join("  ")}`));if($.rest.length>0)J.append(_("div",{class:"mono"},`still due: ${$.rest.join("  ")}`));if($.then!==null)J.append(_("div",{class:"mono"},`then ${$.then}`));if($.otherwise!==null)J.append(_("div",{class:"mono"},`else ${$.otherwise}`));return Z.append(_("span",{class:"ix"},String($.depth)),J),Z}function fZ($,Z){if(S($),Z===null){$.append(_("p",{class:"empty"},"no proof open."));return}if(Z.kont.length===0)$.append(_("p",{class:"empty"},"the stack is empty — nothing is owed."));else{let X=_("ol",{class:"kont"});for(let Q of Z.kont)X.append(kZ(Q));$.append(X)}let J=0;for(let X of Z.kont)if(X.t==="restore")J++;$.append(_("div",{class:"proofmeta"},`${Z.kont.length} frame(s), ${J} of them restores. A tail call pushes no second restore: watch this stack stay flat across an iteration and you are watching tail-call elimination, not being told about it.`))}function hZ($,Z,J){S($);let X=Z.session;if(X===null||J===null){$.append(_("p",{class:"empty"},"no proof open."));return}$.append(_("p",{},"You are watching first-order proof search as machine transitions. Clause selection, freshening, unification and backtracking are not implemented "+"beside the evaluator — they are this Lisp program running on it. The "+"continuation stack IS the search tree."));let Q=_("div",{class:"proofmeta"});if(Q.append(_("span",{},`goal ${X.spec.label}`),_("span",{},`answers wanted ${X.spec.limit}`),_("span",{},`transitions ${X.at} / ${X.total}`),_("span",{},`status ${X.status}`),_("span",{},`deepest stack ${X.peakKont} frames`)),$.append(Q),$.append(_("p",{},X.spec.note)),$.append(_("div",{class:"proofmeta"},"Transition 0 is the resolver program before it has started: a `begin` of definitions. The search proper begins once those are bound, which is why the stack is empty at the left end of the slider.")),J.result!==null)$.append(_("div",{class:"mono"},J.result));if($.append(_("div",{class:"proofmeta"},`Driven by the page, not by the agent loop: the tick's own resolver machine is discarded inside materialise, so this is a fresh proof of the same goal over the same belief value, started with the same startProof the loop calls. The tick itself spent ${Z.reasonedThisTick} resolver transitions, against belief as it stood before this tick's inference landed; this re-enactment takes ${X.total}. Scrubbing backwards restarts the proof, which mints a new kb handle: \`*kb*\` in the environment pane is the only binding whose value is a fact about this page rather than about the search.`)),X.capped)$.append(_("div",{class:"proofmeta"},"This search hit the page's transition cap and was not run to a terminal status."))}function F8($,Z,J){return{n:J,mode:$.mode,status:$.status,focus:R8(C($.mode==="eval"?$.ctrl:$.val),56),kont:$.kont.map(d0),envDepth:Z.depth($.env),fuelUsed:$.fuelUsed}}function d0($){switch($.t){case"if":return"if";case"seq":return`seq×${$.rest.length}`;case"def":return`def ${$.name}`;case"restore":return"restore";case"yield":return"yield";case"app":{if($.done.length===0)return`app op?/${$.rest.length}`;return`app ${R8(C($.done[0]),14)} ${$.done.length-1}/${$.done.length-1+$.rest.length}`}}}function K8($){let Z=String($.n).padStart(3),J=$.mode.padEnd(5),X=String($.fuelUsed).padStart(4),Q=String($.envDepth).padStart(3),z=$.kont.length>0?`   ⟨${$.kont.join(" · ")}⟩`:"";return`${Z}   ${J} ${X} ${Q}  ${$.focus}${z}`}function R8($,Z){return $.length<=Z?$:`${$.slice(0,Z-1)}…`}var m0={focus:240,cell:64};function r($,Z){let J=C($);return J.length<=Z?J:`${J.slice(0,Z-1)}…`}function uZ($){return $.toJSON()}function B8($,Z){return uZ($)[Z]??null}function bZ($,Z){let J=[];for(let X=Z;X!==q$;){let Q=B8($,X);if(!Q)break;J.push(X),X=Q.parent}return J}function cZ($,Z,J,X){let Q=[];for(let z of Object.keys(J.vars)){let W,Y=!1;try{W=r($.lookup(Z,z),X.cell)}catch(V){if(!(V instanceof Error?V.message:String(V)).startsWith("used before defined"))throw V;Y=!0,W="⧖ declared, not yet defined"}Q.push(Object.freeze({name:z,value:W,hole:Y}))}return Q}function lZ($,Z,J=0,X={}){let Q={...m0,...X},z=B8($,Z);if(!z)return Object.freeze({id:Z,parent:q$,open:!1,depth:J,bindings:Object.freeze([])});return Object.freeze({id:Z,parent:z.parent,open:z.open===!0,depth:J,bindings:Object.freeze(cZ($,Z,z,Q))})}function dZ($,Z,J={}){return bZ($,Z).map((X,Q)=>lZ($,X,Q,J))}function mZ($,Z,J={}){let X={...m0,...J},Q={t:$.t,depth:Z,label:d0($),op:null,done:Object.freeze([]),rest:Object.freeze([]),then:null,otherwise:null,name:null,env:null};switch($.t){case"if":return Object.freeze({...Q,waiting:"the test of an `if`",then:r($.then,X.cell),otherwise:r($.else,X.cell)});case"app":{let z=$.done.map((Y)=>r(Y,X.cell)),W=$.done.length===0?"the operator of a call":$.rest.length===0?`the last argument of (${z[0]} …)`:`argument ${$.done.length} of (${z[0]} …)`;return Object.freeze({...Q,waiting:W,op:z.length>0?z[0]:null,done:Object.freeze(z.slice(1)),rest:Object.freeze($.rest.map((Y)=>r(Y,X.cell)))})}case"seq":return Object.freeze({...Q,waiting:`a value to discard, then ${$.rest.length} more form(s)`,rest:Object.freeze($.rest.map((z)=>r(z,X.cell)))});case"def":return Object.freeze({...Q,waiting:`the value of \`${$.name}\``,name:$.name});case"yield":return Object.freeze({...Q,waiting:"a reply from outside the machine"});case"restore":return Object.freeze({...Q,waiting:`nothing — it puts env #${$.env} back`,env:$.env})}}function pZ($,Z={}){return $.kont.map((J,X)=>mZ(J,X,Z))}function iZ($,Z,J=0,X={}){let Q={...m0,...X},z=F8($,Z,J);return Object.freeze({n:J,mode:$.mode,status:$.status,fuelUsed:$.fuelUsed,ctrl:r($.ctrl,Q.focus),val:r($.val,Q.focus),env:$.env,envDepth:z.envDepth,chain:Object.freeze(dZ(Z,$.env,Q)),kont:Object.freeze(pZ($,Q)),kontDepth:$.kont.length,result:$.status==="done"?r($.result,Q.focus):null,yielded:$.status==="yielded"?r($.yielded,Q.focus):null,error:$.error,snapshot:z,text:K8(z)})}function D8($,Z,J=0){let X=0;for(let Q of $.kont)if(Q.t==="restore")X++;return Object.freeze({n:J,mode:$.mode,status:$.status,fuelUsed:$.fuelUsed,kontDepth:$.kont.length,envDepth:Z.depth($.env),env:$.env,restores:X})}function q0($){return $.status!=="running"&&$.status!=="out-of-fuel"}function H0($,Z,J={}){let X=J.around??((U)=>U()),Q=J.record!==!1,z=J.maxPulses??50000,W=J.budget??{},Y=0,V=!1,H=[],q=()=>{if(!Q)return;if(H.length>=z){V=!0;return}H.push(D8($,Z,Y))};q();let M=()=>{if(q0($))return $.status;let U=$.fuelUsed;if(X(()=>k$($,Z,1)),$.status==="out-of-fuel")$.status="running";if($.fuelUsed!==U)Y+=$.fuelUsed-U,q();return $.status};return{get machine(){return $},get store(){return Z},get n(){return Y},get status(){return $.status},get stalled(){return q0($)},get pulses(){return H},get truncated(){return V},view(U=W){return iZ($,Z,Y,U)},pulse(){return D8($,Z,Y)},step:M,stepBy(U){for(let G=0;G<U;G++){if(q0($))break;M()}return $.status},runToChange(U=1e5){if(q0($))return $.status;let G="running";for(let N=0;N<U;N++){let R=$.fuelUsed;if(M(),$.fuelUsed===R)break;if($.status!==G)break}return $.status}}}var nZ=400000;function O8($){let Z=[{key:"materialise",label:"materialise (at ?x ?p)",goal:["at","?x","?p"],limit:32,note:"the reflection step: every way this belief can currently place anything. The agent loop runs this goal each tick."},{key:"fish",label:"(at fish ?p)",goal:["at","fish","?p"],limit:8,note:"where does B think the fish is, and by what route to that conclusion."},{key:"smell",label:"(smells-fishy ?p)",goal:["smells-fishy","?p"],limit:8,note:"the premise under the whole mistake. A short search: watch one end to end."},{key:"wants",label:"(wants b ?goal ?severity)",goal:["wants","b","?goal","?severity"],limit:8,note:"goals are clause heads. This is where wanting comes from."}];if($.goal!==null)Z.push({key:"goal",label:`${C($.goal.what)} (this tick's goal)`,goal:$.goal.what,limit:4,note:"the goal itself, asked of belief. Exhaustion here is not ignorance — "+"it is the search space closing with no answer."});return Z}function A8($,Z){let J=K$($,Z.goal,Z.limit),X=H0(J.machine,J.envs,{around:(U)=>E$(J.handle,U)});while(!X.stalled&&X.n<nZ)X.stepBy(1024);let Q=X.n,z=!X.stalled,W=X.pulses.slice(),Y=0;for(let U of W)Y=Math.max(Y,U.kontDepth);F$(J.handle);let V=K$($,Z.goal,Z.limit),H=H0(V.machine,V.envs,{around:(U)=>E$(V.handle,U),record:!1}),q=!1,M=()=>{F$(V.handle),V=K$($,Z.goal,Z.limit),H=H0(V.machine,V.envs,{around:(U)=>E$(V.handle,U),record:!1})};return{spec:Z,total:Q,capped:z,pulses:W,peakKont:Y,get at(){return H.n},get status(){return H.status},view:()=>H.view(),seek(U){if(q)return;let G=Math.max(0,Math.min(Q,Math.floor(U)));if(G<H.n)M();if(G>H.n)H.stepBy(G-H.n)},dispose(){if(q)return;q=!0,F$(V.handle)}}}var o0=8,P8=Object.keys(h0).sort(),t=t7({at:0,tab:"control",open:!1,proofKey:"materialise",policy:"humble",nonce:0}),oZ=0;function M0($={}){t.set({...$,nonce:++oZ})}var O=V0({policy:"humble",ticks:o0}),U0=null,a0=null,r0=null,c=null,i0="",n0=0;function aZ($){let Z=$ instanceof Error?$.stack??$.message:String($);K("fault").textContent=`the substrate threw: ${Z}`}function E($){try{$()}catch(Z){aZ(Z)}}function rZ($){let Z=V8($);U0=Z.layout;for(let J of Z.slots){let X=G8(K(`plate-${J.which}`),K(`strip-${J.which}`),J.layout);if(J.which==="truth")a0=X;else r0=X}}function s0(){if(O.step()===null)return!1;if(U0===null)rZ(O.frames[0]);return!0}function I8($){O.restart({policy:$,ticks:o0}),U0=null,a0=null,r0=null,T8(),n0=0,K("fault").textContent="",s0(),M0({at:0,policy:$})}function T8(){c?.dispose(),c=null,i0=""}function sZ(){let $=t.get();return O.frames[Math.min($.at,O.frames.length-1)]??null}function tZ($,Z,J){let X=`${$.tick}|${J}|${O.options.policy??""}`;if(i0===X&&c!==null)return;T8();let Q=Z.find((z)=>z.key===J)??Z[0];c=A8($.kb,Q),i0=`${$.tick}|${Q.key}|${O.options.policy??""}`}function j8(){let $=t.get(),Z=sZ();if(Z===null||U0===null)return;let J=Math.min($.at,O.frames.length-1);K("qual").textContent=_8(Z.tick,O.ticks),K("title").textContent="nobody lied",K("sub").textContent="B is hungry, smells something fishy in a dark cave, and infers a fish from a true smell. Nothing false is ever asserted to it. This page runs that simulation here, in the tab: every picture below is read out of a knowledge base this browser just built.",eZ(Z),$J(J),ZJ(Z);let X=K("delta").parentElement?.querySelector("h2");if(X!==null&&X!==void 0)X.textContent=Y8(J===0);let Q=0;for(let H of O.frames)Q=Math.max(Q,H.reasoned);N8({frame:Z,previous:J===0?null:O.frames[J-1]??null,clause:O.run.setup.clause,fuelScale:Q});let z=O8(Z);tZ(Z,z,$.proofKey);let W=K("machine");W.dataset.open=$.open?"1":"0";let Y=K("machine-toggle");Y.textContent=$.open?"hide":"show",Y.setAttribute("aria-expanded",String($.open)),C8({tick:Z.tick,specs:z,session:c,tab:$.tab,reasonedThisTick:Z.reasoned}),XJ();let V=`#t${Z.tick}`;if(location.hash!==V)history.replaceState(null,"",V)}function eZ($){let Z=K("chips");S(Z);let J=0;for(let X of $.kb.assertions())J++;for(let X of U8({policy:O.options.policy??"humble",stepped:O.stepped,ticks:O.ticks,facts:J,clauses:$.kb.allClauses().length}))Z.append(_("span",{class:"chip"},X));Z.append(_("span",{class:"chip"},"one press · one real tick")),Z.append(_("span",{class:"chip"},"re-run as:"));for(let X of P8){let Q=_("button",{class:"chip",type:"button","aria-pressed":String(X===(O.options.policy??"humble"))});if(Q.textContent=X,X===(O.options.policy??"humble"))Q.style.color="var(--ink)";Q.addEventListener("click",()=>E(()=>I8(X))),Z.append(Q)}}function $J($){let Z=K("ticks");S(Z);for(let J=0;J<O.ticks;J++){let X=O.frames[J],Q=_("button",{class:"tk",type:"button",role:"tab"});if(Q.dataset.beat=X===void 0?"none":z8(X),Q.setAttribute("aria-current",String(J===$)),Q.title=X===void 0?`tick ${J+1} — not run yet`:`tick ${X.tick}`,Q.append(_("span",{class:"bar"}),`t${J+1}`),X===void 0)Q.style.opacity="0.45";Q.addEventListener("click",()=>E(()=>s(J))),Z.append(Q)}K("prev").disabled=$===0,K("next").disabled=$>=O.ticks-1,K("runend").disabled=O.done}function ZJ($){let Z=p($.kb),J=p($.truth);a0?.draw(J,Z),r0?.draw(Z,J)}var p0=null;function JJ(){if(p0===null)p0=H8(P8,o0);return p0}function XJ(){let $=K("epilogue");S($);let Z=q8(O);if(Z==="wait")return;if(Z==="finish")n0=O.lines.length,O.finish();$.append(_("h2",{},"After the run"));for(let J of O.lines.slice(n0)){if(J.trim()==="")continue;$.append(_("p",{},J))}for(let J of M8(JJ()))$.append(_("p",{},J))}function s($){let Z=Math.max(0,Math.min(O.ticks-1,$));while(O.frames.length<=Z)if(!s0())break;M0({at:Math.min(Z,O.frames.length-1)})}function D$($){if(c===null)return;c.seek($),M0()}function QJ(){t.subscribe(()=>E(j8)),K("prev").addEventListener("click",()=>E(()=>s(t.get().at-1))),K("next").addEventListener("click",()=>E(()=>s(t.get().at+1))),K("runend").addEventListener("click",()=>E(()=>{O.runToEnd(),s(O.frames.length-1)})),K("restart").addEventListener("click",()=>E(()=>I8(O.options.policy??"humble"))),K("theme").addEventListener("click",()=>{let $=document.documentElement,Z=$.getAttribute("data-theme");if(Z===null)$.setAttribute("data-theme","light");else if(Z==="light")$.setAttribute("data-theme","dark");else $.removeAttribute("data-theme")}),K("machine-toggle").addEventListener("click",()=>t.set({open:!t.get().open}));for(let $ of["control","env","kont","proof"])K(`tab-${$}`).addEventListener("click",()=>t.set({tab:$}));K("proof-pick").addEventListener("change",($)=>M0({proofKey:$.target.value})),K("cek-first").addEventListener("click",()=>E(()=>D$(0))),K("cek-prev").addEventListener("click",()=>E(()=>D$((c?.at??0)-1))),K("cek-next").addEventListener("click",()=>E(()=>D$((c?.at??0)+1))),K("cek-last").addEventListener("click",()=>E(()=>D$(c?.total??0))),K("cek-slider").addEventListener("input",($)=>E(()=>D$(Number($.target.value)))),window.addEventListener("hashchange",()=>E(()=>s(E8()))),window.addEventListener("keydown",($)=>{if($.metaKey||$.ctrlKey||$.altKey)return;let Z=$.target?.tagName;if(Z==="INPUT"||Z==="SELECT"||Z==="TEXTAREA")return;let J=t.get().at;switch($.key){case"ArrowLeft":$.preventDefault(),E(()=>s(J-1));return;case"ArrowRight":$.preventDefault(),E(()=>s(J+1));return;case"Home":$.preventDefault(),E(()=>s(0));return;case"End":$.preventDefault(),E(()=>s(O.ticks-1));return;case",":$.preventDefault(),E(()=>D$((c?.at??0)-1));return;case".":$.preventDefault(),E(()=>D$((c?.at??0)+1));return;default:return}})}function E8(){let $=/^#t(\d+)$/.exec(location.hash);if($===null)return 0;return Number($[1])-1}E(()=>{QJ(),s0(),s(E8()),j8()});})();
+
+</script>
+
+</body></html>

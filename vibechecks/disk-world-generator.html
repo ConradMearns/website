@@ -1,0 +1,1265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Disk World Generator</title>
+<style>
+:root{
+  --stage:#cfdbe1; --panel:#f3f6f7; --panel2:#e1eaee; --ink:#12212b; --mute:#4d6273; --line:#b9c9d2;
+  --accent:#1c7c8c; --accent-ink:#ffffff; --focus:#0b5f6e;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --stage:#0a1016; --panel:#141e27; --panel2:#1d2a36; --ink:#e4ecf0; --mute:#8ea2b0; --line:#2a3946;
+    --accent:#5bbac8; --accent-ink:#04222a; --focus:#9be0ea;
+  }
+}
+:root[data-theme="dark"]{
+  --stage:#0a1016; --panel:#141e27; --panel2:#1d2a36; --ink:#e4ecf0; --mute:#8ea2b0; --line:#2a3946;
+  --accent:#5bbac8; --accent-ink:#04222a; --focus:#9be0ea;
+}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;margin:0;background:var(--stage);color:var(--ink);
+  font:15px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-text-size-adjust:100%;overflow:hidden}
+#app{height:100%;display:flex;flex-direction:column;max-width:100%}
+#stage{position:relative;flex:1 1 auto;min-height:120px;overflow:hidden}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#hud{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none}
+#status{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;
+  max-width:70%;font-variant-numeric:tabular-nums}
+#reset{pointer-events:auto;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+#sheet{flex:0 1 auto;max-height:58%;overflow:auto;background:var(--panel);border-top:1px solid var(--line);padding:10px 12px 12px}
+#views{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:10px}
+#views button{border:0;background:transparent;color:var(--mute);font:inherit;font-weight:600;padding:10px 4px;min-height:42px;cursor:pointer;border-left:1px solid var(--line)}
+#views button:first-child{border-left:0}
+#views button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.row{display:flex;gap:8px;align-items:stretch}
+#seed{flex:1 1 auto;min-width:0;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:0 12px;min-height:42px;
+  font:15px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.btn{white-space:nowrap;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:0 14px;min-height:42px;font:inherit;font-weight:600;cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+#geoRow{display:flex;gap:10px;align-items:center;margin-top:10px}
+#geoRow input{flex:1 1 auto;min-width:0;accent-color:var(--accent)}
+#geoRow .btn{min-height:40px;padding:0 14px}
+#geoLabel{margin:6px 2px 0;color:var(--mute);font-size:13px;font-variant-numeric:tabular-nums}
+#stats{display:flex;flex-wrap:wrap;gap:4px 16px;margin:10px 2px 2px;color:var(--mute);font-size:13px;min-height:18px}
+#stats b{color:var(--ink);font-variant-numeric:tabular-nums}
+#more{margin-top:8px;background:transparent;border:0;color:var(--accent);font:inherit;font-weight:600;padding:8px 2px;min-height:40px;cursor:pointer}
+:root[data-theme="light"] #more{color:var(--focus)}
+@media (prefers-color-scheme: light){#more{color:var(--focus)}}
+#params{padding-top:2px}
+#params[hidden]{display:none}
+#sliders{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+.slider{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:13px;color:var(--mute)}
+.slider output{color:var(--ink);font-variant-numeric:tabular-nums}
+.slider input{grid-column:1/3;width:100%;margin:4px 0 0;accent-color:var(--accent);min-height:28px}
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-top:12px}
+.pick label{display:grid;gap:4px;font-size:13px;color:var(--mute)}
+.pick select{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:0 10px;min-height:42px;font:inherit}
+@media (min-width:760px){
+  #app{flex-direction:row}
+  #sheet{flex:0 0 360px;max-height:none;border-top:0;border-left:1px solid var(--line);order:2}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="gl" aria-label="3D view of the generated world"></canvas>
+    <div id="hud"><span id="status" role="status">Starting</span><button id="reset" type="button">Reset view</button></div>
+  </div>
+  <section id="sheet" aria-label="World controls">
+    <div id="views" role="group" aria-label="Map layer">
+      <button type="button" data-view="terrain" aria-pressed="true">Terrain</button>
+      <button type="button" data-view="plates" aria-pressed="false">Plates</button>
+      <button type="button" data-view="basins" aria-pressed="false">Basins</button>
+      <button type="button" data-view="height" aria-pressed="false">Height</button>
+    </div>
+    <div class="row">
+      <input id="seed" type="text" value="aurora" aria-label="World seed" autocapitalize="off" autocomplete="off" spellcheck="false">
+      <button id="shuffle" class="btn" type="button">New seed</button>
+      <button id="gen" class="btn primary" type="button">Generate</button>
+    </div>
+    <div id="geoRow">
+      <button id="replay" class="btn" type="button" disabled>Replay</button>
+      <input id="geo" type="range" min="0" max="60" step="1" value="0" disabled aria-label="Geologic time">
+    </div>
+    <div id="geoLabel" aria-live="polite">Not started</div>
+    <div id="stats"></div>
+    <button id="more" type="button" aria-expanded="false" aria-controls="params">Settings</button>
+    <div id="params" hidden>
+      <div id="sliders"></div>
+      <div class="pick">
+        <label>Shape<select id="shape"><option value="disk" selected>Disk</option><option value="square">Square</option></select></label>
+        <label>Resolution<select id="res"><option value="256">256 grid (quick)</option><option value="512" selected>512 grid</option><option value="1024">1024 grid (slow, heavy)</option></select></label>
+      </div>
+    </div>
+  </section>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ---------- Disk World generator core (no DOM) ---------- */
+const TAU = Math.PI * 2;
+const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
+const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
+const smooth = (t) => t * t * (3 - 2 * t);
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function hashSeed(str) {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) {
+    h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  h = Math.imul(h ^ (h >>> 16), 2246822507);
+  h = Math.imul(h ^ (h >>> 13), 3266489909);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
+const GRAD = [1, 1, -1, 1, 1, -1, -1, -1, 1, 0, -1, 0, 0, 1, 0, -1];
+function makeNoise(rand) {
+  const perm = new Uint8Array(256);
+  for (let i = 0; i < 256; i++) perm[i] = i;
+  for (let i = 255; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    const t = perm[i]; perm[i] = perm[j]; perm[j] = t;
+  }
+  const p = new Uint8Array(512);
+  for (let i = 0; i < 512; i++) p[i] = perm[i & 255];
+  const dot = (h, dx, dy) => { const k = (h & 7) * 2; return GRAD[k] * dx + GRAD[k + 1] * dy; };
+  return function (x, y) {
+    const xi = Math.floor(x), yi = Math.floor(y);
+    const xf = x - xi, yf = y - yi;
+    const X = xi & 255, Y = yi & 255;
+    const aa = p[p[X] + Y], ab = p[p[X] + Y + 1], ba = p[p[X + 1] + Y], bb = p[p[X + 1] + Y + 1];
+    const u = xf * xf * xf * (xf * (xf * 6 - 15) + 10);
+    const v = yf * yf * yf * (yf * (yf * 6 - 15) + 10);
+    const d00 = dot(aa, xf, yf), d10 = dot(ba, xf - 1, yf);
+    const d01 = dot(ab, xf, yf - 1), d11 = dot(bb, xf - 1, yf - 1);
+    const x1 = d00 + u * (d10 - d00), x2 = d01 + u * (d11 - d01);
+    return (x1 + v * (x2 - x1)) * 1.3;
+  };
+}
+function fbm(noise, x, y, oct, gain) {
+  let a = 1, f = 1, s = 0, n = 0;
+  for (let o = 0; o < oct; o++) {
+    s += a * noise(x * f + o * 17.3, y * f + o * 9.1);
+    n += a; a *= gain; f *= 2;
+  }
+  return s / n;
+}
+function ridged(noise, x, y, oct) {
+  let a = 1, f = 1, s = 0, n = 0;
+  for (let o = 0; o < oct; o++) {
+    let v = 1 - Math.abs(noise(x * f + o * 5.7, y * f - o * 3.3));
+    v *= v; s += a * v; n += a; a *= 0.5; f *= 2.1;
+  }
+  return s / n;
+}
+
+class MinHeap {
+  constructor(cap) { this.k = new Float64Array(cap); this.v = new Int32Array(cap); this.n = 0; }
+  push(key, val) {
+    const k = this.k, v = this.v; let i = this.n++;
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (k[p] <= key) break;
+      k[i] = k[p]; v[i] = v[p]; i = p;
+    }
+    k[i] = key; v[i] = val;
+  }
+  pop() {
+    const k = this.k, v = this.v, top = v[0], n = --this.n;
+    if (n > 0) {
+      const key = k[n], val = v[n]; let i = 0;
+      for (;;) {
+        let c = 2 * i + 1;
+        if (c >= n) break;
+        if (c + 1 < n && k[c + 1] < k[c]) c++;
+        if (k[c] >= key) break;
+        k[i] = k[c]; v[i] = v[c]; i = c;
+      }
+      k[i] = key; v[i] = val;
+    }
+    return top;
+  }
+}
+
+function boxBlur(src, N, r, passes) {
+  let a = Float32Array.from(src);
+  const b = new Float32Array(src.length);
+  const w = 2 * r + 1;
+  for (let p = 0; p < passes; p++) {
+    for (let j = 0; j < N; j++) {
+      const row = j * N; let sum = 0;
+      for (let k = -r; k <= r; k++) sum += a[row + Math.min(N - 1, Math.max(0, k))];
+      for (let i = 0; i < N; i++) {
+        b[row + i] = sum / w;
+        sum += a[row + Math.min(N - 1, i + r + 1)] - a[row + Math.max(0, i - r)];
+      }
+    }
+    for (let i = 0; i < N; i++) {
+      let sum = 0;
+      for (let k = -r; k <= r; k++) sum += b[Math.min(N - 1, Math.max(0, k)) * N + i];
+      for (let j = 0; j < N; j++) {
+        a[j * N + i] = sum / w;
+        sum += b[Math.min(N - 1, j + r + 1) * N + i] - b[Math.max(0, j - r) * N + i];
+      }
+    }
+  }
+  return a;
+}
+
+/* ---------- Particle plate tectonics ----------
+   Every plate is a cloud of crust particles (position, plate, crust type, thickness, age, crumple).
+   Plates move rigidly about an Euler pole. Where particles from different plates overlap, oceanic crust
+   subducts and continental crust piles up (thickening). Where plates part, new oceanic crust is born.
+   An immobile ring of oceanic crust and a soft wall keep continents away from the world's rim. */
+const RINGE = 0.13, WALLE = 0.17, SOFTE = 0.36, CAP = 7, TEC_MYR = 420, DEAD = 255;
+
+function motionFrom(pl, cx, cy, vx, vy, rho, sign) {
+  const sp = Math.hypot(vx, vy) || 1e-9;
+  pl.px = cx - (vy / sp) * rho * sign; pl.py = cy + (vx / sp) * rho * sign; pl.om = (sign * sp) / rho;
+}
+
+async function runTectonics(w, opts, ctx) {
+  const { rand, nA, nB, nC, stage, yieldNow, snapEvery } = ctx;
+  const G = w.G, nG = G * G, P = opts.plates, S = opts.tecSteps, shape = opts.shape;
+  const PMAX = P + 9, RING = PMAX - 1, vs = opts.speed || 0.0011;
+  const plates = [];
+  for (let k = 0; k < PMAX; k++) plates.push({ px: 0, py: 0, om: 0, sf: 1, stall: 0, size: 1, alive: false, bias: 0 });
+  const inside = new Uint8Array(nG), edgeG = new Float32Array(nG);
+  for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) { const e = edgeAt(shape, (i + 0.5) / G, (j + 0.5) / G); edgeG[j * G + i] = e; inside[j * G + i] = e > 0 ? 1 : 0; }
+
+  /* plates: seeds, sizes, motion */
+  const seeds = [];
+  for (let k = 0; k < P; k++) {
+    let best = null, bd = -1;
+    for (let t = 0; t < 30; t++) {
+      let x, y, guard = 0;
+      do { x = rand(); y = rand(); } while (edgeAt(shape, x, y) < 0.26 && ++guard < 100);
+      let md = 9;
+      for (const q of seeds) md = Math.min(md, Math.hypot(x - q.x, y - q.y));
+      if (md > bd) { bd = md; best = { x, y }; }
+    }
+    seeds.push(best); plates[k].alive = true; plates[k].size = 0.5 + 1.9 * Math.pow(rand(), 1.7);
+  }
+  {
+    const idxs = [...Array(P).keys()];
+    for (let i = P - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [idxs[i], idxs[j]] = [idxs[j], idxs[i]]; }
+    const nCont = clamp(Math.round(P * clamp(opts.landFrac * 1.3 + 0.1, 0.3, 0.8)), 2, Math.max(2, P - 1));
+    for (let k = 0; k < nCont; k++) plates[idxs[k]].bias = 0.22;
+  }
+  const newMotion = (k, cx, cy) => {
+    let ang = rand() * TAU;
+    if (edgeAt(shape, cx, cy) < 0.45) ang = Math.atan2(0.5 - cy, 0.5 - cx) + (rand() - 0.5) * 2.2;
+    const sp = vs * (0.6 + 0.8 * rand()), rho = 0.25 + 1.8 * rand(), sign = rand() < 0.5 ? -1 : 1;
+    motionFrom(plates[k], cx, cy, Math.cos(ang) * sp, Math.sin(ang) * sp, rho, sign); plates[k].stall = 0;
+  };
+  for (let k = 0; k < P; k++) newMotion(k, seeds[k].x, seeds[k].y);
+
+  const cellPlate = new Uint8Array(nG), field = new Float32Array(nG);
+  for (let j = 0; j < G; j++) {
+    if ((j & 31) === 0) await yieldNow();
+    for (let i = 0; i < G; i++) {
+      const u = (i + 0.5) / G, v = (j + 0.5) / G;
+      const wu = u + 0.13 * fbm(nA, u * 2.2, v * 2.2, 3, 0.5) + 0.04 * fbm(nB, u * 7 + 3, v * 7, 2, 0.5);
+      const wv = v + 0.13 * fbm(nB, u * 2.2 + 7, v * 2.2 + 3, 3, 0.5) + 0.04 * fbm(nA, u * 7, v * 7 + 5, 2, 0.5);
+      let bi = 0, bd = 1e9;
+      for (let k = 0; k < P; k++) { const q = seeds[k], d = ((wu - q.x) ** 2 + (wv - q.y) ** 2) / (plates[k].size ** 2); if (d < bd) { bd = d; bi = k; } }
+      cellPlate[j * G + i] = bi;
+      field[j * G + i] = fbm(nC, u * 2.4 + 3, v * 2.4 + 9, 4, 0.5) + plates[bi].bias;
+    }
+  }
+  const fracC = clamp(opts.landFrac * 1.3, 0.2, 0.7);
+  let thr = 0;
+  {
+    const vals = [];
+    for (let c = 0; c < nG; c++) if (edgeG[c] > 0.3) vals.push(field[c]);
+    const arr = Float32Array.from(vals).sort(); thr = arr[Math.floor((1 - fracC) * arr.length)];
+  }
+
+  /* particles: a 2x2 lattice per cell keeps rigid motion at a steady density of 4 */
+  let np = 0;
+  const cap = Math.ceil(nG * 4 * 1.7);
+  const X = new Float32Array(cap), Y = new Float32Array(cap), PL = new Uint8Array(cap), CT = new Uint8Array(cap);
+  const TH = new Float32Array(cap), AGE = new Float32Array(cap), CR = new Float32Array(cap), VO = new Float32Array(cap), ACT = new Float32Array(cap);
+  const add = (x, y, p, ct, th, age) => {
+    if (np >= cap) return;
+    X[np] = x; Y[np] = y; PL[np] = p; CT[np] = ct; TH[np] = th; AGE[np] = age; CR[np] = 0; VO[np] = 0; ACT[np] = 0; np++;
+  };
+  for (let j = 0; j < G; j++) {
+    for (let i = 0; i < G; i++) {
+      const c = j * G + i; if (!inside[c]) continue;
+      const ring = edgeG[c] < RINGE, cont = !ring && edgeG[c] > 0.3 && field[c] > thr;
+      for (let a = 0; a < 2; a++) for (let b = 0; b < 2; b++) {
+        const x = (i + (a + 0.5) / 2 + (rand() - 0.5) * 0.06) / G, y = (j + (b + 0.5) / 2 + (rand() - 0.5) * 0.06) / G;
+        if (ring) add(x, y, RING, 0, 0.22, 200);
+        else add(x, y, cellPlate[c], cont ? 1 : 0, cont ? 1 : 0.22, cont ? 0 : 20 + 120 * clamp01(0.5 + fbm(nA, x * 3 + 5, y * 3, 2, 0.5)));
+      }
+    }
+  }
+
+  const head = new Int32Array(nG), nxt = new Int32Array(cap), cnt = new Uint8Array(nG), L = new Int32Array(64);
+  const tally = new Uint8Array(PMAX), collPair = new Float32Array(PMAX * PMAX);
+  const npc = new Float32Array(PMAX), coll = new Float32Array(PMAX), wallLoad = new Float32Array(PMAX);
+  const cellOf = (x, y) => { let i = (x * G) | 0, j = (y * G) | 0; i = i < 0 ? 0 : i >= G ? G - 1 : i; j = j < 0 ? 0 : j >= G ? G - 1 : j; return j * G + i; };
+
+  /* ---- per-frame field extraction (elevation by isostasy, plate ids, activity, boundaries) ---- */
+  const votes = new Uint16Array(nG * PMAX);
+  const eG = (w.eG = new Float32Array(nG)), actG = (w.actG = new Float32Array(nG)), crG = (w.crG = new Float32Array(nG));
+  w.plateG = new Uint8Array(nG); w.bndG = new Uint8Array(nG);
+  const sC = new Float32Array(nG), sTh = new Float32Array(nG), sO = new Float32Array(nG), sAge = new Float32Array(nG), sThO = new Float32Array(nG), sA = new Float32Array(nG), sCR = new Float32Array(nG);
+  const cx = new Float32Array(PMAX), cy = new Float32Array(PMAX), cn = new Float32Array(PMAX), cc = new Float32Array(PMAX);
+  const velAt = (p, x, y) => { const pp = plates[p]; if (p === RING || !pp.alive) return [0, 0]; const om = pp.om * pp.sf; return [-om * (y - pp.py), om * (x - pp.px)]; };
+  function extract() {
+    votes.fill(0); sC.fill(0); sTh.fill(0); sO.fill(0); sAge.fill(0); sThO.fill(0); sA.fill(0); sCR.fill(0); cx.fill(0); cy.fill(0); cn.fill(0); cc.fill(0);
+    for (let i = 0; i < np; i++) {
+      if (PL[i] === DEAD) continue;
+      const c = cellOf(X[i], Y[i]), p = PL[i];
+      votes[c * PMAX + p]++;
+      if (CT[i]) { sC[c]++; sTh[c] += TH[i]; cc[p]++; } else { sO[c]++; sAge[c] += AGE[i]; sThO[c] += TH[i]; }
+      sA[c] += ACT[i]; sCR[c] += CR[i]; cx[p] += X[i]; cy[p] += Y[i]; cn[p]++;
+    }
+    for (let c = 0; c < nG; c++) {
+      let bp = 0, bv = 0;
+      for (let p = 0; p < PMAX; p++) { const v = votes[c * PMAX + p]; if (v > bv) { bv = v; bp = p; } }
+      w.plateG[c] = bp;
+      const n = sC[c] + sO[c];
+      if (!n) { eG[c] = NaN; continue; }
+      const fc = sC[c] / n;
+      let ec = 0, eo = 0;
+      if (sC[c]) { const t = sTh[c] / sC[c]; ec = t >= 1 ? 0.12 + 0.3 * Math.pow(t - 1, 0.85) : 0.12 + 0.35 * (t - 1); }
+      if (sO[c]) { const age = sAge[c] / sO[c], th = sThO[c] / sO[c]; eo = -(0.35 + 0.55 * Math.sqrt(Math.min(1, age / 220))) + Math.max(0, th - 0.22) * 1.6; }
+      eG[c] = fc * ec + (1 - fc) * eo; actG[c] = sA[c] / n; crG[c] = sCR[c] / n;
+    }
+    for (let c = 0; c < nG; c++) if (eG[c] !== eG[c]) {
+      let s = 0, k = 0; const i = c % G, j = (c / G) | 0;
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const ni = i + di, nj = j + dj; if (ni < 0 || nj < 0 || ni >= G || nj >= G) continue; const v = eG[nj * G + ni]; if (v === v) { s += v; k++; } }
+      eG[c] = k ? s / k : -0.9;
+    }
+    const sm = boxBlur(eG, G, 2, 2); eG.set(sm);
+    w.plates = plates.map((pp, p) => {
+      const n = cn[p], x = n ? cx[p] / n : 0.5, y = n ? cy[p] / n : 0.5, v = velAt(p, x, y);
+      return { x, y, vx: v[0] / vs, vy: v[1] / vs, cont: n ? cc[p] / n > 0.4 : false, alive: p !== RING && n > 20, ring: p === RING };
+    });
+    w.bndG.fill(0);
+    for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) {
+      const c = j * G + i, pa = w.plateG[c];
+      for (let k = 0; k < 2; k++) {
+        if (k ? j >= G - 1 : i >= G - 1) continue;
+        const d = k ? c + G : c + 1, pb = w.plateG[d];
+        if (pa === pb || (pa === RING && pb === RING)) continue;
+        const x = (i + 0.5) / G, y = (j + 0.5) / G, va = velAt(pa, x, y), vb = velAt(pb, x, y);
+        const s = ((va[0] - vb[0]) * (k ? 0 : 1) + (va[1] - vb[1]) * (k ? 1 : 0)) / (1.4 * vs), cls = s > 0.12 ? 1 : s < -0.12 ? 2 : 3;
+        w.bndG[c] = cls; w.bndG[d] = cls;
+      }
+    }
+  }
+  const snapTec = (step) => {
+    const q = new Int16Array(nG);
+    for (let c = 0; c < nG; c++) { const v = Math.round(eG[c] * 10000); q[c] = v > 32000 ? 32000 : v < -32000 ? -32000 : v; }
+    w.snaps.push({ M: G, q, plate: w.plateG.slice(), bnd: w.bndG.slice(), plates: w.plates, label: 'Plates drifting and colliding, ' + Math.round((step / S) * TEC_MYR) + ' million years in', myr: (step / S) * TEC_MYR });
+  };
+
+  /* ---- time loop ---- */
+  const rerollEvery = Math.max(12, Math.floor(S / 9)), showEvery = Math.max(1, Math.round(S / 50)), riftEvery = Math.max(10, Math.round(S / 9));
+  const ACTDECAY = 0.985;
+  for (let step = 1; step <= S; step++) {
+    npc.fill(0); coll.fill(0); wallLoad.fill(0);
+    /* move */
+    for (let i = 0; i < np; i++) {
+      const p = PL[i];
+      if (p === RING || p === DEAD) continue;
+      const pp = plates[p], om = pp.om * pp.sf;
+      let x = X[i], y = Y[i];
+      const nx = x - om * (y - pp.py), ny = y + om * (x - pp.px);
+      x = nx; y = ny;
+      const e = edgeAt(shape, x, y);
+      if (CT[i]) {
+        npc[p]++;
+        if (e < SOFTE) {
+          const f = (SOFTE - e) / SOFTE, dx = 0.5 - x, dy = 0.5 - y, dl = Math.hypot(dx, dy) || 1;
+          x += (dx / dl) * f * f * vs * 1.6; y += (dy / dl) * f * f * vs * 1.6; wallLoad[p] += f;
+        }
+        if (e < WALLE) {
+          if (shape === 'disk') { const cx0 = x - 0.5, cy0 = y - 0.5, r = 2 * Math.hypot(cx0, cy0), t = (1 - WALLE) / r; x = 0.5 + cx0 * t; y = 0.5 + cy0 * t; }
+          else { x = clamp(x, WALLE / 2, 1 - WALLE / 2); y = clamp(y, WALLE / 2, 1 - WALLE / 2); }
+          wallLoad[p] += 2;
+        }
+      } else if (e < RINGE) { PL[i] = DEAD; continue; }
+      X[i] = x; Y[i] = y; if (!CT[i]) AGE[i]++;
+      ACT[i] *= ACTDECAY;
+    }
+    /* rasterise */
+    head.fill(-1); cnt.fill(0);
+    for (let i = 0; i < np; i++) { if (PL[i] === DEAD) continue; const c = cellOf(X[i], Y[i]); nxt[i] = head[c]; head[c] = i; cnt[c]++; }
+    /* interactions per cell */
+    for (let c = 0; c < nG; c++) {
+      let i = head[c]; if (i < 0) continue;
+      let m = 0, multi = false; const p0 = PL[i];
+      while (i >= 0 && m < 48) { L[m++] = i; if (PL[i] !== p0) multi = true; i = nxt[i]; }
+      if (!multi && m <= CAP) continue;
+      if (multi) {
+                for (let a = 0; a < m; a++) {
+          const o = L[a];
+          if (PL[o] === DEAD || CT[o] || PL[o] === RING) continue;
+          let q = -1;
+          for (let b = 0; b < m; b++) {
+            const qq = L[b];
+            if (qq === o || PL[qq] === DEAD || PL[qq] === PL[o]) continue;
+            if (CT[qq]) { q = qq; break; }
+            if (PL[qq] !== RING && q < 0 && (AGE[qq] < AGE[o] - 1 || (Math.abs(AGE[qq] - AGE[o]) <= 1 && rand() < 0.5))) q = qq;
+          }
+          if (q >= 0 && rand() < 0.5) {
+            PL[o] = DEAD; cnt[c]--;
+            if (CT[q]) { TH[q] += 0.045; ACT[q] += 1; VO[q] += 1; }
+            else { TH[q] += 0.03; ACT[q] += 0.6; VO[q] += 1; if (TH[q] > 0.55) CT[q] = 1; }
+          }
+        }
+      }
+      let alive = 0;
+      for (let a = 0; a < m; a++) if (PL[L[a]] !== DEAD) alive++;
+      while (alive > CAP) {
+        let s1 = -1, s2 = -1;
+        for (let a = 0; a < m; a++) {
+          const q = L[a]; if (PL[q] === DEAD || !CT[q]) continue;
+          if (s1 < 0 || TH[q] < TH[s1]) { s2 = s1; s1 = q; } else if (s2 < 0 || TH[q] < TH[s2]) s2 = q;
+        }
+        if (s2 >= 0) {
+          const surv = TH[s1] >= TH[s2] ? s1 : s2, vic = surv === s1 ? s2 : s1;
+          coll[PL[surv]] += 1; coll[PL[vic]] += 1; if (PL[surv] !== PL[vic]) collPair[PL[surv] * PMAX + PL[vic]] += 1; TH[surv] = Math.min(6, TH[surv] + TH[vic]); CR[surv] += 1; ACT[surv] += 1; PL[vic] = DEAD; alive--; cnt[c]--;
+        } else {
+          let o = -1;
+          for (let a = 0; a < m; a++) { const q = L[a]; if (PL[q] !== DEAD && !CT[q] && PL[q] !== RING && (o < 0 || AGE[q] > AGE[o])) o = q; }
+          if (o < 0) break;
+          PL[o] = DEAD; alive--; cnt[c]--;
+        }
+      }
+    }
+    /* seafloor spreading: refill empty / thin cells from neighbouring plates; the ring is always refilled */
+    const n0 = np;
+    for (let j = 0; j < G; j++) {
+      for (let i = 0; i < G; i++) {
+        const c = j * G + i;
+        if (!inside[c] || cnt[c] >= 2) continue;
+        let plate = -1, heal = -1;
+        if (edgeG[c] < RINGE) plate = RING;
+        else {
+          tally.fill(0); let ncand = 0, distinct = 0;
+          for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+            if (!di && !dj) continue;
+            const ni = i + di, nj = j + dj; if (ni < 0 || nj < 0 || ni >= G || nj >= G) continue;
+            let q = head[nj * G + ni]; while (q >= 0 && PL[q] === DEAD) q = nxt[q];
+            if (q < 0 || PL[q] === RING) continue;
+            if (!tally[PL[q]]) distinct++;
+            tally[PL[q]]++; ncand++; heal = q;
+          }
+          if (ncand) {
+            let bp = -1, bv = 0;
+            for (let p = 0; p < RING; p++) { const v = tally[p] + (((c * 2654435761) >>> 0) % (p + 3)) * 1e-3; if (tally[p] > 0 && v > bv) { bv = v; bp = p; } }
+            plate = bp;
+            if (distinct < 2 && ncand >= 5) {
+              /* a hole inside one plate: heal it with the neighbouring crust instead of making ocean */
+              const k2 = 3 - cnt[c];
+              for (let t2 = 0; t2 < k2; t2++) add((i + rand()) / G, (j + rand()) / G, PL[heal], CT[heal], CT[heal] ? Math.min(TH[heal], 1.1) : 0.22, AGE[heal]);
+              continue;
+            }
+          }
+        }
+        if (plate < 0) continue;
+        if (plate !== RING && cnt[c] === 1 && edgeG[c] >= RINGE) { /* thin cell at a real plate gap: top up lightly */ }
+        const k = (plate === RING ? 4 : 3) - cnt[c];
+        for (let t = 0; t < k; t++) add((i + rand()) / G, (j + rand()) / G, plate, 0, 0.22, plate === RING ? 200 : 0);
+      }
+    }
+    /* compact */
+    let jn = 0;
+    for (let i = 0; i < np; i++) {
+      if (PL[i] === DEAD) continue;
+      if (jn !== i) { X[jn] = X[i]; Y[jn] = Y[i]; PL[jn] = PL[i]; CT[jn] = CT[i]; TH[jn] = TH[i]; AGE[jn] = AGE[i]; CR[jn] = CR[i]; VO[jn] = VO[i]; ACT[jn] = ACT[i]; }
+      jn++;
+    }
+    np = jn;
+    /* plate dynamics: collisions and the wall slow plates down; stalled plates get a new push */
+    for (let p = 0; p < P + 8; p++) {
+      const pp = plates[p]; if (!pp.alive) continue;
+      const load = (coll[p] * 0.5 + wallLoad[p] * 0.05) / Math.max(60, 0.05 * npc[p]);
+      pp.stall = pp.stall * 0.95 + 0.05 * Math.min(1.5, load);
+      pp.sf = clamp(1 - 0.9 * pp.stall, 0.05, 1);
+    }
+    if (step % rerollEvery === 0) {
+      cx.fill(0); cy.fill(0); cn.fill(0);
+      for (let i = 0; i < np; i++) { const p = PL[i]; if (p === DEAD) continue; cx[p] += X[i]; cy[p] += Y[i]; cn[p]++; }
+      for (let p = 0; p < P + 8; p++) {
+        const pp = plates[p]; if (!pp.alive || cn[p] < 30) continue;
+        if (pp.stall > 0.35 || rand() < 0.15) { newMotion(p, cx[p] / cn[p], cy[p] / cn[p]); }
+      }
+    }
+    if (step % 10 === 0) {
+      for (let a = 0; a < RING; a++) for (let b = a + 1; b < RING; b++) {
+        const tot = collPair[a * PMAX + b] + collPair[b * PMAX + a];
+        if (tot > 500 && plates[a].alive && plates[b].alive) {
+          let ca = 0, cb = 0; for (let i = 0; i < np; i++) { if (PL[i] === a) ca++; else if (PL[i] === b) cb++; }
+          const keep = ca >= cb ? a : b, drop = keep === a ? b : a;
+          for (let i = 0; i < np; i++) if (PL[i] === drop) PL[i] = keep;
+          plates[drop].alive = false; plates[keep].stall = Math.min(plates[keep].stall, 0.3);
+          for (let q = 0; q < PMAX; q++) { collPair[keep * PMAX + q] += collPair[drop * PMAX + q]; collPair[q * PMAX + keep] += collPair[q * PMAX + drop]; collPair[drop * PMAX + q] = 0; collPair[q * PMAX + drop] = 0; }
+          collPair[keep * PMAX + keep] = 0;
+        }
+      }
+    }
+    if (step % riftEvery === 0 && step < S * 0.8) {
+      let bp = -1, bc = 0, nalive = 0;
+      for (let p = 0; p < P + 8; p++) if (plates[p].alive) { nalive++; if (npc[p] > bc) { bc = npc[p]; bp = p; } }
+      let nid = -1;
+      for (let p = 0; p < RING; p++) if (!plates[p].alive) { nid = p; break; }
+      if (bp >= 0 && nid >= 0 && bc > 0.03 * nG && nalive < P + 2) {
+        let sx = 0, sy = 0, sn = 0;
+        for (let i = 0; i < np; i++) if (PL[i] === bp) { sx += X[i]; sy += Y[i]; sn++; }
+        const mx = sx / sn, my = sy / sn, a = rand() * Math.PI, nx = Math.cos(a), ny = Math.sin(a);
+        for (let i = 0; i < np; i++) if (PL[i] === bp && (X[i] - mx) * nx + (Y[i] - my) * ny > 0) PL[i] = nid;
+        plates[nid].alive = true; plates[nid].size = plates[bp].size;
+        for (let q = 0; q < PMAX; q++) { collPair[nid * PMAX + q] = 0; collPair[q * PMAX + nid] = 0; collPair[bp * PMAX + q] = 0; collPair[q * PMAX + bp] = 0; }
+        const sp = vs * 1.3;
+        motionFrom(plates[bp], mx, my, -nx * sp, -ny * sp, 4, rand() < 0.5 ? -1 : 1); plates[bp].stall = 0;
+        motionFrom(plates[nid], mx, my, nx * sp, ny * sp, 4, rand() < 0.5 ? -1 : 1); plates[nid].stall = 0;
+      }
+    }
+    if (step % snapEvery === 0 || step === S) {
+      extract(); snapTec(step);
+      if (step % showEvery === 0 || step === S) await stage('Tectonics', true, { phase: 'tec', step, steps: S, myr: (step / S) * TEC_MYR });
+    } else if (step % 8 === 0) await yieldNow();
+  }
+  extract();
+  w.plateCount = plates.filter((p, k) => k !== RING && p.alive).length; w.ringId = RING;
+}
+/* Priority-flood flow routing. Ocean cells are outlets. Land cells touching the sea seed the heap;
+   depressions are filled (lakes). Fills `order` (land cells, downstream first) and `recv`. */
+function routeFlow(N, h, ocean, fill, recv, order, heap, closed) {
+  const n = N * N;
+  heap.n = 0; recv.fill(-1);
+  for (let idx = 0; idx < n; idx++) { if (ocean[idx]) { closed[idx] = 1; fill[idx] = h[idx]; } else closed[idx] = 0; }
+  for (let j = 0; j < N; j++) {
+    for (let i = 0; i < N; i++) {
+      const idx = j * N + i;
+      if (ocean[idx]) continue;
+      let oc = -1;
+      for (let dj = -1; dj <= 1 && oc < 0; dj++) {
+        const nj = j + dj; if (nj < 0 || nj >= N) continue;
+        for (let di = -1; di <= 1; di++) {
+          const ni = i + di; if (ni < 0 || ni >= N) continue;
+          if (ocean[nj * N + ni]) { oc = nj * N + ni; break; }
+        }
+      }
+      if (oc >= 0) { closed[idx] = 1; recv[idx] = oc; fill[idx] = h[idx]; heap.push(h[idx], idx); }
+    }
+  }
+  const eps = 1e-6; let cnt = 0;
+  while (heap.n > 0) {
+    const c = heap.pop();
+    order[cnt++] = c;
+    const ci = c % N, cj = (c / N) | 0, fc = fill[c] + eps;
+    for (let dj = -1; dj <= 1; dj++) {
+      const nj = cj + dj; if (nj < 0 || nj >= N) continue;
+      for (let di = -1; di <= 1; di++) {
+        if (!di && !dj) continue;
+        const ni = ci + di; if (ni < 0 || ni >= N) continue;
+        const nidx = nj * N + ni;
+        if (closed[nidx]) continue;
+        closed[nidx] = 1; recv[nidx] = c;
+        const f = h[nidx] > fc ? h[nidx] : fc;
+        fill[nidx] = f; heap.push(f, nidx);
+      }
+    }
+  }
+  return cnt;
+}
+
+function accumulate(w, cnt) {
+  const { ocean, recv, order, area, donor } = w;
+  area.fill(1); donor.fill(-1);
+  for (let t = cnt - 1; t >= 0; t--) {
+    const i = order[t], r = recv[i];
+    if (r >= 0 && !ocean[r]) {
+      area[r] += area[i];
+      if (donor[r] < 0 || area[i] > area[donor[r]]) donor[r] = i;
+    }
+  }
+}
+
+function edgeAt(shape, u, v) {
+  return shape === 'disk' ? 1 - 2 * Math.hypot(u - 0.5, v - 0.5) : 2 * Math.min(u, v, 1 - u, 1 - v);
+}
+
+/* Down-sampled copy of the heights for replay (int16, 1e-4 units). */
+function takeSnapshot(h, N, M) {
+  const out = new Int16Array(M * M), st = N / M;
+  for (let J = 0; J < M; J++) {
+    for (let I = 0; I < M; I++) {
+      let s = 0;
+      for (let b = 0; b < st; b++) for (let a = 0; a < st; a++) s += h[(J * st + b) * N + I * st + a];
+      const q = Math.round((s / (st * st)) * 10000);
+      out[J * M + I] = q > 32000 ? 32000 : q < -32000 ? -32000 : q;
+    }
+  }
+  return out;
+}
+
+/* bilinear resample of a G x G field onto N x N */
+function upsample(src, G, dst, N) {
+  const k = (G - 1) / (N - 1);
+  for (let j = 0; j < N; j++) {
+    const y = j * k, j0 = Math.min(G - 2, y | 0), fy = y - j0;
+    for (let i = 0; i < N; i++) {
+      const x = i * k, i0 = Math.min(G - 2, x | 0), fx = x - i0, a = j0 * G + i0;
+      dst[j * N + i] = (src[a] * (1 - fx) + src[a + 1] * fx) * (1 - fy) + (src[a + G] * (1 - fx) + src[a + G + 1] * fx) * fy;
+    }
+  }
+}
+function percentile(arr, q, pred) {
+  const v = []; for (let i = 0; i < arr.length; i++) if (!pred || pred(arr[i])) v.push(arr[i]);
+  if (!v.length) return 0; v.sort((a, b) => a - b); return v[Math.min(v.length - 1, Math.floor(q * v.length))];
+}
+
+/* ---------- main generator ---------- */
+async function generateWorld(opts, hooks) {
+  const hook = hooks && hooks.stage ? hooks.stage : async () => {};
+  const yieldNow = hooks && hooks.tick ? hooks.tick : () => new Promise((r) => setTimeout(r, 0));
+  const N = opts.N, n = N * N, shape = opts.shape, E = Math.max(1, opts.epochs | 0), S = Math.max(10, (opts.tecSteps || 240) | 0), MYR = 600, G = 256;
+  const rand = mulberry32(hashSeed(String(opts.seed)));
+  const nA = makeNoise(rand), nB = makeNoise(rand), nC = makeNoise(rand), nD = makeNoise(rand), nE = makeNoise(rand);
+  const w = {
+    N, G, shape, seed: String(opts.seed), epochs: E, steps: S, myr: MYR, snapM: Math.min(N, 512), snaps: [],
+    h: new Float32Array(n), plates: [], plateG: null, bndG: null,
+    edge: new Float32Array(n), uplift: new Float32Array(n),
+    ocean: new Uint8Array(n), fill: new Float32Array(n), lakeDepth: new Float32Array(n),
+    recv: new Int32Array(n), order: new Int32Array(n), orderLen: 0,
+    area: new Float32Array(n), donor: new Int32Array(n), basin: new Int32Array(n).fill(-1),
+    basinRank: [], basinCount: 0, hydro: false,
+  };
+  const stage = (name, show, info) => hook(name, !!show, w, info || null);
+  const { h, edge } = w;
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) edge[j * N + i] = edgeAt(shape, i / (N - 1), j / (N - 1));
+
+  /* 1. plate tectonics with particles, shown live as it runs */
+  await stage('Placing plates');
+  const tecStage = async (name, show, info) => {
+    upsample(w.eG, G, h, N);
+    for (let idx = 0; idx < n; idx++) w.ocean[idx] = h[idx] <= 0 ? 1 : 0;
+    return stage(name, show, info);
+  };
+  const snapEvery = Math.max(1, Math.round(S / 50));
+  await runTectonics(w, opts, { rand, nA, nB, nC, stage: tecStage, yieldNow, snapEvery });
+
+  /* 2. crust to terrain: isostatic heights, plus detail wherever the crust was crumpled */
+  upsample(w.eG, G, h, N);
+  const crN = new Float32Array(n), actN = w.uplift;
+  upsample(w.crG, G, crN, N); upsample(w.actG, G, actN, N);
+  const crMax = percentile(w.crG, 0.98, (v) => v > 0.01) || 1, actMax = percentile(w.actG, 0.98, (v) => v > 0.01) || 1;
+  for (let j = 0; j < N; j++) {
+    if ((j & 31) === 0) await yieldNow();
+    for (let i = 0; i < N; i++) {
+      const idx = j * N + i, u = i / (N - 1), v = j / (N - 1), cr = clamp01(crN[idx] / crMax);
+      const low = fbm(nC, u * 2 + 20, v * 2 + 20, 4, 0.5), hill = fbm(nA, u * 7 + 40, v * 7 + 40, 5, 0.5), coast = fbm(nD, u * 15 + 9, v * 15 + 3, 4, 0.5);
+      h[idx] += 0.07 * low + 0.06 * coast + (0.05 + 0.1 * cr) * hill + (cr > 0.02 ? 0.16 * cr * (ridged(nD, u * 14 + 5, v * 14, 3) - 0.45) : 0);
+      actN[idx] = clamp(actN[idx] / actMax, 0, 1.2);
+    }
+  }
+  for (let idx = 0; idx < n; idx++) h[idx] -= 1.7 * smooth(clamp01((0.14 - edge[idx]) / 0.14));
+  {
+    const vals = [];
+    for (let idx = 0; idx < n; idx += 2) if (edge[idx] > 0) vals.push(h[idx]);
+    const arr = Float32Array.from(vals).sort(), cut = Math.floor((1 - opts.landFrac * (opts.landBias || 0.97)) * arr.length);
+    const sea = arr[Math.min(arr.length - 1, cut)];
+    const landVals = arr.subarray(cut), oceanVals = arr.subarray(0, cut);
+    const hiL = landVals[Math.floor(landVals.length * 0.997)] - sea || 1;
+    const loO = sea - (oceanVals[Math.floor(oceanVals.length * 0.02)] || sea - 1) || 1;
+    for (let idx = 0; idx < n; idx++) { const v = h[idx] - sea; h[idx] = v > 0 ? Math.min(1.25, v / hiL) : Math.max(-1.6, v / loO); }
+  }
+  const g2 = (x) => Math.exp(-x * x);
+  /* hotspot island chains, drifting with the plate they sit on */
+  for (let c = 0; c < (opts.hotspots | 0); c++) {
+    let x = 0.5, y = 0.5, idx = 0, tries = 0;
+    do { x = rand(); y = rand(); idx = Math.round(y * (N - 1)) * N + Math.round(x * (N - 1)); } while ((edge[idx] < 0.25 || h[idx] > -0.3) && ++tries < 300);
+    if (tries >= 300) continue;
+    const pid = w.plateG[Math.round(y * (G - 1)) * G + Math.round(x * (G - 1))], pl = w.plates[pid];
+    let dx = Math.cos(rand() * TAU), dy = Math.sin(rand() * TAU);
+    if (pl && pl.alive) { const sp = Math.hypot(pl.vx, pl.vy) || 1; dx = pl.vx / sp; dy = pl.vy / sp; }
+    const count = 6 + Math.floor(rand() * 5), step = 0.045 + 0.03 * rand();
+    for (let k = 0; k < count; k++) {
+      const cx = x + dx * k * step, cy = y + dy * k * step;
+      if (edgeAt(shape, cx, cy) < 0.14) break;
+      const age = k / (count - 1), peak = 0.03 + 0.5 * Math.pow(1 - age, 1.3), R = 0.009 + 0.016 * (1 - age) + 0.005 * rand();
+      const rc = R * N, reach = Math.ceil(rc * 3), ci = Math.round(cx * (N - 1)), cj = Math.round(cy * (N - 1));
+      for (let j = Math.max(0, cj - reach); j <= Math.min(N - 1, cj + reach); j++) for (let i = Math.max(0, ci - reach); i <= Math.min(N - 1, ci + reach); i++) {
+        const r = Math.hypot(i - ci, j - cj) / rc, id = j * N + i;
+        if (peak > h[id]) h[id] += g2(r) * (peak - h[id]);
+      }
+    }
+  }
+  for (let idx = 0; idx < n; idx++) w.ocean[idx] = h[idx] <= 0 ? 1 : 0;
+  const eraLabel = (e) => 'Erosion, epoch ' + e + ' of ' + E;
+  const eraMyr = (e) => TEC_MYR + (e / E) * (MYR - TEC_MYR);
+  w.snaps.push({ M: w.snapM, q: takeSnapshot(h, N, w.snapM), label: eraLabel(0), myr: eraMyr(0) });
+  await stage('Mountains formed', true, { phase: 'ero', epoch: 0, epochs: E, myr: eraMyr(0) });
+
+  /* 3. impacts are scheduled at random times in the erosion run */
+  const impacts = [];
+  for (let k = 0; k < opts.impacts; k++) {
+    let cx, cy, guard = 0;
+    do { cx = rand(); cy = rand(); } while (edgeAt(shape, cx, cy) < 0.2 && ++guard < 100);
+    const R = 0.012 + 0.04 * rand() * rand() + 0.008 * rand();
+    impacts.push({ e: Math.floor(rand() * E * 0.92), cx, cy, R });
+  }
+  const applyImpact = (m) => {
+    const depth = 0.07 + 2.2 * m.R, rim = depth * 0.55, rc = m.R * N, reach = Math.ceil(rc * 3.2);
+    const ci = Math.round(m.cx * (N - 1)), cj = Math.round(m.cy * (N - 1));
+    for (let j = Math.max(0, cj - reach); j <= Math.min(N - 1, cj + reach); j++) {
+      for (let i = Math.max(0, ci - reach); i <= Math.min(N - 1, ci + reach); i++) {
+        const x = Math.hypot(i - ci, j - cj) / rc;
+        let dh = 0;
+        if (x < 1) dh = -depth * (1 - x * x);
+        if (x > 0.7) dh += rim * g2((x - 1) / 0.2);
+        if (x > 1) dh += rim * 0.35 * Math.pow(1 / x, 3);
+        if (m.R > 0.03) dh += depth * 0.4 * g2(x / 0.16);
+        h[j * N + i] += dh;
+      }
+    }
+  };
+
+  /* 4. erosion epochs: late uplift where plates were recently active, stream power, diffusion, thermal collapse */
+  const heap = new MinHeap(n), closed = new Uint8Array(n), tmp = new Float32Array(n);
+  const K = 0.14, mExp = 0.5, dt = 30 / E, upE = (0.6 * (opts.uplift || 1)) / E;
+  const Dtot = Math.pow(0.006 * N, 2) / E, sub = Math.max(1, Math.ceil(Dtot / 0.2)), Ds = Dtot / sub, tal = (opts.talus || 14) / N;
+  const showEvery = opts.showEvery || 1, ocean = w.ocean;
+  for (let e = 0; e < E; e++) {
+    let note = '';
+    for (const m of impacts) if (m.e === e) { applyImpact(m); note = 'Meteor strike'; }
+    const U = w.uplift;
+    for (let idx = 0; idx < n; idx++) { const uu = U[idx]; if (uu > 0.01) h[idx] += upE * uu; }
+    for (let idx = 0; idx < n; idx++) ocean[idx] = h[idx] <= 0 ? 1 : 0;
+    const cnt = routeFlow(N, h, ocean, w.fill, w.recv, w.order, heap, closed);
+    w.orderLen = cnt; accumulate(w, cnt);
+    const { order, recv, area, fill, lakeDepth } = w;
+    for (let idx = 0; idx < n; idx++) lakeDepth[idx] = ocean[idx] ? 0 : fill[idx] - h[idx];
+    w.hydro = true;
+    for (let t = 0; t < cnt; t++) {
+      const i = order[t], r = recv[i];
+      const diag = i % N !== r % N && ((i / N) | 0) !== ((r / N) | 0);
+      const F = (K * dt * Math.sqrt(area[i] / n)) / ((diag ? 1.4142 : 1) / N);
+      const hn = (h[i] + F * h[r]) / (1 + F);
+      h[i] = hn > 0.0003 ? (hn < 1.25 ? hn : 1.25) : 0.0003;
+    }
+    for (let s = 0; s < sub; s++) {
+      tmp.set(h);
+      for (let j = 0; j < N; j++) {
+        for (let i = 0; i < N; i++) {
+          const idx = j * N + i;
+          if (ocean[idx]) continue;
+          const hc = tmp[idx];
+          const l = i > 0 && !ocean[idx - 1] ? tmp[idx - 1] : hc, r2 = i < N - 1 && !ocean[idx + 1] ? tmp[idx + 1] : hc;
+          const u2 = j > 0 && !ocean[idx - N] ? tmp[idx - N] : hc, d2 = j < N - 1 && !ocean[idx + N] ? tmp[idx + N] : hc;
+          h[idx] = hc + Ds * ((l + r2 + u2 + d2) * 0.25 - hc);
+        }
+      }
+    }
+    for (let j = 0; j < N; j++) {
+      for (let i = 0; i < N; i++) {
+        const a = j * N + i;
+        if (ocean[a]) continue;
+        for (let k = 0; k < 2; k++) {
+          const b = k ? a + N : a + 1;
+          if ((k ? j >= N - 1 : i >= N - 1) || ocean[b]) continue;
+          const d = h[a] - h[b], ad = d < 0 ? -d : d;
+          if (ad > tal) { const mv = 0.35 * (ad - tal) * 0.5; if (d > 0) { h[a] -= mv; h[b] += mv; } else { h[a] += mv; h[b] -= mv; } }
+        }
+      }
+    }
+    w.snaps.push({ M: w.snapM, q: takeSnapshot(h, N, w.snapM), label: eraLabel(e + 1), myr: eraMyr(e + 1) });
+    await stage('Epoch', (e + 1) % showEvery === 0 || e === E - 1, { phase: 'ero', epoch: e + 1, epochs: E, myr: eraMyr(e + 1), note });
+  }
+
+  /* 5. final hydrology: flow, lakes, drainage basins */
+  const cnt = routeFlow(N, h, ocean, w.fill, w.recv, w.order, heap, closed);
+  w.orderLen = cnt; accumulate(w, cnt);
+  for (let idx = 0; idx < n; idx++) w.lakeDepth[idx] = ocean[idx] ? 0 : w.fill[idx] - h[idx];
+  const areas = [];
+  for (let t = 0; t < cnt; t++) {
+    const i = w.order[t], r = w.recv[i];
+    if (r >= 0 && ocean[r]) { w.basin[i] = areas.length; areas.push(0); } else if (r >= 0) w.basin[i] = w.basin[r];
+    if (w.basin[i] >= 0) areas[w.basin[i]]++;
+  }
+  w.basinCount = areas.length;
+  const ranked = areas.map((a, id) => [a, id]).sort((p, q) => q[0] - p[0]);
+  w.basinRank = new Int32Array(areas.length);
+  ranked.forEach(([, id], rank) => { w.basinRank[id] = rank; });
+  w.basinArea = areas; w.hydro = true;
+  await stage('Rivers and basins', true, { phase: 'ero', epoch: E, epochs: E, myr: MYR, done: true });
+  return w;
+}
+
+function riverStats(w, thr) {
+  let mouths = 0, cells = 0, lakes = 0;
+  const { N, ocean, recv, area } = w;
+  for (let i = 0; i < N * N; i++) {
+    if (ocean[i]) continue;
+    if (area[i] >= thr) { cells++; if (recv[i] >= 0 && ocean[recv[i]]) mouths++; }
+    if (w.lakeDepth[i] > 0.0025) lakes++;
+  }
+  return { mouths, cells, lakes };
+}
+
+
+/* ---------- Viewer ---------- */
+const WORLD_SIZE = 100;
+const $ = (s) => document.querySelector(s);
+const state = { view: 'terrain', relief: 12, density: 3, world: null };
+
+function makeLut(stops, size) {
+  const out = new Uint8Array(size * 3);
+  for (let k = 0; k < size; k++) {
+    const t = k / (size - 1); let a = 0;
+    while (a < stops.length - 2 && t > stops[a + 1][0]) a++;
+    const [t0, c0] = stops[a], [t1, c1] = stops[a + 1];
+    const f = clamp01((t - t0) / (t1 - t0));
+    for (let c = 0; c < 3; c++) out[k * 3 + c] = c0[c] + (c1[c] - c0[c]) * f;
+  }
+  return out;
+}
+const LAND = makeLut([[0, [214, 200, 150]], [0.006, [104, 148, 84]], [0.12, [122, 160, 90]], [0.3, [158, 164, 98]],
+  [0.5, [150, 128, 92]], [0.7, [128, 118, 108]], [0.85, [200, 200, 204]], [1, [246, 248, 250]]], 256);
+const OCEAN = makeLut([[0, [86, 176, 190]], [0.05, [52, 138, 176]], [0.2, [24, 84, 134]], [0.5, [10, 36, 78]], [1, [6, 20, 50]]], 256);
+
+function hsl(h, s, l) {
+  h = ((h % 360) + 360) % 360 / 360;
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  const f = (t) => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 0.5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+  return [f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255];
+}
+
+/* ---- three.js scene ---- */
+let renderer = null, scene, camera, mesh = null, geom = null, tex = null, texCanvas, texCtx, imgData;
+let curN = 0, curM = 0, T = 0, S = 0, dirty = true;
+const cam = { az: 0.55, pol: 0.95, dist: 138, tx: 0, tz: 0 };
+
+function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#0a1016'; }
+function applyTheme() { if (renderer) { renderer.setClearColor(new THREE.Color(cssVar('--stage'))); dirty = true; } }
+
+function initThree() {
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas: $('#gl'), antialias: true });
+  } catch (e) {
+    setStatus('This browser could not start WebGL.'); return false;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(40, 1, 1, 2000);
+  const sun = new THREE.DirectionalLight(0xfff1dc, 1.1);
+  sun.position.set(-70, 90, 50); scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0xcfe0ff, 0x3a3f4a, 0.7));
+  applyTheme(); updateCam(); resize();
+  return true;
+}
+
+function buildMesh(N) {
+  if (mesh) { scene.remove(mesh); geom.dispose(); mesh.material.dispose(); tex.dispose(); }
+  curN = N; const M = Math.min(N, 512); curM = M; T = N <= 256 ? 512 : 1024; S = T / N;
+  const pos = new Float32Array(M * M * 3), uv = new Float32Array(M * M * 2);
+  for (let j = 0; j < M; j++) {
+    for (let i = 0; i < M; i++) {
+      const idx = j * M + i;
+      pos[idx * 3] = (i / (M - 1) - 0.5) * WORLD_SIZE;
+      pos[idx * 3 + 2] = (j / (M - 1) - 0.5) * WORLD_SIZE;
+      uv[idx * 2] = i / (M - 1); uv[idx * 2 + 1] = 1 - j / (M - 1);
+    }
+  }
+  const index = new Uint32Array((M - 1) * (M - 1) * 6); let q = 0;
+  for (let j = 0; j < M - 1; j++) {
+    for (let i = 0; i < M - 1; i++) {
+      const a = j * M + i, b = a + 1, c = a + M, d = c + 1;
+      index[q++] = a; index[q++] = c; index[q++] = b;
+      index[q++] = b; index[q++] = c; index[q++] = d;
+    }
+  }
+  geom = new THREE.BufferGeometry();
+  geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geom.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  geom.setIndex(new THREE.BufferAttribute(index, 1));
+  texCanvas = document.createElement('canvas'); texCanvas.width = texCanvas.height = T;
+  texCtx = texCanvas.getContext('2d');
+  imgData = texCtx.createImageData(T, T);
+  tex = new THREE.CanvasTexture(texCanvas);
+  tex.encoding = THREE.sRGBEncoding;
+  tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  mesh = new THREE.Mesh(geom, new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.5 }));
+  mesh.frustumCulled = false;
+  scene.add(mesh);
+}
+
+function updateGeometry(w) {
+  const N = w.N, M = curM, h = w.h, fill = w.fill, ld = w.lakeDepth, pos = geom.attributes.position.array, rel = state.relief, k = (N - 1) / (M - 1);
+  for (let J = 0; J < M; J++) {
+    const y = J * k, j0 = Math.min(N - 2, y | 0), fy = y - j0;
+    for (let I = 0; I < M; I++) {
+      const x = I * k, i0 = Math.min(N - 2, x | 0), fx = x - i0, a = j0 * N + i0;
+      let v = (h[a] * (1 - fx) + h[a + 1] * fx) * (1 - fy) + (h[a + N] * (1 - fx) + h[a + N + 1] * fx) * fy;
+      const c = Math.round(y) * N + Math.round(x);
+      if (v > 0 && ld[c] > 0.0025) v = fill[c];
+      pos[(J * M + I) * 3 + 1] = v > 0 ? v * rel : v * rel * 0.1;
+    }
+  }
+  geom.attributes.position.needsUpdate = true;
+  geom.computeVertexNormals();
+  dirty = true;
+}
+
+/* ---- texture painter ---- */
+function thrCells(w) { return Math.max(3, w.N * w.N * 0.0025 * Math.pow(0.62, state.density - 1)); }
+
+function drawRivers(w, thr, color, widthScale) {
+  const { N, recv, area, donor, ocean } = w, k = T / (N - 1);
+  const ctx = texCtx;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = color;
+  const cx = (i) => (i % N) * k, cy = (i) => Math.floor(i / N) * k;
+  for (let i = 0; i < N * N; i++) {
+    if (ocean[i] || area[i] < thr) continue;
+    const r = recv[i]; if (r < 0) continue;
+    ctx.lineWidth = (T / 512) * clamp(0.8 + 0.5 * Math.log2(area[i] / thr), 0.8, 4.5) * widthScale;
+    const mx = (cx(i) + cx(r)) / 2, my = (cy(i) + cy(r)) / 2, d0 = donor[i];
+    ctx.beginPath();
+    if (d0 >= 0 && area[d0] >= thr) {
+      ctx.moveTo((cx(d0) + cx(i)) / 2, (cy(d0) + cy(i)) / 2);
+      ctx.quadraticCurveTo(cx(i), cy(i), mx, my);
+    } else { ctx.moveTo(cx(i), cy(i)); ctx.lineTo(mx, my); }
+    ctx.stroke();
+    if (!ocean[r] && donor[r] !== i) { ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(cx(r), cy(r)); ctx.stroke(); }
+  }
+}
+
+function drawPlateOverlay(w) {
+  const G = w.G, k = T / G, ctx = texCtx, sz = k * 1.25;
+  const cols = ['', 'rgb(236,84,64)', 'rgb(86,172,255)', 'rgb(238,238,238)'];
+  for (let c = 0; c < G * G; c++) {
+    const b = w.bndG[c]; if (!b) continue;
+    ctx.fillStyle = cols[b];
+    ctx.fillRect(((c % G) + 0.5) * k - sz / 2, (Math.floor(c / G) + 0.5) * k - sz / 2, sz, sz);
+  }
+  const u = T / 512;
+  for (const p of w.plates) {
+    if (!p.alive) continue;
+    const x = p.x * T, y = p.y * T, sp = Math.hypot(p.vx, p.vy), L = T * 0.075 * Math.min(sp, 1.6), a = Math.atan2(p.vy, p.vx);
+    const ex = x + Math.cos(a) * L, ey = y + Math.sin(a) * L;
+    for (const pass of [0, 1]) {
+      ctx.strokeStyle = pass ? '#fff' : 'rgba(0,0,0,0.7)'; ctx.fillStyle = ctx.strokeStyle;
+      ctx.lineWidth = (pass ? 2.2 : 4.4) * u; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex, ey); ctx.stroke();
+      const hs = (pass ? 7 : 9) * u;
+      ctx.beginPath();
+      ctx.moveTo(ex + Math.cos(a) * hs, ey + Math.sin(a) * hs);
+      ctx.lineTo(ex + Math.cos(a + 2.5) * hs, ey + Math.sin(a + 2.5) * hs);
+      ctx.lineTo(ex + Math.cos(a - 2.5) * hs, ey + Math.sin(a - 2.5) * hs);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, y, (pass ? 3 : 4.5) * u, 0, TAU); ctx.fill();
+    }
+  }
+}
+
+function drawTexture(w) {
+  if (!w || !imgData) return;
+  const N = w.N, dat = imgData.data, h = w.h, ld = w.lakeDepth, disk = w.shape === 'disk';
+  let view = state.view;
+  if (w.replay && view === 'basins') view = 'terrain';
+  const plateCol = w.plates.map((p, k) => (p.ring ? [38, 40, 48] : hsl(k * 137.5 + 20, p.cont ? 0.55 : 0.42, p.cont ? 0.6 : 0.4)));
+  const Gp = w.G || 1, gk = Gp / (N - 1);
+  const basinCol = [];
+  for (let r = 0; r < 24; r++) basinCol.push(hsl(r * 137.508 + 10, 0.52, 0.55));
+  const showBasins = view === 'basins' && w.hydro;
+  const hasRel = !w.replay;
+  for (let ty = 0; ty < T; ty++) {
+    const ys = (ty + 0.5) / T * (N - 1), j0 = Math.min(N - 2, ys | 0), fy = ys - j0;
+    const cj = Math.min(N - 1, Math.round(ys)), cjn = Math.min(N - 1, Math.round((ty + 1.5) / T * (N - 1)));
+    for (let tx = 0; tx < T; tx++) {
+      const o = (ty * T + tx) * 4;
+      if (disk) {
+        const du = (tx + 0.5) / T - 0.5, dv = (ty + 0.5) / T - 0.5;
+        if (du * du + dv * dv > 0.247) { dat[o] = dat[o + 1] = dat[o + 2] = 0; dat[o + 3] = 0; continue; }
+      }
+      const xs = (tx + 0.5) / T * (N - 1), i0 = Math.min(N - 2, xs | 0), fx = xs - i0, a = j0 * N + i0;
+      const hv = (h[a] * (1 - fx) + h[a + 1] * fx) * (1 - fy) + (h[a + N] * (1 - fx) + h[a + N + 1] * fx) * fy;
+      const ci = Math.min(N - 1, Math.round(xs)), cidx = cj * N + ci;
+      let r, g, b;
+      if (view === 'height') {
+        if (hv > 0) { const v = 70 + 185 * (hv > 1 ? 1 : hv); r = g = b = v; }
+        else { const d = hv < -1 ? 1 : -hv; r = g = b = 46 - 34 * d; }
+      } else if (view === 'plates') {
+        const gcell = Math.min(Gp - 1, (ys * gk) | 0) * Gp + Math.min(Gp - 1, (xs * gk) | 0), c = plateCol[w.plateG[gcell]] || [60, 60, 60], f = hv > 0 ? 0.92 + 0.16 * (hv > 1 ? 1 : hv) : 0.74;
+        r = c[0] * f; g = c[1] * f; b = c[2] * f;
+      } else if (hv > 0) {
+        if (showBasins) {
+          const id = w.basin[cidx], bc = id >= 0 && w.basinRank[id] < 24 ? basinCol[w.basinRank[id]] : null, c = bc || [112, 120, 110];
+          let f = 0.8 + 0.3 * (hv > 1 ? 1 : hv);
+          const cin = Math.min(N - 1, Math.round((tx + 1.5) / T * (N - 1)));
+          const n1 = cj * N + cin, n2 = cjn * N + ci;
+          if (bc && ((h[n1] > 0 && w.basin[n1] !== id) || (h[n2] > 0 && w.basin[n2] !== id))) f *= 0.42;
+          else if (!bc && ((h[n1] > 0 && w.basin[n1] !== id && w.basin[n1] >= 0 && w.basinRank[w.basin[n1]] < 24) || (h[n2] > 0 && w.basin[n2] !== id && w.basin[n2] >= 0 && w.basinRank[w.basin[n2]] < 24))) f *= 0.42;
+          r = c[0] * f; g = c[1] * f; b = c[2] * f;
+        } else {
+          const li = ((hv > 1 ? 1 : hv) * 255 | 0) * 3;
+          r = LAND[li]; g = LAND[li + 1]; b = LAND[li + 2];
+          const lk = (ld[a] * (1 - fx) + ld[a + 1] * fx) * (1 - fy) + (ld[a + N] * (1 - fx) + ld[a + N + 1] * fx) * fy;
+          if (lk > 0.0025) { r = 70; g = 140; b = 190; }
+        }
+      } else {
+        const d = hv < -1 ? 1 : -hv, oi = (d * 255 | 0) * 3, f = showBasins ? 0.5 : 1;
+        r = OCEAN[oi] * f; g = OCEAN[oi + 1] * f; b = OCEAN[oi + 2] * f;
+      }
+      dat[o] = r; dat[o + 1] = g; dat[o + 2] = b; dat[o + 3] = 255;
+    }
+  }
+  texCtx.putImageData(imgData, 0, 0);
+  texCtx.save();
+  if (disk) { texCtx.beginPath(); texCtx.arc(T / 2, T / 2, T * 0.497, 0, TAU); texCtx.clip(); }
+  if (w.hydro) {
+    const thr = thrCells(w);
+    if (view === 'terrain') drawRivers(w, thr, 'rgb(58,128,196)', 1);
+    else if (view === 'basins') drawRivers(w, thr, 'rgba(244,248,250,0.92)', 0.85);
+  }
+  if (view === 'plates') drawPlateOverlay(w);
+  texCtx.restore();
+  tex.needsUpdate = true; dirty = true;
+}
+
+function refreshStats(w) {
+  if (!w || !w.hydro || w.replay) return;
+  let land = 0, inside = 0;
+  for (let i = 0; i < w.N * w.N; i++) if (w.edge[i] > 0) { inside++; if (!w.ocean[i]) land++; }
+  const thr = thrCells(w), rs = riverStats(w, thr);
+  const bigBasins = w.basinArea ? w.basinArea.filter((a) => a >= thr).length : 0;
+  $('#stats').innerHTML =
+    '<span><b>' + Math.round(100 * land / inside) + '%</b> land</span>' +
+    '<span><b>' + rs.mouths + '</b> river mouths</span>' +
+    '<span><b>' + bigBasins + '</b> large basins</span>' +
+    '<span><b>' + rs.lakes.toLocaleString() + '</b> lake cells</span>';
+}
+
+const ZEROS = {};
+function zeros(n) { return ZEROS[n] || (ZEROS[n] = new Float32Array(n)); }
+function pseudoWorld(w, k) {
+  const s = w.snaps[k], M = s.M, h = new Float32Array(M * M);
+  for (let i = 0; i < h.length; i++) h[i] = s.q[i] / 10000;
+  return {
+    N: M, G: w.G, shape: w.shape, h, fill: zeros(M * M), lakeDepth: zeros(M * M), hydro: false, replay: true,
+    plates: s.plates || w.plates, plateG: s.plate || w.plateG, bndG: s.bnd || w.bndG,
+  };
+}
+
+function fmtMyr(m) { return Math.round(m) + ' million years'; }
+function showWorld(w) {
+  state.shown = w; if (!w.replay) { state.world = w; window.WORLD = w; }
+  updateGeometry(w); drawTexture(w); refreshStats(w);
+}
+function showEpoch(k) {
+  const w = state.world; if (!w) return;
+  const last = w.snaps.length - 1;
+  state.k = k = Math.max(0, Math.min(last, k)); $('#geo').value = k;
+  if (k >= last) { showWorld(w); $('#geoLabel').textContent = 'Present day'; }
+  else { showWorld(pseudoWorld(w, k)); $('#geoLabel').textContent = w.snaps[k].label; }
+}
+
+/* ---- camera ---- */
+function updateCam() {
+  const sp = Math.sin(cam.pol), cp = Math.cos(cam.pol);
+  camera.position.set(cam.tx + cam.dist * sp * Math.sin(cam.az), cam.dist * cp, cam.tz + cam.dist * sp * Math.cos(cam.az));
+  camera.lookAt(cam.tx, 0, cam.tz);
+  dirty = true;
+}
+function resize() {
+  if (!renderer) return;
+  const el = $('#stage'), w = el.clientWidth || 300, h = el.clientHeight || 300;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix(); dirty = true;
+}
+function initControls() {
+  const el = $('#gl'), ptrs = new Map();
+  el.addEventListener('pointerdown', (e) => { el.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); });
+  const up = (e) => { ptrs.delete(e.pointerId); };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  el.addEventListener('pointermove', (e) => {
+    const p = ptrs.get(e.pointerId); if (!p) return;
+    if (ptrs.size === 1) {
+      cam.az -= (e.clientX - p.x) * 0.006;
+      cam.pol = clamp(cam.pol - (e.clientY - p.y) * 0.006, 0.08, 1.5);
+      p.x = e.clientX; p.y = e.clientY;
+    } else if (ptrs.size === 2) {
+      const other = [...ptrs.entries()].find(([id]) => id !== e.pointerId)[1];
+      const d0 = Math.hypot(p.x - other.x, p.y - other.y);
+      const mx0 = (p.x + other.x) / 2, my0 = (p.y + other.y) / 2;
+      p.x = e.clientX; p.y = e.clientY;
+      const d1 = Math.hypot(p.x - other.x, p.y - other.y);
+      const mx1 = (p.x + other.x) / 2, my1 = (p.y + other.y) / 2;
+      if (d0 > 8 && d1 > 8) cam.dist = clamp(cam.dist * d0 / d1, 20, 320);
+      const sc = cam.dist * 0.0016, dx = mx1 - mx0, dy = my1 - my0;
+      const rx = Math.cos(cam.az), rz = -Math.sin(cam.az), fx = -Math.sin(cam.az), fz = -Math.cos(cam.az);
+      cam.tx = clamp(cam.tx - rx * dx * sc + fx * dy * sc, -60, 60);
+      cam.tz = clamp(cam.tz - rz * dx * sc + fz * dy * sc, -60, 60);
+    }
+    updateCam();
+  });
+  el.addEventListener('wheel', (e) => { e.preventDefault(); cam.dist = clamp(cam.dist * Math.exp(e.deltaY * 0.001), 20, 320); updateCam(); }, { passive: false });
+  $('#reset').addEventListener('click', () => { Object.assign(cam, { az: 0.55, pol: 0.95, dist: 138, tx: 0, tz: 0 }); updateCam(); });
+}
+
+/* ---- UI ---- */
+const SLIDERS = [
+  { id: 'plates', label: 'Plates', min: 4, max: 24, val: 12 },
+  { id: 'land', label: 'Land share', min: 15, max: 60, val: 33, fmt: (v) => v + '%' },
+  { id: 'tec', label: 'Tectonic steps', min: 60, max: 500, val: 240 },
+  { id: 'epochs', label: 'Erosion epochs', min: 20, max: 120, val: 50 },
+  { id: 'uplift', label: 'Late uplift', min: 50, max: 200, val: 100, fmt: (v) => v + '%' },
+  { id: 'impacts', label: 'Meteor impacts', min: 0, max: 20, val: 6 },
+  { id: 'hot', label: 'Island chains', min: 0, max: 8, val: 3 },
+  { id: 'density', label: 'River density', min: 1, max: 10, val: 3, live: true },
+  { id: 'relief', label: 'Height scale', min: 2, max: 40, val: 12, live: true },
+];
+function setStatus(t) { $('#status').textContent = t; }
+function sv(id) { return +$('#s-' + id).value; }
+
+function buildSliders() {
+  const box = $('#sliders');
+  for (const s of SLIDERS) {
+    const row = document.createElement('label');
+    row.className = 'slider';
+    row.innerHTML = '<span class="sl-name">' + s.label + '</span><output id="o-' + s.id + '"></output>' +
+      '<input type="range" id="s-' + s.id + '" min="' + s.min + '" max="' + s.max + '" step="1" value="' + s.val + '">';
+    box.appendChild(row);
+    const inp = row.querySelector('input'), out = row.querySelector('output');
+    const show = () => { out.textContent = s.fmt ? s.fmt(+inp.value) : inp.value; };
+    show();
+    inp.addEventListener('input', () => {
+      show();
+      if (s.id === 'density') { state.density = +inp.value; if (state.shown) { drawTexture(state.shown); refreshStats(state.world); } }
+      if (s.id === 'relief') { state.relief = +inp.value; if (state.shown && geom) requestAnimationFrame(() => updateGeometry(state.shown)); }
+    });
+  }
+}
+
+let token = 0, replayTimer = null;
+const CANCEL = { cancelled: true };
+function stopReplay() { if (replayTimer) { clearInterval(replayTimer); replayTimer = null; } $('#replay').textContent = 'Replay'; }
+function toggleReplay() {
+  const w = state.world; if (!w) return;
+  if (replayTimer) { stopReplay(); return; }
+  const last = w.snaps.length - 1;
+  let k = state.k >= last ? 0 : state.k;
+  $('#replay').textContent = 'Stop';
+  replayTimer = setInterval(() => {
+    k++; showEpoch(k);
+    if (k >= last) stopReplay();
+  }, 120);
+}
+
+async function generate() {
+  const my = ++token;
+  stopReplay();
+  const o = {
+    seed: $('#seed').value.trim() || 'world', N: +$('#res').value, shape: $('#shape').value,
+    plates: sv('plates'), landFrac: sv('land') / 100, tecSteps: sv('tec'), epochs: sv('epochs'), uplift: sv('uplift') / 100,
+    impacts: sv('impacts'), hotspots: sv('hot'),
+  };
+  o.showEvery = o.N >= 1024 ? 2 : 1;
+  state.world = null; state.shown = null;
+  if (o.N !== curN) buildMesh(o.N);
+  const t0 = performance.now();
+  $('#gen').textContent = 'Generating';
+  $('#geo').disabled = true; $('#replay').disabled = true; $('#geo').max = 1000; $('#geo').value = 0; $('#stats').textContent = '';
+  const hooks = {
+    stage: async (name, show, w, info) => {
+      if (my !== token) throw CANCEL;
+      if (info && info.phase === 'tec') {
+        $('#geo').value = Math.round((info.step / info.steps) * 500);
+        $('#geoLabel').textContent = 'Plates drifting and colliding, ' + fmtMyr(info.myr) + ' in';
+        setStatus('Tectonics: step ' + info.step + ' of ' + info.steps);
+      } else if (info && info.phase === 'ero') {
+        $('#geo').value = 500 + Math.round((info.epoch / info.epochs) * 500);
+        $('#geoLabel').textContent = info.done ? 'Present day' : 'Erosion, epoch ' + info.epoch + ' of ' + info.epochs + ', ' + fmtMyr(info.myr) + ' in';
+        setStatus(info.done ? 'Finishing rivers and basins' : info.note ? info.note + ' at epoch ' + info.epoch : name === 'Epoch' ? 'Mountains wearing down' : name);
+      } else setStatus(name);
+      if (show) showWorld(w);
+      await new Promise((r) => requestAnimationFrame(r));
+      if (my !== token) throw CANCEL;
+    },
+  };
+  try {
+    const w = await generateWorld(o, hooks);
+    if (my !== token) return;
+    state.world = w; state.k = w.snaps.length - 1;
+    showWorld(w);
+    $('#geo').max = w.snaps.length - 1; $('#geo').value = w.snaps.length - 1;
+    $('#geo').disabled = false; $('#replay').disabled = false;
+    $('#geoLabel').textContent = 'Present day';
+    setStatus('Ready in ' + ((performance.now() - t0) / 1000).toFixed(1) + ' s');
+  } catch (e) {
+    if (e !== CANCEL) { console.error(e); setStatus('Generation failed: ' + (e && e.message ? e.message : e)); }
+  } finally {
+    if (my === token) $('#gen').textContent = 'Generate';
+  }
+}
+
+function initUI() {
+  buildSliders();
+  for (const b of document.querySelectorAll('#views button')) {
+    b.addEventListener('click', () => {
+      state.view = b.dataset.view;
+      for (const x of document.querySelectorAll('#views button')) x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
+      if (state.shown) drawTexture(state.shown);
+    });
+  }
+  $('#gen').addEventListener('click', generate);
+  $('#shuffle').addEventListener('click', () => { $('#seed').value = Math.random().toString(36).slice(2, 8); generate(); });
+  $('#seed').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); generate(); } });
+  $('#replay').addEventListener('click', toggleReplay);
+  $('#geo').addEventListener('input', (e) => { stopReplay(); showEpoch(+e.target.value); });
+  const more = $('#more'), params = $('#params');
+  more.addEventListener('click', () => {
+    const open = more.getAttribute('aria-expanded') === 'true';
+    more.setAttribute('aria-expanded', open ? 'false' : 'true');
+    params.hidden = open;
+    more.textContent = open ? 'Settings' : 'Hide settings';
+    requestAnimationFrame(resize);
+  });
+}
+
+function loop() {
+  requestAnimationFrame(loop);
+  if (dirty && renderer && mesh) { dirty = false; renderer.render(scene, camera); }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  initUI();
+  if (typeof THREE === 'undefined') { setStatus('Three.js did not load, so the 3D view is unavailable.'); return; }
+  if (!initThree()) return;
+  initControls();
+  new ResizeObserver(resize).observe($('#stage'));
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  if (mq.addEventListener) mq.addEventListener('change', applyTheme);
+  new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  loop();
+  generate();
+});
+
+</script>
+</body>
+</html>

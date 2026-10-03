@@ -7,6 +7,24 @@
     <script src="../js/theme.js"></script>
     <link rel="stylesheet" href="../css/theme.css">
     <link rel="stylesheet" href="../css/post.css">
+    <style>
+        body { max-width: 56em; }
+        article > header > p { max-width: 40em; }
+        td { vertical-align: top; }
+        td:first-child { min-width: 15em; font-weight: 500; }
+        td:nth-child(3), td:nth-child(4) { white-space: nowrap; }
+        td time { font: .9em/1.6 var(--font-mono); color: var(--dim); }
+        @media (max-width: 44em) {
+            table, tbody { display: block; }
+            thead { display: none; }
+            tr { display: grid; grid-template-columns: 1fr auto; gap: 0 1em; padding: .7em 0; border-bottom: 1px solid var(--line); }
+            td { border: 0; padding: 0; min-width: 0 !important; }
+            td:nth-child(2) { grid-column: 1 / -1; grid-row: 2; padding: .15em 0 .3em; }
+            td:nth-child(3) { grid-column: 1; grid-row: 3; }
+            td:nth-child(4) { grid-column: 2; grid-row: 3; text-align: right; }
+            td:first-child { grid-column: 1 / -1; grid-row: 1; }
+        }
+    </style>
 </head>
 <body>
 
@@ -22,27 +40,49 @@
                 <p>A vibecheck is a quick, mostly vibe-coded test of an idea or a model: I describe what I want, let an LLM build it, and see whether the idea holds up. Built in an evening and judged by feel, not rigor. Some work, some semi-fail, and both are the point.</p>
             </header>
 
-            <ul>
-                <li><a href="atchat-notes.html">atchat</a> — a peer-to-peer chat that uses your Bluesky account to connect, with messages, photos and short video (<a href="atchat.html">page only</a>)</li>
-                <li><a href="calgacus-notes.html">Calgacus</a> — hiding text in other text of the same length, explained (<a href="calgacus.html">page only</a>)</li>
-                <li><a href="protocol-lab-notes.html">Protocol Lab</a> — write a small protocol as text and step through it (<a href="protocol-lab.html">page only</a>)</li>
-                <li><a href="pag-explainer-notes.html">PAG Explained</a> — a visual walkthrough of a faster nearest-neighbor search (<a href="pag-explainer.html">page only</a>)</li>
-                <li><a href="otfs-notes.html">OTFS</a> — an interactive explainer of modulation in the delay-Doppler domain (<a href="otfs.html">page only</a>)</li>
-                <li><a href="marbler-notes.html">Marbler</a> — float your inks, rake them, and lift a sheet (<a href="marbler.html">page only</a>)</li>
-                <li><a href="gerstner-waves-notes.html">Gerstner Waves</a> — an ocean in one vertex shader, written twice: WebGL2 and WebGPU (<a href="gerstner-waves.html">page only</a>)</li>
-                <li><a href="barcode-scanner-notes.html">Barcode Scanner</a> — a vanilla-JS PWA that scans barcodes with the phone camera (<a href="https://conradmearns.github.io/barcode-scanner/">page only</a>)</li>
-                <li><a href="terminal-notes.html">Terminal</a> — an 80s CRT boot screen (<a href="https://conradmearns.github.io/7m9/terminal.html">page only</a>)</li>
-                <li><a href="whiteboard-notes.html">Whiteboard</a> — an infinite-canvas flow diagram planning a DIZZY feature (<a href="https://conradmearns.github.io/7m9/whiteboard.html">page only</a>)</li>
-                <li><a href="meal-planner-notes.html">Meal Planner</a> — calendar, servings, grocery list (<a href="https://conradmearns.github.io/7m9/meal-planner.html">page only</a>)</li>
-                <li><a href="chronicledb-notes.html">ChronicleDB</a> — a Raft-consensus distributed event log demo, in React and in vanilla JS (<a href="https://conradmearns.github.io/7m9/chronicledb.html">page only</a>)</li>
-                <li><a href="ecs-lisp-notes.html">ECS × LISP</a> — a tiny world you drive with s-expressions, with agents that sense, think and act (<a href="https://conradmearns.github.io/7m9/ecs-lisp/index.html">page only</a>)</li>
-                <li><a href="island-forge-notes.html">Island Forge</a> — a semi-failed dynamic system editor (<a href="island-forge.html">page only</a>)</li>
-                <li><a href="self-edit-notes.html">Self-Editing Page</a> — selection + LLM jobs (<a href="self-edit-demo.html">page only</a>)</li>
-                <li><a href="origins-notes.html">Origins</a> — a Xanadu-style transclusion view (<a href="xanadu-transclusion.html">page only</a>)</li>
-                <li><a href="marginalia-notes.html">Marginalia</a> — embedding-based qualitative coder, then a matched-filter rewrite (<a href="marginalia-v2.html">page only</a>)</li>
-                <li><a href="nl-notes.html">Neutral Loss Spectra</a> — an interactive tutorial for GC-MS &amp; LC-MS (<a href="nl.html">page only</a>)</li>
-                <li><a href="https://github.com/ConradMearns/vibecheck">VibeCheck</a> — the original: embed team thoughts, find themes, generate survey questions (2025 proof of concept)</li>
-            </ul>
+            <table>
+                <thead><tr><th>Vibecheck</th><th>What it is</th><th>Date</th><th></th></tr></thead>
+                <tbody>
+                    <tr><td><a href="disk-world-generator-notes.html">Disk World: Generator</a></td><td>a flat-disk world generator with terrain, plates and basins views, replayable from a seed</td><td><time>2026-10-02</time></td><td><a href="disk-world-generator.html">page</a></td></tr>
+                    <tr><td><a href="disk-world-sky-simulator-notes.html">Disk World: Sky Simulator</a></td><td>where the sun goes over a disk world, in sky, map and side views, with a day you can speed up</td><td><time>2026-10-02</time></td><td><a href="disk-world-sky-simulator.html">page</a></td></tr>
+                    <tr><td><a href="disk-forge-notes.html">Disk World: Forge</a></td><td>a disk world forged from plates, impacts, hotspots, erosion, rain and rivers, in WebGL</td><td><time>2026-10-02</time></td><td><a href="disk-forge.html">page</a></td></tr>
+                    <tr><td><a href="disc-world-generator-notes.html">Disk World: WebGL Generator</a></td><td>a WebGL generator for a disc-shaped world, one of several takes on the idea</td><td><time>2026-10-02</time></td><td><a href="disc-world-generator.html">page</a></td></tr>
+                    <tr><td><a href="sea-cliff-math-notes.html">Sea Cliff: Layer by Layer</a></td><td>a scrolling WebGL walkthrough that builds a sea cliff one layer of math at a time</td><td><time>2026-10-02</time></td><td><a href="sea-cliff-math.html">page</a></td></tr>
+                    <tr><td><a href="sea-cliff-generator-notes.html">Sea Cliff: Generator</a></td><td>a WebGL sea cliff generator with a new-seed button</td><td><time>2026-10-02</time></td><td><a href="sea-cliff-generator.html">page</a></td></tr>
+                    <tr><td><a href="after-beer-notes.html">Cybernetics Since 1972</a></td><td>nine lineages of cybernetics since 1972: who argued with whom and what to read, plus a goals track</td><td><time>2026-09-30</time></td><td><a href="after-beer.html">page</a></td></tr>
+                    <tr><td><a href="protocol-lab-notes.html">Protocol Lab</a></td><td>write a small protocol as text and step through it</td><td><time>2026-09-29</time></td><td><a href="protocol-lab.html">page</a></td></tr>
+                    <tr><td><a href="vintage-ore-survey-notes.html">Vintage Story: Ore Survey</a></td><td>every ore block in generated Vintage Story worlds, and tens of thousands of simulated shafts per prospecting strategy</td><td><time>2026-09-28</time></td><td><a href="vintage-ore-survey/index.html">page</a></td></tr>
+                    <tr><td><a href="gerstner-waves-notes.html">Gerstner Waves</a></td><td>an ocean in one vertex shader, written twice: WebGL2 and WebGPU</td><td><time>2026-09-24</time></td><td><a href="gerstner-waves.html">page</a></td></tr>
+                    <tr><td><a href="map-you-didnt-draw-notes.html">Goal Maps: History as a Git Log</a></td><td>the work you thought you were doing against the work done, drawn as a git-style branch history</td><td><time>2026-09-24</time></td><td><a href="map-you-didnt-draw.html">page</a></td></tr>
+                    <tr><td><a href="goal-loop-charted-notes.html">Goal Maps: The Update Loop</a></td><td>how a goal map is acted on, measured and redrawn, one pass at a time</td><td><time>2026-09-24</time></td><td><a href="goal-loop-charted.html">page</a></td></tr>
+                    <tr><td><a href="village-of-clusters-notes.html">koditoki: Growing the Village</a></td><td>a read of what the village does when it runs, and a build-ordered brief for growing it to thirty-plus specialists</td><td><time>2026-09-19</time></td><td><a href="village-of-clusters.html">page</a></td></tr>
+                    <tr><td><a href="clustered-village-scale-notes.html">koditoki: 30 Minds, 150 Ticks</a></td><td>a 30-mind, 150-tick village run: everybody lived, zero truth violations</td><td><time>2026-09-19</time></td><td><a href="clustered-village-scale.html">page</a></td></tr>
+                    <tr><td><a href="marbler-notes.html">Marbler</a></td><td>float your inks, rake them, and lift a sheet</td><td><time>2026-09-18</time></td><td><a href="marbler.html">page</a></td></tr>
+                    <tr><td><a href="copper-age-ledger-notes.html">Vintage Story: Copper Age Economy</a></td><td>what a valley lets a Vintage Story village make, in what order and at what cost, read from the game files</td><td><time>2026-09-09</time></td><td><a href="copper-age-ledger.html">page</a></td></tr>
+                    <tr><td><a href="atchat-notes.html">atchat</a></td><td>a peer-to-peer chat that uses your Bluesky account to connect, with messages, photos and short video</td><td><time>2026-09</time></td><td><a href="atchat.html">page</a></td></tr>
+                    <tr><td><a href="nobody-lied-notes.html">koditoki: Beliefs vs. Ground Truth</a></td><td>a tick-by-tick demo that keeps ground truth apart from what each mind believes</td><td><time>2026-08-24</time></td><td><a href="nobody-lied.html">page</a></td></tr>
+                    <tr><td><a href="shape-of-a-tick-notes.html">koditoki: Anatomy of a Tick</a></td><td>every decision so far, written as one pass of the simulation clock</td><td><time>2026-08-22</time></td><td><a href="shape-of-a-tick.html">page</a></td></tr>
+                    <tr><td><a href="mind-inspector-notes.html">koditoki: Drawing Belief vs. Truth</a></td><td>a look-test for drawing belief diverging from truth, by hand with fake data</td><td><time>2026-08-22</time></td><td><a href="mind-inspector.html">page</a></td></tr>
+                    <tr><td><a href="lfm-gguf-local-run-notes.html">Local LLM: LFM2.5 on a Laptop CPU (llama.cpp)</a></td><td>the same prompt through llama.cpp at Q4_K_M: 34.8 tokens per second</td><td><time>2026-08-05</time></td><td><a href="lfm-gguf-local-run.html">page</a></td></tr>
+                    <tr><td><a href="lfm-fast-ryzen-notes.html">Local LLM: Speeding Up LFM2.5 on a Ryzen</a></td><td>the same 2.6B model on a Ryzen AI 9 HX 370 across three quantizations and two backends</td><td><time>2026-08-05</time></td><td><a href="lfm-fast-ryzen.html">page</a></td></tr>
+                    <tr><td><a href="lfm-local-run-notes.html">Local LLM: LFM2.5 on a Laptop CPU (PyTorch)</a></td><td>one generation from a 2.6B model on a laptop CPU in bfloat16: 7 tokens per second</td><td><time>2026-08-05</time></td><td><a href="lfm-local-run.html">page</a></td></tr>
+                    <tr><td><a href="calgacus-notes.html">Calgacus</a></td><td>hiding text in other text of the same length, explained</td><td><time>2026-07</time></td><td><a href="calgacus.html">page</a></td></tr>
+                    <tr><td><a href="ecs-lisp-notes.html">ECS × LISP</a></td><td>a tiny world you drive with s-expressions, with agents that sense, think and act</td><td><time>2026-06</time></td><td><a href="https://conradmearns.github.io/7m9/ecs-lisp/index.html">page</a></td></tr>
+                    <tr><td><a href="pag-explainer-notes.html">PAG Explained</a></td><td>a visual walkthrough of a faster nearest-neighbor search</td><td><time>2026</time></td><td><a href="pag-explainer.html">page</a></td></tr>
+                    <tr><td><a href="otfs-notes.html">OTFS</a></td><td>an interactive explainer of modulation in the delay-Doppler domain</td><td><time>2026</time></td><td><a href="otfs.html">page</a></td></tr>
+                    <tr><td><a href="barcode-scanner-notes.html">Barcode Scanner</a></td><td>a vanilla-JS PWA that scans barcodes with the phone camera</td><td><time>2026</time></td><td><a href="https://conradmearns.github.io/barcode-scanner/">page</a></td></tr>
+                    <tr><td><a href="terminal-notes.html">Terminal</a></td><td>an 80s CRT boot screen</td><td><time>2026</time></td><td><a href="https://conradmearns.github.io/7m9/terminal.html">page</a></td></tr>
+                    <tr><td><a href="whiteboard-notes.html">Whiteboard</a></td><td>an infinite-canvas flow diagram planning a DIZZY feature</td><td><time>2026</time></td><td><a href="https://conradmearns.github.io/7m9/whiteboard.html">page</a></td></tr>
+                    <tr><td><a href="meal-planner-notes.html">Meal Planner</a></td><td>calendar, servings, grocery list</td><td><time>2026</time></td><td><a href="https://conradmearns.github.io/7m9/meal-planner.html">page</a></td></tr>
+                    <tr><td><a href="chronicledb-notes.html">ChronicleDB</a></td><td>a Raft-consensus distributed event log demo, in React and in vanilla JS</td><td><time>2026</time></td><td><a href="https://conradmearns.github.io/7m9/chronicledb.html">page</a></td></tr>
+                    <tr><td><a href="island-forge-notes.html">Island Forge</a></td><td>a semi-failed dynamic system editor</td><td><time>2026</time></td><td><a href="island-forge.html">page</a></td></tr>
+                    <tr><td><a href="self-edit-notes.html">Self-Editing Page</a></td><td>selection + LLM jobs</td><td><time>2026</time></td><td><a href="self-edit-demo.html">page</a></td></tr>
+                    <tr><td><a href="origins-notes.html">Origins</a></td><td>a Xanadu-style transclusion view</td><td><time>2026</time></td><td><a href="xanadu-transclusion.html">page</a></td></tr>
+                    <tr><td><a href="marginalia-notes.html">Marginalia</a></td><td>embedding-based qualitative coder, then a matched-filter rewrite</td><td><time>2026</time></td><td><a href="marginalia-v2.html">page</a></td></tr>
+                    <tr><td><a href="nl-notes.html">Neutral Loss Spectra</a></td><td>an interactive tutorial for GC-MS &amp; LC-MS</td><td><time>2026</time></td><td><a href="nl.html">page</a></td></tr>
+                    <tr><td><a href="https://github.com/ConradMearns/vibecheck">VibeCheck</a></td><td>the original: embed team thoughts, find themes, generate survey questions (2025 proof of concept)</td><td><time>2025</time></td><td></td></tr>
+                </tbody>
+            </table>
         </article>
     </main>
 
