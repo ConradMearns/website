@@ -18,18 +18,198 @@
     </header>
 
     <div class="stage">
-        <main class="notes" data-single>
+        <main class="notes">
             <h1>Sea Cliff: Layer by Layer</h1>
-            <section data-view="sea-cliff-math.html" data-label="Sea cliff, layered">
-                <p>Scroll and a sea cliff is built up one layer of math at a time, in WebGL.</p>
+            <section data-view="sea-cliff-math.html#0" data-label="Finished coast">
+                <p>Every block in this coast is decided by a formula. Nothing is simulated, and no block ever looks at its neighbour.</p>
+<p>Scroll down and we will rebuild it from nothing, adding one piece of arithmetic at a time. Drag the view whenever you want a closer look.</p>
                 <p class="who">Last updated 2026-10-02 02:46 UTC · made on claude.ai</p>
                 <p><small>Model, effort and cost weren't recorded for this one: it was made on claude.ai, which doesn't keep them with the page.</small></p>
+            </section>
+
+            <section data-view="sea-cliff-math.html#1" data-label="Distance to the shore">
+                <h2>Distance to the shore</h2>
+                <p>Start with one number for every column of blocks: how far it is from the shoreline. Call it <i>c</i>. It is positive inland, negative out to sea, and zero on the waterline.</p>
+<p>Every later layer is written in terms of <i>c</i>, so the whole coast is really a picture of this one field.</p>
+                <blockquote><i>c</i>(<i>x</i>, <i>z</i>) = <i>z</i> − <i>z</i><sub>0</sub></blockquote>
+                <pre>function coast(x, z) {
+  return z - P.coastZ;
+}</pre>
+                <p><small><b>Look for</b> the rule that makes rock: a column is land wherever <i>c</i> is above zero. So far that gives a straight wall.</small></p>
+                <p class="who">Layer 1 of 13</p>
+            </section>
+
+            <section data-view="sea-cliff-math.html#2" data-label="Bend the shoreline">
+                <h2>Bend the shoreline</h2>
+                <p>Add smooth noise to <i>c</i> and the zero line wanders. A slow, strong noise <i>B</i> makes headlands and bays. A faster, weaker one <i>S</i> adds coves and points.</p>
+<p>Keep hold of <i>B</i>. Its sign says whether a column sits on a headland or in a bay, and we will need that soon.</p>
+                <blockquote><i>c</i> = (<i>z</i> − <i>z</i><sub>0</sub>) + 47·<i>B</i>(<i>x</i>/85, <i>z</i>/85) + 6·<i>S</i>(<i>x</i>/22, <i>z</i>/22)</blockquote>
+                <pre>const big   = fbm(x / 85, z / 85, seed + 11, 3) * 1.8;
+const small = fbm(x / 22, z / 22, seed + 23, 2);
+return (z - P.coastZ) + big * 26 + small * 26 * 0.22;</pre>
+                <p><small><b>Look for</b> stripes that are no longer evenly spaced. After bending, <i>c</i> is only roughly a distance. That turns out to be good enough.</small></p>
+                <p class="who">Layer 2 of 13</p>
+            </section>
+
+            <section data-view="sea-cliff-math.html#3" data-label="Turn distance into height">
+                <h2>Turn distance into height</h2>
+                <p>A cliff is a rule for how high the ground is <i>c</i> blocks inland. Use a curve that is steep at the foot and rounds over at the top, reaching full height <i>H</i> after <i>w</i> blocks. With <i>w</i> = 3 the wall is close to sheer.</p>
+<p>The seabed is the same idea pointed downward. A block at height <i>y</i> is rock if <i>y</i> is at or below the curve.</p>
+                <blockquote><i>h</i>(<i>c</i>) = sea + <i>H</i>·(1 − (1 − <i>c</i>/<i>w</i>)<sup>2</sup>) &nbsp; for 0 &lt; <i>c</i> &lt; <i>w</i><br><i>bed</i>(<i>c</i>) = sea − 1.5 + <i>c</i>/2 &nbsp; for <i>c</i> &lt; 0</blockquote>
+                <pre>function landTop(col, c) {
+  if (c &lt;= 0) return -1;
+  const t = Math.min(1, c / P.slopeW);
+  const r = 1 - (1 - t) * (1 - t);
+  return SEA - 1 + (col.top - (SEA - 1)) * r;
+}</pre>
+                <p><small><b>Look for</b> the cut edge of the world, where the profile shows in section. This is still a plain heightmap: one height per column.</small></p>
+                <p class="who">Layer 3 of 13</p>
+            </section>
+
+            <section data-view="sea-cliff-math.html#4" data-label="Which rock takes the hit">
+                <h2>Which rock takes the hit</h2>
+                <p>Erosion should bite hardest where waves strike squarely. The gradient of <i>c</i> points inland, straight through the cliff face. Compare it with the direction the swell travels, <i>d</i>. Their dot product is 1 for a head-on hit and 0 for a glancing one.</p>
+<p>Then scale by the headland noise <i>B</i> from before. Headlands focus wave energy and bays spread it out.</p>
+                <blockquote>facing = max(0, ∇<i>c</i> · <i>d</i> / |∇<i>c</i>|)<br><i>e</i> = (0.15 + 0.85·facing) · (0.78 + 0.3·<i>B</i>)</blockquote>
+                <pre>const gx = coast(x + 3, z) - coast(x - 3, z);
+const gz = coast(x, z + 3) - coast(x, z - 3);
+const facing = Math.max(0,
+  (gx * swx + gz * swz) / Math.hypot(gx, gz));
+let e = clamp((0.15 + 0.85 * facing)
+            * (0.78 + 0.3 * headland), 0, 1);</pre>
+                <p><small><b>Look for</b> red points and blue bays. Nothing has moved yet. Exposure <i>e</i> is the one number every later layer reads.</small></p>
+                <p class="who">Layer 4 of 13</p>
+            </section>
+
+            <section data-view="sea-cliff-math.html#5" data-label="Bedding, and the trick the rest depends on">
+                <h2>Bedding, and the trick the rest depends on</h2>
+                <p>Limestone is laid down in beds. Slice the rock into tilted layers and give each a hardness from a hash of its layer number.</p>
+<p>Now the key move. Do not carve blocks. Instead, at each height, pull <i>c</i> back by a recession <i>R</i> before applying the cliff curve. Soft beds get a larger <i>R</i> and sit further back. Hard beds stand out as ledges.</p>
+                <blockquote>layer = ⌊(<i>y</i> + dip·<i>x</i>) / <i>t</i>⌋ &nbsp;&nbsp; hard = hash(layer)<br><i>R</i>(<i>y</i>) = ledge · (1 − hard)<sup>1.5</sup><br>rock if &nbsp;<i>y</i> ≤ <i>h</i>(<i>c</i> − <i>R</i>(<i>y</i>))</blockquote>
+                <pre>const layer = Math.floor((y + col.dipOff) / P.thick);
+const hard  = hash1(layer, seed + 300);
+R += P.ledge * Math.pow(1 - hard, 1.5);
+...
+const cp = col.c - R;
+if (cp &gt; 0 &amp;&amp; y &lt;= landTop(col, cp)) block = ROCK;</pre>
+                <p><small><b>Look for</b> ledges stepping in and out. Because <i>R</i> changes with height, a column can now be rock, then air, then rock. It has stopped being a heightmap.</small></p>
+                <p class="who">Layer 5 of 13</p>
+            </section>
+
+            <section data-view="sea-cliff-math.html#6" data-label="The wave notch">
+                <h2>The wave notch</h2>
+                <p>Waves work on a narrow band around the waterline. Add a second recession term shaped like a bell, centred on sea level, scaled by exposure and resisted by hard beds.</p>
+<p>Rock above the notch loses its support and falls, so everything from the waterline up also retreats, by 40% of the notch depth. What used to stand there survives below the water as a flat bench, the wave-cut platform.</p>
+                <blockquote>band = exp(−((<i>y</i> − sea) / 2.6)<sup>2</sup>)<br><i>R</i>(<i>y</i>) += <i>N</i>·<i>e</i>·(band·(0.55 + 0.45·(1 − hard)) + 0.4)<br>platform width = 1.5 + 1.4·<i>N</i>·<i>e</i></blockquote>
+                <pre>const d = (y - SEA) / 2.6;
+const band = Math.exp(-d * d);
+R += P.notch * col.e * (
+  band * (0.55 + 0.45 * (1 - hard))
+  + (y &gt;= SEA - 1 ? 0.4 : 0));</pre>
+                <p><small><b>Look for</b> the undercut at the waterline with rock hanging over it, and a pale shelf just under the surface.</small></p>
+                <p class="who">Layer 6 of 13</p>
+            </section>
+
+            <section data-view="sea-cliff-math.html#7" data-label="Joints, caves and clefts">
+                <h2>Joints, caves and clefts</h2>
+                <p>Limestone cracks along near-vertical planes, and the sea widens them. Lay down two sets of parallel planes at different angles. Jitter each plane within its slot and give it a random strength.</p>
+<p>For every block, measure the distance to the nearest plane. Remove the block if it lies inside a half-ellipse around that plane at the waterline. The opening tapers inland and ends at a length <i>L</i> set by strength and exposure. The strongest planes are opened to the sky.</p>
+                <blockquote><i>u</i> = <i>x</i>·cos <i>a</i> + <i>z</i>·sin <i>a</i> &nbsp;&nbsp; dist = |<i>u</i> − <i>p</i><sub>i</sub>|<br>taper = 1 − <i>c</i>/<i>L</i><br>carve if &nbsp;dist &lt; <i>w</i>·√taper · √(1 − <i>ŷ</i><sup>2</sup>)</blockquote>
+                <pre>const u   = x * Math.cos(a) + z * Math.sin(a);
+const ci  = Math.floor(u / spacing);
+const pos = (ci + 0.25 + 0.5 * hash1(ci, s1)) * spacing;
+const dist = Math.abs(u - pos);
+...
+const yy = (y - (SEA - 2)) / height;
+if (dist &lt; halfWidth * Math.sqrt(1 - yy * yy)) carve();</pre>
+                <p><small><b>Look for</b> a cave mouth. Where a cave is longer than its headland is wide it comes out the far side. Arches are not a feature here, they are a consequence.</small></p>
+                <p class="who">Layer 7 of 13</p>
+            </section>
+
+            <section data-view="sea-cliff-math.html#8" data-label="Sea stacks">
+                <h2>Sea stacks</h2>
+                <p>A stack is a piece of cliff the retreat left behind. Divide the map into cells 26 blocks across. In each cell a hash decides whether there is a candidate, where it stands, and how wide and tall it is. Keep it only if the coast field at that spot says it is just offshore.</p>
+<p>Then merge it into <i>c</i> with a max. The stack becomes part of the same field, so it picks up bedding, the notch and joints with no extra code.</p>
+                <blockquote><i>c</i> ← max(<i>c</i>, &nbsp;<i>r</i> − ‖(<i>x</i>, <i>z</i>) − <i>p</i><sub>cell</sub>‖)</blockquote>
+                <pre>if (hash2(ix, iz, seed + 900) &gt; P.stacks) continue;
+const px = (ix + 0.2 + 0.6 * hash2(ix, iz, s1)) * 26;
+const pz = (iz + 0.2 + 0.6 * hash2(ix, iz, s2)) * 26;
+const cm = coast(px, pz);
+if (cm &gt; -5 || cm &lt; -32) continue;   // not offshore
+c = Math.max(c, r - Math.hypot(x - px, z - pz));</pre>
+                <p><small><b>Look for</b> the narrow waist at the waterline. The notch applies to stacks too, capped at half the radius so it can never cut one loose.</small></p>
+                <p class="who">Layer 8 of 13</p>
+            </section>
+
+            <section data-view="sea-cliff-math.html#9" data-label="What the sea puts back">
+                <h2>What the sea puts back</h2>
+                <p>Erosion has a counterpart. Where exposure is low, sand settles. Fill each sheltered column with sand up to a ramp that rises with <i>c</i>, scaled by how sheltered it is.</p>
+<p>Where exposure is high, fallen blocks collect at the cliff foot instead. A fine-grained noise picks where the boulders sit.</p>
+                <blockquote>shelter = 1 − <i>e</i><br><i>a</i> = 0.8 · smoothstep(0.42, 0.75, shelter)<br>sand top = sea − 3 + 0.4·(<i>c</i> + 12)·(0.4 + 0.6·<i>a</i>)</blockquote>
+                <pre>const amt = P.beach * smooth(0.42, 0.75, 1 - e);
+if (amt &gt; 0.12 &amp;&amp; c &gt; -12 &amp;&amp; c &lt; 12)
+  sandTop = Math.floor(SEA - 3
+    + (c + 12) * 0.4 * (0.4 + 0.6 * amt));</pre>
+                <p><small><b>Look for</b> pocket beaches in the bays and bare rock on the points. It is the same exposure field, read the other way round.</small></p>
+                <p class="who">Layer 9 of 13</p>
+            </section>
+
+            <section data-view="sea-cliff-math.html#10" data-label="One Gerstner wave">
+                <h2>One Gerstner wave</h2>
+                <p>Now the water. A plain sine wave moves each point straight up and down, which gives round crests. A Gerstner wave also slides each point sideways, toward the crest as it rises. Crests sharpen and troughs flatten, the way real swell looks.</p>
+<p>Speed is not a free choice. In deep water it follows from the wavelength <i>λ</i>.</p>
+                <blockquote><i>k</i> = 2π/<i>λ</i> &nbsp;&nbsp; <i>ω</i> = √(<i>g</i>·<i>k</i>) &nbsp;&nbsp; <i>φ</i> = <i>k</i>·(<i>D</i> · <i>p</i>) − <i>ω</i><i>t</i><br><i>p</i><sub>xz</sub> += <i>Q</i>·<i>A</i>·<i>D</i>·cos <i>φ</i><br><i>p</i><sub>y</sub> &nbsp;+= <i>A</i>·sin <i>φ</i></blockquote>
+                <pre>float ph = k * dot(D, p.xz) - sqrt(9.81 * k) * uTime;
+d.xz += D * QA * cos(ph);
+d.y  += A * sin(ph);</pre>
+                <p><small><b>Look for</b> one wave, 38 blocks long, with about five seconds between crests. That timing comes from the formula, not from a setting.</small></p>
+                <p class="who">Layer 10 of 13</p>
+            </section>
+
+            <section data-view="sea-cliff-math.html#11" data-label="Five waves make a sea">
+                <h2>Five waves make a sea</h2>
+                <p>A single wave looks like a machine. Add five, each shorter and smaller than the last, fanned out around the swell direction.</p>
+<p>The sideways slide is shared out among them through a steepness <i>s</i>, so that crests can never fold over on themselves.</p>
+                <blockquote><i>p</i> += Σ<sub>i</sub> (<i>Q</i><sub>i</sub><i>A</i><sub>i</sub>·<i>D</i><sub>i</sub>·cos <i>φ</i><sub>i</sub>, &nbsp;<i>A</i><sub>i</sub>·sin <i>φ</i><sub>i</sub>)<br><i>Q</i><sub>i</sub><i>A</i><sub>i</sub> = <i>s</i> / (5·<i>k</i><sub>i</sub>)<br><i>λ</i><sub>i</sub> = <i>λ</i>·(1, 0.61, 0.39, 0.26, 0.17)</blockquote>
+                <pre>for (int i = 0; i &lt; 5; i++) {
+  vec2 D = uWave[i].xy; float k = uWave[i].z;
+  float A = uWave[i].w;
+  float ph = k * dot(D, p.xz) - sqrt(9.81 * k) * uTime;
+  float QA = uSteep * A / max(k * A * 5.0, 0.4);
+  d.xz += D * QA * cos(ph);  d.y += A * sin(ph);
+}</pre>
+                <p><small><b>Look for</b> the direction the swell runs. It is the same <i>d</i> that set exposure earlier, so the sea and the erosion agree.</small></p>
+                <p class="who">Layer 11 of 13</p>
+            </section>
+
+            <section data-view="sea-cliff-math.html#12" data-label="Where water meets rock">
+                <h2>Where water meets rock</h2>
+                <p>Three additions tie the sea to the coast. Wave height is damped over shallow rock. Foam is drawn where a crest is sharp, and in bands that run toward the shore, using a map of distance to the nearest rock.</p>
+<p>Spray is thrown wherever a rising crest reaches a rock face, in proportion to that face's exposure.</p>
+                <blockquote><i>A</i>′ = <i>A</i> · mix(0.45, 1, smoothstep(0, 6, depth))<br>foam ∝ (1 − smoothstep(0.3, 5, shore)) · sin(1.5·shore + 1.7·<i>t</i>)</blockquote>
+                <pre>float att = mix(0.45, 1.0, smoothstep(0.0, 6.0, depth));
+...
+float band = 0.5 + 0.5 * sin(shore * 1.5 + uTime * 1.7);
+float shoreFoam = (1.0 - smoothstep(0.3, 5.0, shore))
+                * (0.4 + 0.6 * band) * surge;</pre>
+                <p><small><b>Look for</b> spray on the faces that were red in the exposure layer, and almost none in the bays.</small></p>
+                <p class="who">Layer 12 of 13</p>
+            </section>
+
+            <section data-view="sea-cliff-math.html#13" data-label="Why this works chunk by chunk">
+                <h2>Why this works chunk by chunk</h2>
+                <p>Look back over the layers. Each one answered the question "is this block rock?" using only its own <i>x</i>, <i>y</i>, <i>z</i> and the seed. No layer read a neighbouring block, and nothing was repeated until it settled.</p>
+<p>So any chunk can be built alone, in any order, on any thread, and the borders line up. The worlds in this page were built that way, a chunk at a time, while you were reading.</p>
+<p>The one shared input is the coast field. Here it is a formula. In a game it would come from the ocean map, worked out per region before any chunk is built.</p>
+<p>The price is that nothing is simulated. No sediment is conserved and nothing emerges from flow. It is a careful drawing of erosion, not erosion.</p>
+                <p><small><b>Look for</b> the seams. There are none.</small></p>
+                <p class="who">Layer 13 of 13</p>
             </section>
         </main>
 
         <div class="frame">
-            <div class="screen"><iframe src="sea-cliff-math.html" title="Sea Cliff: Layer by Layer, live" data-width="1000"></iframe></div>
-            <p><span id="label">Sea cliff, layered</span> <a id="open" href="sea-cliff-math.html">Open full page →</a></p>
+            <div class="screen"><iframe src="sea-cliff-math.html#0" title="Sea Cliff: Layer by Layer, live" data-width="1000"></iframe></div>
+            <p><span id="label">Finished coast</span> <a id="open" href="sea-cliff-math.html">Open full page →</a></p>
         </div>
     </div>
 

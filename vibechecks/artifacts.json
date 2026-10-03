@@ -78,7 +78,8 @@
       "notes": "vibechecks/sea-cliff-math-notes.html",
       "source": "claude.ai",
       "bytes": 55165,
-      "generation": null
+      "generation": null,
+      "note": "modified after pulling: #N URL hash hides the story panel and shows layer N, so the annotated viewer can drive it"
     },
     {
       "title": "Sea Cliff: Generator",
