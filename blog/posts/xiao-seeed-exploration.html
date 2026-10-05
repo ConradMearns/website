@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Exploring the Seeeduino XIAO — Ramblings — Conrad Mearns</title>
+    <script src="../../js/theme.js"></script>
+    <link rel="stylesheet" href="../../css/theme.css">
+    <link rel="stylesheet" href="../../css/post.css">
+</head>
+<body>
+    <header>
+        <a href="../../index.html">conrads.website</a>
+        <button type="button" data-theme-toggle aria-label="Toggle light and dark mode"></button>
+    </header>
+
+    <main>
+        <article>
+            <header>
+                <h1>Exploring the Seeeduino XIAO</h1>
+                <p>Getting a Seeeduino XIAO blinking on NixOS: board packages, permission errors, and wishing it were all code and files.</p>
+                <p><time>2023-10-14</time></p>
+            </header>
+<pre><code class="language-bash">nix-shell -p arduino
+</code></pre>
+            <p>Xiao seeed blink https://desertbot.io/blog/seeeduino-xiao-blink</p>
+            <p><img src="img/Pasted-image-20231014142825.png" alt=""></p>
+            <p>Arduino on NixOS is certainly better than it once was,
+            it's easy to jump into a shell and start hacking away.
+            My issue with the Arduino "way" though is that it takes far too much clicking.
+            I would prefer to learn Rust <em>just</em> so that setup and configuration is completely handled by code and files.</p>
+            <p>While I was getting started, I added the Board Manager URL and installed the Seeed SAMD boards only to run into permission errors for access to /dev/ACM0. I closed Arduino, launched with <code>sudo</code>, and had to reinstall everything again.</p>
+            <p>As I type - I'm still waiting for the board packages to install.</p>
+            <p>https://wiki.seeedstudio.com/Seeeduino-XIAO/</p>
+            <p>The GIF that Seeed Studio provided ended up being my ticket to programming - the "double-short RST" to enter bootloader mode has be done quicker than I thought.</p>
+            <p><img src="img/Pasted-image-20231014145548.png" alt=""></p>
+            <p><img src="img/Pasted-image-20231015110411.png" alt=""></p>
+            <p>I'm working towards building some code for I2C communication, but I'd like for each system to be capable of dynamically assigning it's role.</p>
+            <p>My first thought was to have each device respond in the same manner:
+            - First, the device enter subordinate mode and awaits an I2C broadcast that the main board sends every long-interval.
+            - If the long-interval passes and no broadcast is received, then the device promotes itself to a main board and starts sending broadcasts. The message is an always-incrementing counter that updates when subordinate devices respond. The number becomes the subordinate address.
+            - If a broadcast is received, then the number transmitted becomes the device's address.</p>
+            <p>This concept has a few problems.
+            - If 2 networks are created where 2 devices are joined, and then the networks are joined, then there will be 2 main nodes.
+            - If two new subordinates come online when there is already a main node, then the subordinates can receive the broadcast at the same time and acquire the same address.</p>
+            <p><a href="https://arduino.stackexchange.com/questions/67461/arduino-slave-with-2-masters-sharing-the-same-i2c-bus">Other solutions suggested include adding another wire</a> - but Pinouts are expensive real estate on these Xiao's!</p>
+            <p>Perhaps a better (less wire usage, more configurable, weird and obscure) option is <a href="https://github.com/gioblu/PJON">PJON</a> - The <code>Padded Jittering Operative Network</code> is a network protocol that can be configured to use light, as low as a single wire, LoRa, even UDP to communicate up to a few kBps.</p>
+            <p><a href="https://github.com/gioblu/PJON/blob/master/documentation/addressing.md">Addressing</a> can be done dynamically, and collision handling is built in (I think... source?).</p>
+            <p>SO instead of trying to do the first, easiest thing first (I2C) - I'm jumping ahead to seeing if I can get PJON to work. If it doesn't - whine and wine time. Otherwise, we're off to the races.</p>
+            <p><a href="https://github.com/gioblu/PJON/blob/master/examples/ARDUINO/Local/SoftwareBitBang/BlinkTest/Transmitter/Transmitter.ino">Transmitter</a></p>
+<pre><code class="language-c">#include &lt;PJONSoftwareBitBang.h&gt;
+
+PJONSoftwareBitBang bus(45);
+
+void setup() {
+  bus.strategy.set_pin(6);
+  bus.begin();
+  bus.send_repeatedly(44, &quot;B&quot;, 1, 1000000); // Send B to device 44 every second
+}
+
+void loop() {
+  bus.update();
+};
+</code></pre>
+            <p><a href="https://github.com/gioblu/PJON/blob/master/examples/ARDUINO/Local/SoftwareBitBang/BlinkTest/Receiver/Receiver.ino">Receiver</a></p>
+<pre><code class="language-c">#include &lt;PJONSoftwareBitBang.h&gt;
+
+PJONSoftwareBitBang bus(44);
+
+void receiver_function(uint8_t *payload, uint16_t length, const PJON_Packet_Info &amp;packet_info) {
+  /* Make use of the payload before sending something, the buffer where payload points to is
+     overwritten when a new message is dispatched */
+  if(payload[0] == 'B') {
+    Serial.println(&quot;BLINK&quot;);
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(30);
+    digitalWrite(LED_BUILTIN, LOW);
+  }
+};
+
+void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW); // Initialize LED 13 to be off
+
+  bus.strategy.set_pin(6);
+  bus.begin();
+  bus.set_receiver(receiver_function);
+
+  Serial.begin(9600);
+  Serial.println(&quot;Starting&quot;);
+};
+
+void loop() {
+  bus.receive(1000);
+};
+</code></pre>
+            <p>Installing PJON...</p>
+            <p><img src="img/Pasted-image-20231015154958.png" alt=""></p>
+            <p><img src="img/Pasted-image-20231015160904.png" alt=""></p>
+            <p>https://github.com/gioblu/PJON/tree/master/src/strategies/SoftwareBitBang</p>
+            <p>https://github.com/gioblu/PJON/wiki/Mitigate-interference</p>
+            <hr />
+            <p>Before I wrap up - dumping links</p>
+            <p><a href="https://www.arduino.cc/reference/en/language/functions/usb/keyboard/keyboardmodifiers/">Arduino Keyboard Reference</a></p>
+            <p><a href="https://github.com/cyborg5/TinyUSB_Mouse_and_Keyboard/blob/master/TinyUSB_Mouse_and_Keyboard.h">TinyUSB Header</a></p>
+            <p>xiao_m0 - crates.io: Rust Package Registry
+            https://crates.io/crates/xiao_m0</p>
+            <p>atsamd/boards/xiao_m0/examples/blink.rs at master · atsamd-rs/atsamd · GitHub
+            https://github.com/atsamd-rs/atsamd/blob/master/boards/xiao_m0/examples/blink.rs</p>
+            <p>How to blink a Seeeduino XIAO onboard LED (Mac, 7 Steps) – desertbot.io
+            https://desertbot.io/blog/seeeduino-xiao-blink</p>
+            <p>Seeed Studio XIAO SAMD21 with TinyUSB | Seeed Studio Wiki
+            https://wiki.seeedstudio.com/Seeeduino-XIAO-TinyUSB/</p>
+            <p>Introduction to SPI Interface | Analog Devices
+            https://www.analog.com/en/analog-dialogue/articles/introduction-to-spi-interface.html</p>
+            <p>PJON/documentation/data-reception.md at master · gioblu/PJON · GitHub
+            https://github.com/gioblu/PJON/blob/master/documentation/data-reception.md</p>
+            <p>PJON/src/strategies/SoftwareBitBang at master · gioblu/PJON · GitHub
+            https://github.com/gioblu/PJON/tree/master/src/strategies/SoftwareBitBang</p>
+            <p>Mitigate interference · gioblu/PJON Wiki · GitHub
+            https://github.com/gioblu/PJON/wiki/Mitigate-interference</p>
+            <p>PJON/examples/ARDUINO/Local/SoftwareBitBang/BlinkTest/Transmitter/Transmitter.ino at master · gioblu/PJON · GitHub
+            https://github.com/gioblu/PJON/blob/master/examples/ARDUINO/Local/SoftwareBitBang/BlinkTest/Transmitter/Transmitter.ino</p>
+            <p>PJON/examples/ARDUINO/Local/SoftwareBitBang/BlinkTest/Receiver/Receiver.ino at master · gioblu/PJON · GitHub
+            https://github.com/gioblu/PJON/blob/master/examples/ARDUINO/Local/SoftwareBitBang/BlinkTest/Receiver/Receiver.ino</p>
+            <p>Seeed Studio XIAO SAMD21 with TinyUSB | Seeed Studio Wiki
+            https://wiki.seeedstudio.com/Seeeduino-XIAO-TinyUSB/</p>
+            <footer>
+                <p><a href="latex.html" rel="next">LaTeX Notes &rarr;</a></p>
+            </footer>
+        </article>
+    </main>
+</body>
+</html>

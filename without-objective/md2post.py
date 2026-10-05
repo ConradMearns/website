@@ -8,7 +8,7 @@
     ./md2post.py notes.md --title "My Post" --date 2026-01 [--tag draft] [--slug my-post]
 
 The page is plain HTML in the site theme. After this it is the source: edit it by hand,
-and add a row for it to index.html and the home page, and prev/next links to its neighbours, yourself. Local images are copied to posts/img/.
+and add it to the home page, and prev/next links to its neighbours, yourself. Local images are copied to posts/img/.
 """
 import argparse, html, re, shutil
 from pathlib import Path
@@ -27,8 +27,7 @@ PAGE = """<!DOCTYPE html>
 </head>
 <body>
     <header>
-        <a href="../../index.html">conrads.website</a> /
-        <a href="../index.html">without objective</a>
+        <a href="../../index.html">conrads.website</a>
         <button type="button" data-theme-toggle aria-label="Toggle light and dark mode"></button>
     </header>
 

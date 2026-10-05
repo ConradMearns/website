@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Static Image Loading — Ramblings — Conrad Mearns</title>
+    <script src="../../js/theme.js"></script>
+    <link rel="stylesheet" href="../../css/theme.css">
+    <link rel="stylesheet" href="../../css/post.css">
+</head>
+<body>
+    <header>
+        <a href="../../index.html">conrads.website</a>
+        <button type="button" data-theme-toggle aria-label="Toggle light and dark mode"></button>
+    </header>
+
+    <main>
+        <article>
+            <header>
+                <h1>Static Image Loading</h1>
+                <p>Working out how images work in Astro, to build a better gallery.</p>
+                <p><time>2022-10-23</time></p>
+            </header>
+            <p>For some reason, I can't get the style to apply from the <code>Layout</code> file. That's annoying. I'm not really feelin this task at the moment now, so maybe I'll come back to it later.</p>
+            <p>I'd like to understand how images in <a href="https://astro.build">Astro</a> work because from what I understand, this could save me a ton of time building a better gallery.</p>
+            <p>It seems the integration I wanted to use to help optimize image loading isn't working on windows, so I'm scraping that idea for now. Sorry for the poor performance loading these!</p>
+            <p><img src="img/20220813_131110.JPG" alt="Fishin"></p>
+            <p><img src="img/signal-2022-08-23-21-16-45-349.jpg" alt="Walkin"></p>
+            <p><img src="img/20221009_113025.JPG" alt="Keybin"></p>
+            <style>
+                img {
+                    width: 100%;
+                }
+            </style>
+            <footer>
+                <p><a href="new-year.html" rel="prev">&larr; New Year</a> &middot; <a href="of-maps-of-content-and-objective-outlines.html" rel="next">Maps of Content and Objective Outlines &rarr;</a></p>
+            </footer>
+        </article>
+    </main>
+</body>
+</html>

@@ -45,7 +45,9 @@
   figure { margin: 0; }
   figure a { display: block; text-decoration: none; }
   figcaption { color: var(--dim); font-size: .8em; line-height: 1.45; margin-top: .4em; }
-  figure img, a[data-card] > img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border: 1px solid var(--line); }
+  figure img, a[data-card] > img { display: block; width: 100%; border: 1px solid var(--line); }
+  [data-gallery] figure img, a[data-card] > img { aspect-ratio: 16 / 9; object-fit: cover; }   /* thumbnails are cropped to a common shape, everything else keeps its own */
+  article p > img, article li > img, article video { display: block; max-width: 100%; height: auto; margin: 1em 0; }
   [data-gallery] { display: grid; grid-template-columns: repeat(auto-fit, minmax(11em, 1fr)); gap: 1.2em; margin: 1.4em 0; }
 
   a[data-card] { display: flex; gap: 1.2em; align-items: flex-start; padding: 1em 1.2em; margin: 1.6em 0; border-left: 4px solid var(--accent); background: var(--surface); text-decoration: none; }
