@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Structured Log Pipes — Without Objective — Conrad Mearns</title>
+    <script src="../../js/theme.js"></script>
+    <link rel="stylesheet" href="../../css/theme.css">
+    <link rel="stylesheet" href="../../css/post.css">
+</head>
+<body>
+    <header>
+        <a href="../../index.html">conrads.website</a> /
+        <a href="../index.html">without objective</a>
+        <button type="button" data-theme-toggle aria-label="Toggle light and dark mode"></button>
+    </header>
+
+    <main>
+        <article>
+            <header>
+                <h1>Structured Log Pipes</h1>
+                <p><time>2025.12</time></p>
+            </header>
+            <p><a href="https://github.com/ConradMearns/website/tree/main/without-objective/Structured-Log-Pipes">Code: Structured-Log-Pipes/</a></p>
+            <h3>Small Preface</h3>
+            <p>I had initially written a small blurb about how I was allowing AI to write the first half of this article - 
+            a measure I could take to ensure you - the reader - had the appropriate knowledge and understanding of the
+            why, what, how, of the UNIX Philosophy.</p>
+            <p>I expressed in my little prompt my opinion for why it breaks down for large projects,
+            and why the UNIX philosophy isn't a tool we can appropriately apply to software write large (even small and medium software frankly)</p>
+            <p>And I even went as far as to fence the AI text from the rest - explaining what you could skip, and what was not my own.</p>
+            <p>I don't think care enough about informing you of any context you might be missing anymore -
+            it really serves <em>no</em> purpose to have AI write anything for me. You can have AI write the same for yourself.</p>
+            <p>I no longer feel a need or responsibility to be a great writer - 
+            I no longer feel a need to provide my peers with the perfect conceptual framework of my understanding of a topic before I offer them a rant or ramble.</p>
+            <p>Now more than ever - it's kind of on you to explore and find that information, whether you use AI to help is a personal choice.</p>
+            <p>So I've removed the AI text from this article - it's in git if you care, though I don't see why you would.</p>
+            <h3>The UNIX Philosophy</h3>
+            <blockquote>
+            <p>This is the Unix philosophy: 
+            Write programs that do one thing and do it well. 
+            Write programs to work together. 
+            Write programs to handle text streams, because that is a universal interface.
+            - Doug McIlroy (2003). The Art of Unix Programming: Basics of the Unix Philosophy</p>
+            </blockquote>
+            <p>The UNIX Philosophy is one of those things... It's clean, appealing, and hard to argue against.</p>
+            <p>I rarely see 'good' software with the UNIX Philosophy applied.</p>
+            <p>Do we care that <code>ls</code> in coreutils <a href="https://github.com/wertarbyte/coreutils/blob/master/src/ls.c">is over 4000 LoC</a> ?</p>
+            <p>No, no honestly I could care less.</p>
+            <p>I don't mean to be indifferent,
+            it's just that whatever effect the UNIX Philosophy had on me has faded over the years.</p>
+            <p>A few contenders have come into the scene since then -
+            namely PowerShell and nushell -
+            which aim to prove the principals of the philosophy by introducing structured text as the interface between functions and scripts.</p>
+            <p>As much as I hate using PowerShell, they got that one right.</p>
+            <p>However I still have issues using these shells because I can't always predict the shape and schema of data before it gets passed around.
+            Or worse, I'm dealing with a system which is so flaky that I can't ever trust a simple script to build me a list of remote resources before it's network craps out again.</p>
+            <p>A lot of my frustrations, and the unique environment I've been working in for the past 5 years has continued to push me down a path of Effectual Event Sourcing.</p>
+            <p>So - this is a simple example of what exactly I mean by that.</p>
+            <p>Instead of relying on the <em>output</em> of a script to match the correct schema for a different script - 
+            Let's try and get a little more explicit about what our data and systems are trying to do.</p>
+            <p>Within any system, there are <em>Events</em> and <em>Reactions to those Events</em>.
+            In this example, we will preform a bit of effectual work, and emit an event in the form of a structured log.
+            This structured log can be saved to file, or it can be piped into other scripts for them to react to those events.</p>
+            <p>If a task is genuinely too complex to be captured by one of these events - that's fine.
+            We can bridge our past practices like building Sqlite Databases, dumping NPY binaries, or orchestrating services on remote hosts the same as we ever have...
+            Only now, we can log the <em>fact</em> of the effect and rely on the <em>fact</em> to mean something.
+            Save a giant NPY binary? Great - just log where you put the file, and now any downstream process you create can find and retrieve it. </p>
+            <blockquote>
+            <p>This again is a problem people <em>still</em> haven't quite figured out when building fully scaled applications so who knows if this is actually helpful.</p>
+            </blockquote>
+            <p>The goal here isn't to create a perfect Event Sourcing application - rather, just express <em>what we could be doing</em> with Structured Logging and the UNIX Philosophy.</p>
+            <h3>Sprint 1 - Goals</h3>
+            <ul>
+            <li>JSONL stdout for structured event emission</li>
+            <li>Type-safe event parsing (Python dataclasses)</li>
+            <li>Composable via UNIX pipes</li>
+            </ul>
+            <h4>Features: Piping structured data in and out of <code>fibwait.py</code></h4>
+            <p>I made <code>fibwait.py</code> to illustrate the concept - roughed out but works.</p>
+            <pre><code class="language-bash">without-objective/Structured-Log-Pipes$ ./fibwait.py 
+# {&quot;a&quot;: 1, &quot;b&quot;: 2}
+
+without-objective/Structured-Log-Pipes$ ./fibwait.py | ./fibwait.py 
+# {&quot;a&quot;: 2, &quot;b&quot;: 3}
+
+without-objective/Structured-Log-Pipes$ ./fibwait.py | ./fibwait.py | ./fibwait.py
+# {&quot;a&quot;: 3, &quot;b&quot;: 5}
+</code></pre>
+            <p>The main idea here would be to do all sorts of complex Side-Effect driving work, and then wrap that work in Structured Logging <em>as we should anyway</em>.
+            Then, this can be used to control scripts down the line - or simply produce a log of work completed.</p>
+            <h4>Problems with...</h4>
+            <blockquote>
+            <p>P: JSONL does look ugly though, it would be nice to have a Logging Format that is slightly more human readable that works for this.</p>
+            </blockquote>
+            <p><code>logfmt</code> is <em>an</em> alternative - I wont say better but it does at least have good support and colored formatting.</p>
+            <blockquote>
+            <p>P: The stdin parsing system inside fibwait sucks though, we can't really expect people to write this themselves.</p>
+            <p>P: fibwait is a bad example.</p>
+            <p>P: Since I'm introducing libraries in scripts - are we just going to expect users to make a venv compatible with new libraries I need??</p>
+            </blockquote>
+            <h4>New Requirements (Needs)</h4>
+            <blockquote>
+            <p>N: Need at a utility file to capture the complexities we are introducing to make this easy to use - otherwise it's too much effort</p>
+            <p>N: Let's make a simple Content Addressable Storage example instead of fibwait</p>
+            </blockquote>
+            <p>A very nice feature I hadn't thought about until now -
+            because we are relying on logging, we can write to stdout <em>and</em> file pretty easily.</p>
+            <blockquote>
+            <p>N: If we are writing to logfiles, how do we handle parallel processes?</p>
+            <p>F: Slapping a PID to the filename has been good enough so far -
+            treating 'logs' as a collection also helps. <em>Expect</em> that querying is the interface</p>
+            </blockquote>
+            <h3>A Better Example - File Scanning</h3>
+            <blockquote>
+            <p>at this point my organization broke down. oh well</p>
+            </blockquote>
+            <h4>Effectual Scripting: Partition Scanning</h4>
+            <p>Firstly, I just learned that <a href="https://docs.astral.sh/uv/guides/scripts/#declaring-script-dependencies">UV allows dependencies to be declared in situ</a>
+            and this is easily the coolest and most needed technologies ever.</p>
+            <p>Let's make a simple <code>ls</code> replacement using structured logging:</p>
+            <pre><code class="language-bash">chmod +x scan_partition.py
+uv add --script scan_partition.py pandas
+</code></pre>
+            <pre><code class="language-python">#!/usr/bin/env -S uv run --script
+
+# /// script
+# requires-python = &quot;&gt;=3.14&quot;
+# dependencies = [
+#     &quot;logfmter&quot;,
+#     &quot;pandas&quot;,
+#     &quot;rich&quot;,
+# ]
+# ///
+
+import os
+from pathlib import Path
+from slap import setup_logging, log_kw
+
+setup_logging()
+
+root_directory = Path(&quot;~/Pictures/&quot;).expanduser().as_posix()
+
+for root, _, files in os.walk(root_directory):
+    for file in files:
+        file_path = os.path.join(root, file)
+        log_kw(&quot;File Discovered&quot;, entry=file_path, root=root_directory)
+</code></pre>
+            <p>The script is simple - and mostly relies on outsourcing our logging to the <code>slap</code> file - which handles saving to file as well now.</p>
+            <p>This allows us to make a <em>very</em> rudimentary event sourcing log.</p>
+            <p>Obviously - these can't be used <em>quite</em> like an event sourcing database.
+            We can re-run this script over and over again - only to find it reproducing events that exist in older files.
+            Events in this log are not idempotent - and this is fine.</p>
+            <p>We're looking for something easy after all - but consider what this gives us:</p>
+            <p>When we build a more complex ETL pipeline, we are automatically saving a context of work accomplished. If we get smart about querying this data, we can automate some of the control plane without having to define additional files and filetypes.</p>
+            <p>Let's continue this pipeline to see what I mean (because I don't know the answer yet either).</p>
+            <p>I have copied all of the photos off of my phone and put them on this laptop to scan. I want to upload them to a Content Addressable Storage, and collect some information about what I have so that I can make predictions about future work.</p>
+            <p>My Operating System and File System knows what files exist - but I don't.
+            To solve for this, we introduced a simple <code>ls</code> replacement. 
+            This scans our files and dumps what we learn into a myriad of logfiles.</p>
+            <p>We want to use these logfiles to schedule new work - so first let's think about the work we want to do:</p>
+            <ol>
+            <li>How much data do I have? Based on file sizes, is there anything surprising?</li>
+            <li>How many unique file types are there? I know I have a lot of images and some video. What about PDF's and DOCX?</li>
+            <li>How many duplicate files do I have? Hopefully not many - but we can hash our data and find out.</li>
+            <li>'Uploading' the data is likely going to be error prone - simply because I'm on a laptop, the process will be long, and I might forget to plug my laptop back in while it processes. Before you comment to suggest I do something else - imagine being a company running a similar process at scale when boom - Cloudflare, AWS, or Starlink go down. Can you're software handle the inevitable failures of the infrastructure surrounding it?</li>
+            </ol>
+            <p>To start - let's acquire some initial info. I ran the <code>scan_partition.py</code> script twice and killed it early both times to ensure I had some duplicate events in my <code>logs/</code> folder - and that everything is working. 
+            I'll commit those logs - idk about the rest yet.</p>
+            <p>We'll make a new tiny script called <code>stat_partition.py</code> and set it up similarly.
+            We'll also add some magic to <code>slap.py</code> so that we can read in these logs and deduplicate them for reading.</p>
+            <pre><code class="language-python">#!/usr/bin/env -S uv run --script
+
+# /// script
+# requires-python = &quot;&gt;=3.14&quot;
+# dependencies = [
+#     &quot;logfmter&quot;,
+#     &quot;logfmt&quot;,
+#     &quot;pandas&quot;,
+#     &quot;rich&quot;,
+# ]
+# ///
+
+import os
+from pathlib import Path
+from slap import read_logs, setup_logging, log_kw
+from datetime import datetime
+
+setup_logging()
+
+log_snapshot = read_logs()
+
+print(len(log_snapshot['File Discovered']))
+
+for discovery in log_snapshot['File Discovered']:
+    file_path = discovery['entry']
+    root = discovery['root']
+
+    # one way to pro-actively guard against duplicating work
+    if 'File Stat Collected' in log_snapshot:
+        already_collected = any(stat['entry'] == file_path for stat in log_snapshot['File Stat Collected'])
+        if already_collected:
+            continue
+
+    try:
+        stat_info = os.stat(file_path)
+
+        file_size = stat_info.st_size
+        modified_time = datetime.fromtimestamp(stat_info.st_mtime).isoformat()
+        created_time = datetime.fromtimestamp(stat_info.st_ctime).isoformat()
+        file_ext = Path(file_path).suffix.lower()
+
+        log_kw(
+            &quot;File Stat Collected&quot;,
+            entry=file_path,
+            root=root,
+            size_bytes=file_size,
+            extension=file_ext,
+            modified=modified_time,
+            created=created_time,
+        )
+    except (OSError, PermissionError) as e:
+        log_kw(&quot;File Stat Error&quot;, entry=file_path, error=str(e))
+</code></pre>
+            <p>The cool bit here is that we can query our logs to determine if we want to re-do work again or not.</p>
+            <p>After re-mangling the <code>slap.py</code> file we can support piping again - which get's us a full scan and stat system.
+            The two functions every script leans on are tiny. <code>log_kw</code> turns keyword arguments into one logfmt line, and the reader collapses every line in <code>logs/</code> (or on stdin) into a set per event name, which is what makes re-runs harmless:</p>
+            <pre><code class="language-python">def log_kw(msg, err=False, **kwargs):
+    if err:
+        logging.warning({"msg": msg, **kwargs})
+    else:
+        logging.info({"msg": msg, **kwargs})
+
+def read_logs(logs_dir="logs"):
+    # piped? read stdin. otherwise read every .log file, oldest first
+    events_by_msg = defaultdict(set)
+    for line in lines:
+        parsed = dict(next(parse([line])))
+        if 'msg' in parsed:
+            data = {k: v for k, v in parsed.items() if k not in ('at', 'msg')}
+            events_by_msg[parsed['msg']].add(frozenset(data.items()))   # a set: duplicates vanish
+    return {msg: [dict(e) for e in events] for msg, events in events_by_msg.items()}</code></pre>
+            <p>(Trimmed; the whole file is <a href="https://github.com/ConradMearns/website/tree/main/without-objective/Structured-Log-Pipes/slap.py">slap.py</a>.)</p>
+            <p>Each line in a log is one event. This is what the scan wrote, one line per file found, with the timestamp and level first and everything else as <code>key=value</code>:</p>
+            <pre><code>at=INFO msg="File Discovered" entry="/home/conrad/Pictures/xperia-iii/Pictures/The Crying of Lot 49.epub" root=/home/conrad/Pictures
+at=INFO msg="File Stat Collected" entry="/home/conrad/Pictures/xperia-iii/Download/AntiOedipus Capitalism and schizophrenia.epub" root=/home/conrad/Pictures size_bytes=2427 extension=.epub modified=2023-01-16T02:35:11 created=2025-12-03T10:20:19.202555</code></pre>
+            <p>To test this out, we'll create a <code>hash_items.py</code> script and <code>cat</code> an older log into it.</p>
+            <pre><code class="language-bash">cat logs/114174_20251206_112355_scan_partition.log | ./hash_items.py</code></pre>
+            <p>The heart of <a href="https://github.com/ConradMearns/website/tree/main/without-objective/Structured-Log-Pipes/hash_items.py">hash_items.py</a> is the same shape as the stat script: read the discoveries, skip anything already hashed, do the work, log an event.</p>
+            <pre><code class="language-python">for discovery in log_snapshot.get('File Discovered', []):
+    file_path = discovery['entry']
+
+    # one way to pro-actively guard against duplicating work
+    if 'File Hash Collected' in log_snapshot:
+        if any(h['entry'] == file_path for h in log_snapshot['File Hash Collected']):
+            continue
+
+    try:
+        hasher = hashlib.blake2b()
+        with open(file_path, 'rb') as f:
+            while chunk := f.read(8192):
+                hasher.update(chunk)
+        log_kw("File Hash Collected", entry=file_path, root=discovery['root'],
+               hash=hasher.hexdigest(), algorithm="blake2b")
+    except (OSError, PermissionError) as e:
+        log_kw("File Hash Error", err=True, entry=file_path, error=str(e))</code></pre>
+            <p>With scan, stat and hash logs all sitting in <code>logs/</code>, one more script reads them all back and reports. These are the results over my phone's photo folder: 11,457 files, 27.36 GB. The logs are committed, so you can regenerate this exact output yourself:</p>
+            <pre><code class="language-bash">cd Structured-Log-Pipes
+cat logs/*.log | ./analyze_data.py</code></pre>
+            <pre><code>
+═══ File System Analysis ═══
+
+╭─────── Overview ──────────────────────────────╮
+│ Files Discovered: 11457                       │
+│ Files Stat'd: 11457                           │
+│ Files Hashed: 11457                           │
+╰───────────────────────────────────────────────╯
+╭── File Size Statistics ──╮
+│ Total Size: 27.36 GB     │
+│ Min Size: 0.00 B         │
+│ Max Size: 747.73 MB      │
+│ Avg Size: 2.45 MB        │
+╰──────────────────────────╯
+           File Type Distribution            
+┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━┳━━━━━━━━━━━━┓
+┃ Extension            ┃ Count ┃ Percentage ┃
+┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━╇━━━━━━━━━━━━┩
+│ .jpg                 │  9173 │      80.1% │
+│ .png                 │  1343 │      11.7% │
+│ .mp4                 │   484 │       4.2% │
+│ .dng                 │   184 │       1.6% │
+│ .pdf                 │    93 │       0.8% │
+│ True                 │    28 │       0.2% │
+│ .jpeg                │    28 │       0.2% │
+│ .m4a                 │    26 │       0.2% │
+│ .txt                 │    12 │       0.1% │
+│ .heic                │    11 │       0.1% │
+│ .epub                │    10 │       0.1% │
+│ .apk                 │    10 │       0.1% │
+│ .md                  │     9 │       0.1% │
+│ .ogg                 │     8 │       0.1% │
+│ .json                │     6 │       0.1% │
+└──────────────────────┴───────┴────────────┘
+... and 15 more extension types
+
+╭────── Duplicate Analysis ───────────────────╮
+│ Unique Duplicate Content: 115               │
+│ Total Duplicate Files: 293                  │
+│ Extra Copies: 178                           │
+│ Wasted Space: 76.80 MB                      │
+╰─────────────────────────────────────────────╯
+                   Top Duplicated Files                   
+┏━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━┓
+┃ Hash (first 16)    ┃ Copies ┃ Size Each ┃ Total Wasted ┃
+┡━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━┩
+│ 20b4ef66dda6f204   │     11 │  39.82 KB │    398.21 KB │
+│ 080b2ec50ee57da5   │     11 │  48.28 KB │    482.81 KB │
+│ 786a02f742015903   │      7 │    0.00 B │       0.00 B │
+│ 6253e8502ba8217b   │      5 │ 522.07 KB │      2.04 MB │
+│ 7abc4f7bfab7bb0c   │      5 │ 380.27 KB │      1.49 MB │
+│ 430493f5b07d416b   │      5 │  79.53 KB │    318.14 KB │
+│ dc15f27fcc77f8ee   │      5 │ 410.99 KB │      1.61 MB │
+│ c27dba9016682923   │      5 │  90.54 KB │    362.16 KB │
+│ 55fe95e6d04a45fa   │      5 │ 971.39 KB │      3.79 MB │
+│ a7306fca39dd9265   │      5 │ 433.78 KB │      1.69 MB │
+└────────────────────┴────────┴───────────┴──────────────┘
+</code></pre>
+            <hr />
+            <p>There's really nothing all that special here, and that's what's so exciting about the approach.
+            With a bit more polish and some LLM tooling, this can easily replace a few more complicated ETL systems I've developed in the past.</p>
+            <p>Granted - this is primarily for <code>Novel</code> and <code>Viable</code> software - not anything more. 
+            Though, because we are effectively using this to drive an event-based reaction system, 
+            we can easily use these logs to rebuild Database state (similar to Xpressfeed or other commercial database transfer tools.)</p>
+            <hr />
+            <p>Further reading ?</p>
+            <p>https://pages.cs.wisc.edu/~remzi/Naur.pdf
+            https://www.arthropod.software/p/vibe-coding-our-way-to-disaster</p>
+            <hr />
+            <p>Comments? DM me, call me, or <a href="https://bsky.app/profile/conradmearns.bsky.social/post/3m7dv6edo4k2f">reply on the bsky post</a></p>
+            <footer>
+                <p><a href="the-bitter-lesson-and-llms.html" rel="prev">&larr; The Bitter Lesson and LLMs</a> &middot; <a href="../index.html">All posts</a> &middot; <a href="organizing-work.html" rel="next">Organizing Work &rarr;</a></p>
+            </footer>
+        </article>
+    </main>
+</body>
+</html>

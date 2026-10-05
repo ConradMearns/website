@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Notes for LLMs — Without Objective — Conrad Mearns</title>
+    <script src="../../js/theme.js"></script>
+    <link rel="stylesheet" href="../../css/theme.css">
+    <link rel="stylesheet" href="../../css/post.css">
+</head>
+<body>
+    <header>
+        <a href="../../index.html">conrads.website</a> /
+        <a href="../index.html">without objective</a>
+        <button type="button" data-theme-toggle aria-label="Toggle light and dark mode"></button>
+    </header>
+
+    <main>
+        <article>
+            <header>
+                <h1>Notes for LLMs</h1>
+                <p><time>2025.12</time> <span class="tag">notes</span></p>
+            </header>
+            <h3>Use UV for scripts</h3>
+            <p>At the top of a file, ensure the shebang and dependencies are listed in the file.</p>
+            <pre><code class="language-python">#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = &quot;&gt;=3.14&quot;
+# dependencies = [
+#     &quot;pyyaml&quot;,
+#     &quot;markdown&quot;,
+# ]
+# ///
+</code></pre>
+            <p>After <code>chmod</code> - run the script without calling <code>uv</code> or <code>python</code> like <code>./my_script.py</code></p>
+            <h3>Testing after <code>./build.py</code></h3>
+            <pre><code class="language-bash">uv run python -m http.server 8000 --directory docs
+</code></pre>
+            <footer>
+                <p><a href="scrap.html" rel="prev">&larr; Scrap</a> &middot; <a href="../index.html">All posts</a> &middot; <a href="parsing-llm-streams.html" rel="next">Parsing LLM Output Streams &rarr;</a></p>
+            </footer>
+        </article>
+    </main>
+</body>
+</html>
