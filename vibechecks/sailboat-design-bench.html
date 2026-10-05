@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Sailboat design bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#10222f; --ink2:#41586a; --paper:#eef1ec; --card:#f8faf6; --line:#c9d3cf;
+  --accent:#1f6f86; --buoy:#d99a00; --good:#2e7d4f; --bad:#c0392b; --stage:#cfe3ee;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#e4edf0; --ink2:#93a9b6; --paper:#0b1822; --card:#10212d; --line:#233846;
+    --accent:#52b7d1; --buoy:#f0b429; --stage:#16303f; --good:#5fc58a; --bad:#ff7b6b;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e4edf0; --ink2:#93a9b6; --paper:#0b1822; --card:#10212d; --line:#233846;
+  --accent:#52b7d1; --buoy:#f0b429; --stage:#16303f; --good:#5fc58a; --bad:#ff7b6b;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.45 "Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
+.app{display:grid;grid-template-columns:minmax(0,1fr)}
+.stage{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;height:46vh;min-height:280px;background:var(--stage);overflow:hidden;border-bottom:1px solid var(--line)}
+#gl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.hud{position:absolute;left:8px;top:8px;font:500 12px/1.35 "Barlow Semi Condensed",system-ui,sans-serif;color:#fff;background:rgba(10,24,34,.62);padding:6px 9px;border-radius:6px;pointer-events:none;min-width:140px;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.hud b{font-weight:600;font-size:16px}
+.hud .row{display:flex;justify-content:space-between;gap:12px}
+.hud .row span:first-child{opacity:.72}
+#compass{position:absolute;right:8px;top:8px;width:84px;height:84px;pointer-events:none}
+.banner{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);background:rgba(192,57,43,.92);color:#fff;padding:8px 14px;border-radius:8px;font:600 15px/1.3 "Barlow Semi Condensed",system-ui,sans-serif;text-align:center;display:none;max-width:86%;pointer-events:none}
+.bar{position:absolute;left:0;right:0;bottom:0;display:flex;gap:6px;flex-wrap:wrap;padding:6px 8px;background:linear-gradient(transparent,rgba(10,24,34,.55))}
+.bar button,.bar select{font:500 12px "Barlow Semi Condensed",system-ui,sans-serif;background:rgba(248,250,246,.92);color:#10222f;border:0;border-radius:5px;padding:5px 9px;min-height:30px}
+.bar button.on{background:#f0b429}
+.bar .sp{flex:1}
+.panel{padding:10px 12px 40px;max-width:760px;width:100%;margin:0 auto}
+h1{font:600 21px/1.15 "Barlow Semi Condensed",system-ui,sans-serif;margin:6px 0 2px;letter-spacing:.01em}
+.sub{color:var(--ink2);margin:0 0 10px;font-size:13px}
+details{background:var(--card);border:1px solid var(--line);border-radius:8px;margin:0 0 8px}
+summary{cursor:pointer;padding:10px 12px;font:600 15px "Barlow Semi Condensed",system-ui,sans-serif;list-style:none;display:flex;align-items:center;justify-content:space-between;min-height:42px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--ink2);font-weight:500;font-size:18px}
+details[open] summary::after{content:"\2013"}
+details>.body{padding:2px 12px 12px}
+.ctl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center;margin:9px 0}
+.ctl label{font-size:13px;color:var(--ink)}
+.ctl .val{font:500 13px "Barlow Semi Condensed",system-ui,sans-serif;color:var(--accent);min-width:64px;text-align:right;font-variant-numeric:tabular-nums}
+.ctl input[type=range]{grid-column:1/-1;width:100%;margin:0;accent-color:var(--accent);height:26px}
+.ctl select{grid-column:1/-1;width:100%;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:inherit}
+.ctl.chk{grid-template-columns:auto 1fr;justify-content:start}
+.ctl.chk input{width:20px;height:20px;accent-color:var(--accent)}
+.stats{display:grid;grid-template-columns:1fr;gap:2px 14px}
+.stats div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted var(--line);padding:3px 0;font-size:13px}
+.stats div span:first-child{color:var(--ink2)}
+.stats div span:last-child{font:500 13px "Barlow Semi Condensed",system-ui,sans-serif;font-variant-numeric:tabular-nums;text-align:right}
+canvas#gz{width:100%;height:190px;display:block;margin:10px 0 2px;background:var(--paper);border:1px solid var(--line);border-radius:6px}
+.note{color:var(--ink2);font-size:12px;margin:4px 0}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.btnrow button{font:500 13px "Barlow Semi Condensed",system-ui,sans-serif;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--paper);color:var(--ink);min-height:36px}
+textarea{width:100%;min-height:110px;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:6px;font:12px/1.4 ui-monospace,Menlo,monospace;padding:8px}
+.good{color:var(--good)} .bad{color:var(--bad)}
+@media (min-width:920px){
+  .app{grid-template-columns:minmax(0,1.5fr) minmax(360px,1fr)}
+  .stage{position:sticky;top:env(safe-area-inset-top,0px);height:calc(100vh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));border-bottom:0;border-right:1px solid var(--line)}
+  .panel{max-width:none}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="stage" id="stage">
+    <canvas id="gl"></canvas>
+    <div class="hud" id="hud"></div>
+    <canvas id="compass" width="168" height="168"></canvas>
+    <div class="banner" id="banner"></div>
+    <div class="bar">
+      <button id="bPlay" class="on">Pause</button>
+      <button id="bReset">Reset</button>
+      <select id="bSpeed" aria-label="Simulation speed"><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option><option value="4">4x</option></select>
+      <button id="bGust">Gust</button>
+      <button id="bRamp">Capsize test</button>
+      <span class="sp"></span>
+      <button data-view="chase">Chase</button><button data-view="bow">Bow</button><button data-view="side">Side</button><button data-view="top">Top</button>
+    </div>
+  </section>
+  <section class="panel" id="panel">
+    <h1>Sailboat design bench</h1>
+    <p class="sub">Change the hull, foils, rig and conditions, then watch what the boat does and what it takes to flip it. Changing the structure restarts the run.</p>
+    <div id="ui"></div>
+  </section>
+</div>
+
+<script>
+/*PHYSICS_START*/
+'use strict';
+const RHO_W=1025,RHO_A=1.225,G=9.81,KN=0.514444,D2R=Math.PI/180,R2D=180/Math.PI;
+const clamp=(x,a,b)=>x<a?a:(x>b?b:x);
+const sstep=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t);};
+const wrapPi=a=>{a=(a+Math.PI)%(2*Math.PI);if(a<0)a+=2*Math.PI;return a-Math.PI;};
+
+/* ---------- parameter schema (drives the UI) ---------- */
+const SCHEMA=[
+{g:'Wind, waves and sailing',open:true,items:[
+ {k:'tws',label:'True wind speed (10 m)',u:'kn',min:0,max:60,step:0.5,live:1,env:1},
+ {k:'gust',label:'Gustiness',u:'%',min:0,max:60,step:1,live:1,env:1},
+ {k:'waveH',label:'Wave height (crest to trough)',u:'m',min:0,max:3,step:0.05,live:1,env:1},
+ {k:'waveT',label:'Wave period',u:'s',min:2,max:14,step:0.1,live:1,env:1},
+ {k:'twa',label:'Sailing angle to true wind',u:'°',min:30,max:170,step:1,live:1,env:1},
+ {k:'tack',label:'Tack',t:'sel',num:1,opts:[['1','Starboard tack (wind from right)'],['-1','Port tack (wind from left)']],live:1,env:1},
+ {k:'autoHelm',label:'Auto-helm holds the angle above',t:'chk',live:1,env:1},
+ {k:'helm',label:'Manual rudder',u:'°',min:-25,max:25,step:0.5,live:1,env:1},
+ {k:'sheetMode',label:'Sail trim',t:'sel',opts:[['auto','Auto-trim to best angle of attack'],['manual','Manual sheet']],live:1,env:1},
+ {k:'sheet',label:'Manual sheet (in to out)',min:0,max:1,step:0.01,live:1,env:1},
+ {k:'easeHeel',label:'Crew eases sheet above this heel (0 = never)',u:'°',min:0,max:60,step:1,live:1,env:1}]},
+{g:'Sail shape and how it responds to wind',items:[
+ {k:'camber',label:'Camber (draft depth, fraction of chord)',min:0,max:0.2,step:0.005,live:1,env:1},
+ {k:'twist',label:'Twist, head vs foot',u:'°',min:0,max:30,step:0.5,live:1,env:1},
+ {k:'flatten',label:'Flattening (outhaul / cunningham)',min:0,max:1,step:0.01,live:1,env:1},
+ {k:'stretch',label:'Cloth stretch (draft grows with load)',min:0,max:1,step:0.01,live:1,env:1},
+ {k:'twistGrowth',label:'Leech opens with load',u:'° per 8 m/s',min:0,max:20,step:0.5,live:1,env:1}]},
+{g:'Crew weight',items:[
+ {k:'crewMass',label:'Crew mass',u:'kg',min:0,max:500,step:1,live:1},
+ {k:'hikeMax',label:'Reach of hiking / trapeze',u:'m',min:0,max:3,step:0.05,live:1},
+ {k:'autoHike',label:'Crew hikes only as far as needed to keep the boat flat',t:'chk',live:1},
+ {k:'hike',label:'Maximum hiking effort (0 = stays centred)',min:0,max:1,step:0.01,live:1},
+ {k:'crewX',label:'Crew position fore / aft',u:'m',min:-4,max:4,step:0.05,live:1},
+ {k:'crewZ',label:'Crew centre of mass above deck',u:'m',min:0,max:2,step:0.05,live:1}]},
+{g:'Hull configuration and shape',items:[
+ {k:'type',label:'Hull configuration',t:'sel',opts:[['mono','Monohull'],['cat','Catamaran'],['tri','Trimaran']]},
+ {k:'L',label:'Length (each main hull)',u:'m',min:1.5,max:20,step:0.05},
+ {k:'B',label:'Beam at deck (each main hull)',u:'m',min:0.3,max:5,step:0.01},
+ {k:'D',label:'Depth, keel line to deck',u:'m',min:0.2,max:2,step:0.01},
+ {k:'kBow',label:'Bow fullness (sharp to bluff)',min:1.1,max:4,step:0.05},
+ {k:'kStern',label:'Stern fullness',min:1.1,max:6,step:0.05},
+ {k:'transom',label:'Transom width (fraction of beam)',min:0,max:0.9,step:0.01},
+ {k:'section',label:'Section shape (V to U)',min:1,max:4,step:0.05},
+ {k:'rockBow',label:'Bow rocker',u:'m',min:0,max:1,step:0.01},
+ {k:'rockStern',label:'Stern rocker',u:'m',min:0,max:0.8,step:0.01},
+ {k:'sheer',label:'Sheer (deck rise at the ends)',min:0,max:0.6,step:0.01},
+ {k:'hullMass',label:'Hull structure mass (each)',u:'kg',min:5,max:2500,step:1}]},
+{g:'Multihull layout',items:[
+ {k:'spacing',label:'Hull spacing (catamaran) or ama offset (trimaran)',u:'m',min:0.8,max:10,step:0.05},
+ {k:'amaL',label:'Ama length ratio (trimaran)',min:0.3,max:1,step:0.01},
+ {k:'amaB',label:'Ama beam ratio (trimaran)',min:0.2,max:1.2,step:0.01},
+ {k:'amaD',label:'Ama depth ratio (trimaran)',min:0.3,max:1.2,step:0.01},
+ {k:'amaZ',label:'Ama height above main keel line',u:'m',min:-0.5,max:1.5,step:0.01},
+ {k:'amaMass',label:'Ama structure mass (each)',u:'kg',min:2,max:500,step:1}]},
+{g:'Daggerboard, keel and rudder',items:[
+ {k:'boardOn',label:'Daggerboard fitted',t:'chk'},
+ {k:'boardDepth',label:'Daggerboard depth below hull',u:'m',min:0,max:3,step:0.02},
+ {k:'boardChord',label:'Daggerboard chord',u:'m',min:0.08,max:1.5,step:0.01},
+ {k:'boardX',label:'Daggerboard position (+ forward)',u:'m',min:-6,max:6,step:0.05},
+ {k:'keelSpan',label:'Fixed keel depth below hull (0 = none)',u:'m',min:0,max:4,step:0.02},
+ {k:'keelChord',label:'Keel chord',u:'m',min:0.1,max:2.5,step:0.01},
+ {k:'keelX',label:'Keel position (+ forward)',u:'m',min:-6,max:6,step:0.05},
+ {k:'ballast',label:'Ballast bulb mass (each keel)',u:'kg',min:0,max:3000,step:5},
+ {k:'rudSpan',label:'Rudder depth',u:'m',min:0.1,max:2,step:0.01},
+ {k:'rudChord',label:'Rudder chord',u:'m',min:0.05,max:1,step:0.01},
+ {k:'rudX',label:'Rudder position (− aft)',u:'m',min:-10,max:0,step:0.05}]},
+{g:'Rig geometry',items:[
+ {k:'Hs',label:'Mainsail luff length',u:'m',min:0.8,max:20,step:0.05},
+ {k:'E',label:'Boom length',u:'m',min:0.5,max:8,step:0.05},
+ {k:'hb',label:'Boom height above deck',u:'m',min:0,max:2.5,step:0.01},
+ {k:'mastX',label:'Mast position (+ forward)',u:'m',min:-3,max:6,step:0.05},
+ {k:'roach',label:'Mainsail roach',min:0,max:0.4,step:0.01},
+ {k:'rigMass',label:'Rig mass (mast, boom, sails)',u:'kg',min:2,max:500,step:1},
+ {k:'jibOn',label:'Headsail (jib) fitted',t:'chk'},
+ {k:'jibFoot',label:'Jib foot length',u:'m',min:0.5,max:6,step:0.05},
+ {k:'jibX',label:'Jib tack position (+ forward)',u:'m',min:0,max:9,step:0.05}]}
+];
+const KEYS=[];SCHEMA.forEach(g=>g.items.forEach(i=>KEYS.push(i.k)));
+
+const PRESETS={
+dinghy:{name:'Dinghy: single hull, daggerboard, hiking crew',
+ type:'mono',L:4.2,B:1.45,D:0.45,kBow:1.7,kStern:3.2,transom:0.55,section:2.0,rockBow:0.3,rockStern:0.05,sheer:0.2,hullMass:48,
+ spacing:2.4,amaL:0.65,amaB:0.8,amaD:0.8,amaZ:0.1,amaMass:20,
+ boardOn:1,boardDepth:0.75,boardChord:0.22,boardX:0.1,keelSpan:0,keelChord:0.4,keelX:0,ballast:0,rudSpan:0.7,rudChord:0.2,rudX:-2.0,
+ Hs:4.8,E:2.0,hb:0.45,mastX:0.55,roach:0.12,rigMass:20,jibOn:0,jibFoot:1.4,jibX:1.8,
+ camber:0.08,twist:8,flatten:0,stretch:0.3,twistGrowth:4,
+ crewMass:80,hikeMax:0.9,hike:1,autoHike:1,autoHike:1,crewX:-0.3,crewZ:0.5,
+ tws:10,gust:12,waveH:0.1,waveT:3.5,twa:80,tack:1,sheetMode:'auto',sheet:0.4,easeHeel:0,autoHelm:1,helm:0},
+keelboat:{name:'Keelboat: ballasted sloop',
+ type:'mono',L:7.6,B:2.4,D:0.9,kBow:1.5,kStern:2.6,transom:0.7,section:1.5,rockBow:0.35,rockStern:0.15,sheer:0.15,hullMass:520,
+ spacing:2.4,amaL:0.65,amaB:0.8,amaD:0.8,amaZ:0.1,amaMass:20,
+ boardOn:0,boardDepth:0.75,boardChord:0.22,boardX:0.1,keelSpan:1.3,keelChord:0.75,keelX:0.2,ballast:650,rudSpan:0.9,rudChord:0.35,rudX:-3.5,
+ Hs:8.5,E:2.8,hb:0.7,mastX:0.8,roach:0.12,rigMass:90,jibOn:1,jibFoot:2.5,jibX:3.2,
+ camber:0.08,twist:8,flatten:0,stretch:0.3,twistGrowth:4,
+ crewMass:160,hikeMax:0.8,hike:0.6,autoHike:1,crewX:-0.5,crewZ:0.5,
+ tws:12,gust:12,waveH:0.3,waveT:4.5,twa:50,tack:1,sheetMode:'auto',sheet:0.4,easeHeel:0,autoHelm:1,helm:0},
+cat:{name:'Catamaran: twin hulls, daggerboards, trapeze',
+ type:'cat',L:5.2,B:0.65,D:0.6,kBow:2.1,kStern:2.5,transom:0.45,section:1.8,rockBow:0.4,rockStern:0.05,sheer:0.1,hullMass:65,
+ spacing:2.5,amaL:0.65,amaB:0.8,amaD:0.8,amaZ:0.1,amaMass:20,
+ boardOn:1,boardDepth:0.8,boardChord:0.25,boardX:0.3,keelSpan:0,keelChord:0.4,keelX:0,ballast:0,rudSpan:0.95,rudChord:0.32,rudX:-2.5,
+ Hs:5.8,E:2.4,hb:0.8,mastX:0.3,roach:0.2,rigMass:45,jibOn:1,jibFoot:1.6,jibX:2.2,
+ camber:0.08,twist:8,flatten:0,stretch:0.3,twistGrowth:4,
+ crewMass:150,hikeMax:1.2,hike:1,autoHike:1,crewX:-1.0,crewZ:0.8,
+ tws:12,gust:12,waveH:0.2,waveT:3.5,twa:60,tack:1,sheetMode:'auto',sheet:0.4,easeHeel:0,autoHelm:1,helm:0},
+tri:{name:'Trimaran: slim main hull with two amas',
+ type:'tri',L:6.5,B:0.55,D:0.6,kBow:2.1,kStern:2.4,transom:0.35,section:1.7,rockBow:0.4,rockStern:0.05,sheer:0.12,hullMass:70,
+ spacing:2.3,amaL:0.75,amaB:1.0,amaD:0.8,amaZ:0.15,amaMass:18,
+ boardOn:1,boardDepth:0.9,boardChord:0.25,boardX:2.0,keelSpan:0,keelChord:0.4,keelX:0,ballast:0,rudSpan:0.95,rudChord:0.32,rudX:-3.1,
+ Hs:6.6,E:2.7,hb:0.9,mastX:-0.3,roach:0.2,rigMass:45,jibOn:1,jibFoot:1.8,jibX:2.8,
+ camber:0.08,twist:8,flatten:0,stretch:0.3,twistGrowth:4,
+ crewMass:140,hikeMax:0.3,hike:0.5,autoHike:1,crewX:-1.2,crewZ:0.6,
+ tws:12,gust:12,waveH:0.2,waveT:4,twa:60,tack:1,sheetMode:'auto',sheet:0.4,easeHeel:0,autoHelm:1,helm:0}
+};
+
+/* ---------- hull geometry ---------- */
+function widthFrac(h,u){
+  if(u>=0) return 1-Math.pow(u,h.kBow);
+  return h.transom+(1-h.transom)*(1-Math.pow(-u,h.kStern));
+}
+function zkAt(h,u){return u>=0?h.rockBow*u*u:h.rockStern*u*u;}
+function hullList(P){
+  const base={L:P.L,B:P.B,D:P.D,kBow:P.kBow,kStern:P.kStern,transom:P.transom,section:P.section,rockBow:P.rockBow,rockStern:P.rockStern,sheer:P.sheer,mass:P.hullMass,ox:0,oy:0,oz:0,main:true};
+  if(P.type==='cat') return [Object.assign({},base,{oy:P.spacing/2}),Object.assign({},base,{oy:-P.spacing/2})];
+  if(P.type==='tri'){
+    const a=Object.assign({},base,{L:P.L*P.amaL,B:P.B*P.amaB,D:P.D*P.amaD,rockBow:P.rockBow*P.amaL,rockStern:P.rockStern*P.amaL,mass:P.amaMass,main:false,oz:P.amaZ});
+    return [base,Object.assign({},a,{oy:P.spacing}),Object.assign({},a,{oy:-P.spacing})];
+  }
+  return [base];
+}
+
+function buildCells(h,nx){
+  const L=h.L,B=h.B;
+  const zmax=h.D*(1+h.sheer)+Math.max(h.rockBow,h.rockStern);
+  const ny=clamp(Math.round(nx*B/L*2.2),6,18), nz=clamp(Math.round(nx*zmax/L*2.4),6,16);
+  const dx=L/nx,dy=B/ny,dz=zmax/nz;
+  const ins=new Uint8Array(nx*ny*nz);
+  const id=(i,j,k)=>(i*ny+j)*nz+k;
+  let cnt=0;
+  for(let i=0;i<nx;i++){
+    const xc=-L/2+(i+0.5)*dx,u=2*xc/L;
+    const w=widthFrac(h,u)*B/2,zk=zkAt(h,u),Dl=h.D*(1+h.sheer*u*u);
+    for(let j=0;j<ny;j++){
+      const yc=-B/2+(j+0.5)*dy;
+      for(let k=0;k<nz;k++){
+        const zc=(k+0.5)*dz,hh=(zc-zk)/Dl;
+        if(hh<0||hh>1)continue;
+        if(Math.abs(yc)<=w*Math.pow(hh,1/h.section)){ins[id(i,j,k)]=1;cnt++;}
+      }
+    }
+  }
+  const x=new Float32Array(cnt),y=new Float32Array(cnt),z=new Float32Array(cnt);
+  let n=0;
+  const isIn=(i,j,k)=>i>=0&&i<nx&&j>=0&&j<ny&&k>=0&&k<nz&&ins[id(i,j,k)]===1;
+  const sx=[],sy=[],sz=[],sa=[];
+  const Ax=dy*dz,Ay=dx*dz,Az=dx*dy;
+  for(let i=0;i<nx;i++)for(let j=0;j<ny;j++)for(let k=0;k<nz;k++){
+    if(!ins[id(i,j,k)])continue;
+    const px=-L/2+(i+0.5)*dx+h.ox,py=-B/2+(j+0.5)*dy+h.oy,pz=(k+0.5)*dz+h.oz;
+    x[n]=px;y[n]=py;z[n]=pz;n++;
+    const axp=isIn(i+1,j,k)?0:Ax,axn=isIn(i-1,j,k)?0:Ax,ayp=isIn(i,j+1,k)?0:Ay,ayn=isIn(i,j-1,k)?0:Ay,azp=isIn(i,j,k+1)?0:Az,azn=isIn(i,j,k-1)?0:Az;
+    if(axp+axn+ayp+ayn+azp+azn>0){sx.push(px);sy.push(py);sz.push(pz);sa.push(axp,axn,ayp,ayn,azp,azn);}
+  }
+  return {
+    cells:{n,x,y,z,dv:dx*dy*dz},
+    surf:{n:sx.length,x:Float32Array.from(sx),y:Float32Array.from(sy),z:Float32Array.from(sz),a:Float32Array.from(sa)},
+    eps:0.9*Math.max(dx,dy,dz)
+  };
+}
+
+function newAcc(){return {m:0,sx:0,sy:0,sz:0,xx:0,yy:0,zz:0,xy:0,xz:0,yz:0};}
+function accAdd(a,m,x,y,z){a.m+=m;a.sx+=m*x;a.sy+=m*y;a.sz+=m*z;a.xx+=m*x*x;a.yy+=m*y*y;a.zz+=m*z*z;a.xy+=m*x*y;a.xz+=m*x*z;a.yz+=m*y*z;}
+
+function sailObj(kind,x0,zf,H,E,roach,bmax){
+  const chord=t=>E*(1-t)*(1+4*roach*t*(1-t));
+  let A=0,zc=0;const N=40;
+  for(let i=0;i<N;i++){const t=(i+0.5)/N,c=chord(t)*H/N;A+=c;zc+=c*(zf+t*H);}
+  return {kind,x0,zf,H,E,roach,bmax,chord,A,AR:Math.max(1.2,1.15*H*H/A),zce:zc/A};
+}
+
+function makeBoat(P,nx){
+  const hulls=hullList(P);
+  const acc=newAcc();
+  const boat={hulls:[],foils:[],sails:[],acc};
+  hulls.forEach(h=>{
+    const b=buildCells(h,nx);
+    boat.hulls.push(Object.assign({},h,b));
+    let At=0;const a=b.surf.a;for(let i=0;i<a.length;i++)At+=a[i];
+    for(let i=0;i<b.surf.n;i++){
+      let ai=0;for(let q=0;q<6;q++)ai+=a[i*6+q];
+      accAdd(acc,h.mass*ai/At,b.surf.x[i],b.surf.y[i],b.surf.z[i]);
+    }
+  });
+  hulls.forEach((h,hi)=>{
+    if(P.type==='tri'&&hi>0)return;
+    const addFoil=(kind,x,zt,span,chord)=>{
+      boat.foils.push({kind,x,y:h.oy,zt,span,chord,hi});
+      accAdd(acc,20*span*chord,x,h.oy,zt-span/2);
+    };
+    const zk=x=>h.oz+zkAt(h,2*x/h.L);
+    if(P.boardOn&&P.boardDepth>0.02)addFoil('board',P.boardX,zk(P.boardX)+0.03,P.boardDepth+0.03,P.boardChord);
+    if(P.keelSpan>0.02){
+      addFoil('keel',P.keelX,zk(P.keelX)+0.03,P.keelSpan+0.03,P.keelChord);
+      if(P.ballast>0)accAdd(acc,P.ballast,P.keelX,h.oy,zk(P.keelX)-P.keelSpan);
+    }
+    addFoil('rudder',P.rudX,zk(P.rudX)+0.35,P.rudSpan,P.rudChord);
+  });
+  const width=P.type==='cat'?P.spacing:P.type==='tri'?2*P.spacing:0;
+  boat.beamWidth=width;
+  if(width>0){const bm=5*width;accAdd(acc,bm,0.28*P.L,0,P.D);accAdd(acc,bm,-0.28*P.L,0,P.D);}
+  boat.sails.push(sailObj('main',P.mastX,P.D+P.hb,P.Hs,P.E,P.roach,95*D2R));
+  accAdd(acc,P.rigMass,P.mastX-0.2,0,P.D+P.hb+0.4*P.Hs);
+  if(P.jibOn){
+    const zf=P.D+0.15,Hj=Math.max(0.5,P.hb+0.95*P.Hs-0.15);
+    boat.sails.push(sailObj('jib',P.jibX,zf,Hj,P.jibFoot,0,85*D2R));
+  }
+  let SA=0;boat.sails.forEach(s=>SA+=s.A);boat.SA=SA;
+  const nh=hulls.length;
+  boat.Afront=nh*(P.B*P.D*0.5+0.25);boat.Alat=nh*(P.L*P.D*0.4);
+  boat.P=P;
+  return boat;
+}
+
+function inv3(m){
+  const a=m[0],b=m[1],c=m[2],d=m[3],e=m[4],f=m[5],g=m[6],h=m[7],i=m[8];
+  const A=e*i-f*h,B=-(d*i-f*g),C=d*h-e*g;
+  const idt=1/(a*A+b*B+c*C);
+  return [A*idt,-(b*i-c*h)*idt,(b*f-c*e)*idt,B*idt,(a*i-c*g)*idt,-(a*f-c*d)*idt,C*idt,-(a*h-b*g)*idt,(a*e-b*d)*idt];
+}
+function massProps(boat,P,crewY){
+  const a=boat.acc;
+  let m=a.m,sx=a.sx,sy=a.sy,sz=a.sz,xx=a.xx,yy=a.yy,zz=a.zz,xy=a.xy,xz=a.xz,yz=a.yz;
+  const cm=P.crewMass,cx=P.crewX,cy=crewY,cz=P.D+P.crewZ;
+  m+=cm;sx+=cm*cx;sy+=cm*cy;sz+=cm*cz;xx+=cm*cx*cx;yy+=cm*cy*cy;zz+=cm*cz*cz;xy+=cm*cx*cy;xz+=cm*cx*cz;yz+=cm*cy*cz;
+  const c=[sx/m,sy/m,sz/m];
+  const k=1.2; // rough added-inertia allowance for entrained water
+  const Ixx=(yy+zz-m*(c[1]*c[1]+c[2]*c[2]))*k,Iyy=(xx+zz-m*(c[0]*c[0]+c[2]*c[2]))*k,Izz=(xx+yy-m*(c[0]*c[0]+c[1]*c[1]))*k;
+  const Ixy=(-xy+m*c[0]*c[1])*k,Ixz=(-xz+m*c[0]*c[2])*k,Iyz=(-yz+m*c[1]*c[2])*k;
+  const I=[Ixx,Ixy,Ixz,Ixy,Iyy,Iyz,Ixz,Iyz,Izz];
+  return {M:m,c,I,Iinv:inv3(I)};
+}
+
+/* ---------- statics: floating position, trim and righting arm ---------- */
+function rotPR(th,ph){const c=Math.cos(ph),s=Math.sin(ph),ct=Math.cos(th),st=Math.sin(th);return [ct,st*s,st*c,0,c,-s,-st,ct*s,ct*c];}
+function floatAt(boat,mp,R,wantCB){
+  const Vt=mp.M/RHO_W,c=mp.c;
+  const R6=R[6],R7=R[7],R8=R[8];
+  const volW=zc=>{
+    let V=0;
+    for(const h of boat.hulls){
+      const cl=h.cells,ie=1/h.eps;let s=0;
+      for(let i=0;i<cl.n;i++){
+        const z=zc+R6*(cl.x[i]-c[0])+R7*(cl.y[i]-c[1])+R8*(cl.z[i]-c[2]);
+        let f=0.5-z*ie;if(f<=0)continue;if(f>1)f=1;s+=f;
+      }
+      V+=s*cl.dv;
+    }
+    return V;
+  };
+  let lo=-30,hi=30;
+  if(volW(lo)<Vt)return {sinks:true,zc:lo};
+  for(let it=0;it<34;it++){const mid=0.5*(lo+hi);if(volW(mid)>Vt)lo=mid;else hi=mid;}
+  const zc=0.5*(lo+hi);
+  const out={zc,sinks:false};
+  if(wantCB){
+    let V=0,bx=0,by=0,bz=0;
+    for(const h of boat.hulls){
+      const cl=h.cells,ie=1/h.eps;
+      for(let i=0;i<cl.n;i++){
+        const rx=cl.x[i]-c[0],ry=cl.y[i]-c[1],rz=cl.z[i]-c[2];
+        const z=zc+R6*rx+R7*ry+R8*rz;
+        let f=0.5-z*ie;if(f<=0)continue;if(f>1)f=1;
+        const w=f*cl.dv;V+=w;
+        bx+=w*(R[0]*rx+R[1]*ry+R[2]*rz);by+=w*(R[3]*rx+R[4]*ry+R[5]*rz);bz+=w*(R6*rx+R7*ry+R8*rz);
+      }
+    }
+    out.V=V;out.cb=[bx/V,by/V,bz/V];
+  }
+  return out;
+}
+function equilibrium(boat,mp,phi){
+  let lo=-0.6,hi=0.6,best=null;
+  for(let it=0;it<18;it++){
+    const th=0.5*(lo+hi);
+    const r=floatAt(boat,mp,rotPR(th,phi),true);
+    if(r.sinks)return {sinks:true,th:0,zc:0};
+    best={th,zc:r.zc,cb:r.cb};
+    if(r.cb[0]>0)hi=th;else lo=th;
+  }
+  return best;
+}
+
+/* ---------- full static stability analysis ---------- */
+function analyze(P){
+  const boat=makeBoat(P,24);
+  const crewY=P.hikeMax*P.hike; // windward = +y here, heel to starboard (+)
+  const mp=massProps(boat,P,crewY);
+  const out={M:mp.M,SA:boat.SA,angles:[],gz:[],mr:[],sinks:false,type:P.type};
+  const eq0=equilibrium(boat,mp,0);
+  if(eq0.sinks){out.sinks=true;return out;}
+  const R0=rotPR(eq0.th,0);
+  let zmin=1e9,Lmin=1e9,Lmax=-1e9,Sw=0;
+  boat.hulls.forEach((h,hi)=>{
+    const ie=1/h.eps;
+    for(let i=0;i<h.cells.n;i++){
+      const rx=h.cells.x[i]-mp.c[0],ry=h.cells.y[i]-mp.c[1],rz=h.cells.z[i]-mp.c[2];
+      const z=eq0.zc+R0[6]*rx+R0[7]*ry+R0[8]*rz;
+      if(z<zmin)zmin=z;
+      if(hi===0&&z<0){const x=R0[0]*rx+R0[1]*ry+R0[2]*rz;if(x<Lmin)Lmin=x;if(x>Lmax)Lmax=x;}
+    }
+    for(let i=0;i<h.surf.n;i++){
+      const rx=h.surf.x[i]-mp.c[0],ry=h.surf.y[i]-mp.c[1],rz=h.surf.z[i]-mp.c[2];
+      const z=eq0.zc+R0[6]*rx+R0[7]*ry+R0[8]*rz;
+      let f=0.5-z*ie;if(f<=0)continue;if(f>1)f=1;
+      const a=h.surf.a;Sw+=f*(a[i*6]+a[i*6+1]+a[i*6+2]+a[i*6+3]+a[i*6+5]);
+    }
+  });
+  let foilBot=0;
+  boat.foils.forEach(f=>{
+    if(f.kind==='rudder')return;
+    const z=eq0.zc+R0[6]*(f.x-mp.c[0])+R0[7]*(f.y-mp.c[1])+R0[8]*(f.zt-f.span-mp.c[2]);
+    if(z<foilBot)foilBot=z;
+  });
+  out.draftHull=Math.max(0,-zmin);out.draft=-Math.min(zmin,foilBot);
+  out.Lwl=Math.max(0,Lmax-Lmin);out.Sw=Sw;
+  out.cgAboveWL=eq0.zc;out.trim=eq0.th*R2D;
+  let zce=0,At=0;boat.sails.forEach(s=>{zce+=s.zce*s.A;At+=s.A;});zce/=At;
+  out.zceAboveWL=eq0.zc+(zce-mp.c[2]);
+  for(let a=0;a<=180;a+=5){
+    const r=floatAt(boat,mp,rotPR(0,a*D2R),true);
+    if(r.sinks){out.angles.push(a);out.gz.push(0);out.mr.push(0);continue;}
+    const gz=-r.cb[1];
+    out.angles.push(a);out.gz.push(gz);out.mr.push(mp.M*G*gz);
+  }
+  let mx=-1e9,ang=0;
+  for(let i=0;i<out.gz.length;i++)if(out.mr[i]>mx){mx=out.mr[i];ang=out.angles[i];}
+  out.mrMax=mx;out.mrMaxAngle=ang;
+  out.avs=180;
+  for(let i=1;i<out.gz.length;i++){
+    if(out.gz[i-1]>0&&out.gz[i]<=0){const f=out.gz[i-1]/(out.gz[i-1]-out.gz[i]);out.avs=out.angles[i-1]+5*f;break;}
+  }
+  out.mr30=out.mr[6];out.mr60=out.mr[12];out.mr90=out.mr[18];
+  const lever=Math.max(0.3,out.zceAboveWL+0.45*out.draft);
+  out.vKnock=Math.sqrt(2*Math.max(0,out.mrMax)/(RHO_A*boat.SA*1.2*lever))/KN;
+  const disp=mp.M/RHO_W;
+  out.vol=disp;out.SAD=boat.SA/Math.pow(disp,2/3);
+  const Bmax=P.type==='cat'?P.spacing+P.B:P.type==='tri'?2*P.spacing+P.B*P.amaB:P.B;
+  out.csf=Bmax/Math.cbrt(disp);
+  out.lengthRatio=Math.max(0.1,out.Lwl)/Math.cbrt(disp);
+  return out;
+}
+
+/* ---------- waves ---------- */
+function makeWaves(P){
+  const A=P.waveH/2;
+  if(A<=0.001)return null;
+  const w1=2*Math.PI/P.waveT,k1=w1*w1/G,w2=w1*1.37,k2=w2*w2/G,A2=0.4*A;
+  const c2=Math.cos(0.5),s2=Math.sin(0.5);
+  return (X,Y,t)=>A*Math.sin(-k1*Y-w1*t)+A2*Math.sin(-k2*(Y*c2+X*s2)-w2*t+1.7);
+}
+
+/* ---------- rigid body helpers ---------- */
+function quatToR(q,R){
+  const w=q[0],x=q[1],y=q[2],z=q[3];
+  R[0]=1-2*(y*y+z*z);R[1]=2*(x*y-w*z);R[2]=2*(x*z+w*y);
+  R[3]=2*(x*y+w*z);R[4]=1-2*(x*x+z*z);R[5]=2*(y*z-w*x);
+  R[6]=2*(x*z-w*y);R[7]=2*(y*z+w*x);R[8]=1-2*(x*x+y*y);
+}
+function matToQuat(m){
+  const t=m[0]+m[4]+m[8];let w,x,y,z;
+  if(t>0){const s=Math.sqrt(t+1)*2;w=0.25*s;x=(m[7]-m[5])/s;y=(m[2]-m[6])/s;z=(m[3]-m[1])/s;}
+  else if(m[0]>m[4]&&m[0]>m[8]){const s=Math.sqrt(1+m[0]-m[4]-m[8])*2;w=(m[7]-m[5])/s;x=0.25*s;y=(m[1]+m[3])/s;z=(m[2]+m[6])/s;}
+  else if(m[4]>m[8]){const s=Math.sqrt(1+m[4]-m[0]-m[8])*2;w=(m[2]-m[6])/s;x=(m[1]+m[3])/s;y=0.25*s;z=(m[5]+m[7])/s;}
+  else{const s=Math.sqrt(1+m[8]-m[0]-m[4])*2;w=(m[3]-m[1])/s;x=(m[2]+m[6])/s;y=(m[5]+m[7])/s;z=0.25*s;}
+  const n=Math.hypot(w,x,y,z);return [w/n,x/n,y/n,z/n];
+}
+function mul3(a,b){const r=new Array(9);for(let i=0;i<3;i++)for(let j=0;j<3;j++)r[i*3+j]=a[i*3]*b[j]+a[i*3+1]*b[3+j]+a[i*3+2]*b[6+j];return r;}
+
+/* ---------- simulation ---------- */
+function newSim(P){
+  const boat=makeBoat(P,30);
+  const S={P,boat,t:0,acc:0,Rm:new Float64Array(9),F:[0,0,0],T:[0,0,0],ww:[0,0,0],w:[0,0,0],v:[0,0,0],p:[0,0,0]};
+  S.crewY=0;
+  S.mp=massProps(boat,P,S.crewY);
+  S.wave=makeWaves(P);
+  const eq=equilibrium(boat,S.mp,0);
+  S.sinks=!!eq.sinks;
+  const th=eq.sinks?0:eq.th,zc=eq.sinks?0:eq.zc;
+  const psi=wrapPi(-P.tack*P.twa*D2R),gam=Math.PI/2-psi;
+  const Rz=[Math.cos(gam),-Math.sin(gam),0,Math.sin(gam),Math.cos(gam),0,0,0,1];
+  const R=mul3(Rz,rotPR(th,0));
+  S.q=matToQuat(R);S.p=[0,0,zc];
+  const sp0=0.35*Math.sqrt(G*P.L);
+  S.v=[R[0]*sp0,R[3]*sp0,0];
+  S.rudder=0;S.sailBeta={main:Math.max(0.1,Math.abs(P.twa*D2R)-0.25),jib:Math.max(0.1,Math.abs(P.twa*D2R)-0.3)};S.sailSide=P.tack;
+  S.load={main:0.5,jib:0.5};S.camberE={main:P.camber,jib:P.camber};S.twistE={main:P.twist*D2R,jib:P.twist*D2R};
+  S.betaEff={main:0.6,jib:0.5};
+  S.ease=0;S.rampKn=0;S.ramp=false;S.gustT=-1;S.gustAdd=0;S.windMS=P.tws*KN;
+  S.phiRef=P.tack*P.twa*D2R;S.AWS=0;S.sailHeel=0;S.sailDrive=0;S.sailSideF=0;
+  S.capsized=false;S.capKn=0;S.capAWS=0;S.capKind='';S.maxHeel=0;S.hd=boat.hulls.map(()=>({Vs:0,sx:0,sy:0,sz:0,Sw:0}));
+  S.cbW=[0,0,zc];S.Cf=0.004;S.kp=1.5;S.kd=1.6;S.roll=0;S.pitchUp=0;S.psi=psi;S.Vsub=0;
+  quatToR(S.q,S.Rm);
+  return S;
+}
+function updateMass(S,dt){
+  const P=S.P;
+  // crew hikes out as the boat heels to leeward and moves in (or across) when it leans to windward
+  const lee=-P.tack*S.roll*R2D, rate=-P.tack*S.w[0]*R2D;
+  const u=P.autoHike?clamp((lee+0.25*rate)/5,-1,1):1;
+  const target=-P.tack*P.hikeMax*P.hike*u;
+  const mx=2.2*dt;
+  S.crewY+=clamp(target-S.crewY,-mx,mx);
+  S.mp=massProps(S.boat,P,S.crewY);
+}
+
+function windSpeedMS(S){
+  const P=S.P,t=S.t;
+  const n=(Math.sin(0.61*t+1.3)*0.5+Math.sin(1.37*t+0.4)*0.3+Math.sin(0.23*t+2.1)*0.5+Math.sin(2.9*t)*0.15)/1.45;
+  const v=(P.tws+S.rampKn)*(1+P.gust/100*n)+S.gustAdd;
+  return Math.max(0,v)*KN*sstep(0,4,t);
+}
+function airBody(S,pb){
+  const R=S.Rm,c=S.mp.c,ww=S.ww;
+  const rx=pb[0]-c[0],ry=pb[1]-c[1],rz=pb[2]-c[2];
+  const Rx=R[0]*rx+R[1]*ry+R[2]*rz,Ry=R[3]*rx+R[4]*ry+R[5]*rz,Rz=R[6]*rx+R[7]*ry+R[8]*rz;
+  const vx=S.v[0]+ww[1]*Rz-ww[2]*Ry,vy=S.v[1]+ww[2]*Rx-ww[0]*Rz,vz=S.v[2]+ww[0]*Ry-ww[1]*Rx;
+  const V=S.windMS*Math.pow(clamp(S.p[2]+Rz,0.3,40)/10,0.14);
+  const awx=-vx,awy=-V-vy,awz=-vz;
+  return [R[0]*awx+R[3]*awy+R[6]*awz,R[1]*awx+R[4]*awy+R[7]*awz,R[2]*awx+R[5]*awy+R[8]*awz];
+}
+function addForceBody(S,pb,fb){
+  const R=S.Rm,c=S.mp.c;
+  const rx=pb[0]-c[0],ry=pb[1]-c[1],rz=pb[2]-c[2];
+  const Rx=R[0]*rx+R[1]*ry+R[2]*rz,Ry=R[3]*rx+R[4]*ry+R[5]*rz,Rz=R[6]*rx+R[7]*ry+R[8]*rz;
+  const fx=R[0]*fb[0]+R[1]*fb[1]+R[2]*fb[2],fy=R[3]*fb[0]+R[4]*fb[1]+R[5]*fb[2],fz=R[6]*fb[0]+R[7]*fb[1]+R[8]*fb[2];
+  S.F[0]+=fx;S.F[1]+=fy;S.F[2]+=fz;
+  S.T[0]+=Ry*fz-Rz*fy;S.T[1]+=Rz*fx-Rx*fz;S.T[2]+=Rx*fy-Ry*fx;
+}
+function Cw(Fn){return 0.012*Math.pow(Math.min(Fn,0.4)/0.4,4)*(1+2.2*Math.max(0,Fn-0.4));}
+
+function hullForces(S,hi){
+  const h=S.boat.hulls[hi],R=S.Rm,c=S.mp.c;
+  const px=S.p[0],py=S.p[1],pz=S.p[2],c0=c[0],c1=c[1],c2=c[2];
+  const R0=R[0],R1=R[1],R2=R[2],R3=R[3],R4=R[4],R5=R[5],R6=R[6],R7=R[7],R8=R[8];
+  const wave=S.wave,t=S.t,ie=1/h.eps;
+  const cl=h.cells,n=cl.n,cx=cl.x,cy=cl.y,cz=cl.z,dv=cl.dv,k=RHO_W*G*dv;
+  let Fz=0,Tx=0,Ty=0,Vs=0,sx=0,sy=0,sz=0;
+  for(let i=0;i<n;i++){
+    const rx=cx[i]-c0,ry=cy[i]-c1,rz=cz[i]-c2;
+    const Rz=R6*rx+R7*ry+R8*rz,Z=pz+Rz;
+    const Rx=R0*rx+R1*ry+R2*rz,Ry=R3*rx+R4*ry+R5*rz;
+    const wl=wave?wave(px+Rx,py+Ry,t):0;
+    let fr=0.5+(wl-Z)*ie;if(fr<=0)continue;if(fr>1)fr=1;
+    const f=k*fr;Fz+=f;Tx+=Ry*f;Ty-=Rx*f;
+    const w=dv*fr;Vs+=w;sx+=Rx*w;sy+=Ry*w;sz+=Rz*w;
+  }
+  const F=S.F,T=S.T;F[2]+=Fz;T[0]+=Tx;T[1]+=Ty;
+  const sf=h.surf,m=sf.n,sX=sf.x,sY=sf.y,sZ=sf.z,sa=sf.a;
+  const ww0=S.ww[0],ww1=S.ww[1],ww2=S.ww[2],v0=S.v[0],v1=S.v[1],v2=S.v[2];
+  const q5=0.5*RHO_W,Cf=S.Cf,CPX=0.05,CPY=0.9,CPZ=1.1;
+  let Aw=0,FxT=0,FyT=0,FzT=0,TxT=0,TyT=0,TzT=0;
+  for(let i=0;i<m;i++){
+    const rx=sX[i]-c0,ry=sY[i]-c1,rz=sZ[i]-c2;
+    const Rx=R0*rx+R1*ry+R2*rz,Ry=R3*rx+R4*ry+R5*rz,Rz=R6*rx+R7*ry+R8*rz;
+    const wl=wave?wave(px+Rx,py+Ry,t):0;
+    let fr=0.5+(wl-(pz+Rz))*ie;if(fr<=0)continue;if(fr>1)fr=1;
+    const o=i*6,axp=sa[o],axn=sa[o+1],ayp=sa[o+2],ayn=sa[o+3],azp=sa[o+4],azn=sa[o+5];
+    Aw+=fr*(axp+axn+ayp+ayn+azn);
+    const vwx=v0+ww1*Rz-ww2*Ry,vwy=v1+ww2*Rx-ww0*Rz,vwz=v2+ww0*Ry-ww1*Rx;
+    const vbx=R0*vwx+R3*vwy+R6*vwz,vby=R1*vwx+R4*vwy+R7*vwz,vbz=R2*vwx+R5*vwy+R8*vwz;
+    const V2=vbx*vbx+vby*vby+vbz*vbz;if(V2<1e-6)continue;
+    const V=Math.sqrt(V2);
+    const Ae=(axp+axn)*(1-vbx*vbx/V2)+(ayp+ayn)*(1-vby*vby/V2)+(azp+azn)*(1-vbz*vbz/V2);
+    const kf=-q5*Cf*V*Ae*fr;
+    let Fbx=kf*vbx,Fby=kf*vby,Fbz=kf*vbz;
+    if(vbx>0)Fbx-=q5*CPX*axp*vbx*vbx*fr;else Fbx+=q5*CPX*axn*vbx*vbx*fr;
+    if(vby>0)Fby-=q5*CPY*ayp*vby*vby*fr;else Fby+=q5*CPY*ayn*vby*vby*fr;
+    if(vbz>0)Fbz-=q5*CPZ*azp*vbz*vbz*fr;else Fbz+=q5*CPZ*azn*vbz*vbz*fr;
+    const Fwx=R0*Fbx+R1*Fby+R2*Fbz,Fwy=R3*Fbx+R4*Fby+R5*Fbz,Fwz=R6*Fbx+R7*Fby+R8*Fbz;
+    FxT+=Fwx;FyT+=Fwy;FzT+=Fwz;
+    TxT+=Ry*Fwz-Rz*Fwy;TyT+=Rz*Fwx-Rx*Fwz;TzT+=Rx*Fwy-Ry*Fwx;
+  }
+  F[0]+=FxT;F[1]+=FyT;F[2]+=FzT;T[0]+=TxT;T[1]+=TyT;T[2]+=TzT;
+  const hd=S.hd[hi];hd.Vs=Vs;hd.Sw=Aw;hd.sx=0;hd.sy=0;hd.sz=0;
+  if(Vs>1e-5){
+    const rx=sx/Vs,ry=sy/Vs,rz=sz/Vs;hd.sx=rx;hd.sy=ry;hd.sz=rz;
+    const vx=v0+ww1*rz-ww2*ry,vy=v1+ww2*rx-ww0*rz;
+    const Vh=Math.hypot(vx,vy);
+    if(Vh>0.05){
+      const Lh=0.92*h.L,Fn=Vh/Math.sqrt(G*Lh);
+      const fs=clamp(Math.pow(7.5/(Lh/Math.cbrt(Vs)),3),0.12,3.2);
+      const Rw=0.5*RHO_W*Vh*Vh*Aw*Cw(Fn)*fs;
+      const fx=-Rw*vx/Vh,fy=-Rw*vy/Vh;
+      F[0]+=fx;F[1]+=fy;
+      T[0]+=-rz*fy;T[1]+=rz*fx;T[2]+=rx*fy-ry*fx;
+    }
+  }
+}
+
+function applyFoil(S,f,delta){
+  const R=S.Rm,c=S.mp.c;
+  const c0=c[0],c1=c[1],c2=c[2];
+  const zt=f.zt,zb=f.zt-f.span;
+  const base=R[6]*(f.x-c0)+R[7]*(f.y-c1);
+  const Zt=S.p[2]+base+R[8]*(zt-c2),Zb=S.p[2]+base+R[8]*(zb-c2);
+  const zlo=Math.min(Zt,Zb),zhi=Math.max(Zt,Zb);
+  let wl=0;
+  if(S.wave){const rx=f.x-c0,ry=f.y-c1,rz=(zt+zb)/2-c2;wl=S.wave(S.p[0]+R[0]*rx+R[1]*ry+R[2]*rz,S.p[1]+R[3]*rx+R[4]*ry+R[5]*rz,S.t);}
+  let frac;if(zhi-zlo<1e-3)frac=zhi<wl?1:0;else frac=clamp((wl-zlo)/(zhi-zlo),0,1);
+  if(frac<0.03)return;
+  const sMid=(Zb<Zt)?(1-frac/2):frac/2;
+  const pz=zt+sMid*(zb-zt);
+  const rx=f.x-c0,ry=f.y-c1,rz=pz-c2;
+  const Rx=R[0]*rx+R[1]*ry+R[2]*rz,Ry=R[3]*rx+R[4]*ry+R[5]*rz,Rz=R[6]*rx+R[7]*ry+R[8]*rz;
+  const ww=S.ww;
+  const vwx=S.v[0]+ww[1]*Rz-ww[2]*Ry,vwy=S.v[1]+ww[2]*Rx-ww[0]*Rz,vwz=S.v[2]+ww[0]*Ry-ww[1]*Rx;
+  const wx=R[0]*vwx+R[3]*vwy+R[6]*vwz,wy=R[1]*vwx+R[4]*vwy+R[7]*vwz;
+  const Vp=Math.hypot(wx,wy);if(Vp<0.03)return;
+  const area=f.chord*f.span*frac,AR=1.7*f.span*frac/f.chord;
+  const th=Math.atan2(wy,wx);let al=th-delta;al=al-Math.PI*Math.round(al/Math.PI);
+  const a=Math.abs(al),sg=al<0?-1:1;
+  const CLa=2*Math.PI*AR/(AR+2),CLmax=1.1,as=CLmax/CLa;
+  const CLlin=sg*CLa*Math.min(a,as);
+  const b=sstep(as,as+0.22,a);
+  const CL=(1-b)*CLlin+b*sg*0.8*Math.sin(2*a);
+  const CD0=f.kind==='keel'?0.016:0.012;
+  const CD=CD0+(1-b)*CLlin*CLlin/(Math.PI*0.9*AR)+b*1.3*Math.sin(a)*Math.sin(a);
+  const Fm=0.5*RHO_W*Vp*Vp*area,dx=wx/Vp,dy=wy/Vp;
+  const Fx=-Fm*(CL*(-dy)+CD*dx),Fy=-Fm*(CL*dx+CD*dy);
+  addForceBody(S,[f.x,f.y,pz],[Fx,Fy,0]);
+}
+
+function applySails(S,dt){
+  const P=S.P,qref=0.5*RHO_A*64;
+  let heel=0,drive=0,side=0;
+  const sd=S.sailSide;
+  for(const sl of S.boat.sails){
+    const kind=sl.kind,L=S.load[kind];
+    const camberE=clamp(P.camber*(1-0.7*P.flatten)*(1+P.stretch*0.8*L),0,0.22);
+    const twistE=(P.twist*(1-0.5*P.flatten)+P.twistGrowth*L)*D2R;
+    S.camberE[kind]=camberE;S.twistE[kind]=twistE;
+    const bEff=Math.min(S.sailBeta[kind],Math.abs(S.phiRef),sl.bmax);
+    S.betaEff[kind]=bEff;
+    const n=6;let qsum=0;
+    const CLa=2*Math.PI*sl.AR/(sl.AR+2),as=0.34-camberE;
+    for(let i=0;i<n;i++){
+      const tt=(i+0.5)/n,ch=sl.chord(tt),dA=ch*sl.H/n;
+      const bi=bEff+twistE*tt;
+      const cx=sl.x0-0.38*ch*Math.cos(bi),cy=sd*0.38*ch*Math.sin(bi),cz=sl.zf+tt*sl.H;
+      const ab=airBody(S,[cx,cy,cz]);
+      const ax=ab[0],ay=ab[1],Va2=ax*ax+ay*ay;
+      if(Va2<0.04)continue;
+      const Va=Math.sqrt(Va2),q=0.5*RHO_A*Va2;qsum+=q*dA;
+      const ux=ax/Va,uy=ay/Va;
+      const phi=Math.atan2(sd*ay,-ax);
+      let CL=0,CD=0.05;
+      if(phi<=0){CL=0;CD=1.1;}
+      else{
+        const al=phi-bi;
+        if(al>-0.05){
+          const lf=sstep(-0.05,0.08,al);
+          const CLl=clamp(CLa*(al+2*camberE),-0.2,1.7)*lf;
+          const b=sstep(as,as+0.2,al);
+          const alp=Math.max(al,0);
+          const CLp=0.8*Math.sin(2*alp),CDp=1.2*Math.pow(Math.sin(alp),2)+0.1;
+          const CDa=0.03+CLl*CLl/(Math.PI*0.85*sl.AR);
+          CL=(1-b)*CLl+b*CLp;CD=(1-b)*CDa+b*CDp;
+        }
+      }
+      const Fm=q*dA;
+      const lx=sd*uy,ly=-sd*ux;
+      const Fx=Fm*(CL*lx+CD*ux),Fy=Fm*(CL*ly+CD*uy);
+      addForceBody(S,[cx,cy,cz],[Fx,Fy,0]);
+      heel+=-(cz-S.mp.c[2])*Fy;drive+=Fx;side+=Fy;
+    }
+    S.load[kind]+=(qsum/sl.A/qref-S.load[kind])*Math.min(1,dt/0.4);
+  }
+  S.sailHeel=heel;S.sailDrive=drive;S.sailSideF=side;
+}
+
+function simStep(S,dt){
+  const P=S.P,boat=S.boat,R=S.Rm,mp=S.mp;
+  quatToR(S.q,R);
+  const w=S.w;
+  S.ww[0]=R[0]*w[0]+R[1]*w[1]+R[2]*w[2];S.ww[1]=R[3]*w[0]+R[4]*w[1]+R[5]*w[2];S.ww[2]=R[6]*w[0]+R[7]*w[1]+R[8]*w[2];
+  if(S.ramp)S.rampKn+=0.3*dt;
+  if(S.gustT>=0){S.gustT+=dt;const u=S.gustT/7;if(u>=1){S.gustT=-1;S.gustAdd=0;}else S.gustAdd=0.6*(P.tws+S.rampKn)*Math.pow(Math.sin(Math.PI*u),2);}
+  S.windMS=windSpeedMS(S);
+  const psi=Math.atan2(R[0],R[3]),pitchUp=Math.asin(clamp(R[6],-1,1)),roll=Math.atan2(R[7],R[8]);
+  S.psi=psi;S.pitchUp=pitchUp;S.roll=roll;
+  const ab=airBody(S,[P.mastX,0,P.D+P.hb+0.5*P.Hs]);
+  S.phiRef=Math.atan2(ab[1],-ab[0]);S.AWS=Math.hypot(ab[0],ab[1]);
+  if(S.phiRef*S.sailSide<0&&Math.abs(S.phiRef)>0.17)S.sailSide=-S.sailSide;
+  const aph=Math.abs(S.phiRef);
+  if(P.easeHeel>0&&Math.abs(roll)*R2D>P.easeHeel)S.ease=Math.min(1.5,S.ease+1.2*dt);else S.ease=Math.max(0,S.ease-0.5*dt);
+  let tm,tj;
+  if(P.sheetMode==='auto'){tm=clamp(aph-0.21,0.07,1.57);tj=clamp(aph-0.25,0.07,1.4);}
+  else{tm=0.07+P.sheet*1.5;tj=0.07+P.sheet*1.3;}
+  tm=Math.min(tm+S.ease,1.57);tj=Math.min(tj+S.ease,1.57);
+  const sr=1.6*dt;
+  S.sailBeta.main+=clamp(tm-S.sailBeta.main,-sr,sr);S.sailBeta.jib+=clamp(tj-S.sailBeta.jib,-sr,sr);
+  let cmd;
+  if(P.autoHelm){
+    const target=-P.tack*P.twa*D2R;
+    const e=wrapPi(target-psi);
+    cmd=clamp(S.kp*e+S.kd*S.ww[2],-0.34,0.34);
+  }else cmd=P.helm*D2R;
+  const rr=0.9*dt;S.rudder+=clamp(cmd-S.rudder,-rr,rr);
+  const Vb=Math.hypot(S.v[0],S.v[1]);
+  const Lref=0.92*boat.hulls[0].L,Re=Math.max(1e5,Vb*Lref/1.19e-6);
+  const lg=Math.log10(Re)-2;S.Cf=0.075/(lg*lg)*1.2;
+  S.F[0]=0;S.F[1]=0;S.F[2]=-mp.M*G;S.T[0]=0;S.T[1]=0;S.T[2]=0;
+  let Vs=0,cbx=0,cby=0,cbz=0;
+  for(let hi=0;hi<boat.hulls.length;hi++){
+    hullForces(S,hi);const hd=S.hd[hi];Vs+=hd.Vs;cbx+=hd.sx*hd.Vs;cby+=hd.sy*hd.Vs;cbz+=hd.sz*hd.Vs;
+  }
+  if(Vs>1e-6)S.cbW=[S.p[0]+cbx/Vs,S.p[1]+cby/Vs,S.p[2]+cbz/Vs];
+  S.Vsub=Vs;
+  for(const f of boat.foils)applyFoil(S,f,f.kind==='rudder'?S.rudder:0);
+  applySails(S,dt);
+  {
+    const wa=airBody(S,[0,0,P.D+0.2]);
+    const fx=0.5*RHO_A*0.8*boat.Afront*Math.abs(wa[0])*wa[0],fy=0.5*RHO_A*0.9*boat.Alat*Math.abs(wa[1])*wa[1];
+    addForceBody(S,[0,0,P.D+0.2],[fx,fy,0]);
+  }
+  const M=mp.M;
+  S.v[0]+=S.F[0]/M*dt;S.v[1]+=S.F[1]/M*dt;S.v[2]+=S.F[2]/M*dt;
+  S.p[0]+=S.v[0]*dt;S.p[1]+=S.v[1]*dt;S.p[2]+=S.v[2]*dt;
+  const tbx=R[0]*S.T[0]+R[3]*S.T[1]+R[6]*S.T[2],tby=R[1]*S.T[0]+R[4]*S.T[1]+R[7]*S.T[2],tbz=R[2]*S.T[0]+R[5]*S.T[1]+R[8]*S.T[2];
+  const I=mp.I,Iw0=I[0]*w[0]+I[1]*w[1]+I[2]*w[2],Iw1=I[3]*w[0]+I[4]*w[1]+I[5]*w[2],Iw2=I[6]*w[0]+I[7]*w[1]+I[8]*w[2];
+  const gx=w[1]*Iw2-w[2]*Iw1,gy=w[2]*Iw0-w[0]*Iw2,gz=w[0]*Iw1-w[1]*Iw0;
+  const rx=tbx-gx,ry=tby-gy,rz=tbz-gz,Ii=mp.Iinv;
+  w[0]+=(Ii[0]*rx+Ii[1]*ry+Ii[2]*rz)*dt;w[1]+=(Ii[3]*rx+Ii[4]*ry+Ii[5]*rz)*dt;w[2]+=(Ii[6]*rx+Ii[7]*ry+Ii[8]*rz)*dt;
+  const q=S.q,qw=q[0],qx=q[1],qy=q[2],qz=q[3],wa0=w[0],wb0=w[1],wc0=w[2];
+  q[0]+=0.5*dt*(-qx*wa0-qy*wb0-qz*wc0);q[1]+=0.5*dt*(qw*wa0+qy*wc0-qz*wb0);q[2]+=0.5*dt*(qw*wb0+qz*wa0-qx*wc0);q[3]+=0.5*dt*(qw*wc0+qx*wb0-qy*wa0);
+  const nn=1/Math.hypot(q[0],q[1],q[2],q[3]);q[0]*=nn;q[1]*=nn;q[2]*=nn;q[3]*=nn;
+  S.t+=dt;
+  const heelDeg=Math.abs(roll)*R2D;
+  if(heelDeg>S.maxHeel)S.maxHeel=heelDeg;
+  if(!S.capsized){
+    if(heelDeg>100){S.capsized=true;S.capKind='Capsized';}
+    else if(heelDeg>75){S.capsized=true;S.capKind='Knocked down';}
+    else if(Math.abs(pitchUp)*R2D>65){S.capsized=true;S.capKind='Pitch-poled';}
+    if(S.capsized){S.capKn=P.tws+S.rampKn;S.capAWS=S.AWS/KN;S.ramp=false;}
+  }
+}
+function simStats(S){
+  const R=S.Rm,v=S.v;
+  const u=v[0]*R[0]+v[1]*R[3]+v[2]*R[6],vy=v[0]*R[1]+v[1]*R[4]+v[2]*R[7];
+  return {speed:Math.hypot(v[0],v[1])/KN,heel:Math.atan2(R[7],R[8])*R2D,pitch:Math.asin(clamp(R[6],-1,1))*R2D,
+    leeway:Math.abs(Math.atan2(vy,Math.max(0.2,Math.abs(u))))*R2D,
+    tws:S.windMS/KN,aws:S.AWS/KN,awa:S.phiRef*R2D,
+    twa:wrapPi(0-Math.atan2(R[0],R[3]))*R2D,rudder:S.rudder*R2D,
+    sheet:S.betaEff.main*R2D};
+}
+
+/*PHYSICS_END*/
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+const P=Object.assign({},PRESETS.dinghy);
+let S=null,analysis=null,running=true,speedMul=1,view='chase';
+let timer=null,anTimer=null;
+const DT=1/200;
+
+/* ---------- controls panel ---------- */
+const ui=document.getElementById('ui');
+const ctl={};
+function fmt(v,item){
+  if(item.t==='chk')return v?'on':'off';
+  const st=item.step||1;const d=st>=1?0:st>=0.1?1:st>=0.01?2:3;
+  return Number(v).toFixed(d)+(item.u?' '+item.u:'');
+}
+function buildUI(){
+  ui.innerHTML='';
+  const pd=document.createElement('details');pd.open=true;
+  pd.innerHTML='<summary>Start from a design</summary><div class="body"><div class="ctl"><select id="preset" aria-label="Preset design"></select></div><p class="note">Each preset is a different class of boat. Every number below can be changed afterwards.</p></div>';
+  ui.appendChild(pd);
+  const sel=pd.querySelector('#preset');
+  Object.keys(PRESETS).forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=PRESETS[k].name;sel.appendChild(o);});
+  sel.addEventListener('change',()=>{Object.assign(P,PRESETS[sel.value]);syncUI();rebuildAll();});
+  const ad=document.createElement('details');ad.open=true;
+  ad.innerHTML='<summary>Stability and design numbers</summary><div class="body"><div class="stats" id="anStats"></div><canvas id="gz"></canvas><p class="note" id="gzNote"></p></div>';
+  ui.appendChild(ad);
+  SCHEMA.forEach(g=>{
+    const d=document.createElement('details');if(g.open)d.open=true;
+    const s=document.createElement('summary');s.textContent=g.g;d.appendChild(s);
+    const b=document.createElement('div');b.className='body';d.appendChild(b);
+    g.items.forEach(item=>{
+      const rowEl=document.createElement('div');rowEl.className='ctl'+(item.t==='chk'?' chk':'');
+      const id='c_'+item.k;
+      if(item.t==='sel'){
+        rowEl.innerHTML='<label for="'+id+'">'+item.label+'</label><span></span>';
+        const se=document.createElement('select');se.id=id;
+        item.opts.forEach(o=>{const op=document.createElement('option');op.value=o[0];op.textContent=o[1];se.appendChild(op);});
+        rowEl.appendChild(se);
+        se.addEventListener('change',()=>{P[item.k]=item.num?Number(se.value):se.value;changed(item);});
+        ctl[item.k]={el:se,item};
+      }else if(item.t==='chk'){
+        const cb=document.createElement('input');cb.type='checkbox';cb.id=id;
+        rowEl.appendChild(cb);
+        const lb=document.createElement('label');lb.htmlFor=id;lb.textContent=item.label;rowEl.appendChild(lb);
+        cb.addEventListener('change',()=>{P[item.k]=cb.checked?1:0;changed(item);});
+        ctl[item.k]={el:cb,item};
+      }else{
+        rowEl.innerHTML='<label for="'+id+'">'+item.label+'</label><span class="val" id="v_'+item.k+'"></span>';
+        const r=document.createElement('input');r.type='range';r.id=id;r.min=item.min;r.max=item.max;r.step=item.step;
+        rowEl.appendChild(r);
+        r.addEventListener('input',()=>{P[item.k]=Number(r.value);document.getElementById('v_'+item.k).textContent=fmt(P[item.k],item);changed(item);});
+        ctl[item.k]={el:r,item};
+      }
+      b.appendChild(rowEl);
+    });
+    ui.appendChild(d);
+  });
+  const ed=document.createElement('details');
+  ed.innerHTML='<summary>Save or load a design</summary><div class="body"><p class="note">Copy this text to keep your design. Paste a saved design here and press Load.</p><textarea id="json" spellcheck="false"></textarea><div class="btnrow"><button id="bCopy">Copy design</button><button id="bLoad">Load design</button></div><p class="note" id="jsonMsg"></p></div>';
+  ui.appendChild(ed);
+  document.getElementById('bCopy').onclick=()=>{
+    const ta=document.getElementById('json');ta.value=JSON.stringify(exportP(),null,1);ta.select();
+    let ok=false;try{ok=document.execCommand('copy');}catch(e){}
+    document.getElementById('jsonMsg').textContent=ok?'Copied.':'Select the text and copy it.';
+  };
+  document.getElementById('bLoad').onclick=()=>{
+    try{
+      const o=JSON.parse(document.getElementById('json').value);
+      let n=0;KEYS.forEach(k=>{if(k in o){P[k]=o[k];n++;}});
+      syncUI();rebuildAll();document.getElementById('jsonMsg').textContent='Loaded '+n+' values.';
+    }catch(e){document.getElementById('jsonMsg').textContent='That text is not a valid design.';}
+  };
+  syncUI();
+}
+function exportP(){const o={};KEYS.forEach(k=>o[k]=P[k]);return o;}
+function syncUI(){
+  SCHEMA.forEach(g=>g.items.forEach(item=>{
+    const c=ctl[item.k];if(!c)return;
+    if(item.t==='sel')c.el.value=String(P[item.k]);
+    else if(item.t==='chk')c.el.checked=!!P[item.k];
+    else{c.el.value=P[item.k];document.getElementById('v_'+item.k).textContent=fmt(P[item.k],item);}
+  }));
+  const h=document.getElementById('json');if(h)h.value=JSON.stringify(exportP(),null,1);
+}
+function changed(item){
+  if(!item.live){clearTimeout(timer);timer=setTimeout(rebuildAll,160);}
+  else if(item.k==='waveH'||item.k==='waveT'){if(S)S.wave=makeWaves(P);}
+  if(!item.env){clearTimeout(anTimer);anTimer=setTimeout(runAnalysis,220);}
+}
+
+/* ---------- stability readout ---------- */
+function runAnalysis(){
+  try{analysis=analyze(P);}catch(e){analysis=null;console.error(e);}
+  renderAnalysis();
+}
+function row(a,b){return '<div><span>'+a+'</span><span>'+b+'</span></div>';}
+function renderAnalysis(){
+  const el=document.getElementById('anStats');if(!el)return;
+  const a=analysis;
+  if(!a){el.innerHTML='';return;}
+  if(a.sinks){el.innerHTML=row('Result','<span class="bad">Hull volume is too small: the boat sinks</span>');drawGZ();return;}
+  const f=(v,d)=>Number(v).toFixed(d);
+  let h='';
+  h+=row('Total mass',f(a.M,0)+' kg');
+  h+=row('Draft, hull / with foils',f(a.draftHull,2)+' / '+f(a.draft,2)+' m');
+  h+=row('Waterline length',f(a.Lwl,2)+' m');
+  h+=row('Wetted hull area',f(a.Sw,1)+' m²');
+  h+=row('CG above waterline',f(a.cgAboveWL,2)+' m');
+  h+=row('Sail area',f(a.SA,1)+' m²');
+  h+=row('Sail area / displacement',f(a.SAD,1));
+  h+=row('Length / displacement^(1/3)',f(a.lengthRatio,1));
+  h+=row('Max righting moment',f(a.mrMax/1000,2)+' kN·m at '+f(a.mrMaxAngle,0)+'°');
+  h+=row('Righting moment at 30°',f(a.mr30/1000,2)+' kN·m');
+  h+=row('Righting moment at 90°',f(a.mr90/1000,2)+' kN·m');
+  h+=row('Righting moment ends at',a.avs>=180?'no sign change up to 180°':f(a.avs,0)+'° of heel');
+  h+=row('Static knock-down wind',f(a.vKnock,0)+' kn');
+  if(a.type==='mono')h+=row('Capsize screening value',f(a.csf,2)+(a.csf<2?' <span class="good">(below 2)</span>':' <span class="bad">(above 2)</span>'));
+  el.innerHTML=h;
+  document.getElementById('gzNote').textContent='Curve: moment that buoyancy and weight give against heel, crew fully hiked to windward. Dashed lines: the live heel angle and the live heeling moment from the sails. The knock-down wind assumes sails sheeted in, boat stopped, wind abeam, a flat-plate force coefficient of 1.2; a boat under way flips sooner, which the Capsize test button measures.';
+  drawGZ();
+}
+function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function niceStep(x){const p=Math.pow(10,Math.floor(Math.log10(Math.max(x,1e-6))));const m=x/p;return (m<1.5?1:m<3.5?2:m<7.5?5:10)*p;}
+function drawGZ(){
+  const cv=document.getElementById('gz');if(!cv)return;
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const W=cv.clientWidth,H=cv.clientHeight;if(!W)return;
+  cv.width=W*dpr;cv.height=H*dpr;
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+  const a=analysis;if(!a||a.sinks||!a.mr.length)return;
+  const pl=46,pr=10,pt=12,pb=26,w=W-pl-pr,h=H-pt-pb;
+  let mx=Math.max(...a.mr),mn=Math.min(...a.mr,0);
+  if(S)mx=Math.max(mx,Math.abs(S.sailHeel));
+  mx=Math.max(mx,200)*1.1;mn=Math.min(mn*1.1,-mx*0.12);
+  const X=ang=>pl+w*ang/180,Y=m=>pt+h*(1-(m-mn)/(mx-mn));
+  const line=cssv('--line'),ink2=cssv('--ink2'),acc=cssv('--accent'),buoy=cssv('--buoy');
+  g.lineWidth=1;g.font='11px "Barlow Semi Condensed",sans-serif';g.fillStyle=ink2;
+  for(let ang=0;ang<=180;ang+=30){g.strokeStyle=line;g.beginPath();g.moveTo(X(ang),pt);g.lineTo(X(ang),pt+h);g.stroke();g.textAlign='center';g.fillText(ang+'°',X(ang),H-9);}
+  const stepk=niceStep((mx-mn)/1000/4);
+  g.textAlign='right';
+  for(let k=Math.ceil(mn/1000/stepk)*stepk;k<=mx/1000;k+=stepk){g.strokeStyle=line;g.beginPath();g.moveTo(pl,Y(k*1000));g.lineTo(pl+w,Y(k*1000));g.stroke();g.fillText(k.toFixed(stepk<1?1:0),pl-5,Y(k*1000)+4);}
+  g.strokeStyle=ink2;g.beginPath();g.moveTo(pl,Y(0));g.lineTo(pl+w,Y(0));g.stroke();
+  g.save();g.translate(11,pt+h/2);g.rotate(-Math.PI/2);g.textAlign='center';g.fillText('righting moment, kN·m',0,0);g.restore();
+  g.strokeStyle=acc;g.lineWidth=2.2;g.beginPath();
+  a.mr.forEach((m,i)=>{const x=X(a.angles[i]),y=Y(m);if(i)g.lineTo(x,y);else g.moveTo(x,y);});g.stroke();
+  if(S){
+    const heel=Math.min(180,Math.abs(S.roll||0)*R2D),mh=Math.abs(S.sailHeel);
+    g.strokeStyle=buoy;g.lineWidth=1.5;g.setLineDash([4,3]);
+    g.beginPath();g.moveTo(X(heel),pt);g.lineTo(X(heel),pt+h);g.stroke();
+    g.beginPath();g.moveTo(pl,Y(mh));g.lineTo(pl+w,Y(mh));g.stroke();g.setLineDash([]);
+  }
+}
+
+/* ---------- three.js scene ---------- */
+const canvas=document.getElementById('gl');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(2,window.devicePixelRatio||1));
+const scene=new THREE.Scene();
+const SKY=0xbcd7e6;
+scene.background=new THREE.Color(SKY);scene.fog=new THREE.Fog(SKY,70,330);
+const camera=new THREE.PerspectiveCamera(52,1,0.1,1500);
+scene.add(new THREE.HemisphereLight(0xdcecf5,0x24495a,0.95));
+const sun=new THREE.DirectionalLight(0xfff3dc,0.9);sun.position.set(-40,60,25);scene.add(sun);
+const Cm=new THREE.Matrix4().set(1,0,0,0, 0,0,1,0, 0,-1,0,0, 0,0,0,1);
+const Cinv=Cm.clone().invert();
+let boatGroup=null,sailMesh={},boomMesh=null,rudderMeshes=[],crewMesh=null,cgMark=null,cbMark=null,mastMesh=null;
+let waterMesh=null,wN=60,wSp=1,farWater=null;
+
+function gridTexture(){
+  const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');
+  g.fillStyle='#2c7fa0';g.fillRect(0,0,128,128);
+  g.strokeStyle='rgba(255,255,255,0.24)';g.lineWidth=2;g.strokeRect(0,0,128,128);
+  g.strokeStyle='rgba(255,255,255,0.09)';g.lineWidth=1;g.beginPath();g.moveTo(64,0);g.lineTo(64,128);g.moveTo(0,64);g.lineTo(128,64);g.stroke();
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;return t;
+}
+function buildWater(){
+  if(waterMesh){scene.remove(waterMesh);waterMesh.geometry.dispose();}
+  if(farWater){scene.remove(farWater);}
+  wSp=Math.max(0.9,P.L*0.17);
+  const n=wN+1;
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(n*n*3),3));
+  geo.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(n*n*2),2));
+  const idx=[];for(let i=0;i<wN;i++)for(let j=0;j<wN;j++){const a=i*n+j,b=a+1,c=a+n,d=c+1;idx.push(a,c,b,b,c,d);}
+  geo.setIndex(idx);
+  const mat=new THREE.MeshStandardMaterial({map:gridTexture(),roughness:0.55,metalness:0.0,flatShading:true});
+  waterMesh=new THREE.Mesh(geo,mat);waterMesh.frustumCulled=false;scene.add(waterMesh);
+  const fg=new THREE.PlaneGeometry(3000,3000);fg.rotateX(-Math.PI/2);
+  farWater=new THREE.Mesh(fg,new THREE.MeshBasicMaterial({color:0x2a7494}));farWater.position.y=-0.25;scene.add(farWater);
+}
+function updateWater(){
+  const pos=waterMesh.geometry.attributes.position,uv=waterMesh.geometry.attributes.uv,n=wN+1;
+  const cx=Math.round(S.p[0]/wSp)*wSp,cy=Math.round(S.p[1]/wSp)*wSp,wave=S.wave,t=S.t;
+  let k=0,u=0;
+  for(let i=0;i<n;i++)for(let j=0;j<n;j++){
+    const X=cx+(i-wN/2)*wSp,Y=cy+(j-wN/2)*wSp;
+    const e=wave?wave(X,Y,t):0;
+    pos.array[k++]=X;pos.array[k++]=e;pos.array[k++]=-Y;
+    uv.array[u++]=X/8;uv.array[u++]=Y/8;
+  }
+  pos.needsUpdate=true;uv.needsUpdate=true;waterMesh.geometry.computeVertexNormals();
+  farWater.position.x=S.p[0];farWater.position.z=-S.p[1];
+}
+function hullGeometry(h){
+  const NS=44,NH=10,loopN=2*NH+1;
+  const pos=[],col=[],idx=[];
+  const cA=new THREE.Color(0xe7e2d4),cB=new THREE.Color(0x7a2a2a);
+  for(let i=0;i<=NS;i++){
+    const u=-1+2*i/NS,x=u*h.L/2,w=widthFrac(h,u)*h.B/2,zk=zkAt(h,u),Dl=h.D*(1+h.sheer*u*u);
+    for(let j=0;j<loopN;j++){
+      let hh,sg;if(j<=NH){hh=1-j/NH;sg=-1;}else{hh=(j-NH)/NH;sg=1;}
+      const y=sg*w*Math.pow(hh,1/h.section),z=zk+hh*Dl;
+      pos.push(x+h.ox,z+h.oz,-(y+h.oy));
+      const c=(z<0.32*h.D+zk*0.2)?cB:cA;col.push(c.r,c.g,c.b);
+    }
+  }
+  for(let i=0;i<NS;i++)for(let j=0;j<loopN-1;j++){const a=i*loopN+j,b=a+loopN;idx.push(a,b,a+1,a+1,b,b+1);}
+  for(let i=0;i<NS;i++){const a=i*loopN,b=a+loopN,c=a+loopN-1,d=b+loopN-1;idx.push(a,b,c,c,b,d);}
+  const zk0=zkAt(h,-1),Dl0=h.D*(1+h.sheer);
+  const ci=pos.length/3;pos.push(-h.L/2+h.ox,zk0+Dl0+h.oz,-h.oy);col.push(cA.r,cA.g,cA.b);
+  for(let j=0;j<loopN-1;j++)idx.push(ci,j,j+1);
+  idx.push(ci,loopN-1,0);
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  g.setIndex(idx);g.computeVertexNormals();return g;
+}
+function tb(x,y,z){return new THREE.Vector3(x,z,-y);}
+function rebuildVisuals(){
+  if(boatGroup){scene.remove(boatGroup);boatGroup.traverse(o=>{if(o.geometry)o.geometry.dispose();});}
+  boatGroup=new THREE.Group();boatGroup.matrixAutoUpdate=false;scene.add(boatGroup);
+  sailMesh={};rudderMeshes=[];
+  const boat=S.boat;
+  const hullMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:0.6,side:THREE.DoubleSide});
+  boat.hulls.forEach(h=>{boatGroup.add(new THREE.Mesh(hullGeometry(h),hullMat));});
+  const foilMat=new THREE.MeshStandardMaterial({color:0x3a4750,roughness:0.5});
+  const bulbMat=new THREE.MeshStandardMaterial({color:0x2a2d30,roughness:0.5,metalness:0.4});
+  boat.foils.forEach(f=>{
+    const t=Math.max(0.025,f.chord*0.12);
+    const m=new THREE.Mesh(new THREE.BoxGeometry(f.chord,f.span,t),foilMat);
+    m.position.copy(tb(f.x,f.y,f.zt-f.span/2));
+    boatGroup.add(m);
+    if(f.kind==='rudder')rudderMeshes.push(m);
+    if(f.kind==='keel'&&P.ballast>0){
+      const r=Math.cbrt(P.ballast/11300*3/(4*Math.PI));
+      const bm=new THREE.Mesh(new THREE.SphereGeometry(r,14,10),bulbMat);bm.scale.set(2.2,0.8,0.8);
+      bm.position.copy(tb(f.x,f.y,f.zt-f.span-r*0.4));boatGroup.add(bm);
+    }
+  });
+  if(boat.beamWidth>0){
+    const bmat=new THREE.MeshStandardMaterial({color:0x99a3a8,roughness:0.5});
+    [0.28*P.L,-0.28*P.L].forEach(x=>{
+      const g=new THREE.CylinderGeometry(0.05,0.05,boat.beamWidth,10);g.rotateX(Math.PI/2);
+      const m=new THREE.Mesh(g,bmat);m.position.copy(tb(x,0,P.D));boatGroup.add(m);
+    });
+    if(P.type==='cat'){
+      const tr=new THREE.Mesh(new THREE.PlaneGeometry(0.56*P.L,Math.max(0.1,P.spacing-P.B)),new THREE.MeshStandardMaterial({color:0x33424b,side:THREE.DoubleSide,transparent:true,opacity:0.85}));
+      tr.rotation.x=-Math.PI/2;tr.position.copy(tb(0,0,P.D+0.01));boatGroup.add(tr);
+    }
+  }
+  const mh=P.D+P.hb+P.Hs*1.02;
+  mastMesh=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.05,mh,10),new THREE.MeshStandardMaterial({color:0xb6bec2,roughness:0.4,metalness:0.4}));
+  mastMesh.position.copy(tb(P.mastX,0,mh/2));boatGroup.add(mastMesh);
+  boomMesh=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,1,8),new THREE.MeshStandardMaterial({color:0xb6bec2,roughness:0.4,metalness:0.4}));
+  boatGroup.add(boomMesh);
+  const smat=new THREE.MeshStandardMaterial({color:0xf5f3ea,roughness:0.85,side:THREE.DoubleSide});
+  const jmat=new THREE.MeshStandardMaterial({color:0xf0c27a,roughness:0.85,side:THREE.DoubleSide});
+  boat.sails.forEach(sl=>{
+    const NT=8,NC=8;
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.BufferAttribute(new Float32Array((NT+1)*(NC+1)*3),3));
+    const idx=[];for(let i=0;i<NT;i++)for(let j=0;j<NC;j++){const a=i*(NC+1)+j,b=a+1,c=a+NC+1,d=c+1;idx.push(a,c,b,b,c,d);}
+    g.setIndex(idx);
+    const m=new THREE.Mesh(g,sl.kind==='main'?smat:jmat);m.frustumCulled=false;boatGroup.add(m);
+    sailMesh[sl.kind]={mesh:m,NT,NC,sl};
+  });
+  const crew=new THREE.Group();
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(0.16,0.2,0.55,10),new THREE.MeshStandardMaterial({color:0xd9822b,roughness:0.7}));
+  const head=new THREE.Mesh(new THREE.SphereGeometry(0.12,10,8),new THREE.MeshStandardMaterial({color:0xe8c4a0,roughness:0.8}));head.position.y=0.42;
+  crew.add(body);crew.add(head);crewMesh=crew;boatGroup.add(crew);
+  if(cgMark)scene.remove(cgMark);if(cbMark)scene.remove(cbMark);
+  const r=Math.max(0.07,P.L*0.016);
+  cgMark=new THREE.Mesh(new THREE.SphereGeometry(r,12,8),new THREE.MeshBasicMaterial({color:0xd1432f,depthTest:false}));
+  cbMark=new THREE.Mesh(new THREE.SphereGeometry(r,12,8),new THREE.MeshBasicMaterial({color:0x1f7ad1,depthTest:false}));
+  cgMark.renderOrder=10;cbMark.renderOrder=10;scene.add(cgMark);scene.add(cbMark);
+  buildWater();
+}
+const UP=new THREE.Vector3(0,1,0);
+function updateSailMeshes(){
+  const sd=S.sailSide;
+  for(const kind in sailMesh){
+    const {mesh,NT,NC,sl}=sailMesh[kind];
+    const be=S.betaEff[kind]!==undefined?S.betaEff[kind]:0.5;
+    const f=S.camberE[kind],tw=S.twistE[kind];
+    const pos=mesh.geometry.attributes.position.array;let k=0;
+    for(let i=0;i<=NT;i++){
+      const t=i/NT,ch=sl.chord(t),bi=be+tw*t,cb=Math.cos(bi),sb=Math.sin(bi);
+      for(let j=0;j<=NC;j++){
+        const s=j/NC,off=4*f*s*(1-s)*ch;
+        const x=sl.x0-s*ch*cb+off*sb,y=sd*s*ch*sb+off*sd*cb,z=sl.zf+t*sl.H;
+        pos[k++]=x;pos[k++]=z;pos[k++]=-y;
+      }
+    }
+    mesh.geometry.attributes.position.needsUpdate=true;mesh.geometry.computeVertexNormals();
+    if(kind==='main'){
+      const len=sl.E,dx=-Math.cos(be),dy=sd*Math.sin(be);
+      boomMesh.scale.set(1,len,1);
+      boomMesh.quaternion.setFromUnitVectors(UP,new THREE.Vector3(dx,0,-dy));
+      boomMesh.position.copy(tb(sl.x0+dx*len/2,dy*len/2,sl.zf));
+    }
+  }
+}
+function setBodyMatrix(){
+  const R=S.Rm,c=S.mp.c,p=S.p;
+  const ox=p[0]-(R[0]*c[0]+R[1]*c[1]+R[2]*c[2]),oy=p[1]-(R[3]*c[0]+R[4]*c[1]+R[5]*c[2]),oz=p[2]-(R[6]*c[0]+R[7]*c[1]+R[8]*c[2]);
+  const Mw=new THREE.Matrix4().set(R[0],R[1],R[2],ox, R[3],R[4],R[5],oy, R[6],R[7],R[8],oz, 0,0,0,1);
+  boatGroup.matrix.copy(Cm).multiply(Mw).multiply(Cinv);
+  boatGroup.matrixWorldNeedsUpdate=true;
+}
+function updateDynamicVisuals(){
+  setBodyMatrix();
+  updateSailMeshes();
+  rudderMeshes.forEach(m=>{m.rotation.y=S.rudder;});
+  crewMesh.position.copy(tb(P.crewX,S.crewY,P.D+P.crewZ-0.1));
+  cgMark.position.set(S.p[0],S.p[2],-S.p[1]);
+  cbMark.position.set(S.cbW[0],S.cbW[2],-S.cbW[1]);
+}
+
+/* ---------- camera ---------- */
+const cam={az:2.7,el:0.32,dist:10,yaw:0,tx:0,ty:0,tz:0};
+function setView(v){
+  view=v;
+  const sc=Math.max(P.L,P.type==='mono'?0:P.spacing*2);
+  const base=Math.max(6,sc*2.2+P.Hs*0.6);
+  if(v==='chase'){cam.az=Math.PI*0.88;cam.el=0.3;cam.dist=base;}
+  if(v==='bow'){cam.az=0.0;cam.el=0.18;cam.dist=base*0.95;}
+  if(v==='side'){cam.az=Math.PI*0.5;cam.el=0.12;cam.dist=base*1.05;}
+  if(v==='top'){cam.az=Math.PI;cam.el=1.45;cam.dist=base*1.1;}
+  document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('on',b.dataset.view===v));
+}
+const pts=new Map();
+canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pts.set(e.pointerId,{x:e.clientX,y:e.clientY});});
+canvas.addEventListener('pointermove',e=>{
+  if(!pts.has(e.pointerId))return;
+  const p=pts.get(e.pointerId),dx=e.clientX-p.x,dy=e.clientY-p.y;
+  if(pts.size===1){cam.az-=dx*0.007;cam.el=clamp(cam.el+dy*0.006,-0.05,1.5);}
+  else if(pts.size===2){
+    let o=null;pts.forEach((val,id)=>{if(id!==e.pointerId)o=val;});
+    const d0=Math.hypot(p.x-o.x,p.y-o.y),d1=Math.hypot(e.clientX-o.x,e.clientY-o.y);
+    if(d0>0&&d1>0)cam.dist=clamp(cam.dist*d0/d1,2,150);
+  }
+  p.x=e.clientX;p.y=e.clientY;
+});
+const endp=e=>{pts.delete(e.pointerId);};
+canvas.addEventListener('pointerup',endp);canvas.addEventListener('pointercancel',endp);
+canvas.addEventListener('wheel',e=>{e.preventDefault();cam.dist=clamp(cam.dist*Math.exp(e.deltaY*0.001),2,150);},{passive:false});
+function updateCamera(dt){
+  const R=S.Rm;
+  const gam=Math.atan2(R[3],R[0]);
+  cam.yaw+=wrapPi(gam-cam.yaw)*(1-Math.exp(-dt*3));
+  cam.tx+=(S.p[0]-cam.tx)*(1-Math.exp(-dt*8));cam.ty+=(S.p[1]-cam.ty)*(1-Math.exp(-dt*8));
+  cam.tz=Math.max(0.4,S.p[2]*0.2+0.5);
+  const a=cam.yaw+cam.az,ce=Math.cos(cam.el);
+  camera.position.set(cam.tx+cam.dist*ce*Math.cos(a),Math.max(0.25,cam.tz+cam.dist*Math.sin(cam.el)),-(cam.ty+cam.dist*ce*Math.sin(a)));
+  camera.up.set(0,1,0);
+  camera.lookAt(cam.tx,cam.tz+P.Hs*0.15,-cam.ty);
+}
+
+/* ---------- readouts ---------- */
+const hud=document.getElementById('hud'),compass=document.getElementById('compass'),banner=document.getElementById('banner');
+function updateHud(){
+  const s=simStats(S);
+  const hr=(a,b)=>'<div class="row"><span>'+a+'</span><span>'+b+'</span></div>';
+  let h='<b>'+s.speed.toFixed(1)+' kn</b>';
+  h+=hr('Heel',Math.abs(s.heel).toFixed(0)+'° '+(s.heel>0?'stbd':'port'));
+  h+=hr('Trim',(s.pitch>=0?'bow up ':'bow down ')+Math.abs(s.pitch).toFixed(0)+'°');
+  h+=hr('Leeway',s.leeway.toFixed(1)+'°');
+  h+=hr('True / apparent wind',s.tws.toFixed(0)+' / '+s.aws.toFixed(0)+' kn');
+  h+=hr('TWA / AWA',Math.abs(s.twa).toFixed(0)+'° / '+Math.abs(s.awa).toFixed(0)+'°');
+  h+=hr('Rudder',s.rudder.toFixed(1)+'°');
+  h+=hr('Boom angle',s.sheet.toFixed(0)+'°');
+  h+=hr('Camber / twist',(S.camberE.main*100).toFixed(1)+'% / '+(S.twistE.main*R2D).toFixed(0)+'°');
+  hud.innerHTML=h;
+  if(S.sinks){banner.style.display='block';banner.style.background='';banner.textContent='This hull is too small to float the boat';}
+  else if(S.capsized){banner.style.display='block';banner.style.background='';banner.innerHTML=S.capKind+' at '+S.capKn.toFixed(1)+' kn true wind<br><span style="font-weight:500;font-size:13px">apparent wind '+S.capAWS.toFixed(1)+' kn, heel reached '+S.maxHeel.toFixed(0)+'°</span>';}
+  else if(S.ramp){banner.style.display='block';banner.style.background='rgba(31,111,134,.92)';banner.textContent='Capsize test: wind rising, now '+s.tws.toFixed(0)+' kn';}
+  else{banner.style.display='none';}
+  const g=compass.getContext('2d'),W=compass.width,c=W/2;
+  g.clearRect(0,0,W,W);
+  g.fillStyle='rgba(10,24,34,.55)';g.beginPath();g.arc(c,c,c-2,0,7);g.fill();
+  g.strokeStyle='rgba(255,255,255,.25)';g.lineWidth=2;g.stroke();
+  g.fillStyle='#fff';g.beginPath();g.moveTo(c,c-34);g.lineTo(c+14,c+26);g.lineTo(c-14,c+26);g.closePath();g.fill();
+  const arrow=(ang,col,len)=>{
+    g.save();g.translate(c,c);g.rotate(ang);g.strokeStyle=col;g.fillStyle=col;g.lineWidth=5;
+    g.beginPath();g.moveTo(0,-c+8);g.lineTo(0,-len);g.stroke();
+    g.beginPath();g.moveTo(0,-len+4);g.lineTo(-9,-len-14);g.lineTo(9,-len-14);g.closePath();g.fill();g.restore();
+  };
+  arrow(s.twa*D2R,'#6fb7ff',38);
+  arrow(S.phiRef,'#ffd45c',46);
+}
+
+/* ---------- main loop ---------- */
+let last=performance.now(),hudT=0,anT=0;
+function resize(){
+  const st=document.getElementById('stage');
+  const w=st.clientWidth,h=st.clientHeight;
+  renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();drawGZ();
+}
+window.addEventListener('resize',resize);
+function frame(now){
+  requestAnimationFrame(frame);
+  const dtr=Math.min(0.06,(now-last)/1000);last=now;
+  if(S&&!S.sinks){
+    if(running){
+      updateMass(S,dtr*speedMul);
+      S.acc+=dtr*speedMul;
+      let n=0;const cap=Math.round(8+speedMul*10);
+      while(S.acc>=DT&&n<cap){simStep(S,DT);S.acc-=DT;n++;}
+      if(S.acc>DT*4)S.acc=0;
+      if(!isFinite(S.p[0]+S.p[2]+S.q[0])){const ramp=S.ramp;S=newSim(P);S.ramp=ramp;}
+    }
+    updateDynamicVisuals();updateWater();updateCamera(dtr);
+    hudT+=dtr;if(hudT>0.1){hudT=0;updateHud();}
+    anT+=dtr;if(anT>0.4){anT=0;drawGZ();}
+  }
+  renderer.render(scene,camera);
+}
+function setRampButton(){document.getElementById('bRamp').classList.toggle('on',!!(S&&S.ramp));}
+function rebuildAll(){
+  S=newSim(P);rebuildVisuals();
+  setRampButton();setView(view);runAnalysis();
+  if(S.sinks)updateHud();
+}
+
+/* ---------- buttons ---------- */
+document.getElementById('bPlay').onclick=function(){running=!running;this.textContent=running?'Pause':'Play';this.classList.toggle('on',running);};
+document.getElementById('bReset').onclick=()=>{S=newSim(P);setRampButton();};
+document.getElementById('bSpeed').onchange=function(){speedMul=Number(this.value);};
+document.getElementById('bGust').onclick=()=>{if(S)S.gustT=0;};
+document.getElementById('bRamp').onclick=()=>{
+  if(S.ramp){S.ramp=false;setRampButton();return;}
+  if(S.capsized||S.rampKn>0){S=newSim(P);}
+  S.ramp=true;setRampButton();
+};
+document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view));
+
+buildUI();
+rebuildAll();
+resize();
+requestAnimationFrame(frame);
+})();
+
+</script>
+</body>
+</html>

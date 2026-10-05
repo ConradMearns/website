@@ -1,0 +1,2056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Hullform: sailboat simulator and tuner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #10263B; --paper: #EEF2F3; --panel: rgba(238,242,243,.96); --rule: #B8C6CD; --muted: #52687A;
+  --accent: #0B7480; --alert: #C8372D; --amber: #B97F00; --grid: rgba(16,38,59,.055);
+  --sheet: 58px;
+  box-sizing: border-box; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --ink: #E3ECEF; --paper: #0F1B26; --panel: rgba(15,27,38,.96); --rule: #2B4051; --muted: #94A9B8; --accent: #4CC4CE; --alert: #FF6F62; --amber: #F2B544; --grid: rgba(227,236,239,.05); }
+}
+:root[data-theme="dark"] { --ink: #E3ECEF; --paper: #0F1B26; --panel: rgba(15,27,38,.96); --rule: #2B4051; --muted: #94A9B8; --accent: #4CC4CE; --alert: #FF6F62; --amber: #F2B544; --grid: rgba(227,236,239,.05); }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+html, body { height: 100%; margin: 0; overflow: hidden; background: #b9d6e6; color: var(--ink);
+  font-family: Barlow, system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-text-size-adjust: 100%; }
+*, *::before, *::after { box-sizing: border-box; }
+button, select, input { font: inherit; color: inherit; }
+canvas#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+/* instruments */
+#hud { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 10px); left: 10px; display: flex; flex-wrap: wrap; gap: 5px; z-index: 5; max-width: calc(100vw - 104px); }
+.cell { background: rgba(8,24,38,.60); color: #F2F6F7; border-radius: 10px; padding: 6px 8px 5px; min-width: 47px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.cell b { display: block; font: 600 25px/1 "Barlow Condensed", Barlow, system-ui, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.cell small { display: block; margin-top: 3px; font-size: 10.5px; line-height: 1.1; opacity: .78; }
+#wind { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 10px); right: 10px; width: 76px; height: 76px; z-index: 5; }
+#windkey { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 88px); right: 10px; width: 76px; z-index: 5; font-size: 10.5px; line-height: 1.25; color: #F2F6F7; background: rgba(8,24,38,.60); border-radius: 8px; padding: 4px 6px; text-align: left; }
+#windkey i { display: inline-block; width: 9px; height: 3px; margin-right: 5px; vertical-align: middle; }
+
+/* action bar */
+#bar { position: fixed; left: 8px; right: 8px; bottom: calc(var(--sheet) + 8px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 6px; overflow-x: auto; z-index: 6; scrollbar-width: none; padding: 2px 0; transition: bottom .25s; }
+#bar::-webkit-scrollbar { display: none; }
+.btn { flex: none; background: var(--panel); border: 1px solid var(--rule); border-radius: 999px; padding: 7px 13px; font-size: 13.5px; font-weight: 500; white-space: nowrap; cursor: pointer; color: var(--ink); }
+.btn.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.btn:focus-visible, .tab:focus-visible, .preset:focus-visible, #grip:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* banner + toast */
+#banner { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 82px); left: 50%; transform: translateX(-50%); display: none; align-items: center; gap: 12px; z-index: 7; max-width: min(92vw, 520px); }
+#banner.warn { background: var(--alert); color: #fff; border-radius: 12px; padding: 10px 14px; font-size: 14px; line-height: 1.3; box-shadow: 0 6px 22px rgba(0,0,0,.25); }
+#banner button { flex: none; background: #fff; color: #7a1b14; border: 0; border-radius: 999px; padding: 6px 12px; font-weight: 600; cursor: pointer; }
+#toast { position: fixed; left: 50%; bottom: calc(var(--sheet) + 56px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%) translateY(8px); background: var(--ink); color: var(--paper); border-radius: 10px; padding: 8px 14px; font-size: 13.5px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 8; max-width: 90vw; text-align: center; }
+#toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+#fatal { display: none; position: fixed; inset: 20% 8% auto 8%; background: #fff; color: #7a1b14; border: 2px solid #C8372D; border-radius: 12px; padding: 16px; z-index: 20; font-size: 15px; }
+
+/* panel */
+#panel { position: fixed; left: 0; right: 0; bottom: 0; height: 46vh; z-index: 9; display: flex; flex-direction: column;
+  background: linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 24px 24px, linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 24px 24px, var(--panel);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid var(--rule); border-radius: 14px 14px 0 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  transform: translateY(calc(100% - 58px - env(safe-area-inset-bottom, 0px))); transition: transform .25s ease; }
+#panel.open { transform: none; }
+#grip { flex: none; height: 16px; border: 0; background: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; }
+#grip span { width: 38px; height: 4px; border-radius: 2px; background: var(--rule); }
+#tabs { flex: none; display: flex; gap: 2px; padding: 0 8px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--rule); }
+#tabs::-webkit-scrollbar { display: none; }
+.tab { flex: none; border: 0; background: none; padding: 8px 11px 9px; font: 600 16px "Barlow Condensed", Barlow, sans-serif; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.tab.on { color: var(--ink); border-bottom-color: var(--accent); }
+#presets { flex: none; display: flex; gap: 6px; padding: 8px 12px; overflow-x: auto; scrollbar-width: none; }
+#presets::-webkit-scrollbar { display: none; }
+.preset { flex: none; border: 1px solid var(--rule); background: transparent; border-radius: 999px; padding: 4px 11px; font-size: 13px; cursor: pointer; color: var(--ink); }
+.preset.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+#tabbody { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 28px; }
+.pane { display: none; }
+.pane.on { display: block; }
+.pane h3 { margin: 0; padding: 14px 14px 4px; font: 600 15px "Barlow Condensed", Barlow, sans-serif; letter-spacing: .02em; color: var(--ink); border-top: 1px solid var(--rule); }
+.pane h3:first-child { border-top: 0; }
+.row { display: block; padding: 7px 14px 5px; }
+.row .top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.nm { font-size: 14px; }
+output { font: 600 14px Barlow, sans-serif; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+.row small { display: block; color: var(--muted); font-size: 12px; margin-top: -2px; }
+.row.sel { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 10px; padding-bottom: 8px; }
+.row.sel select { background: var(--paper); border: 1px solid var(--rule); border-radius: 8px; padding: 6px 8px; font-size: 14px; max-width: 58%; }
+.row.tog { display: flex; align-items: center; gap: 10px; padding-top: 10px; }
+.row.tog input { width: 20px; height: 20px; accent-color: var(--accent); }
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 24px; background: transparent; margin: 1px 0; cursor: pointer; touch-action: pan-y; }
+input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--accent) var(--p, 50%), var(--rule) var(--p, 50%)); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--paper); border: 2px solid var(--ink); margin-top: -8px; }
+input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--accent) var(--p, 50%), var(--rule) var(--p, 50%)); }
+input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--paper); border: 2px solid var(--ink); }
+
+.live { margin: 8px 14px 2px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 10px; background: var(--paper); font-size: 13px; line-height: 1.35; color: var(--muted); }
+.live b { color: var(--ink); font-variant-numeric: tabular-nums; }
+/* results */
+#resBody { padding: 0 14px 10px; }
+#resBody h3 { padding-left: 0; padding-right: 0; }
+#resBody canvas { width: 100%; display: block; margin: 6px 0 2px; }
+.kv.big { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0 4px; }
+.kv.big > div { border: 1px solid var(--rule); border-radius: 10px; padding: 8px 10px; background: var(--paper); }
+.kv.big b { display: block; font: 600 28px/1.05 "Barlow Condensed", Barlow, sans-serif; color: var(--ink); }
+.kv.big small { display: block; margin-top: 3px; font-size: 12px; color: var(--muted); line-height: 1.25; }
+.kvl > div { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--rule); font-size: 14px; }
+.kvl span { color: var(--muted); }
+.kvl b { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+.note { font-size: 13px; color: var(--muted); line-height: 1.4; margin: 6px 0; }
+.note b { color: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); margin: 2px 0 6px; }
+.legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; background: var(--c); margin-right: 6px; vertical-align: middle; }
+
+
+/* tuning tab */
+.tr { display: flex; align-items: center; gap: 10px; padding: 5px 14px; font-size: 14px; cursor: pointer; }
+.tr input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
+.tr .nm { flex: 1; }
+.tr output { font-size: 13px; color: var(--muted); font-weight: 500; }
+.grp { display: flex; justify-content: space-between; align-items: center; padding: 14px 14px 4px; border-top: 1px solid var(--rule); }
+.grp b { font: 600 15px "Barlow Condensed", Barlow, sans-serif; }
+.mini { border: 1px solid var(--rule); background: transparent; border-radius: 999px; padding: 2px 10px; font-size: 12px; color: var(--ink); cursor: pointer; }
+.tbtns { display: flex; gap: 8px; flex-wrap: wrap; padding: 8px 14px; }
+textarea.tj { display: block; width: calc(100% - 28px); margin: 6px 14px; min-height: 96px; background: var(--paper); color: var(--ink); border: 1px solid var(--rule); border-radius: 8px; font: 12px/1.35 ui-monospace, Menlo, monospace; padding: 8px; }
+#tuneBody canvas { width: 100%; display: block; }
+.row small { display: block; }
+
+/* desktop: persistent side panel */
+@media (min-width: 900px) {
+  :root { --sheet: 0px; }
+  #hud { max-width: none; }
+  #panel { left: auto; top: 0; width: 392px; height: auto; border-radius: 0; border-top: 0; border-left: 1px solid var(--rule); transform: none; padding-top: 6px; }
+  #grip { display: none; }
+  #bar { right: 404px; flex-wrap: wrap; }
+  #wind, #windkey { right: 404px; }
+  #banner { left: calc(50% - 196px); }
+  #toast { left: calc(50% - 196px); }
+}
+@media (prefers-reduced-motion: reduce) { #panel, #bar, #toast { transition: none; } }
+</style>
+</head>
+<body>
+<canvas id="gl" aria-label="3D sailboat simulation"></canvas>
+
+<div id="hud" role="status" aria-live="off">
+  <div class="cell"><b id="h-spd">0.0</b><small>speed, kn</small></div>
+  <div class="cell"><b id="h-heel">0</b><small>heel, &deg;</small></div>
+  <div class="cell"><b id="h-lee">0</b><small>leeway, &deg;</small></div>
+  <div class="cell"><b id="h-awa">0</b><small>app. wind &deg;</small></div>
+  <div class="cell"><b id="h-aws">0.0</b><small>app. wind kn</small></div>
+  <div class="cell"><b id="h-reef">100</b><small>sail carried, %</small></div>
+</div>
+<canvas id="wind" width="152" height="152"></canvas>
+<div id="windkey"><i style="background:#6ec6ff"></i>true wind<br><i style="background:#ffc247"></i>apparent</div>
+
+<div id="banner"></div>
+<div id="toast" role="status"></div>
+<div id="fatal"></div>
+
+<div id="bar">
+  <button class="btn" id="bPause">Pause</button>
+  <button class="btn" id="bReset">Reset boat</button>
+  <button class="btn" id="bGust">Gust</button>
+  <button class="btn" id="bRamp">Ramp wind</button>
+  <button class="btn" id="bTack">Tack</button>
+  <button class="btn" id="bDump">Dump sheet</button>
+  <button class="btn" id="bForce">Forces</button>
+  <button class="btn" id="bView">View: orbit</button>
+  <button class="btn" id="bSpeed">1&times;</button>
+</div>
+
+<div id="panel">
+  <button id="grip" aria-label="Show or hide controls" aria-expanded="false"><span></span></button>
+  <div id="tabs" role="tablist"></div>
+  <div id="presets"></div>
+  <div id="tabbody"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+
+/* ======================================================================
+   SAILCORE — parametric sailboat physics (no DOM, SI units)
+   Body frame: x forward, y port, z up (right-handed). World: Z up.
+   Roll phi>0 = port side up (heeled to starboard). Pitch theta>0 = bow down.
+   ====================================================================== */
+const RHO_W = 1025, RHO_A = 1.225, GRAV = 9.81, NU_W = 1.19e-6;
+const KN = 0.514444, D2R = Math.PI / 180, R2D = 180 / Math.PI;
+const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
+function smooth(a, b, x) { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
+function wrapPi(a) { a = (a + Math.PI) % (2 * Math.PI); if (a < 0) a += 2 * Math.PI; return a - Math.PI; }
+
+/* ---------- rotations ---------- */
+function eulerToMat(phi, theta, psi, m) {
+  const cp = Math.cos(phi), sp = Math.sin(phi), ct = Math.cos(theta), st = Math.sin(theta), cy = Math.cos(psi), sy = Math.sin(psi);
+  m[0] = cy * ct; m[1] = cy * st * sp - sy * cp; m[2] = cy * st * cp + sy * sp;
+  m[3] = sy * ct; m[4] = sy * st * sp + cy * cp; m[5] = sy * st * cp - cy * sp;
+  m[6] = -st;     m[7] = ct * sp;                m[8] = ct * cp;
+  return m;
+}
+function quatToMat(q, m) {
+  const w = q[0], x = q[1], y = q[2], z = q[3];
+  m[0] = 1 - 2 * (y * y + z * z); m[1] = 2 * (x * y - w * z); m[2] = 2 * (x * z + w * y);
+  m[3] = 2 * (x * y + w * z); m[4] = 1 - 2 * (x * x + z * z); m[5] = 2 * (y * z - w * x);
+  m[6] = 2 * (x * z - w * y); m[7] = 2 * (y * z + w * x); m[8] = 1 - 2 * (x * x + y * y);
+}
+function matToQuat(m, q) {
+  const tr = m[0] + m[4] + m[8];
+  if (tr > 0) { const s = Math.sqrt(tr + 1) * 2; q[0] = 0.25 * s; q[1] = (m[7] - m[5]) / s; q[2] = (m[2] - m[6]) / s; q[3] = (m[3] - m[1]) / s; }
+  else if (m[0] > m[4] && m[0] > m[8]) { const s = Math.sqrt(1 + m[0] - m[4] - m[8]) * 2; q[0] = (m[7] - m[5]) / s; q[1] = 0.25 * s; q[2] = (m[1] + m[3]) / s; q[3] = (m[2] + m[6]) / s; }
+  else if (m[4] > m[8]) { const s = Math.sqrt(1 + m[4] - m[0] - m[8]) * 2; q[0] = (m[2] - m[6]) / s; q[1] = (m[1] + m[3]) / s; q[2] = 0.25 * s; q[3] = (m[5] + m[7]) / s; }
+  else { const s = Math.sqrt(1 + m[8] - m[0] - m[4]) * 2; q[0] = (m[3] - m[1]) / s; q[1] = (m[2] + m[6]) / s; q[2] = (m[5] + m[7]) / s; q[3] = 0.25 * s; }
+}
+
+/* ---------- presets ---------- */
+const PRESETS = {
+  dinghy: {
+    label: 'Dinghy, daggerboard', hullType: 'mono',
+    L: 4.2, B: 1.40, D: 0.45, bowN: 2.3, sternN: 3.2, transom: 0.62, floor: 0.30, bilge: 2.3, rocker: 0.10, sheer: 0.10,
+    sep: 2.2, amaL: 0.62, amaB: 0.45, amaD: 0.85, amaLift: 0.12, amaStagger: 0,
+    structMass: 55, foilType: 'board', foilChord: 0.28, foilSpan: 0.75, foilTaper: 0.7, foilX: 0.1, foilExt: 1.0,
+    rudChord: 0.20, rudSpan: 0.75, ballast: 0, ballastDepth: 0, ballastX: 0,
+    crewMass: 80, crewX: -0.25, crewZ: 0.45,
+    rigMass: 14, sailArea: 7.0, sailAR: 3.4, roach: 0.12, mastX: 0.75, boomH: 0.50, camber: 0.085, bend: 0.45, stretch: 0.35, twist0: 9, flex: 10,
+    jibArea: 0, jibAR: 4.0, jibX: 1.7,
+    _ctl: { twa: 60, hike: 1.0, easeHeel: 22 }, _env: { tws: 12 }
+  },
+  cat: {
+    label: 'Beach catamaran', hullType: 'cat',
+    L: 5.0, B: 0.42, D: 0.50, bowN: 1.9, sternN: 2.6, transom: 0.55, floor: 0.10, bilge: 1.9, rocker: 0.22, sheer: 0.12,
+    sep: 2.15, amaL: 0.62, amaB: 0.45, amaD: 0.85, amaLift: 0.12, amaStagger: 0,
+    structMass: 140, foilType: 'board', foilChord: 0.26, foilSpan: 0.62, foilTaper: 0.7, foilX: 0.0, foilExt: 1.0,
+    rudChord: 0.20, rudSpan: 0.70, ballast: 0, ballastDepth: 0, ballastX: 0,
+    crewMass: 150, crewX: -0.2, crewZ: 0.75,
+    rigMass: 28, sailArea: 15.5, sailAR: 3.1, roach: 0.15, mastX: 0.30, boomH: 0.85, camber: 0.08, bend: 0.40, stretch: 0.30, twist0: 8, flex: 8,
+    jibArea: 3.6, jibAR: 3.8, jibX: 2.1,
+    _ctl: { twa: 52, hike: 1.0, easeHeel: 12 }, _env: { tws: 13 }
+  },
+  sloop: {
+    label: 'Cruising keelboat', hullType: 'mono',
+    L: 8.6, B: 2.9, D: 1.35, bowN: 2.0, sternN: 2.6, transom: 0.55, floor: 0.04, bilge: 1.7, rocker: 0.30, sheer: 0.35,
+    sep: 2.2, amaL: 0.62, amaB: 0.45, amaD: 0.85, amaLift: 0.12, amaStagger: 0,
+    structMass: 1900, foilType: 'keel', foilChord: 1.0, foilSpan: 1.35, foilTaper: 0.55, foilX: 0.0, foilExt: 1.0,
+    rudChord: 0.45, rudSpan: 1.1, ballast: 1050, ballastDepth: 1.30, ballastX: 0.0,
+    crewMass: 250, crewX: -0.5, crewZ: 0.9,
+    rigMass: 160, sailArea: 28, sailAR: 3.2, roach: 0.10, mastX: 0.45, boomH: 1.05, camber: 0.075, bend: 0.35, stretch: 0.30, twist0: 7, flex: 6,
+    jibArea: 24, jibAR: 3.4, jibX: 3.6,
+    _ctl: { twa: 50, hike: 0.0, easeHeel: 24 }, _env: { tws: 14 }
+  },
+  tri: {
+    label: 'Trimaran', hullType: 'tri',
+    L: 8.0, B: 0.70, D: 0.80, bowN: 1.9, sternN: 2.4, transom: 0.35, floor: 0.08, bilge: 1.8, rocker: 0.22, sheer: 0.25,
+    sep: 3.1, amaL: 0.60, amaB: 0.46, amaD: 0.80, amaLift: 0.18, amaStagger: 0.2,
+    structMass: 620, foilType: 'board', foilChord: 0.38, foilSpan: 1.1, foilTaper: 0.65, foilX: 0.2, foilExt: 1.0,
+    rudChord: 0.30, rudSpan: 0.95, ballast: 0, ballastDepth: 0, ballastX: 0,
+    crewMass: 220, crewX: -0.3, crewZ: 0.6,
+    rigMass: 95, sailArea: 24, sailAR: 3.8, roach: 0.14, mastX: 0.9, boomH: 1.0, camber: 0.075, bend: 0.40, stretch: 0.30, twist0: 7, flex: 7,
+    jibArea: 12, jibAR: 4.0, jibX: 3.4,
+    _ctl: { twa: 50, hike: 0.0, easeHeel: 16 }, _env: { tws: 14 }
+  }
+};
+
+/* ---------- hull geometry (parametric lofting) ---------- */
+function hullSpecs(P) {
+  const mk = (o) => Object.assign({
+    L: P.L, B: P.B, D: P.D, bowN: P.bowN, sternN: P.sternN, transom: P.transom, floor: P.floor, bilge: P.bilge,
+    rocker: P.rocker, sheer: P.sheer, xoff: 0, yoff: 0, zlift: 0, name: 'hull'
+  }, o || {});
+  if (P.hullType === 'cat') return [mk({ yoff: P.sep / 2, name: 'port hull' }), mk({ yoff: -P.sep / 2, name: 'starboard hull' })];
+  if (P.hullType === 'tri') {
+    const ama = (y, n) => ({
+      L: P.L * P.amaL, B: P.B * P.amaB, D: P.D * P.amaD, rocker: P.rocker * P.amaL, sheer: P.sheer * P.amaD,
+      xoff: P.amaStagger, yoff: y, zlift: P.amaLift, transom: Math.min(P.transom, 0.3), name: n
+    });
+    return [mk({ name: 'main hull' }), mk(ama(P.sep, 'port float')), mk(ama(-P.sep, 'starboard float'))];
+  }
+  return [mk({ name: 'hull' })];
+}
+// half-beam at the deck line, xi in [-1 (stern), +1 (bow)]
+function halfBeamDeck(h, xi) {
+  const a = Math.abs(xi);
+  if (xi >= 0) return (h.B / 2) * Math.max(0, 1 - Math.pow(a, h.bowN));
+  return (h.B / 2) * (h.transom + (1 - h.transom) * Math.max(0, 1 - Math.pow(a, h.sternN)));
+}
+// section shape: fraction of deck half-beam at depth fraction zeta (0 keel .. 1 deck)
+function sectionFrac(h, zeta) {
+  zeta = clamp(zeta, 0, 1);
+  return h.floor + (1 - h.floor) * (1 - Math.pow(1 - zeta, h.bilge));
+}
+const zBot = (h, xi) => h.zlift + h.rocker * xi * xi;
+const zDeck = (h, xi) => h.zlift + h.D + h.sheer * xi * xi;
+function hullPoint(h, xi, zeta, side) {
+  const zb = zBot(h, xi), zd = zDeck(h, xi);
+  const b = halfBeamDeck(h, xi) * sectionFrac(h, zeta);
+  return [h.xoff + xi * h.L / 2, h.yoff + side * b, zb + zeta * (zd - zb)];
+}
+
+function makeHull(h, NX, NY, NZ) {
+  const dxs = h.L / NX;
+  const nv = NX * NY * NZ;
+  const H = { spec: h, dxs, nv, vx: new Float64Array(nv), vy: new Float64Array(nv), vz: new Float64Array(nv), vdV: new Float64Array(nv), vdy: new Float64Array(nv), vdz: new Float64Array(nv) };
+  let c = 0, Vt = 0;
+  for (let i = 0; i < NX; i++) {
+    const xi = -1 + (i + 0.5) * 2 / NX, x = h.xoff + xi * h.L / 2;
+    const zb = zBot(h, xi), zd = zDeck(h, xi), depth = zd - zb, bd = halfBeamDeck(h, xi), dz = depth / NZ;
+    for (let k = 0; k < NZ; k++) {
+      const zeta = (k + 0.5) / NZ, z = zb + zeta * depth, b = bd * sectionFrac(h, zeta), dy = 2 * b / NY;
+      for (let j = 0; j < NY; j++) {
+        H.vx[c] = x; H.vy[c] = h.yoff - b + (j + 0.5) * dy; H.vz[c] = z;
+        H.vdV[c] = dxs * dy * dz; H.vdy[c] = dy; H.vdz[c] = dz; Vt += dxs * dy * dz; c++;
+      }
+    }
+  }
+  H.Vtot = Vt;
+  // surface panels (hydro: wetted area + lateral plane) and shell mass points
+  const sx = [], sy = [], sz = [], sdA = [], sex = [], sey = [], sez = [], sAy = [];
+  const e = 1e-3, dxi = 2 / NX, dze = 1 / NZ;
+  for (let i = 0; i < NX; i++) {
+    const xi = -1 + (i + 0.5) * dxi;
+    for (let k = 0; k < NZ; k++) {
+      const zeta = (k + 0.5) / NZ;
+      for (const side of [1, -1]) {
+        const p = hullPoint(h, xi, zeta, side);
+        const a = hullPoint(h, xi + e, zeta, side), b = hullPoint(h, xi - e, zeta, side);
+        const c2 = hullPoint(h, xi, zeta + e, side), d = hullPoint(h, xi, zeta - e, side);
+        const u = [(a[0] - b[0]) / (2 * e), (a[1] - b[1]) / (2 * e), (a[2] - b[2]) / (2 * e)];
+        const v = [(c2[0] - d[0]) / (2 * e), (c2[1] - d[1]) / (2 * e), (c2[2] - d[2]) / (2 * e)];
+        const cr = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+        const cell = dxi * dze;
+        sx.push(p[0]); sy.push(p[1]); sz.push(p[2]);
+        sdA.push(Math.hypot(cr[0], cr[1], cr[2]) * cell);
+        sex.push(Math.abs(u[0]) * dxi + Math.abs(v[0]) * dze);
+        sey.push(Math.abs(u[1]) * dxi + Math.abs(v[1]) * dze);
+        sez.push(Math.abs(u[2]) * dxi + Math.abs(v[2]) * dze);
+        sAy.push(Math.abs(cr[1]) * cell);
+      }
+    }
+    if (h.floor > 0.001) { // flat bottom strip
+      const zb = zBot(h, xi), bd = halfBeamDeck(h, xi) * h.floor;
+      const slope = (zBot(h, xi + e) - zBot(h, xi - e)) / (2 * e) * 2 / h.L; // dz/dx
+      sx.push(h.xoff + xi * h.L / 2); sy.push(h.yoff); sz.push(zb);
+      sdA.push(dxs * 2 * bd * Math.sqrt(1 + slope * slope));
+      sex.push(dxs); sey.push(2 * bd); sez.push(Math.abs(slope) * dxs); sAy.push(0);
+    }
+  }
+  H.ns = sx.length;
+  H.sx = Float64Array.from(sx); H.sy = Float64Array.from(sy); H.sz = Float64Array.from(sz); H.sdA = Float64Array.from(sdA);
+  H.sex = Float64Array.from(sex); H.sey = Float64Array.from(sey); H.sez = Float64Array.from(sez); H.sAy = Float64Array.from(sAy);
+  // deck points (mass only)
+  const dkx = [], dky = [], dkz = [], dkA = [];
+  for (let i = 0; i < NX; i++) {
+    const xi = -1 + (i + 0.5) * dxi, bd = halfBeamDeck(h, xi), zd = zDeck(h, xi);
+    for (let j = 0; j < 3; j++) { dkx.push(h.xoff + xi * h.L / 2); dky.push(h.yoff - bd + (j + 0.5) * 2 * bd / 3); dkz.push(zd); dkA.push(dxs * 2 * bd / 3); }
+  }
+  H.dkx = dkx; H.dky = dky; H.dkz = dkz; H.dkA = dkA;
+  let A = 0; for (let i = 0; i < H.ns; i++) A += sdA[i]; for (const a of dkA) A += a;
+  H.shellArea = A;
+  return H;
+}
+
+/* ---------- hydrostatics via smooth-ramp volume/surface integration ---------- */
+function hullHydro(h, R, cx, cy, cz, wv, t, o) {
+  const r0 = R[0], r1 = R[1], r2 = R[2], r3 = R[3], r4 = R[4], r5 = R[5], r6 = R[6], r7 = R[7], r8 = R[8];
+  const a6 = Math.abs(r6), a7 = Math.abs(r7), a8 = Math.abs(r8);
+  let V = 0, mx = 0, my = 0, mz = 0;
+  const n = h.nv, vx = h.vx, vy = h.vy, vz = h.vz, vdV = h.vdV, vdy = h.vdy, vdz = h.vdz, dxr = h.dxs * a6;
+  for (let i = 0; i < n; i++) {
+    const x = vx[i], y = vy[i], z = vz[i];
+    const zw = cz + r6 * x + r7 * y + r8 * z;
+    let eta = 0;
+    if (wv) eta = wv.A * Math.sin(wv.kx * (cx + r0 * x + r1 * y + r2 * z) + wv.ky * (cy + r3 * x + r4 * y + r5 * z) - wv.w * t);
+    const rw = dxr + a7 * vdy[i] + a8 * vdz[i] + 0.004;
+    let w = 0.5 + (eta - zw) / rw;
+    if (w <= 0) continue;
+    if (w > 1) w = 1;
+    const dv = w * vdV[i];
+    V += dv; mx += dv * x; my += dv * y; mz += dv * z;
+  }
+  o.V = V; o.mx = mx; o.my = my; o.mz = mz;
+  let Sw = 0, sxx = 0, syy = 0, szz = 0, Al = 0, lx = 0, ly = 0, lz = 0;
+  const ns = h.ns, sx = h.sx, sy = h.sy, sz = h.sz, sdA = h.sdA, sex = h.sex, sey = h.sey, sez = h.sez, sAy = h.sAy;
+  for (let i = 0; i < ns; i++) {
+    const x = sx[i], y = sy[i], z = sz[i];
+    const zw = cz + r6 * x + r7 * y + r8 * z;
+    let eta = 0;
+    if (wv) eta = wv.A * Math.sin(wv.kx * (cx + r0 * x + r1 * y + r2 * z) + wv.ky * (cy + r3 * x + r4 * y + r5 * z) - wv.w * t);
+    const rw = a6 * sex[i] + a7 * sey[i] + a8 * sez[i] + 0.004;
+    let w = 0.5 + (eta - zw) / rw;
+    if (w <= 0) continue;
+    if (w > 1) w = 1;
+    const da = w * sdA[i];
+    Sw += da; sxx += da * x; syy += da * y; szz += da * z;
+    const la = 0.5 * w * sAy[i];
+    Al += la; lx += la * x; ly += la * y; lz += la * z;
+  }
+  o.Sw = Sw; o.sx = sxx; o.sy = syy; o.sz = szz; o.Alat = Al; o.lx = lx; o.ly = ly; o.lz = lz;
+}
+const _hs = {};
+function hydroSum(B, R, cx, cy, cz, wv, t, out) {
+  let V = 0, mx = 0, my = 0, mz = 0;
+  for (const h of B.hulls) { hullHydro(h, R, cx, cy, cz, wv, t, _hs); V += _hs.V; mx += _hs.mx; my += _hs.my; mz += _hs.mz; }
+  out.V = V; out.mx = mx; out.my = my; out.mz = mz;
+}
+function solveZ(B, R, W) {
+  const o = {};
+  let lo = -B.rad, hi = B.rad;
+  hydroSum(B, R, 0, 0, lo, null, 0, o);
+  if (RHO_W * GRAV * o.V < W) return NaN;
+  for (let it = 0; it < 32; it++) {
+    const mid = 0.5 * (lo + hi);
+    hydroSum(B, R, 0, 0, mid, null, 0, o);
+    if (RHO_W * GRAV * o.V > W) lo = mid; else hi = mid;
+  }
+  return 0.5 * (lo + hi);
+}
+function trimSolve(B) {
+  const W = B.M * GRAV, Rt = new Float64Array(9), o = {};
+  const f = (th) => {
+    eulerToMat(0, th, 0, Rt);
+    const cz = solveZ(B, Rt, W); if (isNaN(cz)) return [NaN, NaN];
+    hydroSum(B, Rt, 0, 0, cz, null, 0, o);
+    const bx = o.mx / o.V, by = o.my / o.V, bz = o.mz / o.V;
+    return [Rt[0] * bx + Rt[1] * by + Rt[2] * bz, cz];
+  };
+  let t0 = 0, t1 = 0.02, a = f(t0), b = f(t1);
+  if (isNaN(a[0])) return null;
+  for (let it = 0; it < 10 && Math.abs(b[0]) > 2e-4; it++) {
+    const d = b[0] - a[0]; if (Math.abs(d) < 1e-12) break;
+    let t2 = t1 - b[0] * (t1 - t0) / d; t2 = clamp(t2, -0.5, 0.5);
+    t0 = t1; a = b; t1 = t2; b = f(t1); if (isNaN(b[0])) return null;
+  }
+  return { theta: t1, cz: b[1] };
+}
+
+/* ---------- aero / hydro coefficient model (attached lift -> post-stall flat plate) ---------- */
+const _cf = [0, 0];
+function coefs(alpha, CLa, zl, alo, ahi, ARe, CD0, Cn, dS, o) {
+  const a = wrapPi(alpha);
+  const att = CLa * (clamp(a, alo, ahi) - zl);
+  const s = a >= 0 ? smooth(ahi, ahi + dS, a) : smooth(alo, alo - dS, a);
+  const sa = Math.sin(a), ca = Math.cos(a);
+  o[0] = (1 - s) * att + s * Cn * sa * ca;
+  o[1] = (1 - s) * (CD0 + att * att / (Math.PI * ARe * 0.85)) + s * (CD0 + Cn * sa * sa);
+}
+const _ff = [0, 0, 0];
+// foil moving through water: vb = foil velocity (body frame); chord axis = +x, span axis = -z (unit)
+function foilForce(vx, vy, vz, A, ARe, CD0, aS, Cn, delta, out) {
+  // vertical span axis => in-plane velocity is (vx, vy); n = s x c = (0,-1,0)
+  const vc = vx, vn = -vy, U = Math.hypot(vc, vn);
+  if (U < 1e-3 || A < 1e-5) { out[0] = out[1] = out[2] = 0; return; }
+  const CLa = 2 * Math.PI * ARe / (ARe + 2);
+  coefs(Math.atan2(vn, vc) - delta, CLa, 0, -aS, aS, ARe, CD0, Cn, 0.18, _cf);
+  const q = 0.5 * RHO_W * U * U * A, L = q * _cf[0], D = q * _cf[1];
+  // lhat = (vn*c - vc*n)/U ; dhat = -(vc*c + vn*n)/U ; c=(1,0,0) n=(0,-1,0)
+  out[0] = (L * vn - D * vc) / U;
+  out[1] = (L * vc + D * vn) / U;   // n_y = -1 : -vc*n_y = +vc ; -vn*n_y... see derivation
+  out[2] = 0;
+}
+function cfITTC(Re) { const l = Math.log10(Math.max(Re, 3e5)) - 2; return 0.075 / (l * l) + 0.0004; }
+const RR_FN = [0, .1, .2, .25, .3, .35, .4, .45, .5, .6, .7, .8, 1.0, 1.4, 2.0, 3.0];
+const RR_V = [0, .0004, .0035, .008, .0165, .032, .056, .075, .082, .082, .075, .068, .058, .045, .035, .03];
+function rrCoef(Fn, S) {
+  let i = 0; while (i < RR_FN.length - 2 && Fn > RR_FN[i + 1]) i++;
+  const t = clamp((Fn - RR_FN[i]) / (RR_FN[i + 1] - RR_FN[i]), 0, 1);
+  return (RR_V[i] + (RR_V[i + 1] - RR_V[i]) * t) * clamp(Math.pow(6 / S, 2), 0.08, 3);
+}
+
+/* ---------- build the boat model ---------- */
+function buildBoat(P) {
+  const B = { P, hulls: [], foils: [] };
+  const NX = 24, NY = 6, NZ = 8;
+  const specs = hullSpecs(P);
+  for (const s of specs) B.hulls.push(makeHull(s, NX, NY, NZ));
+  const main = specs[0];
+  B.Vhull = B.hulls.reduce((a, h) => a + h.Vtot, 0);
+
+  // ---- foils (design frame, root on hull bottom) ----
+  const fHulls = P.hullType === 'cat' ? [0, 1] : [0];
+  const fxi = clamp(P.foilX / (main.L / 2), -0.95, 0.95);
+  if (P.foilType !== 'none') {
+    for (const hi of fHulls) {
+      const s = specs[hi], span = P.foilSpan * (P.foilType === 'board' ? clamp(P.foilExt, 0.02, 1) : 1);
+      const xi = clamp((P.foilX - s.xoff) / (s.L / 2), -0.95, 0.95);
+      B.foils.push({ kind: P.foilType, x: P.foilX, y: s.yoff, z: zBot(s, xi), span, chord: P.foilChord, taper: P.foilTaper,
+        ARe: Math.max(0.6, 1.8 * span / P.foilChord / (0.5 * (1 + P.foilTaper))), CD0: 0.012, aS: 0.26, Cn: 1.15 });
+    }
+  }
+  for (const hi of fHulls) {
+    const s = specs[hi];
+    const xr = s.xoff - s.L / 2 + 0.55 * P.rudChord, xi = clamp((xr - s.xoff) / (s.L / 2), -1, 1);
+    B.foils.push({ kind: 'rudder', x: xr, y: s.yoff, z: zBot(s, xi) + 0.02, span: P.rudSpan, chord: P.rudChord, taper: 0.8,
+      ARe: Math.max(0.6, 1.5 * P.rudSpan / P.rudChord / 0.9), CD0: 0.012, aS: 0.30, Cn: 1.15 });
+  }
+
+  // ---- rig ----
+  const xim = clamp(P.mastX / (main.L / 2), -1, 1);
+  const zBoom = zDeck(main, xim) + P.boomH;
+  const H = Math.sqrt(P.sailArea * P.sailAR), E = 2 * P.sailArea / H;
+  const Aact = P.sailArea * (1 + 4 / 3 * P.roach);
+  B.rig = { sails: [{ kind: 'main', px: P.mastX, py: 0, pz: zBoom, H, E, roach: P.roach, N: 8, area: Aact, ARe: 1.3 * H * H / Aact }] };
+  if (P.jibArea > 0.1) {
+    const Hj = Math.sqrt(P.jibArea * P.jibAR), Ej = 2 * P.jibArea / Hj, xij = clamp(P.jibX / (main.L / 2), -1, 1);
+    B.rig.sails.push({ kind: 'jib', px: P.jibX, py: 0, pz: zDeck(main, xij) + 0.12, H: Hj, E: Ej, roach: 0, N: 6, area: P.jibArea, ARe: 1.3 * Hj * Hj / P.jibArea });
+  }
+  B.mastTop = zBoom + H;
+  // windage
+  let front = 0; for (const s of specs) front += s.B * s.D * 0.45;
+  B.windCdA = 0.7 * (front + 0.07 * H + (P.crewMass > 0 ? 0.4 : 0));
+  B.windZ = zDeck(main, 0) + 0.8;
+
+  // ---- mass points ----
+  const mp = []; // [x,y,z,m]
+  const multi = P.hullType !== 'mono', beamFrac = multi ? 0.18 : 0;
+  const totShell = B.hulls.reduce((a, h) => a + h.shellArea, 0);
+  for (const h of B.hulls) {
+    const mh = P.structMass * (1 - beamFrac) * h.shellArea / totShell, per = mh / h.shellArea;
+    for (let i = 0; i < h.ns; i++) mp.push([h.sx[i], h.sy[i], h.sz[i], per * h.sdA[i]]);
+    for (let i = 0; i < h.dkx.length; i++) mp.push([h.dkx[i], h.dky[i], h.dkz[i], per * h.dkA[i]]);
+  }
+  if (multi) {
+    const yo = specs[specs.length - 1].yoff, z = zDeck(main, 0) + 0.05, mb = P.structMass * beamFrac / 12;
+    for (const xx of [0.25 * main.L, -0.25 * main.L]) for (let j = 0; j < 6; j++) mp.push([xx, -Math.abs(yo) + (j + 0.5) * 2 * Math.abs(yo) / 6, z, mb]);
+  }
+  if (P.ballast > 0) mp.push([P.ballastX, 0, -P.ballastDepth, P.ballast]);
+  if (P.crewMass > 0) mp.push([P.crewX, 0, P.crewZ, P.crewMass]);
+  mp.push([P.mastX, 0, zBoom + 0.4 * H, P.rigMass]);
+  let M = 0, cx = 0, cy = 0, cz = 0;
+  for (const p of mp) { M += p[3]; cx += p[3] * p[0]; cy += p[3] * p[1]; cz += p[3] * p[2]; }
+  cx /= M; cy /= M; cz /= M;
+  let Ix = 0, Iy = 0, Iz = 0;
+  for (const p of mp) { const x = p[0] - cx, y = p[1] - cy, z = p[2] - cz; Ix += p[3] * (y * y + z * z); Iy += p[3] * (x * x + z * z); Iz += p[3] * (x * x + y * y); }
+  B.M = M; B.cg = [cx, cy, cz];
+  B.Ix = Math.max(Ix, 0.02 * M) * 1.25; B.Iy = Math.max(Iy, 0.02 * M) * 1.4; B.Iz = Math.max(Iz, 0.02 * M) * 1.35;
+  B.crewMass = P.crewMass;
+  const outer = Math.max(...specs.map(s => Math.abs(s.yoff) + s.B / 2));
+  B.hikeReach = outer + (P.hullType === 'mono' ? 0.30 : 0.25);
+
+  // ---- shift everything to CG-relative body coordinates ----
+  for (const h of B.hulls) {
+    for (let i = 0; i < h.nv; i++) { h.vx[i] -= cx; h.vy[i] -= cy; h.vz[i] -= cz; }
+    for (let i = 0; i < h.ns; i++) { h.sx[i] -= cx; h.sy[i] -= cy; h.sz[i] -= cz; }
+  }
+  for (const f of B.foils) { f.x -= cx; f.y -= cy; f.z -= cz; }
+  for (const s of B.rig.sails) { s.px -= cx; s.py -= cy; s.pz -= cz; }
+  B.mastTopRel = B.mastTop - cz; B.windZ -= cz; B.windX = P.mastX - cx;
+  let rad = 0;
+  for (const h of B.hulls) for (let i = 0; i < h.nv; i += 7) rad = Math.max(rad, Math.hypot(h.vx[i], h.vy[i], h.vz[i]));
+  for (const f of B.foils) rad = Math.max(rad, Math.hypot(f.x, f.y, f.z - f.span));
+  B.rad = rad + 0.5;
+
+  // ---- design equilibrium ----
+  B.sinks = RHO_W * B.Vhull < M * 1.0005;
+  if (!B.sinks) {
+    const tr = trimSolve(B);
+    if (!tr) B.sinks = true; else { B.eq = tr; }
+  }
+  if (B.sinks) { B.eq = { theta: 0, cz: 0 }; B.summary = { sinks: true, M, Vhull: B.Vhull }; B.Vdes = M / RHO_W; return B; }
+  analyseDesign(B);
+  return B;
+}
+
+function analyseDesign(B) {
+  const R = eulerToMat(0, B.eq.theta, 0, new Float64Array(9)), cz = B.eq.cz, o = {};
+  B.Vdes = B.M / RHO_W;
+  // waterline extents per hull
+  let Swt = 0, Lwl0 = 0, Bwl = 0, draft = 0, Awp = 0;
+  const bounds = [];
+  for (const h of B.hulls) {
+    hullHydro(h, R, 0, 0, cz, null, 0, o);
+    h.Vdes = o.V; h.Sw0 = o.Sw; Swt += o.Sw; h.Alat0 = o.Alat;
+    let xmin = 1e9, xmax = -1e9, ymin = 1e9, ymax = -1e9, zmin = 1e9;
+    for (let i = 0; i < h.nv; i++) {
+      const zw = cz + R[6] * h.vx[i] + R[7] * h.vy[i] + R[8] * h.vz[i];
+      if (zw < 0) { xmin = Math.min(xmin, h.vx[i] - h.dxs / 2); xmax = Math.max(xmax, h.vx[i] + h.dxs / 2); ymin = Math.min(ymin, h.vy[i] - h.vdy[i] / 2); ymax = Math.max(ymax, h.vy[i] + h.vdy[i] / 2); zmin = Math.min(zmin, zw - h.vdz[i] / 2); }
+    }
+    h.Lwl0 = Math.max(0.3, xmax - xmin); h.Bwl0 = Math.max(0.05, ymax - ymin); h.T0 = Math.max(0.02, -zmin);
+    bounds.push({ xmin, xmax, ymin, ymax, zmin });
+  }
+  const m0 = B.hulls[0];
+  B.summary = {
+    sinks: false, M: B.M, Vdes: B.Vdes, Lwl: m0.Lwl0, Bwl: m0.Bwl0, draftHull: m0.T0, Sw: Swt,
+    freeboard: Math.max(0, (B.hulls[0].spec.D - m0.T0)), Vhull: B.Vhull, reserve: (RHO_W * B.Vhull / B.M - 1),
+    cg: B.cg.slice(), eq: B.eq
+  };
+  const P = B.P;
+  const sailA = B.rig.sails.reduce((a, s) => a + s.area, 0);
+  B.summary.sailArea = sailA;
+  B.summary.saD = sailA / Math.pow(B.M / RHO_W, 2 / 3);
+  B.summary.hullSpeedKn = 1.34 * Math.sqrt(m0.Lwl0 / 0.3048);
+  const outerB = Math.max(...B.hulls.map(h => Math.abs(h.spec.yoff) + h.spec.B / 2)) * 2;
+  B.summary.beamOverall = outerB;
+  B.summary.csf = (outerB / 0.3048) / Math.pow((B.M * 2.2046) / 64, 1 / 3);
+  B.summary.mastTop = B.mastTop;
+  // stiffness for damping
+  const Rz = new Float64Array(9), oo = {}, W = B.M * GRAV;
+  const th = B.eq.theta;
+  const rmAt = (phi) => { eulerToMat(phi, th, 0, Rz); const z = solveZ(B, Rz, W); hydroSum(B, Rz, 0, 0, z, null, 0, oo); return -(Rz[3] * oo.mx + Rz[4] * oo.my + Rz[5] * oo.mz) / oo.V * RHO_W * GRAV * oo.V; };
+  const d = 1 * D2R;
+  B.Kroll = Math.max(1, (rmAt(d) - rmAt(-d)) / (2 * d));
+  const pitchM = (t) => { eulerToMat(0, t, 0, Rz); const z = solveZ(B, Rz, W); hydroSum(B, Rz, 0, 0, z, null, 0, oo); return (Rz[0] * oo.mx + Rz[1] * oo.my + Rz[2] * oo.mz) / oo.V * RHO_W * GRAV * oo.V; };
+  B.Kpitch = Math.max(1, (pitchM(th + d) - pitchM(th - d)) / (2 * d));
+  eulerToMat(0, th, 0, Rz);
+  hydroSum(B, Rz, 0, 0, cz + 0.01, null, 0, oo); const f1 = oo.V;
+  hydroSum(B, Rz, 0, 0, cz - 0.01, null, 0, oo); const f2 = oo.V;
+  B.Kheave = Math.max(100, RHO_W * GRAV * (f2 - f1) / 0.02);
+  B.summary.GM = B.Kroll / (B.M * GRAV);
+  B.cHeave = 2 * 0.40 * Math.sqrt(B.Kheave * B.M * 1.6);
+  B.cRoll = 2 * 0.14 * Math.sqrt(B.Kroll * B.Ix);
+  B.cPitch = 2 * 0.22 * Math.sqrt(B.Kpitch * B.Iy);
+  B.cYaw = 0.04 * B.Iz;
+}
+
+/* ---------- environment ---------- */
+function makeEnv(tws) {
+  return { tws: tws || 12, shear: 0.14, dirFrom: Math.PI / 2, gustInt: 0.3, gustSize: 0.6, waveH: 0, waveT: 3.5,
+    ou: 0, ouDir: 0, gustT0: -100, gust: 1, dirOff: 0, _seed: 12345 };
+}
+function rnd(env) { env._seed = (env._seed * 1664525 + 1013904223) >>> 0; return env._seed / 4294967296; }
+function randn(env) { return Math.sqrt(-2 * Math.log(rnd(env) + 1e-9)) * Math.cos(2 * Math.PI * rnd(env)); }
+function envUpdate(env, t, dt) {
+  const tau = 6, k = Math.sqrt(2 * dt / tau);
+  env.ou += -env.ou * dt / tau + k * randn(env);
+  env.ouDir += -env.ouDir * dt / (tau * 1.5) + k * randn(env);
+  let g = 1 + env.gustInt * 0.35 * env.ou;
+  const tg = t - env.gustT0;
+  if (tg >= 0 && tg < 9) { const e = tg < 2 ? smooth(0, 2, tg) : 1 - smooth(5, 9, tg); g += env.gustSize * e; }
+  env.gust = Math.max(0.3, g);
+  env.dirOff = env.gustInt * 6 * D2R * env.ouDir;
+}
+function waveParams(env) {
+  if (env.waveH <= 0.01) return null;
+  const w = 2 * Math.PI / Math.max(1.5, env.waveT), k = w * w / GRAV;
+  const dirTo = env.dirFrom + Math.PI; // waves travel with the wind
+  return { A: env.waveH / 2, kx: k * Math.cos(dirTo), ky: k * Math.sin(dirTo), w };
+}
+
+/* ---------- sail aerodynamics (strip theory with load-dependent shape) ---------- */
+const QREF = 61.25; // dynamic pressure at 10 m/s
+function sailShape(P, qn, h) {
+  const camber = clamp(P.camber * (1 - P.bend * Math.min(1, qn)) + P.stretch * 0.045 * qn, 0.025, 0.16);
+  const twist = Math.min(45, h * (P.twist0 + P.flex * qn)) * D2R;
+  return [camber, twist];
+}
+// K: {R, cz, vB[3], w[3]}; W: {V, shear, gust, dirTo}; T: {delta, sigma, reef}; o: output (reused)
+function sailForces(B, K, W, T, o) {
+  const P = B.P, R = K.R, sc = Math.sqrt(T.reef), sg = T.sigma;
+  const dx = Math.cos(W.dirTo), dy = Math.sin(W.dirTo);
+  const wdx = R[0] * dx + R[3] * dy, wdy = R[1] * dx + R[4] * dy;
+  let Fx = 0, Fy = 0, Tx = 0, Ty = 0, Tz = 0, cnt = 0;
+  o.strips = o.strips || [];
+  let si = 0;
+  for (const sail of B.rig.sails) {
+    const jib = sail.kind === 'jib';
+    const delta = jib ? clamp(T.delta * 0.78, 4 * D2R, 80 * D2R) : T.delta;
+    const cd = Math.cos(delta), sd = Math.sin(delta);
+    const Hs = sail.H * sc, Es = sail.E * sc, N = sail.N, CLa = 0.85 * 2 * Math.PI * sail.ARe / (sail.ARe + 2);
+    for (let j = 0; j < N; j++) {
+      const h = (j + 0.5) / N;
+      const ch = Es * ((1 - h) + sail.roach * 4 * h * (1 - h));
+      const Astrip = ch * Hs / N;
+      let px = sail.px - 0.4 * ch * cd, py = sail.py + 0.4 * ch * sg * sd, pz = sail.pz + h * Hs;
+      const zw = K.cz + R[6] * px + R[7] * py + R[8] * pz;
+      const sp = Math.pow(Math.max(zw, 0.5) / 10, W.shear) * W.V * W.gust;
+      const vpx = K.vB[0] + K.w[1] * pz - K.w[2] * py, vpy = K.vB[1] + K.w[2] * px - K.w[0] * pz;
+      const rx = sp * wdx - vpx, ry = sp * wdy - vpy;
+      const U2 = rx * rx + ry * ry, U = Math.sqrt(U2) + 1e-9;
+      const q = 0.5 * RHO_A * U2, qn = q / QREF;
+      const sh = sailShape(P, qn, h), c = sh[0], tw = sh[1];
+      const phi = delta + tw, cp = Math.cos(phi), sp2 = Math.sin(phi);
+      px = sail.px - 0.4 * ch * cp; py = sail.py + 0.4 * ch * sg * sp2;
+      const ux = rx / U, uy = ry / U;
+      const chx = -cp, chy = sg * sp2, nx = sp2, ny = sg * cp;
+      const alpha = Math.atan2(ux * nx + uy * ny, ux * chx + uy * chy);
+      const zl = -1.8 * c;
+      coefs(alpha, CLa, zl, zl - 0.08, zl + 0.40, sail.ARe, 0.03, 1.3, 0.3, _cf);
+      const dyn = q * Astrip;
+      const lx = sg * uy, ly = -sg * ux;
+      const fx = dyn * (_cf[0] * lx + _cf[1] * ux), fy = dyn * (_cf[0] * ly + _cf[1] * uy);
+      Fx += fx; Fy += fy;
+      Tx += -pz * fy; Ty += pz * fx; Tz += px * fy - py * fx;
+      const s = o.strips[si] || (o.strips[si] = {});
+      s.camber = c; s.twist = tw; s.q = q; s.alpha = alpha; s.sail = sail.kind; s.h = h; s.U = U;
+      si++;
+      if (!jib && j === (N >> 1)) { o.awx = rx; o.awy = ry; o.aws = U; o.awa = Math.atan2(Math.abs(ry), -rx); o.zmid = zw; }
+    }
+  }
+  o.nStrips = si;
+  o.Fx = Fx; o.Fy = Fy; o.Fz = 0; o.Tx = Tx; o.Ty = Ty; o.Tz = Tz;
+}
+
+/* ---------- state + controls ---------- */
+function makeCtl(P) {
+  const c = { auto: true, twa: 55, side: 1, helm: 0, sheetMode: 'auto', sheet: 35, easeHeel: 90, release: false, reef: 1, hike: 0.8, alphaOpt: 11, autoReef: false, reefHeel: 16 };
+  if (P && P._ctl) Object.assign(c, P._ctl);
+  return c;
+}
+function createState(B, env, ctl, v0) {
+  const S = { t: 0, p: new Float64Array(3), v: new Float64Array(3), q: new Float64Array(4), w: new Float64Array(3), _R: new Float64Array(9),
+    rud: 0, delta: 30 * D2R, sigma: ctl.side > 0 ? 1 : 1, awa: 0.9, awy: 1, crewY: 0, wake: [], diag: {}, capsized: false, maxHeel: 0, failed: false };
+  const psi = env.dirFrom + ctl.side * ctl.twa * D2R;
+  const R = eulerToMat(0, B.eq.theta, psi, new Float64Array(9));
+  matToQuat(R, S.q);
+  S.p[2] = B.eq.cz;
+  const sp = v0 === undefined ? 1.5 : v0;
+  S.v[0] = Math.cos(psi) * sp; S.v[1] = Math.sin(psi) * sp;
+  S.sigma = -ctl.side; // wind from starboard (side>0) -> sail on port (+y)
+  S.sigma = ctl.side > 0 ? 1 : -1;
+  S.crewY = 0; S.reef = ctl.reef; S.heelAvg = 0;
+  S.sailOut = {}; S.wetFrac = 1; S.yaw = psi; S.roll = 0; S.pitch = B.eq.theta; S.speed = sp; S.leeway = 0; S.aws = 5; S.vb = [sp, 0];
+  return S;
+}
+function attitude(S) {
+  const R = S._R; quatToMat(S.q, R);
+  return { roll: Math.atan2(R[7], R[8]), pitch: -Math.asin(clamp(R[6], -1, 1)), yaw: Math.atan2(R[3], R[0]) };
+}
+
+const _hh = {}, _F = [0, 0, 0], _sailK = { R: null, cz: 0, vB: [0, 0, 0], w: [0, 0, 0] }, _W = { V: 0, shear: 0.14, gust: 1, dirTo: 0 }, _T = { delta: 0, sigma: 1, reef: 1 };
+const RUD_MAX = 30 * D2R;
+
+function stepSim(S, B, env, ctl, dt) {
+  const P = B.P, R = S._R;
+  quatToMat(S.q, R);
+  const wx = S.w[0], wy = S.w[1], wz = S.w[2];
+  const vbx = R[0] * S.v[0] + R[3] * S.v[1] + R[6] * S.v[2];
+  const vby = R[1] * S.v[0] + R[4] * S.v[1] + R[7] * S.v[2];
+  const vbz = R[2] * S.v[0] + R[5] * S.v[1] + R[8] * S.v[2];
+  const roll = Math.atan2(R[7], R[8]), yaw = Math.atan2(R[3], R[0]);
+  const yawRate = R[6] * wx + R[7] * wy + R[8] * wz;
+  envUpdate(env, S.t, dt);
+
+  /* --- controls --- */
+  let rudT;
+  if (ctl.auto && !S.capsized) {
+    const err = wrapPi(env.dirFrom + ctl.side * ctl.twa * D2R - yaw);
+    rudT = clamp(1.3 * err - 1.1 * yawRate, -RUD_MAX, RUD_MAX);
+  } else rudT = ctl.helm * D2R;
+  S.rud += clamp(rudT - S.rud, -dt * 60 * D2R, dt * 60 * D2R);
+  // sail side from apparent wind at mid-sail (previous step)
+  if (Math.abs(S.awy) > 0.25 && Math.sign(S.awy) !== S.sigma) S.sigma = Math.sign(S.awy);
+  // sheet
+  let dT;
+  if (ctl.release) dT = 88 * D2R;
+  else if (ctl.sheetMode === 'auto') {
+    const twMid = sailShape(P, 0.6, 0.5)[1];
+    dT = clamp(S.awa - ctl.alphaOpt * D2R - twMid * 0.8, 5 * D2R, 88 * D2R);
+    const ex = Math.max(0, Math.abs(roll) * R2D - ctl.easeHeel);
+    dT = Math.min(88 * D2R, dT + ex * 2.2 * D2R);
+  } else dT = ctl.sheet * D2R;
+  const rate = dT > S.delta ? 45 * D2R : 25 * D2R;  // ease fast, trim slower
+  S.delta += clamp(dT - S.delta, -dt * 90 * D2R, dt * rate);
+  // crew
+  // crew hikes out to windward in proportion to leeward heel (PD), limited by the max-hike setting
+  const heelLee = -S.sigma * roll, heelRate = -S.sigma * wx;
+  const hikeFrac = clamp((heelLee * R2D + 0.35 * heelRate * R2D) / 12, 0, 1) * ctl.hike;
+  const crewT = -S.sigma * hikeFrac * B.hikeReach;
+  S.crewY += clamp(crewT - S.crewY, -1.2 * dt, 1.2 * dt);
+
+  // reefing: by hand, or let the crew shorten sail while the boat stays over-pressed
+  if (ctl.autoReef && !S.capsized) {
+    const hd = Math.abs(roll) * R2D; S.heelAvg += (hd - S.heelAvg) * Math.min(1, dt / 4);
+    const err = S.heelAvg - ctl.reefHeel;
+    if (err > 1) S.reef = Math.max(0.3, S.reef - 0.006 * err * dt);
+    else if (err < -1) S.reef = Math.min(ctl.reef, S.reef + 0.0025 * -err * dt);
+    S.reef = Math.min(S.reef, ctl.reef);
+  } else S.reef = ctl.reef;
+
+  /* --- forces (body frame) --- */
+  const Mg = B.M * GRAV;
+  let Fx = -Mg * R[6], Fy = -Mg * R[7], Fz = -Mg * R[8], Tx = 0, Ty = 0, Tz = 0;
+  if (B.crewMass > 0) { const yo = S.crewY, mc = B.crewMass * GRAV; Tx += -yo * mc * R[8]; Tz += yo * mc * R[6]; }
+  const wv = waveParams(env), cx = S.p[0], cy = S.p[1], cz = S.p[2];
+  let Vtot = 0, latFx = 0, latFy = 0, cbx = 0, cby = 0, cbz = 0;
+  const dg = S.diag;
+  dg.buoyZ = 0;
+  for (const h of B.hulls) {
+    hullHydro(h, R, cx, cy, cz, wv, S.t, _hh);
+    const V = _hh.V; if (V < 1e-7) continue;
+    Vtot += V;
+    const Fb = RHO_W * GRAV * V, bx = _hh.mx / V, by = _hh.my / V, bz = _hh.mz / V;
+    const fx = Fb * R[6], fy = Fb * R[7], fz = Fb * R[8];
+    Fx += fx; Fy += fy; Fz += fz;
+    Tx += by * fz - bz * fy; Ty += bz * fx - bx * fz; Tz += bx * fy - by * fx;
+    dg.buoyZ += Fb; cbx += Fb * bx; cby += Fb * by; cbz += Fb * bz;
+    // friction + wave resistance along hull axis
+    if (_hh.Sw > 1e-4) {
+      const sx = _hh.sx / _hh.Sw, sy = _hh.sy / _hh.Sw, sz = _hh.sz / _hh.Sw;
+      const u = vbx + wy * sz - wz * sy, ua = Math.abs(u);
+      const Lw = h.Lwl0;
+      const Rf = 0.5 * RHO_W * cfITTC(ua * Lw / NU_W) * 1.12 * _hh.Sw * u * ua;
+      const Fn = ua / Math.sqrt(GRAV * Lw), Sl = Lw / Math.cbrt(V);
+      const Rw = rrCoef(Fn, Sl) * RHO_W * GRAV * V * Math.sign(u);
+      const fh = -(Rf + Rw);
+      Fx += fh; Ty += sz * fh; Tz += -sy * fh;
+    }
+    // lateral plane of the hull body (low-aspect foil)
+    if (_hh.Alat > 1e-3) {
+      const lx = _hh.lx / _hh.Alat, ly = _hh.ly / _hh.Alat, lz = _hh.lz / _hh.Alat;
+      const vx = vbx + wy * lz - wz * ly, vy = vby + wz * lx - wx * lz;
+      const ARe = clamp(2 * _hh.Alat / (Lw0(h) * Lw0(h)), 0.05, 2);
+      foilForce(vx, vy, 0, _hh.Alat, ARe, 0.0, 0.25, 1.0, 0, _F);
+      Fx += _F[0]; Fy += _F[1]; latFx += _F[0]; latFy += _F[1];
+      Tx += -lz * _F[1]; Ty += lz * _F[0]; Tz += lx * _F[1] - ly * _F[0];
+    }
+  }
+  S.wetFrac = clamp(Vtot / B.Vdes, 0, 1);
+  if (dg.buoyZ > 0) dg.cb = [cbx / dg.buoyZ, cby / dg.buoyZ, cbz / dg.buoyZ];
+  // appendages
+  for (const f of B.foils) {
+    const rudder = f.kind === 'rudder';
+    const z0 = cz + R[6] * f.x + R[7] * f.y + R[8] * f.z, z1 = z0 - R[8] * f.span;
+    let eta = 0; if (wv) eta = wv.A * Math.sin(wv.kx * cx + wv.ky * cy - wv.w * S.t);
+    let frac, sc;
+    if (Math.abs(z1 - z0) < 1e-6) { frac = z0 < eta ? 1 : 0; sc = 0.5; }
+    else if (z1 < z0) { frac = clamp((eta - z1) / (z0 - z1), 0, 1); sc = 1 - frac / 2; }
+    else { frac = clamp((eta - z0) / (z1 - z0), 0, 1); sc = frac / 2; }
+    if (frac < 0.02) continue;
+    const px = f.x, py = f.y, pz = f.z - f.span * sc;
+    const vx = vbx + wy * pz - wz * py, vy = vby + wz * px - wx * pz;
+    const A = f.span * frac * f.chord * 0.5 * (1 + f.taper);
+    foilForce(vx, vy, 0, A, Math.max(0.35, f.ARe * frac), f.CD0, f.aS, f.Cn, rudder ? S.rud : 0, _F);
+    Fx += _F[0]; Fy += _F[1]; if (!rudder) { latFx += _F[0]; latFy += _F[1]; }
+    Tx += -pz * _F[1]; Ty += pz * _F[0]; Tz += px * _F[1] - py * _F[0];
+    if (rudder) dg.rudFy = _F[1];
+  }
+  // sails
+  _sailK.R = R; _sailK.cz = cz; _sailK.vB[0] = vbx; _sailK.vB[1] = vby; _sailK.vB[2] = vbz; _sailK.w[0] = wx; _sailK.w[1] = wy; _sailK.w[2] = wz;
+  _W.V = env.tws * KN; _W.shear = env.shear; _W.gust = env.gust; _W.dirTo = env.dirFrom + Math.PI + env.dirOff;
+  _T.delta = S.delta; _T.sigma = S.sigma; _T.reef = S.reef;
+  const so = S.sailOut;
+  sailForces(B, _sailK, _W, _T, so);
+  S.awa = so.awa; S.awy = so.awy; S.aws = so.aws;
+  Fx += so.Fx; Fy += so.Fy; Tx += so.Tx; Ty += so.Ty; Tz += so.Tz;
+  dg.sailFx = so.Fx; dg.sailFy = so.Fy; dg.latFx = latFx; dg.latFy = latFy;
+  // windage (hull, mast, crew)
+  {
+    const wdx = R[0] * Math.cos(_W.dirTo) + R[3] * Math.sin(_W.dirTo), wdy = R[1] * Math.cos(_W.dirTo) + R[4] * Math.sin(_W.dirTo);
+    const sp = Math.pow(Math.max(cz + B.windZ, 1) / 10, env.shear) * _W.V * env.gust;
+    const px = B.windX, pz = B.windZ;
+    const rx = sp * wdx - (vbx + wy * pz), ry = sp * wdy - (vby + wz * px - wx * pz), U = Math.hypot(rx, ry);
+    const k = 0.5 * RHO_A * B.windCdA * U;
+    const fx = k * rx, fy = k * ry;
+    Fx += fx; Fy += fy; Tx += -pz * fy; Ty += pz * fx; Tz += px * fy;
+  }
+  // damping (radiation / viscous), fades out when the hulls leave the water
+  const wf = S.wetFrac;
+  const hz = -B.cHeave * S.v[2] * wf;
+  Fx += hz * R[6]; Fy += hz * R[7]; Fz += hz * R[8];
+  Tx -= B.cRoll * wx * wf; Ty -= B.cPitch * wy * wf; Tz -= B.cYaw * wz;
+
+  /* --- integrate --- */
+  const fwx = R[0] * Fx + R[1] * Fy + R[2] * Fz, fwy = R[3] * Fx + R[4] * Fy + R[5] * Fz, fwz = R[6] * Fx + R[7] * Fy + R[8] * Fz;
+  const mH = B.M * 1.12, mV = B.M * (1 + 0.6 * wf);
+  S.v[0] += fwx / mH * dt; S.v[1] += fwy / mH * dt; S.v[2] += fwz / mV * dt;
+  S.p[0] += S.v[0] * dt; S.p[1] += S.v[1] * dt; S.p[2] += S.v[2] * dt;
+  S.w[0] += (Tx - (B.Iz - B.Iy) * wy * wz) / B.Ix * dt;
+  S.w[1] += (Ty - (B.Ix - B.Iz) * wz * wx) / B.Iy * dt;
+  S.w[2] += (Tz - (B.Iy - B.Ix) * wx * wy) / B.Iz * dt;
+  const q = S.q, W0 = q[0], X0 = q[1], Y0 = q[2], Z0 = q[3], a = S.w[0], b = S.w[1], c = S.w[2];
+  q[0] += 0.5 * dt * (-X0 * a - Y0 * b - Z0 * c);
+  q[1] += 0.5 * dt * (W0 * a + Y0 * c - Z0 * b);
+  q[2] += 0.5 * dt * (W0 * b + Z0 * a - X0 * c);
+  q[3] += 0.5 * dt * (W0 * c + X0 * b - Y0 * a);
+  const qn = 1 / Math.hypot(q[0], q[1], q[2], q[3]); q[0] *= qn; q[1] *= qn; q[2] *= qn; q[3] *= qn;
+  S.t += dt;
+  // diagnostics
+  S.speed = Math.hypot(S.v[0], S.v[1]); S.roll = roll; S.vb = [vbx, vby];
+  S.leeway = Math.atan2(vby, vbx);
+  const pitch = -Math.asin(clamp(R[6], -1, 1)); S.pitch = pitch; S.yaw = yaw;
+  S.maxHeel = Math.max(S.maxHeel, Math.abs(roll));
+  if (!S.capsized && (Math.abs(roll) > 100 * D2R || Math.abs(pitch) > 70 * D2R)) { S.capsized = true; S.capsizeT = S.t; S.capsizeKind = Math.abs(pitch) > 70 * D2R ? 'pitchpole' : 'capsize'; S.capsizeWind = env.tws * env.gust; }
+  if (!(S.p[2] === S.p[2]) || Math.abs(S.p[2]) > 50 || S.speed > 60) S.failed = true;
+}
+function Lw0(h) { return h.Lwl0 || h.spec.L * 0.8; }
+
+/* ---------- static stability + capsize analysis ---------- */
+function lateralCenter(B, R, cz, out) {
+  let A = 0, x = 0, y = 0, z = 0, hs = {};
+  for (const f of B.foils) {
+    if (f.kind === 'rudder') continue;
+    const z0 = cz + R[6] * f.x + R[7] * f.y + R[8] * f.z, z1 = z0 - R[8] * f.span;
+    let frac, sc;
+    if (Math.abs(z1 - z0) < 1e-6) { frac = z0 < 0 ? 1 : 0; sc = 0.5; }
+    else if (z1 < z0) { frac = clamp((0 - z1) / (z0 - z1), 0, 1); sc = 1 - frac / 2; }
+    else { frac = clamp((0 - z0) / (z1 - z0), 0, 1); sc = frac / 2; }
+    const a = f.span * frac * f.chord * 0.5 * (1 + f.taper) * 3; // foils weigh 3x hull plane in lateral resistance
+    A += a; x += a * f.x; y += a * f.y; z += a * (f.z - f.span * sc);
+  }
+  for (const h of B.hulls) {
+    hullHydro(h, R, 0, 0, cz, null, 0, hs);
+    if (hs.Alat > 1e-4) { A += hs.Alat; x += hs.lx; y += hs.ly; z += hs.lz; }
+  }
+  if (A < 1e-6) { out[0] = 0; out[1] = 0; out[2] = -0.3; return; }
+  out[0] = x / A; out[1] = y / A; out[2] = z / A;
+}
+function staticStability(B, ctl) {
+  const W = B.M * GRAV, th = B.eq.theta, o = {}, R = new Float64Array(9), clr = [0, 0, 0];
+  const st = { phi: [], RM: [], cz: [], clrz: [], theta: th, R: [] };
+  const yo = (ctl.hike || 0) * B.hikeReach * (B.crewMass > 0 ? 1 : 0);
+  for (let d = 0; d <= 180; d += 5) {
+    const phi = d * D2R;
+    eulerToMat(phi, th, 0, R);
+    const cz = solveZ(B, R, W);
+    hydroSum(B, R, 0, 0, cz, null, 0, o);
+    const ry = R[3] * (o.mx / o.V) + R[4] * (o.my / o.V) + R[5] * (o.mz / o.V);
+    let rm = -ry * RHO_W * GRAV * o.V;
+    rm += B.crewMass * GRAV * yo * R[4];
+    lateralCenter(B, R, cz, clr);
+    st.phi.push(d); st.RM.push(rm); st.cz.push(cz);
+    st.clrz.push(R[6] * clr[0] + R[7] * clr[1] + R[8] * clr[2]);
+    st.R.push(Float64Array.from(R));
+  }
+  // summary numbers
+  let maxRM = -1e18, phiMax = 0, avs = 180;
+  for (let i = 0; i < st.phi.length; i++) { if (st.RM[i] > maxRM) { maxRM = st.RM[i]; phiMax = st.phi[i]; } }
+  for (let i = 1; i < st.phi.length; i++) { if (st.RM[i] <= 0 && st.RM[i - 1] > 0) { avs = st.phi[i - 1] + 5 * st.RM[i - 1] / (st.RM[i - 1] - st.RM[i]); break; } }
+  st.maxRM = maxRM; st.phiMax = phiMax; st.avs = avs;
+  return st;
+}
+const _so = {}, _sk = { R: null, cz: 0, vB: [0, 0, 0], w: [0, 0, 0] };
+// worst-case steady heeling moment (beam wind, stationary boat, sheet cleated at the worst angle)
+function heelMoment(B, st, i, V, env, reef) {
+  const R = st.R[i];
+  _sk.R = R; _sk.cz = st.cz[i];
+  const Wd = { V, shear: env.shear, gust: 1, dirTo: -Math.PI / 2 }; // wind from port -> heel to starboard (phi>0)
+  let best = 0;
+  for (let dd = 0; dd <= 90; dd += 10) {
+    sailForces(B, _sk, Wd, { delta: dd * D2R, sigma: -1, reef }, _so);
+    const Fwy = R[3] * _so.Fx + R[4] * _so.Fy;
+    const Twx = R[0] * _so.Tx + R[1] * _so.Ty + R[2] * _so.Tz;
+    const m = Twx + st.clrz[i] * Fwy;
+    if (m > best) best = m;
+  }
+  return best;
+}
+function heelCurve(B, st, V, env, reef) { return st.phi.map((_, i) => heelMoment(B, st, i, V, env, reef)); }
+function capsizeCheck(st, Mh) {
+  // Limit of the analysis: 75 deg of heel or loss of positive stability, whichever comes first.
+  const d = 5 * D2R;
+  let n = 15; for (let i = 1; i <= 15; i++) if (st.RM[i] <= 0 && st.RM[i - 1] > 0) { n = i; break; }
+  let steady = false;
+  for (let i = 1; i <= n; i++) if (st.RM[i] - Mh[i] >= 0 && st.RM[i] > 0) { steady = true; break; }
+  const f0 = st.RM[0] - Mh[0];
+  if (f0 >= 0) return { steady: true, dynamic: true, phiDyn: 0 };
+  // first swing from upright with the load applied suddenly and no damping: energy balance
+  let I = 0, prev = f0, dyn = false, phiDyn = 0;
+  for (let i = 1; i <= n; i++) {
+    const f = st.RM[i] - Mh[i];
+    I += 0.5 * (prev + f) * d; prev = f;
+    if (I >= 0) { dyn = true; phiDyn = st.phi[i]; break; }
+    if (st.RM[i] <= 0) break;
+  }
+  return { steady, dynamic: dyn, phiDyn };
+}
+function capsizeWinds(B, st, env, reef) {
+  const bis = (key) => {
+    let lo = 1, hi = 70;
+    const ok = (V) => capsizeCheck(st, heelCurve(B, st, V, env, reef))[key];
+    if (ok(hi)) return Infinity;
+    if (!ok(lo)) return 0;
+    for (let it = 0; it < 16; it++) { const m = 0.5 * (lo + hi); if (ok(m)) lo = m; else hi = m; }
+    return 0.5 * (lo + hi);
+  };
+  return { steady: bis('steady'), dynamic: bis('dynamic') };
+}
+
+/* initial pose helper for UI/test */
+function makeSim(P, envOverride, ctlOverride) {
+  const B = buildBoat(P);
+  const env = makeEnv(P._env && P._env.tws);
+  const ctl = makeCtl(P);
+  if (envOverride) Object.assign(env, envOverride);
+  if (ctlOverride) Object.assign(ctl, ctlOverride);
+  const S = B.sinks ? null : createState(B, env, ctl);
+  return { B, env, ctl, S };
+}
+
+/* ---------- design evaluation and hill climbing (pure, time-sliceable) ---------- */
+const cloneJSON = (o) => JSON.parse(JSON.stringify(o));
+const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+const GOALS = {
+  speed: { label: 'Fast: top boat speed',
+    blurb: 'Raises boat speed at the wind and angle on the Sea tab. A candidate loses points for heel beyond the limit and is thrown out if a gust flips it.' },
+  vmg: { label: 'Fast: speed toward the wind or away from it',
+    blurb: 'Like top speed, but scored by progress straight upwind or straight downwind at the angle on the Sea tab. Pick an angle under 70\u00b0 or over 110\u00b0.' },
+  cruiser: { label: 'Gentle day cruiser',
+    blurb: 'Speed counts only up to about 90% of hull speed. Points come off for heel, roll and pitch motion in waves, a gust that nearly knocks the boat down, a weak righting curve and too little freeboard.' }
+};
+function shellProxy(P) { let a = 0; for (const s of hullSpecs(P)) a += s.L * (1.1 * s.B + 1.6 * s.D) * 0.75; return a; }
+function rigProxy(P) { return P.sailArea * (1 + 4 / 3 * P.roach) + (P.jibArea || 0); }
+function mulberry(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+// One candidate design, scored in slices so the page stays responsive.
+function makeEvaluator(P, ctl0, env0, goal, gcfg) {
+  const T_SPIN = 8, T_A = 16, T_END = 22, DT = gcfg.dt || 1 / 200;
+  const ev = { P, goal, phase: 'build', done: false, score: -1e9, parts: null, why: '', B: null, S: null };
+  const ctl = Object.assign({}, ctl0, { auto: true, release: false });
+  const env = Object.assign(makeEnv(env0.tws), env0, { _seed: 12345, ou: 0, ouDir: 0, gustT0: -100, gust: 1 });
+  const m = { n: 0, spd: 0, heel: 0, rr: 0, pr: 0, lee: 0, peak: 0, gustSet: false };
+  const finish = (score, why) => { ev.done = true; ev.score = score; ev.why = why || ''; ev.phase = 'done'; };
+  function scoreIt() {
+    const S = ev.S, B = ev.B, s = B.summary, twa = ctl.twa * D2R, H0 = gcfg.heelLim;
+    const spd = m.n ? m.spd / m.n : 0, heel = m.n ? m.heel / m.n : 0, rr = m.n ? Math.sqrt(m.rr / m.n) : 0, pr = m.n ? Math.sqrt(m.pr / m.n) : 0;
+    const lee = m.n ? m.lee / m.n : 0;
+    const parts = { spd, heel, peak: m.peak, rr, pr, lee, hullSpeed: s.hullSpeedKn };
+    if (S.capsized) { parts.capsized = S.capsizeKind; return finish(-100 + 20 * Math.min(1, S.capsizeT / T_END), 'flipped'), parts; }
+    let sc, terms = [];
+    if (goal === 'cruiser') {
+      const st = Math.min(spd, 0.9 * s.hullSpeedKn);
+      const hp = 0.15 * Math.max(0, heel - H0) + 0.10 * Math.max(0, m.peak - (H0 + 12));
+      const mo = 0.10 * rr + 0.06 * pr;
+      const vd = ev.winds ? Math.min(ev.winds.dynamic / KN, 60) : 60;
+      const sp = 0.08 * Math.max(0, 35 - vd);
+      const avs = ev.stab ? ev.stab.avs : 180, ap = 0.015 * Math.max(0, 120 - avs);
+      const fb = Math.max(0, s.freeboard), fp = 10 * Math.max(0, 0.15 - fb);
+      const sa = 0.10 * Math.max(0, s.saD - 20);
+      const lp = 0.12 * Math.max(0, lee - 6);
+      sc = st - hp - mo - sp - ap - fp - sa - lp;
+      parts.vdyn = vd; parts.avs = avs; parts.freeboard = fb; parts.saD = s.saD;
+      terms = [['Speed (capped)', st], ['Heel', -hp], ['Motion', -mo], ['Gust margin', -sp], ['Righting range', -ap], ['Freeboard', -fp], ['Sail area', -sa], ['Leeway', -lp]];
+    } else {
+      const c = Math.abs(Math.cos(twa)), prog = goal === 'vmg' ? spd * Math.max(c, 0.3) : spd;
+      const hp = 0.12 * Math.max(0, heel - H0) + 0.08 * Math.max(0, m.peak - (H0 + 30));
+      const lp = goal === 'vmg' ? 0 : 0.05 * Math.max(0, lee - 8);
+      sc = prog - hp - lp;
+      terms = [[goal === 'vmg' ? 'Progress' : 'Speed', prog], ['Heel', -hp], ['Leeway', -lp]];
+    }
+    parts.terms = terms;
+    finish(sc, ''); return parts;
+  }
+  ev.advance = function (budgetMs) {
+    const t0 = nowMs();
+    while (!ev.done && nowMs() - t0 < budgetMs) {
+      if (ev.phase === 'build') {
+        ev.B = buildBoat(P);
+        if (ev.B.sinks) { finish(-1e6, 'sinks'); break; }
+        if (ev.B.summary.reserve < 0.15) { finish(-1e5, 'no reserve buoyancy'); break; }
+        ev.phase = goal === 'cruiser' ? 'static' : 'sim';
+      } else if (ev.phase === 'static') {
+        ev.stab = staticStability(ev.B, ctl); ev.winds = capsizeWinds(ev.B, ev.stab, env, ctl.reef);
+        ev.phase = 'sim';
+      } else if (ev.phase === 'sim') {
+        if (!ev.S) ev.S = createState(ev.B, env, ctl);
+        const S = ev.S;
+        for (let i = 0; i < 80; i++) {
+          stepSim(S, ev.B, env, ctl, DT);
+          if (S.failed) { finish(-1e5, 'unstable'); break; }
+          if (S.t >= T_SPIN && S.t < T_A) { m.n++; m.spd += S.speed / KN; m.heel += Math.abs(S.roll) * R2D; m.rr += Math.pow(S.w[0] * R2D, 2); m.pr += Math.pow(S.w[1] * R2D, 2); m.lee += Math.abs(S.leeway) * R2D; }
+          if (S.t >= T_A) { if (!m.gustSet) { m.gustSet = true; env.gustT0 = S.t; env.gustSize = Math.max(env.gustSize, 0.5); } m.peak = Math.max(m.peak, Math.abs(S.roll) * R2D); }
+          if (S.capsized || S.t >= T_END) { ev.parts = scoreIt(); break; }
+        }
+        if (ev.done) break;
+      }
+    }
+    return ev.done;
+  };
+  return ev;
+}
+
+function makeClimber(cfg) {
+  const rnd = mulberry(cfg.seed || 20260);
+  const gauss = () => Math.sqrt(-2 * Math.log(rnd() + 1e-9)) * Math.cos(2 * Math.PI * rnd());
+  const base = cloneJSON(cfg.P), baseCtl = cloneJSON(cfg.ctl);
+  const free = cfg.tunables.filter((t) => cfg.free[t.key]);
+  const freeKeys = new Set(free.map((t) => t.k));
+  const C = { iter: 0, accepts: 0, fails: 0, kicks: 0, converged: false, bestP: cloneJSON(base), bestCtl: cloneJSON(baseCtl), bestScore: -Infinity,
+    bestParts: null, startScore: null, hist: [], ev: null, cand: null, steps: {}, nFree: free.length };
+  free.forEach((t) => { C.steps[t.key] = 0.12; });
+  const bounds = (t) => {
+    const b0 = (t.src === 'ctl' ? baseCtl : base)[t.k], range = t.max - t.min, dev = cfg.radius * Math.max(Math.abs(b0), 0.15 * range);
+    return [Math.max(t.min, b0 - dev), Math.min(t.max, b0 + dev)];
+  };
+  const quant = (v, step) => parseFloat((Math.round(v / step) * step).toFixed(6));
+  function propose() {
+    const P1 = cloneJSON(C.bestP), c1 = cloneJSON(C.bestCtl), changes = [], used = new Set();
+    const n = 1 + (rnd() < 0.4 ? 1 : 0) + (rnd() < 0.2 ? 1 : 0);
+    for (let i = 0; i < n; i++) {
+      const t = free[Math.floor(rnd() * free.length)]; if (used.has(t.key)) continue; used.add(t.key);
+      const h = t.src === 'ctl' ? c1 : P1, [lo, hi] = bounds(t), from = h[t.k];
+      let v = quant(clamp(from + gauss() * C.steps[t.key] * (t.max - t.min), lo, hi), t.step);
+      if (v === from) v = quant(clamp(from + (rnd() < 0.5 ? -1 : 1) * t.step, lo, hi), t.step);
+      if (v === from) continue;
+      h[t.k] = v; changes.push({ key: t.key, k: t.k, label: t.label, u: t.u, scale: t.scale, from, to: v });
+    }
+    if (cfg.link) {
+      if (!freeKeys.has('structMass')) P1.structMass = Math.round(base.structMass * shellProxy(P1) / shellProxy(base));
+      if (!freeKeys.has('rigMass')) P1.rigMass = Math.round(base.rigMass * Math.pow(rigProxy(P1) / rigProxy(base), 1.25));
+    }
+    return { P: P1, ctl: c1, changes };
+  }
+  const start = (cand) => { C.cand = cand; C.ev = makeEvaluator(cand.P, cand.ctl, cfg.env, cfg.goal, cfg.gcfg); };
+  start({ P: cloneJSON(base), ctl: cloneJSON(baseCtl), changes: [], baseline: true });
+  C.tick = function (ms) {
+    if (C.converged) return null;
+    if (!C.ev) { if (!free.length) return null; start(propose()); }
+    if (!C.ev.advance(ms)) return null;
+    const ev = C.ev, cand = C.cand; C.ev = null;
+    if (cand.baseline) {
+      C.bestScore = ev.score; C.startScore = ev.score; C.bestParts = ev.parts; C.hist.push({ i: 0, s: ev.score, b: ev.score, ok: true });
+      return { type: 'baseline', score: ev.score, parts: ev.parts };
+    }
+    C.iter++;
+    const ok = ev.score > C.bestScore + 1e-6;
+    C.hist.push({ i: C.iter, s: Math.max(ev.score, -20), b: ok ? ev.score : C.bestScore, ok });
+    if (ok) {
+      const gain = ev.score - C.bestScore;
+      C.bestScore = ev.score; C.bestP = cand.P; C.bestCtl = cand.ctl; C.bestParts = ev.parts; C.accepts++; C.fails = 0;
+      cand.changes.forEach((c) => { C.steps[c.key] = Math.min(0.4, C.steps[c.key] * 1.3); });
+      return { type: 'accept', score: ev.score, gain, changes: cand.changes, parts: ev.parts };
+    }
+    C.fails++;
+    cand.changes.forEach((c) => { C.steps[c.key] = Math.max(0.01, C.steps[c.key] * 0.93); });
+    if (C.fails >= 90) {
+      if (C.kicks < 3) { C.kicks++; C.fails = 0; free.forEach((t) => { C.steps[t.key] = 0.2; }); return { type: 'kick', score: ev.score }; }
+      C.converged = true; return { type: 'converged', score: C.bestScore };
+    }
+    return { type: 'reject', score: ev.score, why: ev.why };
+  };
+  return C;
+}
+if (typeof module !== 'undefined') module.exports = { PRESETS, buildBoat, makeSim, makeEnv, makeCtl, createState, stepSim, staticStability, heelCurve, capsizeCheck, capsizeWinds, heelMoment, hullSpecs, hullPoint, halfBeamDeck, sectionFrac, zBot, zDeck, attitude, sailShape, KN, D2R, R2D, RHO_W, GRAV, QREF, eulerToMat, quatToMat, hullHydro, solveZ, foilForce, coefs, sailForces };
+if (typeof module !== 'undefined') Object.assign(module.exports, { GOALS, makeEvaluator, makeClimber, cloneJSON, shellProxy, rigProxy });
+
+/* ======================================================================
+   UI + RENDERING (three.js r128). Physics lives in core.js above.
+   ====================================================================== */
+(function () {
+'use strict';
+const $ = (s, e) => (e || document).querySelector(s);
+const mk = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const fmt = (v, d) => (isFinite(v) ? v.toFixed(d) : '-');
+
+function fail(msg) { const b = $('#fatal'); b.style.display = 'block'; b.textContent = msg; }
+if (typeof THREE === 'undefined') { fail('three.js failed to load. Check your connection and reload.'); return; }
+
+/* ---------------- state ---------------- */
+let P, ctl, env, B, S, stab = null, winds = null, Mh = null;
+let paused = false, timeScale = 1, showForces = false, viewMode = 'orbit', acc = 0, toastT = 0;
+const hist = [];
+let activeTab = 'hull';
+
+/* ---------------- control schema ---------------- */
+const isMulti = () => P.hullType !== 'mono';
+const TABS = [
+  { id: 'hull', label: 'Hull', rows: [
+    { sel: 'hullType', src: 'P', label: 'Configuration', opts: [['mono', 'Monohull'], ['cat', 'Catamaran'], ['tri', 'Trimaran']], rebuild: 1 },
+    { h: 'Main hull' },
+    { src: 'P', k: 'L', label: 'Length overall', u: 'm', min: 2.5, max: 14, step: 0.05, rebuild: 1 },
+    { src: 'P', k: 'B', label: 'Beam', labelAlt: () => isMulti() ? 'Beam per hull' : 'Beam', u: 'm', min: 0.25, max: 5, step: 0.01, rebuild: 1 },
+    { src: 'P', k: 'D', label: 'Hull depth, keel line to deck', u: 'm', min: 0.2, max: 2.2, step: 0.01, rebuild: 1 },
+    { src: 'P', k: 'bowN', label: 'Bow fullness', hint: 'Low is sharp, high is bluff', min: 1.3, max: 4, step: 0.05, rebuild: 1 },
+    { src: 'P', k: 'sternN', label: 'Stern fullness', min: 1.5, max: 5, step: 0.05, rebuild: 1 },
+    { src: 'P', k: 'transom', label: 'Transom width', hint: '0 is a canoe stern', min: 0, max: 0.9, step: 0.01, rebuild: 1 },
+    { src: 'P', k: 'floor', label: 'Flat floor width', hint: '0 gives a sharp keel line', min: 0, max: 0.7, step: 0.01, rebuild: 1 },
+    { src: 'P', k: 'bilge', label: 'Section shape', hint: '1 is a V, 4 is boxy', min: 1, max: 4, step: 0.05, rebuild: 1 },
+    { src: 'P', k: 'rocker', label: 'Keel rocker', u: 'm', min: 0, max: 0.7, step: 0.01, rebuild: 1 },
+    { src: 'P', k: 'sheer', label: 'Sheer rise at ends', u: 'm', min: 0, max: 0.8, step: 0.01, rebuild: 1 },
+    { h: 'Multihull layout', show: isMulti },
+    { src: 'P', k: 'sep', label: 'Hull spacing, centre to centre', u: 'm', min: 0.8, max: 8, step: 0.05, rebuild: 1, show: isMulti },
+    { src: 'P', k: 'amaL', label: 'Float length ratio', min: 0.3, max: 1, step: 0.01, rebuild: 1, show: () => P.hullType === 'tri' },
+    { src: 'P', k: 'amaB', label: 'Float beam ratio', min: 0.2, max: 1, step: 0.01, rebuild: 1, show: () => P.hullType === 'tri' },
+    { src: 'P', k: 'amaD', label: 'Float depth ratio', min: 0.4, max: 1.2, step: 0.01, rebuild: 1, show: () => P.hullType === 'tri' },
+    { src: 'P', k: 'amaLift', label: 'Float height above main hull keel', u: 'm', min: 0, max: 0.8, step: 0.01, rebuild: 1, show: () => P.hullType === 'tri' },
+    { src: 'P', k: 'amaStagger', label: 'Float position, + forward', u: 'm', min: -1.5, max: 1.5, step: 0.05, rebuild: 1, show: () => P.hullType === 'tri' }
+  ] },
+  { id: 'foil', label: 'Foils', rows: [
+    { sel: 'foilType', src: 'P', label: 'Underwater foil', opts: [['none', 'None'], ['board', 'Daggerboard'], ['keel', 'Fixed keel']], rebuild: 1 },
+    { src: 'P', k: 'foilChord', label: 'Mean chord', u: 'm', min: 0.1, max: 1.8, step: 0.01, rebuild: 1, show: () => P.foilType !== 'none' },
+    { src: 'P', k: 'foilSpan', label: 'Span below hull', u: 'm', min: 0.2, max: 3, step: 0.01, rebuild: 1, show: () => P.foilType !== 'none' },
+    { src: 'P', k: 'foilTaper', label: 'Taper, tip to root chord', min: 0.3, max: 1, step: 0.01, rebuild: 1, show: () => P.foilType !== 'none' },
+    { src: 'P', k: 'foilX', label: 'Position, + forward of midship', u: 'm', min: -4, max: 4, step: 0.02, rebuild: 1, show: () => P.foilType !== 'none' },
+    { src: 'P', k: 'foilExt', label: 'Board lowered', hint: 'Fraction of full span', min: 0.05, max: 1, step: 0.01, rebuild: 1, show: () => P.foilType === 'board' },
+    { h: 'Rudder' },
+    { src: 'P', k: 'rudChord', label: 'Mean chord', u: 'm', min: 0.08, max: 1, step: 0.01, rebuild: 1 },
+    { src: 'P', k: 'rudSpan', label: 'Depth below hull', u: 'm', min: 0.2, max: 2, step: 0.01, rebuild: 1 }
+  ] },
+  { id: 'rig', label: 'Rig', rows: [
+    { h: 'Mainsail' },
+    { src: 'P', k: 'sailArea', label: 'Area, nominal triangle', u: 'm\u00b2', min: 2, max: 90, step: 0.1, rebuild: 1 },
+    { src: 'P', k: 'sailAR', label: 'Aspect ratio, luff\u00b2 over area', min: 1.8, max: 6, step: 0.05, rebuild: 1 },
+    { src: 'P', k: 'roach', label: 'Roach', min: 0, max: 0.3, step: 0.01, rebuild: 1 },
+    { src: 'P', k: 'mastX', label: 'Mast position, + forward', u: 'm', min: -3, max: 5, step: 0.05, rebuild: 1 },
+    { src: 'P', k: 'boomH', label: 'Boom height above deck', u: 'm', min: 0.2, max: 2.5, step: 0.01, rebuild: 1 },
+    { h: 'Sail cloth and mast' },
+    { src: 'P', k: 'camber', label: 'Base camber', hint: 'Depth as a fraction of chord', min: 0.03, max: 0.14, step: 0.005, rebuild: 1 },
+    { src: 'P', k: 'bend', label: 'Mast bend', hint: 'Flattens the sail as wind builds', min: 0, max: 0.9, step: 0.01, rebuild: 1 },
+    { src: 'P', k: 'stretch', label: 'Cloth stretch', hint: 'Deepens the sail as wind builds', min: 0, max: 1, step: 0.01, rebuild: 1 },
+    { src: 'P', k: 'twist0', label: 'Twist at head, light air', u: '\u00b0', min: 0, max: 25, step: 0.5, rebuild: 1 },
+    { src: 'P', k: 'flex', label: 'Extra twist at 10 m/s', u: '\u00b0', min: 0, max: 25, step: 0.5, rebuild: 1 },
+    { h: 'Headsail' },
+    { src: 'P', k: 'jibArea', label: 'Jib area, 0 for none', u: 'm\u00b2', min: 0, max: 60, step: 0.1, rebuild: 1 },
+    { src: 'P', k: 'jibAR', label: 'Jib aspect ratio', min: 2, max: 6, step: 0.05, rebuild: 1, show: () => P.jibArea > 0.1 },
+    { src: 'P', k: 'jibX', label: 'Jib tack position, + forward', u: 'm', min: 0, max: 7, step: 0.05, rebuild: 1, show: () => P.jibArea > 0.1 },
+    { h: 'Trim, live' },
+    { src: 'ctl', k: 'reef', label: 'Sail area carried', labelAlt: () => ctl.autoReef ? 'Full sail, the most the crew will carry' : 'Sail area carried', hint: 'Reefing shortens luff and foot together on both sails', min: 0.3, max: 1, step: 0.01, live: 'winds' },
+    { tog: 'autoReef', src: 'ctl', label: 'Crew reefs automatically to hold the heel below' },
+    { src: 'ctl', k: 'reefHeel', label: 'Reef when average heel stays above', hint: 'Sail comes back out slowly once the boat stands up', u: '\u00b0', min: 6, max: 35, step: 1, show: () => ctl.autoReef },
+    { sel: 'sheetMode', src: 'ctl', label: 'Sheet control', opts: [['auto', 'Auto, hold best angle'], ['manual', 'Manual']] },
+    { src: 'ctl', k: 'sheet', label: 'Sheet angle', u: '\u00b0', min: 4, max: 88, step: 1, show: () => ctl.sheetMode === 'manual' },
+    { src: 'ctl', k: 'alphaOpt', label: 'Target angle of attack', u: '\u00b0', min: 5, max: 18, step: 0.5, show: () => ctl.sheetMode === 'auto' },
+    { src: 'ctl', k: 'easeHeel', label: 'Crew eases sheet above heel', hint: '90 means never ease', u: '\u00b0', min: 5, max: 90, step: 1, show: () => ctl.sheetMode === 'auto' }
+  ] },
+  { id: 'mass', label: 'Weights', rows: [
+    { src: 'P', k: 'structMass', label: 'Hull and deck structure', u: 'kg', min: 10, max: 8000, step: 5, rebuild: 1 },
+    { src: 'P', k: 'rigMass', label: 'Rig, mast and sails', u: 'kg', min: 2, max: 600, step: 1, rebuild: 1 },
+    { h: 'Ballast' },
+    { src: 'P', k: 'ballast', label: 'Ballast mass', u: 'kg', min: 0, max: 4000, step: 10, rebuild: 1 },
+    { src: 'P', k: 'ballastDepth', label: 'Depth below hull keel line', u: 'm', min: 0, max: 3, step: 0.02, rebuild: 1 },
+    { src: 'P', k: 'ballastX', label: 'Longitudinal position', u: 'm', min: -3, max: 3, step: 0.02, rebuild: 1 },
+    { h: 'Crew' },
+    { src: 'P', k: 'crewMass', label: 'Crew mass', u: 'kg', min: 0, max: 600, step: 5, rebuild: 1 },
+    { src: 'P', k: 'crewX', label: 'Crew position, + forward', u: 'm', min: -4, max: 4, step: 0.05, rebuild: 1 },
+    { src: 'P', k: 'crewZ', label: 'Crew centre height', u: 'm', min: 0, max: 2, step: 0.02, rebuild: 1 },
+    { src: 'ctl', k: 'hike', label: 'Max hiking effort', hint: 'Crew moves out as the boat heels', min: 0, max: 1, step: 0.01, live: 'stab' }
+  ] },
+  { id: 'sea', label: 'Sea', rows: [
+    { src: 'env', k: 'tws', label: 'True wind speed at 10 m', u: 'kn', min: 0, max: 45, step: 0.5, live: 'winds' },
+    { src: 'env', k: 'gustInt', label: 'Gustiness', min: 0, max: 1, step: 0.01 },
+    { src: 'env', k: 'gustSize', label: 'Size of the Gust button', u: '+%', scale: 100, min: 0, max: 1.5, step: 0.05 },
+    { src: 'env', k: 'shear', label: 'Wind shear exponent', min: 0, max: 0.3, step: 0.01, live: 'winds' },
+    { src: 'env', k: 'waveH', label: 'Wave height', u: 'm', min: 0, max: 3, step: 0.05 },
+    { src: 'env', k: 'waveT', label: 'Wave period', u: 's', min: 2, max: 10, step: 0.1 },
+    { h: 'Helm' },
+    { tog: 'auto', src: 'ctl', label: 'Autopilot holds true wind angle' },
+    { src: 'ctl', k: 'twa', label: 'True wind angle', u: '\u00b0', min: 25, max: 175, step: 1, show: () => ctl.auto },
+    { src: 'ctl', k: 'helm', label: 'Rudder', u: '\u00b0', min: -30, max: 30, step: 0.5, show: () => !ctl.auto }
+  ] },
+  { id: 'tune', label: 'Tune', custom: true },
+  { id: 'res', label: 'Results', custom: true }
+];
+const rowEls = [];
+const getSrc = (s) => (s === 'P' ? P : s === 'ctl' ? ctl : env);
+
+function buildPanel() {
+  const tabs = $('#tabs'), body = $('#tabbody');
+  tabs.innerHTML = ''; body.innerHTML = '';
+  rowEls.length = 0;
+  for (const t of TABS) {
+    const b = mk('button', 'tab', t.label); b.dataset.tab = t.id; b.onclick = () => selectTab(t.id); tabs.appendChild(b);
+    const pane = mk('div', 'pane'); pane.id = 'pane-' + t.id;
+    if (t.custom) {
+      pane.innerHTML = '<div id="' + (t.id === 'tune' ? 'tuneBody' : 'resBody') + '"></div>';
+    } else if (t.id === 'rig') { pane.appendChild(mk('div', 'live', '<span id="sailinfo"></span>')); }
+    if (!t.custom) for (const r of t.rows) {
+      if (r.h) { const h = mk('h3', null, r.h); pane.appendChild(h); rowEls.push({ r, el: h }); continue; }
+      let e;
+      if (r.sel) {
+        e = mk('label', 'row sel'); e.innerHTML = '<span class="nm">' + r.label + '</span>';
+        const s = mk('select'); for (const o of r.opts) { const op = mk('option', null, o[1]); op.value = o[0]; s.appendChild(op); }
+        s.onchange = () => onSelect(r, s.value); e.appendChild(s); r._in = s;
+      } else if (r.tog) {
+        e = mk('label', 'row tog'); const c = mk('input'); c.type = 'checkbox'; c.onchange = () => { getSrc(r.src)[r.tog] = c.checked; tune.dirty = true; refreshVis(); };
+        e.appendChild(c); e.appendChild(mk('span', 'nm', r.label)); r._in = c;
+      } else {
+        e = mk('label', 'row');
+        const nm = mk('span', 'nm', r.label), out = mk('output');
+        const inp = mk('input'); inp.type = 'range'; inp.min = r.min; inp.max = r.max; inp.step = r.step;
+        inp.oninput = () => onSlider(r, parseFloat(inp.value));
+        const top = mk('div', 'top'); top.appendChild(nm); top.appendChild(out); e.appendChild(top); e.appendChild(inp);
+        if (r.hint) e.appendChild(mk('small', null, r.hint));
+        r._in = inp; r._out = out; r._nm = nm;
+      }
+      pane.appendChild(e); rowEls.push({ r, el: e });
+    }
+    body.appendChild(pane);
+  }
+  selectTab(activeTab);
+}
+function selectTab(id) {
+  activeTab = id;
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === id));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('on', p.id === 'pane-' + id));
+  if (id === 'res') renderResults();
+  if (id === 'tune') renderTune();
+  if (!$('#panel').classList.contains('open') && window.innerWidth < 900) togglePanel(true);
+}
+function decimals(step) { const s = String(step); return s.indexOf('.') < 0 ? 0 : s.length - s.indexOf('.') - 1; }
+function valText(r, v) { const sc = r.scale || 1, d = sc >= 100 ? 0 : decimals(r.step); return fmt(v * sc, d) + (r.u ? ' ' + r.u : ''); }
+function syncControls() {
+  for (const { r } of rowEls) {
+    if (!r._in) continue;
+    const src = getSrc(r.src);
+    if (r.sel) r._in.value = src[r.sel];
+    else if (r.tog) r._in.checked = !!src[r.tog];
+    else {
+      const v = src[r.k]; r._in.value = v;
+      r._out.textContent = valText(r, v);
+      const pct = (v - r.min) / (r.max - r.min) * 100; r._in.style.setProperty('--p', clampN(pct, 0, 100) + '%');
+      if (r.labelAlt) r._nm.textContent = r.labelAlt();
+    }
+  }
+  refreshVis();
+}
+function clampN(x, a, b) { return x < a ? a : x > b ? b : x; }
+function refreshVis() {
+  for (const { r, el } of rowEls) el.style.display = (!r.show || r.show()) ? '' : 'none';
+  for (const { r } of rowEls) if (r.labelAlt && r._nm) r._nm.textContent = r.labelAlt();
+}
+let liveTimer = 0;
+function onSlider(r, v) {
+  const src = getSrc(r.src); src[r.k] = v; tune.dirty = true;
+  r._out.textContent = valText(r, v);
+  r._in.style.setProperty('--p', clampN((v - r.min) / (r.max - r.min) * 100, 0, 100) + '%');
+  if (r.rebuild) scheduleRebuild();
+  if (r.live) { clearTimeout(liveTimer); liveTimer = setTimeout(() => liveAnalysis(r.live === 'stab'), 90); }
+  if (r.k === 'jibArea') refreshVis();
+}
+function onSelect(r, v) {
+  const src = getSrc(r.src); tune.dirty = true;
+  if (r.sel === 'hullType') applyConfig(v);
+  else if (r.sel === 'foilType') { src[r.sel] = v; if (v === 'keel' && P.ballast === 0) { P.ballast = Math.round(P.structMass * 0.3); P.ballastDepth = P.foilSpan; } if (v !== 'keel' && P.ballastDepth === P.foilSpan) { /* keep */ } }
+  else src[r.sel] = v;
+  syncControls();
+  if (r.rebuild) scheduleRebuild();
+}
+function applyConfig(v) {
+  const was = P.hullType; P.hullType = v;
+  if (was === 'mono' && v !== 'mono') { P.B = clampN(P.B * 0.3, 0.3, 0.9); P.sep = Math.max(2.0, P.L * 0.45); P.D = Math.max(P.D, 0.5); P.sheer = Math.min(P.sheer, 0.3); }
+  if (was !== 'mono' && v === 'mono') { P.B = Math.max(P.B, P.L * 0.3); }
+  if (was === 'cat' && v === 'tri') { P.sep = Math.max(P.sep, 2.6); }
+  if (was === 'tri' && v === 'cat') { P.sep = Math.min(P.sep, 3.2); }
+}
+
+/* ---------------- three.js scene ---------------- */
+const canvas = $('#gl');
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true }); } catch (e) { fail('WebGL is not available in this browser.'); return; }
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+const scene = new THREE.Scene();
+const SKY = 0xb9d6e6;
+scene.background = new THREE.Color(SKY);
+scene.fog = new THREE.Fog(SKY, 60, 185);
+const camera = new THREE.PerspectiveCamera(52, 1, 0.1, 2000);
+scene.add(new THREE.HemisphereLight(0xdff0ff, 0x28566a, 0.95));
+const sun = new THREE.DirectionalLight(0xfff3dc, 0.9); sun.position.set(40, 70, 30); scene.add(sun);
+const world = new THREE.Group(); world.rotation.x = -Math.PI / 2; scene.add(world);   // sim frame: z up
+const boat = new THREE.Group(); world.add(boat);
+let MESH = null;
+
+// water
+const WN = 90, WSZ = 360;
+const waterGeo = new THREE.PlaneGeometry(WSZ, WSZ, WN, WN);
+function seaTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#6fb3c4'; g.fillRect(0, 0, 256, 256);
+  let sd = 7; const r = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+  for (let i = 0; i < 90; i++) {
+    const x = r() * 256, y = r() * 256, w = 10 + r() * 26;
+    g.strokeStyle = 'rgba(255,255,255,' + (0.10 + r() * 0.16) + ')'; g.lineWidth = 1 + r() * 1.5;
+    for (const ox of [-256, 0, 256]) for (const oy of [-256, 0, 256]) { g.beginPath(); g.moveTo(x + ox - w, y + oy); g.quadraticCurveTo(x + ox, y + oy - 3, x + ox + w, y + oy); g.stroke(); }
+  }
+  for (let i = 0; i < 70; i++) {
+    const x = r() * 256, y = r() * 256, w = 8 + r() * 20;
+    g.strokeStyle = 'rgba(10,60,80,' + (0.08 + r() * 0.1) + ')'; g.lineWidth = 1.5;
+    for (const ox of [-256, 0, 256]) for (const oy of [-256, 0, 256]) { g.beginPath(); g.moveTo(x + ox - w, y + oy); g.quadraticCurveTo(x + ox, y + oy + 3, x + ox + w, y + oy); g.stroke(); }
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(WSZ / 8, WSZ / 8); return t;
+}
+const seaTex = seaTexture();
+const water = new THREE.Mesh(waterGeo, new THREE.MeshStandardMaterial({ map: seaTex, color: 0x2f8aa0, transparent: true, opacity: 0.80, roughness: 0.35, metalness: 0.0, depthWrite: false }));
+world.add(water);
+// world-fixed marker buoys for a sense of motion
+const buoys = [];
+{
+  const g = new THREE.SphereGeometry(0.28, 10, 8);
+  const m1 = new THREE.MeshStandardMaterial({ color: 0xe8553d, roughness: 0.6 }), m2 = new THREE.MeshStandardMaterial({ color: 0xf4f1e8, roughness: 0.6 });
+  for (let i = 0; i < 44; i++) { const m = new THREE.Mesh(g, i % 3 ? m2 : m1); const a = Math.random() * 6.283, d = 14 + Math.random() * 130; m.position.set(Math.cos(a) * d, Math.sin(a) * d, 0); world.add(m); buoys.push(m); }
+}
+// wake
+const WAKE_N = 420;
+const wakeGeo = new THREE.BufferGeometry(); const wakePos = new Float32Array(WAKE_N * 3); wakeGeo.setAttribute('position', new THREE.BufferAttribute(wakePos, 3)); wakeGeo.setDrawRange(0, 0);
+const wake = new THREE.Line(wakeGeo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 })); wake.frustumCulled = false; world.add(wake);
+let wakeCount = 0, wakeHead = 0, wakeTimer = 0;
+// force arrows
+const ARROWS = {};
+function mkArrow(color) { const a = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), 1, color, 0.35, 0.22); a.visible = false; world.add(a); return a; }
+ARROWS.sail = mkArrow(0xe8553d); ARROWS.lat = mkArrow(0x2f6fd0); ARROWS.buoy = mkArrow(0x1fa36b); ARROWS.weight = mkArrow(0x7a8791);
+
+/* ---------------- geometry builders ---------------- */
+const COL = { hull: [0.95, 0.94, 0.90], deck: [0.80, 0.72, 0.55], anti: [0.15, 0.27, 0.35], sail: [0.97, 0.95, 0.90] };
+function hullGeometry(h, cg) {
+  const NS = 46, NZ = 12;
+  const ring = [{ k: 'bc' }];
+  const hasFloor = h.floor > 0.02;
+  if (hasFloor) ring.push({ k: 's', side: -1, zeta: 0 });
+  for (let j = 1; j <= NZ; j++) ring.push({ k: 's', side: -1, zeta: j / NZ });
+  for (let j = 1; j < 5; j++) ring.push({ k: 'd', f: -1 + 2 * j / 5 });
+  for (let j = NZ; j >= 1; j--) ring.push({ k: 's', side: 1, zeta: j / NZ });
+  if (hasFloor) ring.push({ k: 's', side: 1, zeta: 0 });
+  const NR = ring.length, pos = new Float32Array((NS + 1) * NR * 3 + 6), col = new Float32Array(pos.length);
+  for (let i = 0; i <= NS; i++) {
+    const xi = -Math.cos(Math.PI * i / NS);
+    const x = h.xoff + xi * h.L / 2, bd = halfBeamDeck(h, xi), zb = zBot(h, xi), zd = zDeck(h, xi);
+    for (let r = 0; r < NR; r++) {
+      const it = ring[r]; let p, c;
+      if (it.k === 'bc') { p = [x, h.yoff, zb]; c = COL.anti; }
+      else if (it.k === 's') { p = hullPoint(h, xi, it.zeta, it.side); c = it.zeta < 0.22 ? COL.anti : (it.zeta > 0.97 ? COL.deck : COL.hull); }
+      else { p = [x, h.yoff + it.f * bd, zd]; c = COL.deck; }
+      const o = (i * NR + r) * 3;
+      pos[o] = p[0] - cg[0]; pos[o + 1] = p[1] - cg[1]; pos[o + 2] = p[2] - cg[2];
+      col[o] = c[0]; col[o + 1] = c[1]; col[o + 2] = c[2];
+    }
+  }
+  const idx = [];
+  for (let i = 0; i < NS; i++) for (let r = 0; r < NR; r++) {
+    const a = i * NR + r, b = i * NR + (r + 1) % NR, c2 = (i + 1) * NR + (r + 1) % NR, d = (i + 1) * NR + r;
+    idx.push(a, b, c2, a, c2, d);
+  }
+  // transom + bow caps as fans around the section centroid
+  const capBase = (NS + 1) * NR;
+  for (const [i, ci] of [[0, 0], [NS, 1]]) {
+    let cx = 0, cy = 0, cz = 0;
+    for (let r = 0; r < NR; r++) { const o = (i * NR + r) * 3; cx += pos[o]; cy += pos[o + 1]; cz += pos[o + 2]; }
+    const o = (capBase + ci) * 3; pos[o] = cx / NR; pos[o + 1] = cy / NR; pos[o + 2] = cz / NR;
+    col[o] = COL.hull[0]; col[o + 1] = COL.hull[1]; col[o + 2] = COL.hull[2];
+    for (let r = 0; r < NR; r++) idx.push(capBase + ci, i * NR + r, i * NR + (r + 1) % NR);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.setIndex(idx); g.computeVertexNormals(); return g;
+}
+function foilGeometry(rootC, tipC, span, tr) {
+  // quarter-chord at x=0, leading edge forward (+x); span runs down (-z)
+  const sec = (c, z) => {
+    const t = tr * c;
+    return [[0.25 * c, 0, z], [-0.15 * c, t / 2, z], [-0.75 * c, 0, z], [-0.15 * c, -t / 2, z]];
+  };
+  const a = sec(rootC, 0), b = sec(tipC, -span), pos = [];
+  for (const p of a) pos.push(...p); for (const p of b) pos.push(...p);
+  const idx = [];
+  for (let i = 0; i < 4; i++) { const j = (i + 1) % 4; idx.push(i, j, 4 + j, i, 4 + j, 4 + i); }
+  idx.push(0, 1, 2, 0, 2, 3, 4, 6, 5, 4, 7, 6);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
+}
+function cylZ(r, h, seg) { const g = new THREE.CylinderGeometry(r, r, h, seg || 10); g.rotateX(Math.PI / 2); return g; }   // axis along z
+function cylX(r, h) { const g = new THREE.CylinderGeometry(r, r, h, 8); g.rotateZ(Math.PI / 2); return g; }                // axis along x
+function cylY(r, h) { return new THREE.CylinderGeometry(r, r, h, 8); }
+
+function disposeGroup(g) {
+  g.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && !o.material._shared) { if (Array.isArray(o.material)) o.material.forEach(m => m.dispose()); else o.material.dispose(); } });
+  while (g.children.length) g.remove(g.children[0]);
+}
+const matHull = new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.45, metalness: 0.0 }); matHull._shared = true;
+const matFoil = new THREE.MeshStandardMaterial({ color: 0x33414c, roughness: 0.5, side: THREE.DoubleSide }); matFoil._shared = true;
+const matSpar = new THREE.MeshStandardMaterial({ color: 0xc9ced2, roughness: 0.4, metalness: 0.4 }); matSpar._shared = true;
+const matTramp = new THREE.MeshStandardMaterial({ color: 0x2b3a46, roughness: 0.9, side: THREE.DoubleSide }); matTramp._shared = true;
+
+function buildMeshes() {
+  disposeGroup(boat);
+  MESH = { sails: [], rud: [], crew: null };
+  const cg = B.cg, specs = hullSpecs(P);
+  for (const s of specs) boat.add(new THREE.Mesh(hullGeometry(s, cg), matHull));
+  // foils (positions are body-frame, from the model)
+  for (const f of B.foils) {
+    const rootC = f.chord * 2 / (1 + f.taper), tipC = rootC * f.taper;
+    const m = new THREE.Mesh(foilGeometry(rootC, tipC, f.span, 0.11), matFoil);
+    const grp = new THREE.Group(); grp.position.set(f.x, f.y, f.z); grp.add(m); boat.add(grp);
+    if (f.kind === 'rudder') MESH.rud.push(grp);
+  }
+  // ballast bulb (drawn where the ballast mass actually sits)
+  if (P.ballast > 0 && P.foilType === 'keel') {
+    const vol = P.ballast / 11300, r = Math.max(0.05, Math.cbrt(vol / 8.6));
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(r, 14, 10), matFoil); bulb.scale.set(3.2, 0.8, 0.8);
+    bulb.position.set(P.ballastX - cg[0], -cg[1], -P.ballastDepth - cg[2]); boat.add(bulb);
+  }
+  // platform for multihulls
+  if (P.hullType !== 'mono') {
+    const main = specs[0], yo = Math.abs(specs[specs.length - 1].yoff);
+    const beamXs = [-0.28 * main.L, 0.30 * main.L];
+    for (const bx of beamXs) {
+      const xi = bx / (main.L / 2), z = zDeck(main, xi) - cg[2] + 0.02;
+      const m = new THREE.Mesh(cylY(0.04, yo * 2), matSpar); m.position.set(bx - cg[0], -cg[1], z); boat.add(m);
+    }
+    const tz = zDeck(main, 0) - cg[2] + 0.0, x0 = beamXs[0] - cg[0], x1 = beamXs[1] - cg[0];
+    const addTramp = (ya, yb) => {
+      const w = Math.abs(yb - ya); if (w < 0.05) return;
+      const t = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, w), matTramp); t.position.set((x0 + x1) / 2, (ya + yb) / 2 - cg[1], tz); boat.add(t);
+    };
+    if (P.hullType === 'cat') addTramp(-P.sep / 2 + P.B / 2, P.sep / 2 - P.B / 2);
+    else { addTramp(P.B / 2, P.sep - P.B * P.amaB / 2); addTramp(-P.B / 2, -P.sep + P.B * P.amaB / 2); }
+  }
+  // rig
+  const s0 = B.rig.sails[0], deckZ = s0.pz - P.boomH, mastH = B.mastTopRel - deckZ, mr = 0.025 + 0.004 * s0.H;
+  const mast = new THREE.Mesh(cylZ(mr, mastH, 10), matSpar); mast.position.set(s0.px, s0.py, deckZ + mastH / 2); boat.add(mast);
+  B.rig.sails.forEach((s, si) => {
+    const LV = 11, K = 11, n = LV * K, pos = new Float32Array(n * 3), col = new Float32Array(n * 3), idx = [];
+    for (let l = 0; l < LV - 1; l++) for (let k = 0; k < K - 1; k++) { const a = l * K + k; idx.push(a, a + 1, a + K + 1, a, a + K + 1, a + K); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.setIndex(idx);
+    const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.85, transparent: true, opacity: 0.97 }));
+    mesh.frustumCulled = false; boat.add(mesh);
+    const boom = new THREE.Mesh(cylX(0.022, 1), matSpar); boom.frustumCulled = false; if (s.kind === 'jib') boom.visible = false; boat.add(boom);
+    MESH.sails.push({ s, g, mesh, boom, LV, K, off: si === 0 ? 0 : B.rig.sails[0].N });
+  });
+  if (B.rig.sails[1]) { // forestay
+    const j = B.rig.sails[1], pts = [new THREE.Vector3(s0.px, s0.py, B.mastTopRel), new THREE.Vector3(j.px, j.py, j.pz)];
+    boat.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xdddddd })));
+  }
+  // crew
+  if (P.crewMass > 0) {
+    const grp = new THREE.Group(), jm = new THREE.MeshStandardMaterial({ color: 0xe8553d, roughness: 0.7 });
+    const body = new THREE.Mesh(cylZ(0.16, 0.55, 10), jm); body.position.z = 0.0; grp.add(body);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), new THREE.MeshStandardMaterial({ color: 0xf0c9a4, roughness: 0.8 })); head.position.z = 0.42; grp.add(head);
+    const legs = new THREE.Mesh(cylX(0.08, 0.5), new THREE.MeshStandardMaterial({ color: 0x23323f })); legs.position.set(0.15, 0, -0.32); grp.add(legs);
+    MESH.crew = grp; boat.add(grp);
+  }
+}
+
+/* ---------------- per-frame updates ---------------- */
+const _q = new THREE.Quaternion(), _v3 = new THREE.Vector3();
+function stripLerp(si, h) {
+  const strips = S.sailOut.strips; if (!strips || !strips.length) return null;
+  const sail = MESH.sails[si], N = sail.s.N, t = clampN(h * N - 0.5, 0, N - 1), j0 = Math.min(N - 2, Math.floor(t)), f = t - j0;
+  const a = strips[sail.off + j0], b = strips[sail.off + Math.min(N - 1, j0 + 1)]; if (!a || !b) return null;
+  return { camber: a.camber + (b.camber - a.camber) * f, twist: a.twist + (b.twist - a.twist) * f, alpha: a.alpha + (b.alpha - a.alpha) * f };
+}
+function updateSails() {
+  const sc = Math.sqrt(S.reef), sg = S.sigma;
+  MESH.sails.forEach((m, si) => {
+    const s = m.s, jib = s.kind === 'jib', delta = jib ? clampN(S.delta * 0.78, 4 * D2R, 80 * D2R) : S.delta;
+    const Hs = s.H * sc, Es = s.E * sc, pos = m.g.attributes.position.array, col = m.g.attributes.color.array;
+    for (let l = 0; l < m.LV; l++) {
+      const h = l / (m.LV - 1), ch = Es * ((1 - h) + s.roach * 4 * h * (1 - h));
+      const sh = stripLerp(si, h) || { camber: P.camber, twist: 0, alpha: 0.2 };
+      const phi = delta + sh.twist, cp = Math.cos(phi), sp = Math.sin(phi), z = s.pz + h * Hs;
+      const ex = sh.alpha + 1.8 * sh.camber;           // angle of attack measured from the zero-lift line
+      const stall = smooth01(0.34, 0.46, ex), luff = smooth01(0.06, -0.02, ex);
+      for (let k = 0; k < m.K; k++) {
+        const u = k / (m.K - 1), bulge = 4 * sh.camber * ch * u * (1 - u);
+        const o = (l * m.K + k) * 3;
+        pos[o] = s.px - u * ch * cp + bulge * sp;
+        pos[o + 1] = s.py + sg * (u * ch * sp + bulge * cp);
+        pos[o + 2] = z;
+        const shade = 0.94 + 0.06 * u;
+        col[o] = (COL.sail[0] + (0.95 - COL.sail[0]) * stall + (0.72 - COL.sail[0]) * luff) * shade;
+        col[o + 1] = (COL.sail[1] + (0.50 - COL.sail[1]) * stall + (0.80 - COL.sail[1]) * luff) * shade;
+        col[o + 2] = (COL.sail[2] + (0.45 - COL.sail[2]) * stall + (0.96 - COL.sail[2]) * luff) * shade;
+      }
+    }
+    m.g.attributes.position.needsUpdate = true; m.g.attributes.color.needsUpdate = true; m.g.computeVertexNormals();
+    if (!jib) {
+      m.boom.scale.x = Es; m.boom.position.set(s.px - 0.5 * Es * Math.cos(delta), s.py + sg * 0.5 * Es * Math.sin(delta), s.pz - 0.03);
+      m.boom.rotation.z = Math.atan2(sg * Math.sin(delta), -Math.cos(delta));
+    }
+  });
+}
+function smooth01(a, b, x) { const t = clampN((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
+
+function waveEta(X, Y, t, wv) { return wv ? wv.A * Math.sin(wv.kx * X + wv.ky * Y - wv.w * t) : 0; }
+let waterFrame = 0;
+function updateWater() {
+  const wv = waveParams(env), bx = S ? S.p[0] : 0, by = S ? S.p[1] : 0, t = S ? S.t : 0;
+  water.position.set(bx, by, 0);
+  seaTex.offset.set(bx / 8, by / 8);
+  const p = waterGeo.attributes.position.array;
+  waterFrame++;
+  if (wv) {
+    for (let i = 0; i < p.length; i += 3) p[i + 2] = waveEta(bx + p[i], by + p[i + 1], t, wv);
+    waterGeo.attributes.position.needsUpdate = true;
+    if (waterFrame % 3 === 0) waterGeo.computeVertexNormals();
+    water._flat = false;
+  } else if (!water._flat) {
+    for (let i = 0; i < p.length; i += 3) p[i + 2] = 0; waterGeo.attributes.position.needsUpdate = true; waterGeo.computeVertexNormals(); water._flat = true;
+  }
+  for (const b of buoys) {
+    const dx = b.position.x - bx, dy = b.position.y - by;
+    if (dx * dx + dy * dy > 150 * 150) { const a = Math.atan2(S ? S.v[1] : 0, S ? S.v[0] : 1) + (Math.random() - 0.5) * 2.4, d = 100 + Math.random() * 40; b.position.x = bx + Math.cos(a) * d; b.position.y = by + Math.sin(a) * d; }
+    b.position.z = waveEta(b.position.x, b.position.y, t, wv) + 0.05;
+  }
+}
+function arrow(a, origin, vec, scale) {
+  const len = Math.hypot(vec[0], vec[1], vec[2]) * scale;
+  if (!showForces || len < 0.15) { a.visible = false; return; }
+  a.visible = true; a.position.set(origin[0], origin[1], origin[2]);
+  _v3.set(vec[0], vec[1], vec[2]).normalize(); a.setDirection(_v3); a.setLength(Math.min(len, 12), 0.45, 0.25);
+}
+function updateArrows() {
+  if (!showForces) { for (const k in ARROWS) ARROWS[k].visible = false; return; }
+  const R = S._R, dg = S.diag, W = B.M * GRAV, k = 2.2 / W, p = S.p;
+  const toW = (b) => [R[0] * b[0] + R[1] * b[1] + R[2] * b[2] + p[0], R[3] * b[0] + R[4] * b[1] + R[5] * b[2] + p[1], R[6] * b[0] + R[7] * b[1] + R[8] * b[2] + p[2]];
+  const dirW = (f) => [R[0] * f[0] + R[1] * f[1], R[3] * f[0] + R[4] * f[1], R[6] * f[0] + R[7] * f[1]];
+  const s0 = B.rig.sails[0], sc = Math.sqrt(S ? S.reef : ctl.reef);
+  arrow(ARROWS.sail, toW([s0.px - 0.25 * s0.E * sc, 0, s0.pz + 0.4 * s0.H * sc]), dirW([dg.sailFx || 0, dg.sailFy || 0]), k * 1.0);
+  arrow(ARROWS.lat, toW([0, 0, -0.3]), dirW([dg.latFx || 0, dg.latFy || 0]), k * 1.0);
+  if (dg.cb) arrow(ARROWS.buoy, toW(dg.cb), [0, 0, dg.buoyZ], k * 0.5);
+  arrow(ARROWS.weight, [p[0], p[1], p[2]], [0, 0, -W], k * 0.5);
+}
+
+/* ---------------- camera ---------------- */
+const cam = { az: 2.4, el: 0.42, dist: 14, shift: 0 };
+function fitCamera() {
+  const psi0 = env.dirFrom + ctl.side * ctl.twa * D2R;
+  cam.az = psi0 + Math.PI - 0.75 * (ctl.side > 0 ? 1 : -1); cam.el = 0.38; cam.shift = 0;
+  const ext = Math.max(P.L, P.hullType === 'cat' ? P.sep + P.B : P.hullType === 'tri' ? 2 * P.sep : P.B, B.mastTop || 5);
+  cam.dist = ext * 1.7 + 3;
+}
+function updateCamera() {
+  const tgt = S ? [S.p[0], S.p[1], Math.max(S.p[2], 0) + B.mastTopRel * 0.25] : [0, 0, 1];
+  let az = cam.az;
+  if (viewMode === 'chase' && S) az = (S.yaw || 0) + Math.PI + cam.shift;   // azimuth is in sim frame: behind the boat
+  // sim -> three:  (x, y, z) -> (x, z, -y)
+  // camera offset direction in sim frame, az measured CCW from +x
+  const ce = Math.cos(cam.el), off = [Math.cos(az) * ce * cam.dist, Math.sin(az) * ce * cam.dist, Math.sin(cam.el) * cam.dist];
+  camera.position.set(tgt[0] + off[0], tgt[2] + off[2], -(tgt[1] + off[1]));
+  camera.lookAt(tgt[0], tgt[2], -tgt[1]);
+}
+(function pointerSetup() {
+  const pts = new Map(); let lastD = 0;
+  canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); lastD = 0; });
+  canvas.addEventListener('pointermove', e => {
+    if (!pts.has(e.pointerId)) return;
+    const prev = pts.get(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 1) {
+      const dx = e.clientX - prev[0], dy = e.clientY - prev[1];
+      if (viewMode === 'chase') cam.shift -= dx * 0.006; else cam.az -= dx * 0.006;
+      cam.el = clampN(cam.el + dy * 0.005, 0.03, 1.5);
+    } else if (pts.size === 2) {
+      const a = [...pts.values()], d = Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]);
+      if (lastD > 0) cam.dist = clampN(cam.dist * lastD / d, 3, 120);
+      lastD = d;
+    }
+  });
+  const up = e => { pts.delete(e.pointerId); lastD = 0; };
+  canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+  canvas.addEventListener('wheel', e => { e.preventDefault(); cam.dist = clampN(cam.dist * (1 + Math.sign(e.deltaY) * 0.08), 3, 120); }, { passive: false });
+})();
+
+/* ---------------- HUD, charts, results ---------------- */
+const hud = { spd: $('#h-spd'), heel: $('#h-heel'), lee: $('#h-lee'), awa: $('#h-awa'), aws: $('#h-aws'), reef: $('#h-reef') };
+const compass = $('#wind'), cctx = compass.getContext('2d');
+function cssv(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function drawCompass() {
+  const w = compass.width, c = w / 2, r = c - 6; cctx.clearRect(0, 0, w, w);
+  cctx.fillStyle = 'rgba(8,24,38,0.55)'; cctx.beginPath(); cctx.arc(c, c, c - 1, 0, 6.283); cctx.fill();
+  cctx.strokeStyle = 'rgba(255,255,255,0.35)'; cctx.lineWidth = 1; cctx.beginPath(); cctx.arc(c, c, r, 0, 6.283); cctx.stroke();
+  // boat outline
+  cctx.fillStyle = 'rgba(255,255,255,0.85)'; cctx.beginPath(); cctx.moveTo(c, c - r * 0.55); cctx.quadraticCurveTo(c + r * 0.22, c, c + r * 0.14, c + r * 0.5); cctx.lineTo(c - r * 0.14, c + r * 0.5); cctx.quadraticCurveTo(c - r * 0.22, c, c, c - r * 0.55); cctx.fill();
+  if (!S) return;
+  const arrowTo = (ox, oy, color, len) => { // ox,oy: body-frame direction the wind comes FROM (x fwd, y port)
+    const n = Math.hypot(ox, oy) || 1, ux = -oy / n, uy = -ox / n;   // canvas: right = starboard (-y), up = forward
+    const x0 = c + ux * r * len, y0 = c + uy * r * len, x1 = c + ux * r * 0.18, y1 = c + uy * r * 0.18;
+    cctx.strokeStyle = color; cctx.fillStyle = color; cctx.lineWidth = 2.2; cctx.beginPath(); cctx.moveTo(x0, y0); cctx.lineTo(x1, y1); cctx.stroke();
+    const a = Math.atan2(y1 - y0, x1 - x0); cctx.beginPath(); cctx.moveTo(x1, y1); cctx.lineTo(x1 - 8 * Math.cos(a - 0.45), y1 - 8 * Math.sin(a - 0.45)); cctx.lineTo(x1 - 8 * Math.cos(a + 0.45), y1 - 8 * Math.sin(a + 0.45)); cctx.fill();
+  };
+  const rel = env.dirFrom - S.yaw; arrowTo(Math.cos(rel), Math.sin(rel), '#6ec6ff', 0.98);          // true wind
+  arrowTo(-S.sailOut.awx || 0, -S.sailOut.awy || 0, '#ffc247', 0.8);                               // apparent wind
+}
+function sailInfo() {
+  const el = $('#sailinfo'); if (!el || !S || !S.sailOut.strips || !S.sailOut.strips.length) return;
+  const st = S.sailOut.strips, mid = st[Math.min(3, st.length - 1)], top = st[7] || st[st.length - 1];
+  el.innerHTML = 'Shape now: camber <b>' + fmt(mid.camber * 100, 1) + '%</b> at mid-sail, twist <b>' + fmt(top.twist * R2D, 0) + '\u00b0</b> at the head, dynamic pressure <b>' + fmt(mid.q, 0) + ' Pa</b>, trimmed to <b>' + fmt(S.delta * R2D, 0) + '\u00b0</b>.' + (S.reef < 0.995 ? ' Carrying <b>' + fmt(S.reef * 100, 0) + '%</b> of full sail.' : '');
+}
+function hudUpdate() {
+  sailInfo();
+  if (!S) { hud.spd.textContent = hud.heel.textContent = hud.lee.textContent = hud.awa.textContent = hud.aws.textContent = hud.reef.textContent = '-'; return; }
+  hud.spd.textContent = fmt(S.speed / KN, 1);
+  hud.heel.textContent = fmt(Math.abs(S.roll) * R2D, 0);
+  hud.lee.textContent = fmt(Math.abs(S.leeway) * R2D, 0);
+  hud.awa.textContent = fmt(S.awa * R2D, 0);
+  hud.aws.textContent = fmt(S.aws / KN, 1);
+  hud.reef.textContent = fmt(S.reef * 100, 0);
+}
+function setBanner(kind) {
+  const b = $('#banner');
+  if (!kind) { b.style.display = 'none'; return; }
+  b.style.display = 'flex';
+  if (kind === 'sink') {
+    b.className = 'warn';
+    b.innerHTML = '<span>The hull volume is too small for this weight and it would sink. Enlarge the hull or remove mass.</span>';
+  } else {
+    b.className = 'warn';
+    const what = kind === 'pitchpole' ? 'Pitchpoled' : 'Capsized';
+    b.innerHTML = '<span>' + what + ' at ' + fmt(S.capsizeT, 0) + ' s, apparent gust wind ' + fmt(S.capsizeWind, 0) + ' kn true.</span><button id="bnReset">Reset boat</button>';
+    $('#bnReset').onclick = resetBoat;
+  }
+}
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2200); }
+
+function setupCanvas(cv, h) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2), w = cv.clientWidth || 300;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px';
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); return { g, w, h };
+}
+function drawStabChart() {
+  const cv = $('#chStab'); if (!cv || !stab) return;
+  const { g, w, h } = setupCanvas(cv, 190);
+  const ink = cssv('--ink'), rule = cssv('--rule'), muted = cssv('--muted'), acc = cssv('--accent'), alert = cssv('--alert'), amber = cssv('--amber');
+  const L = 38, Rr = 8, T = 10, Bt = 24, pw = w - L - Rr, ph = h - T - Bt;
+  const XM = 120, nx = Math.round(XM / 5) + 1;
+  const rm = stab.RM.slice(0, nx).map(v => v / 1000), mh = Mh ? Mh.slice(0, nx).map(v => v / 1000) : null;
+  let dynMh = null; if (winds && isFinite(winds.dynamic) && winds.dynamic > 0) dynMh = heelCurve(B, stab, winds.dynamic, env, ctl.reef).slice(0, nx).map(v => v / 1000);
+  let ymax = Math.max(...rm) * 1.25, ymin = Math.min(0, Math.min(...rm)) * 1;
+  if (mh) ymax = Math.max(ymax, Math.max(...mh) * 1.05);
+  if (dynMh) ymax = Math.max(ymax, Math.max(...dynMh) * 1.05);
+  ymax = Math.max(ymax, 0.05); ymin = Math.min(ymin, -ymax * 0.15);
+  const X = d => L + d / XM * pw, Y = v => T + (1 - (v - ymin) / (ymax - ymin)) * ph;
+  g.clearRect(0, 0, w, h); g.font = '11px Barlow, system-ui, sans-serif'; g.fillStyle = muted; g.strokeStyle = rule; g.lineWidth = 1;
+  g.textAlign = 'right';
+  const ticks = 4; for (let i = 0; i <= ticks; i++) { const v = ymin + (ymax - ymin) * i / ticks, y = Y(v); g.beginPath(); g.moveTo(L, y); g.lineTo(L + pw, y); g.globalAlpha = 0.5; g.stroke(); g.globalAlpha = 1; g.fillText(v.toFixed(Math.abs(ymax) < 5 ? 1 : 0), L - 5, y + 4); }
+  g.textAlign = 'center'; for (let d = 0; d <= XM; d += 30) { g.fillText(d + '\u00b0', X(d), h - 8); }
+  g.strokeStyle = ink; g.globalAlpha = 0.5; g.beginPath(); g.moveTo(L, Y(0)); g.lineTo(L + pw, Y(0)); g.stroke(); g.globalAlpha = 1;
+  g.setLineDash([3, 3]); g.strokeStyle = muted; g.beginPath(); g.moveTo(X(75), T); g.lineTo(X(75), T + ph); g.stroke(); g.setLineDash([]);
+  const line = (arr, color, dash, wd) => { g.strokeStyle = color; g.lineWidth = wd || 2; g.setLineDash(dash || []); g.beginPath(); arr.forEach((v, i) => { const x = X(i * 5), y = Y(v); i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); g.setLineDash([]); };
+  if (dynMh) line(dynMh, amber, [5, 4], 1.6);
+  if (mh) line(mh, alert, null, 2);
+  line(rm, acc, null, 2.4);
+}
+function drawLiveChart() {
+  const cv = $('#chLive'); if (!cv) return;
+  const { g, w, h } = setupCanvas(cv, 96);
+  const muted = cssv('--muted'), rule = cssv('--rule'), acc = cssv('--accent'), alert = cssv('--alert');
+  g.clearRect(0, 0, w, h);
+  g.strokeStyle = rule; g.lineWidth = 1; for (let i = 0; i < 4; i++) { const y = 6 + i * (h - 12) / 3; g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.globalAlpha = 0.5; g.stroke(); g.globalAlpha = 1; }
+  if (hist.length < 2) return;
+  const t1 = hist[hist.length - 1].t, t0 = t1 - 40;
+  const smax = Math.max(6, ...hist.map(p => p.spd)) * 1.1, hmax = Math.max(30, ...hist.map(p => p.heel)) * 1.1;
+  const trace = (key, mx, color) => { g.strokeStyle = color; g.lineWidth = 1.8; g.beginPath(); let st = false; for (const p of hist) { if (p.t < t0) continue; const x = (p.t - t0) / 40 * w, y = h - 6 - (p[key] / mx) * (h - 12); st ? g.lineTo(x, y) : g.moveTo(x, y); st = true; } g.stroke(); };
+  trace('spd', smax, acc); trace('heel', hmax, alert);
+  g.fillStyle = muted; g.font = '11px Barlow, system-ui, sans-serif'; g.textAlign = 'left';
+  g.fillStyle = acc; g.fillText('speed, top ' + smax.toFixed(0) + ' kn', 4, 12); g.fillStyle = alert; g.fillText('heel, top ' + hmax.toFixed(0) + '\u00b0', 4, 25);
+}
+function kn1(v) { return (!isFinite(v) || v / KN > 100) ? 'over 100 kn' : (v <= 0 ? 'under 2 kn' : fmt(v / KN, 0) + ' kn'); }
+function renderResults() {
+  const root = $('#resBody'); if (!root) return;
+  if (!B) return;
+  if (B.sinks) { root.innerHTML = '<p class="note">This hull cannot float its own weight. Hull volume is ' + fmt(B.Vhull, 2) + ' m\u00b3 and the boat needs ' + fmt(B.M / 1.025 / 1000, 2) + ' m\u00b3 of displacement.</p>'; return; }
+  const s = B.summary, mono = P.hullType === 'mono';
+  const rows = [
+    ['Displacement', fmt(s.M, 0) + ' kg'], ['Waterline length', fmt(s.Lwl, 2) + ' m'], ['Hull speed, 1.34\u221aL', fmt(s.hullSpeedKn, 1) + ' kn'],
+    ['Draught of hull', fmt(s.draftHull, 2) + ' m'], ['Wetted surface', fmt(s.Sw, 1) + ' m\u00b2'],
+    ['Sail area per displacement', fmt(s.saD, 1)], ['Overall beam', fmt(s.beamOverall, 2) + ' m'], ['Capsize screening factor', fmt(s.csf, 2) + (s.csf < 2 ? ' (under 2.0 is favourable)' : ' (2.0 and over is a warning)')]
+  ];
+  if (mono) rows.splice(5, 0, ['Initial metacentric height', fmt(s.GM, 2) + ' m']);
+  if (stab) { rows.push(['Peak righting moment', fmt(stab.maxRM / 1000, 1) + ' kN\u00b7m at ' + fmt(stab.phiMax, 0) + '\u00b0']); rows.push(['Angle of vanishing stability', stab.avs >= 179 ? 'none found' : fmt(stab.avs, 0) + '\u00b0']); }
+  let html = '<h3>Capsize resistance</h3>';
+  if (winds) {
+    html += '<div class="kv big"><div><b>' + kn1(winds.dynamic) + '</b><small>Sudden gust knocks it down past 75\u00b0</small></div><div><b>' + kn1(winds.steady) + '</b><small>Steady wind gives no equilibrium under 75\u00b0</small></div></div>';
+    html += '<p class="note">Worst case: beam wind, sheet cleated at its worst angle, crew hiking to the limit set under Weights. Dynamic limits depend on how much damping the water gives, so treat them as a guide.</p>';
+  } else html += '<p class="note">Calculating\u2026</p>';
+  html += '<h3>Righting and heeling moments, kN\u00b7m</h3><canvas id="chStab"></canvas>';
+  html += '<div class="legend"><span style="--c:var(--accent)">Righting, hull and crew</span><span style="--c:var(--alert)">Heeling at current wind</span><span style="--c:var(--amber)">Heeling at the gust limit</span></div>';
+  if (stab && Mh) {
+    let eq = null; const f0 = stab.RM[0] - Mh[0];
+    if (f0 >= 0) eq = 0; else for (let i = 1; i < 16; i++) { const f1 = stab.RM[i] - Mh[i]; if (f1 >= 0 && stab.RM[i] > 0) { const pf = stab.RM[i - 1] - Mh[i - 1]; eq = stab.phi[i - 1] + 5 * (-pf) / (f1 - pf); break; } }
+    html += '<p class="note">At ' + fmt(env.tws, 0) + ' kn with the sheet cleated, ' + (eq === null ? '<b>no stable heel angle exists under 75\u00b0</b>, so the boat is knocked down.' : eq === 0 ? 'the crew at full hike can hold the boat <b>upright</b>.' : 'the boat settles at a steady heel of about <b>' + fmt(eq, 0) + '\u00b0</b>.') + '</p>';
+  }
+  html += '<h3>Live run</h3><canvas id="chLive"></canvas>';
+  html += '<h3>Design numbers</h3><div class="kvl">' + rows.map(r => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('') + '</div>';
+  html += '<h3>What this model leaves out</h3><p class="note">Hull drag uses a friction line plus an empirical wave-making curve scaled by slenderness, so results are good for comparing designs and poor for absolute speed. Planing lift, wave slamming, foil ventilation and sail interaction are not modelled. Validate any real design with a tank test or CFD before cutting material.</p>';
+  root.innerHTML = html;
+  drawStabChart(); drawLiveChart();
+}
+
+/* ---------------- analysis (async-ish) ---------------- */
+function analyse() {
+  if (!B || B.sinks) { renderResults(); return; }
+  stab = staticStability(B, ctl);
+  liveAnalysis(false);
+}
+function liveAnalysis(redoStab) {
+  if (!B || B.sinks) return;
+  if (redoStab) stab = staticStability(B, ctl);
+  if (!stab) return;
+  Mh = heelCurve(B, stab, env.tws * KN, env, ctl.reef);
+  winds = capsizeWinds(B, stab, env, ctl.reef);
+  if (activeTab === 'res') renderResults();
+}
+
+/* ---------------- sim control ---------------- */
+let rebuildTimer = 0;
+function scheduleRebuild() { clearTimeout(rebuildTimer); rebuildTimer = setTimeout(() => rebuild(false), 130); }
+function rebuild(fit) {
+  B = buildBoat(P);
+  buildMeshes();
+  if (fit) fitCamera();
+  if (B.sinks) { S = null; setBanner('sink'); }
+  else { S = createState(B, env, ctl); setBanner(null); }
+  hist.length = 0; acc = 0; wakeCount = 0; wakeHead = 0; wakeGeo.setDrawRange(0, 0);
+  winds = null; stab = null; Mh = null;
+  clearTimeout(analyse._t); analyse._t = setTimeout(analyse, 25);
+  if (activeTab === 'res') renderResults();
+}
+function resetBoat() {
+  if (!B || B.sinks) return;
+  env.gustT0 = -100; env.ou = 0; env.ouDir = 0;
+  S = createState(B, env, ctl); setBanner(null); hist.length = 0; wakeCount = 0; wakeHead = 0; wakeGeo.setDrawRange(0, 0); acc = 0;
+}
+function loadPreset(key) {
+  P = JSON.parse(JSON.stringify(PRESETS[key])); ctl = makeCtl(P); env = makeEnv(P._env.tws);
+  tune.startP = null; tune.climber = null; tune.running = false; tune.dirty = true; tune.log = []; if ($('#tGo')) $('#tGo').textContent = 'Start tuning';
+  document.querySelectorAll('.preset').forEach(b => b.classList.toggle('on', b.dataset.key === key));
+  syncControls(); rebuild(true);
+}
+
+/* ---------------- tuning tab: live hill climbing ---------------- */
+let ramping = false, rampSync = 0;
+const TUNE_CTL = ['reef', 'hike', 'alphaOpt', 'easeHeel'];
+const DEFAULT_FREE = ['P.B', 'P.bowN', 'P.sternN', 'P.bilge', 'P.rocker', 'P.foilChord', 'P.foilSpan', 'P.foilX', 'P.sailArea', 'P.sailAR', 'P.mastX', 'P.camber'];
+const HEEL_DEFAULT = { speed: 30, vmg: 30, cruiser: 12 };
+const tune = { goal: 'speed', heelLim: 30, radius: 0.35, link: true, budget: 12, free: {}, running: false, climber: null,
+  startP: null, startCtl: null, dirty: true, pending: false, lastApply: 0, log: [], uiT: 0 };
+DEFAULT_FREE.forEach((k) => { tune.free[k] = true; });
+
+function tunables() {
+  const out = [];
+  for (const t of TABS) {
+    if (t.custom) continue;
+    let grp = t.label;
+    for (const r of t.rows) {
+      if (r.h) { grp = r.h; continue; }
+      if (!r.k || !(r.src === 'P' || (r.src === 'ctl' && TUNE_CTL.indexOf(r.k) >= 0))) continue;
+      out.push({ key: r.src + '.' + r.k, k: r.k, src: r.src, label: r.label, u: r.u, scale: r.scale, min: r.min, max: r.max, step: r.step, group: t.label + ': ' + grp, show: r.show });
+    }
+  }
+  return out;
+}
+const visibleTunables = () => tunables().filter((t) => !t.show || t.show());
+const tv = (t) => (t.src === 'ctl' ? ctl : P)[t.k];
+function tfmt(t, v) { const sc = t.scale || 1; const d = sc >= 100 ? 0 : decimals(t.step); return fmt(v * sc, d) + (t.u ? ' ' + t.u : ''); }
+
+function renderTune() {
+  const root = $('#tuneBody'); if (!root) return;
+  const vis = visibleTunables();
+  const groups = []; const gi = {};
+  for (const t of vis) { if (!(t.group in gi)) { gi[t.group] = groups.length; groups.push({ name: t.group, items: [] }); } groups[gi[t.group]].items.push(t); }
+  let h = '<h3>Goal</h3>';
+  h += '<label class="row sel"><span class="nm">Design for</span><select id="tGoal">' + Object.keys(GOALS).map((k) => '<option value="' + k + '"' + (k === tune.goal ? ' selected' : '') + '>' + GOALS[k].label + '</option>').join('') + '</select></label>';
+  h += '<div class="live" id="tBlurb"></div>';
+  h += '<div class="tbtns"><button class="btn on" id="tGo">Start tuning</button><button class="btn" id="tBack">Back to the starting design</button></div>';
+  h += '<h3>Progress</h3><div class="kv big"><div><b id="tScore">-</b><small id="tScoreSub">best score so far</small></div><div><b id="tIter">0</b><small id="tIterSub">boats tried</small></div></div>';
+  h += '<div style="padding:0 14px"><canvas id="chTune"></canvas><div class="legend"><span style="--c:var(--accent)">Best so far</span><span style="--c:var(--muted)">Each boat tried</span></div></div>';
+  h += '<div class="live" id="tLog">Nothing yet. Press Start tuning.</div>';
+  h += '<div class="kvl" id="tParts" style="padding:4px 14px 0"></div>';
+  h += '<h3>Search settings</h3>';
+  h += '<label class="row"><div class="top"><span class="nm" id="tHeelNm"></span><output id="tHeelOut"></output></div><input type="range" id="tHeel" min="5" max="45" step="1"></label>';
+  h += '<label class="row"><div class="top"><span class="nm">How far a setting may stray from where it started</span><output id="tRadOut"></output></div><input type="range" id="tRad" min="5" max="100" step="5"><small>As a share of its starting value</small></label>';
+  h += '<label class="row sel"><span class="nm">Optimizer speed</span><select id="tSpd"><option value="5">Gentle, smooth boat</option><option value="12">Balanced</option><option value="30">Fast, boat may stutter</option></select></label>';
+  h += '<label class="row tog"><input type="checkbox" id="tLink"><span class="nm">Hull and rig weight follow their size<br><small style="display:inline">Stops the search from winning by building a lighter boat for free</small></span></label>';
+  h += '<h3>What can change</h3><p class="note" style="padding:0 14px">Ticked settings are free to move. Unticked ones stay exactly where they are.</p>';
+  groups.forEach((g, i) => {
+    h += '<div class="grp"><b>' + g.name + '</b><span><button class="mini" data-act="all" data-g="' + i + '">all</button> <button class="mini" data-act="none" data-g="' + i + '">none</button></span></div>';
+    for (const t of g.items) h += '<label class="tr"><input type="checkbox" data-key="' + t.key + '"' + (tune.free[t.key] ? ' checked' : '') + '><span class="nm">' + t.label + '</span><output data-v="' + t.key + '">' + tfmt(t, tv(t)) + '</output></label>';
+  });
+  h += '<h3>Save or load this design</h3><textarea class="tj" id="tJson" spellcheck="false" aria-label="Design as text"></textarea>';
+  h += '<div class="tbtns"><button class="btn" id="tCopy">Copy design text</button><button class="btn" id="tLoad">Load from text</button></div><div class="note" id="tMsg" style="padding:0 14px"></div>';
+  root.innerHTML = h;
+  root._groups = groups;
+  $('#tHeel').value = tune.heelLim; $('#tRad').value = Math.round(tune.radius * 100); $('#tSpd').value = String(tune.budget); $('#tLink').checked = tune.link;
+  $('#tJson').value = exportDesign();
+  tuneLabels();
+  root.onchange = (e) => {
+    const t = e.target;
+    if (t.dataset && t.dataset.key) { tune.free[t.dataset.key] = t.checked; tune.dirty = true; }
+    else if (t.id === 'tGoal') { tune.goal = t.value; tune.heelLim = HEEL_DEFAULT[t.value]; $('#tHeel').value = tune.heelLim; tune.dirty = true; tuneLabels(); }
+    else if (t.id === 'tSpd') tune.budget = parseFloat(t.value);
+    else if (t.id === 'tLink') { tune.link = t.checked; tune.dirty = true; }
+  };
+  root.oninput = (e) => {
+    const t = e.target;
+    if (t.id === 'tHeel') { tune.heelLim = parseFloat(t.value); tune.dirty = true; tuneLabels(); }
+    else if (t.id === 'tRad') { tune.radius = parseFloat(t.value) / 100; tune.dirty = true; tuneLabels(); }
+  };
+  root.onclick = (e) => {
+    const t = e.target;
+    if (t.dataset && t.dataset.act) {
+      const g = root._groups[parseInt(t.dataset.g, 10)], on = t.dataset.act === 'all';
+      for (const it of g.items) tune.free[it.key] = on;
+      root.querySelectorAll('input[data-key]').forEach((c) => { c.checked = !!tune.free[c.dataset.key]; });
+      tune.dirty = true;
+    } else if (t.id === 'tGo') toggleTune();
+    else if (t.id === 'tBack') revertTune();
+    else if (t.id === 'tCopy') { const ta = $('#tJson'); ta.value = exportDesign(); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (er) { /* ignore */ } $('#tMsg').textContent = ok ? 'Copied.' : 'Select the text and copy it.'; }
+    else if (t.id === 'tLoad') { try { importDesign($('#tJson').value); $('#tMsg').textContent = 'Loaded.'; } catch (er) { $('#tMsg').textContent = 'That text is not a saved design.'; } }
+  };
+  updateTuneProgress();
+}
+function tuneLabels() {
+  const g = GOALS[tune.goal];
+  $('#tBlurb').innerHTML = g.blurb + '<br>Tested at <b>' + fmt(env.tws, 0) + ' kn</b> true wind, <b>' + fmt(ctl.twa, 0) + '\u00b0</b> off the wind, <b>' + (tune.goal === 'cruiser' && env.waveH < 0.15 ? '0.4 m' : fmt(env.waveH, 1) + ' m') + '</b> waves, with a gust near the end. Change the wind and angle on the Sea tab.';
+  $('#tHeelNm').textContent = tune.goal === 'cruiser' ? 'Heel the crew finds comfortable' : 'Heel allowed before points come off';
+  $('#tHeelOut').textContent = fmt(tune.heelLim, 0) + '\u00b0';
+  $('#tRadOut').textContent = fmt(tune.radius * 100, 0) + '%';
+}
+function exportDesign() {
+  return JSON.stringify({ app: 'hullform', P: cloneJSON(P), ctl: cloneJSON(ctl), env: { tws: env.tws, gustInt: env.gustInt, gustSize: env.gustSize, shear: env.shear, waveH: env.waveH, waveT: env.waveT } }, null, 1);
+}
+function importDesign(txt) {
+  const o = JSON.parse(txt); if (!o || !o.P || typeof o.P.L !== 'number') throw new Error('bad');
+  const merged = Object.assign(cloneJSON(PRESETS.dinghy), o.P);
+  for (const k of Object.keys(merged)) P[k] = merged[k];
+  if (o.ctl) Object.assign(ctl, o.ctl); if (o.env) Object.assign(env, o.env);
+  tune.startP = null; tune.climber = null; tune.running = false; tune.dirty = true;
+  syncControls(); rebuild(true); if ($('#tGo')) $('#tGo').textContent = 'Start tuning';
+}
+function toggleTune() {
+  if (tune.running) { tune.running = false; $('#tGo').textContent = 'Resume tuning'; return; }
+  if (!B || B.sinks) { toast('This hull would sink. Fix that first.'); return; }
+  const vis = visibleTunables();
+  if (!vis.some((t) => tune.free[t.key])) { toast('Tick at least one setting under What can change.'); return; }
+  if (!tune.startP) { tune.startP = cloneJSON(P); tune.startCtl = {}; TUNE_CTL.forEach((k) => { tune.startCtl[k] = ctl[k]; }); }
+  if (tune.dirty || !tune.climber || tune.climber.converged) {
+    const envC = cloneJSON(env); if (tune.goal === 'cruiser' && envC.waveH < 0.15) envC.waveH = 0.4;
+    tune.climber = makeClimber({ P: cloneJSON(P), ctl: cloneJSON(ctl), env: envC, goal: tune.goal, gcfg: { heelLim: tune.heelLim, dt: 1 / 120 },
+      tunables: vis, free: tune.free, radius: tune.radius, link: tune.link, seed: (Math.random() * 1e9) | 0 });
+    tune.dirty = false; tune.log = []; tune.pending = false;
+  }
+  tune.running = true; $('#tGo').textContent = 'Pause tuning';
+}
+function revertTune() {
+  if (!tune.startP) { toast('Nothing to go back to yet.'); return; }
+  for (const k of Object.keys(P)) delete P[k];
+  Object.assign(P, cloneJSON(tune.startP));
+  TUNE_CTL.forEach((k) => { ctl[k] = tune.startCtl[k]; });
+  tune.running = false; tune.climber = null; tune.dirty = true; tune.pending = false; tune.log = [];
+  syncControls(); rebuild(false); renderTune(); toast('Back to the design you started from.');
+}
+function applyBest() {
+  const C = tune.climber; if (!C) return;
+  Object.assign(P, cloneJSON(C.bestP));
+  TUNE_CTL.forEach((k) => { ctl[k] = C.bestCtl[k]; });
+  syncControls();
+  document.querySelectorAll('output[data-v]').forEach((o) => { const t = tunables().find((x) => x.key === o.dataset.v); if (t) o.textContent = tfmt(t, tv(t)); });
+  rebuild(false);
+}
+function fmtChange(c) {
+  const sc = c.scale || 1; const d = Math.abs(c.to * sc) >= 100 ? 0 : 2;
+  return c.label.toLowerCase() + ' ' + fmt(c.from * sc, d) + ' to ' + fmt(c.to * sc, d) + (c.u ? ' ' + c.u : '');
+}
+function onTuneEvent(e) {
+  if (e.type === 'baseline') tune.log.unshift('The starting design scores ' + fmt(e.score, 2) + '.');
+  else if (e.type === 'accept') { tune.log.unshift('Better by ' + fmt(e.gain, 2) + ': ' + e.changes.map(fmtChange).join(', ') + '.'); tune.pending = true; }
+  else if (e.type === 'kick') tune.log.unshift('Stuck for a while. Trying bigger changes.');
+  else if (e.type === 'converged') { tune.running = false; tune.log.unshift('No further improvement found. Free more settings or widen the search range to keep going.'); const b = $('#tGo'); if (b) b.textContent = 'Start tuning'; toast('Tuning finished: nothing better found'); }
+  if (tune.log.length > 7) tune.log.length = 7;
+  updateTuneProgress();
+}
+function partsHtml(p) {
+  if (!p) return '';
+  const rows = [];
+  if (p.terms) p.terms.forEach((t) => { if (Math.abs(t[1]) > 0.005 || t[0].indexOf('Speed') === 0 || t[0] === 'Progress') rows.push([t[0], (t[1] >= 0 ? '+' : '') + fmt(t[1], 2)]); });
+  rows.push(['Boat speed', fmt(p.spd, 1) + ' kn'], ['Average heel', fmt(p.heel, 0) + '\u00b0'], ['Peak heel in the gust', fmt(p.peak, 0) + '\u00b0'], ['Leeway', fmt(p.lee, 1) + '\u00b0']);
+  if (tune.goal === 'cruiser') rows.push(['Roll and pitch motion', fmt(p.rr, 1) + ' and ' + fmt(p.pr, 1) + '\u00b0/s']);
+  return '<div style="padding:2px 0 6px;font-size:13px;color:var(--muted)">Score breakdown of the best boat</div>' + rows.map((r) => '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>').join('');
+}
+function updateTuneProgress() {
+  const C = tune.climber; if (!$('#tScore')) return;
+  if (!C) { $('#tScore').textContent = '-'; $('#tIter').textContent = '0'; drawTuneChart(); return; }
+  $('#tScore').textContent = isFinite(C.bestScore) ? fmt(C.bestScore, 2) : 'testing';
+  $('#tScoreSub').textContent = C.startScore === null ? 'scoring the starting design' : 'best score, started at ' + fmt(C.startScore, 2);
+  $('#tIter').textContent = String(C.iter); $('#tIterSub').textContent = 'boats tried, ' + C.accepts + ' kept' + (C.converged ? ', finished' : (tune.running ? ', running' : ', paused'));
+  if (tune.log.length) $('#tLog').innerHTML = tune.log.map((l) => '<div>' + l + '</div>').join('');
+  $('#tParts').innerHTML = partsHtml(C.bestParts);
+  drawTuneChart();
+}
+function drawTuneChart() {
+  const cv = $('#chTune'); if (!cv) return;
+  const { g, w, h } = setupCanvas(cv, 120);
+  const muted = cssv('--muted'), rule = cssv('--rule'), acc = cssv('--accent');
+  g.clearRect(0, 0, w, h);
+  const C = tune.climber, H = C ? C.hist : [];
+  g.strokeStyle = rule; g.lineWidth = 1; g.globalAlpha = 0.5;
+  for (let i = 0; i < 4; i++) { const y = 8 + i * (h - 16) / 3; g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+  g.globalAlpha = 1;
+  if (H.length < 2) { g.fillStyle = muted; g.font = '12px Barlow, system-ui, sans-serif'; g.fillText('Scores appear here as boats are tried', 8, h / 2); return; }
+  let lo = Infinity, hi = -Infinity; for (const p of H) { lo = Math.min(lo, p.b); hi = Math.max(hi, p.b); }
+  const span = Math.max(1, hi - lo); lo -= 0.25 * span; hi += 0.15 * span;
+  const X = (i) => 6 + i / Math.max(10, H[H.length - 1].i) * (w - 12), Y = (v) => 8 + (1 - (Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo)) * (h - 16);
+  g.fillStyle = muted; g.globalAlpha = 0.45; for (const p of H) { if (p.ok) continue; g.beginPath(); g.arc(X(p.i), Y(p.s), 2, 0, 7); g.fill(); } g.globalAlpha = 1;
+  g.strokeStyle = acc; g.lineWidth = 2; g.beginPath(); H.forEach((p, k) => { const x = X(p.i), y = Y(p.b); if (k === 0) g.moveTo(x, y); else { g.lineTo(x, Y(H[k - 1].b)); g.lineTo(x, y); } }); g.stroke();
+  g.fillStyle = acc; for (const p of H) { if (p.ok && p.i > 0) { g.beginPath(); g.arc(X(p.i), Y(p.b), 3, 0, 7); g.fill(); } }
+}
+function tuneTick(dt) {
+  if (!tune.running || !tune.climber) return;
+  const e = tune.climber.tick(tune.budget);
+  if (e) onTuneEvent(e);
+  const now = performance.now();
+  if (tune.pending && now - tune.lastApply > 1400) { tune.pending = false; tune.lastApply = now; applyBest(); }
+  tune.uiT += dt; if (tune.uiT > 0.4) { tune.uiT = 0; updateTuneProgress(); }
+}
+
+/* ---------------- main loop ---------------- */
+let last = performance.now(), hudT = 0, histT = 0, chartT = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dtReal = Math.min(0.05, (now - last) / 1000); last = now;
+  try {
+    if (S && !paused) {
+      acc += dtReal * timeScale; const dt = 1 / 240; let n = 0;
+      while (acc >= dt && n < 60) { stepSim(S, B, env, ctl, dt); acc -= dt; n++; if (S.failed) break; }
+      if (n >= 60) acc = 0;
+      if (ramping && S && !S.capsized) { env.tws = Math.min(60, env.tws + 0.3 * n * dt); rampSync += dtReal; if (rampSync > 0.5) { rampSync = 0; syncControls(); } }
+      if (ramping && S && S.capsized) { ramping = false; $('#bRamp').classList.remove('on'); syncControls(); liveAnalysis(false); }
+      if (S.failed) { paused = true; $('#bPause').textContent = 'Run'; toast('The solver diverged. Reset the boat or soften the design.'); }
+      if (S.capsized && !S._shown) { S._shown = true; setBanner(S.capsizeKind); }
+      histT += dtReal; if (histT > 0.2) { histT = 0; hist.push({ t: S.t, spd: S.speed / KN, heel: Math.abs(S.roll) * R2D }); if (hist.length > 400) hist.shift(); }
+      wakeTimer += dtReal * timeScale; if (wakeTimer > 0.12) { wakeTimer = 0; wakePos[wakeHead * 3] = S.p[0]; wakePos[wakeHead * 3 + 1] = S.p[1]; wakePos[wakeHead * 3 + 2] = 0.04; wakeHead = (wakeHead + 1) % WAKE_N; wakeCount = Math.min(WAKE_N, wakeCount + 1); }
+    }
+    if (S) {
+      boat.position.set(S.p[0], S.p[1], S.p[2]); boat.quaternion.set(S.q[1], S.q[2], S.q[3], S.q[0]);
+      for (const r of MESH.rud) r.rotation.z = -S.rud;
+      updateSails();
+      if (MESH.crew) { const reach = B.hikeReach, f = clampN(S.crewY / reach, -1, 1); MESH.crew.position.set(P.crewX - B.cg[0], S.crewY - B.cg[1], P.crewZ - B.cg[2]); MESH.crew.rotation.x = -f * 0.95; }
+      updateArrows();
+    } else { boat.position.set(0, 0, 0); boat.quaternion.set(0, 0, 0, 1); }
+    updateWater();
+    // wake draw: reorder ring buffer as a single strip
+    if (wakeCount > 1) {
+      if (wakeCount === WAKE_N && wakeHead !== 0) { const tmp = wakePos.slice(); const n3 = WAKE_N * 3, h3 = wakeHead * 3; wakePos.set(tmp.subarray(h3, n3), 0); wakePos.set(tmp.subarray(0, h3), n3 - h3); wakeHead = 0; wakeCount = WAKE_N; }
+      wakeGeo.setDrawRange(0, wakeCount); wakeGeo.attributes.position.needsUpdate = true;
+    }
+    hudT += dtReal; if (hudT > 0.1) { hudT = 0; hudUpdate(); drawCompass(); }
+    chartT += dtReal; if (chartT > 0.4 && activeTab === 'res' && $('#panel').classList.contains('open')) { chartT = 0; drawLiveChart(); }
+    tuneTick(dtReal);
+    updateCamera();
+    renderer.render(scene, camera);
+  } catch (e) { fail('Render error: ' + e.message); console.error(e); }
+}
+function applyViewOffset() {
+  const w = window.innerWidth, h = window.innerHeight, open = $('#panel').classList.contains('open');
+  if (w >= 900) camera.setViewOffset(w, h, 196, 0, w, h);
+  else if (open) camera.setViewOffset(w, h, 0, h * 0.22, w, h);
+  else camera.clearViewOffset();
+}
+function resize() { const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; applyViewOffset(); camera.updateProjectionMatrix(); if (activeTab === 'res') { drawStabChart(); drawLiveChart(); } }
+window.addEventListener('resize', resize);
+
+/* ---------------- buttons and chrome ---------------- */
+function togglePanel(open) {
+  const p = $('#panel'); const o = open === undefined ? !p.classList.contains('open') : open;
+  p.classList.toggle('open', o); $('#grip').setAttribute('aria-expanded', o);
+  document.documentElement.style.setProperty('--sheet', window.innerWidth >= 900 ? '0px' : (o ? '46vh' : '58px'));
+  applyViewOffset(); camera.updateProjectionMatrix();
+  setTimeout(() => { if (activeTab === 'res') { drawStabChart(); drawLiveChart(); } }, 260);
+}
+function wireButtons() {
+  $('#bPause').onclick = () => { paused = !paused; $('#bPause').textContent = paused ? 'Run' : 'Pause'; };
+  $('#bReset').onclick = resetBoat;
+  $('#bGust').onclick = () => { if (S) { env.gustT0 = S.t; toast('Gust incoming, +' + Math.round(env.gustSize * 100) + '% for about 9 s'); } };
+  $('#bTack').onclick = () => { if (!ctl.auto) { toast('Switch the autopilot on in the Sea tab to tack.'); return; } ctl.side = -ctl.side; toast(ctl.side > 0 ? 'Starboard tack' : 'Port tack'); };
+  $('#bDump').onclick = () => { ctl.release = !ctl.release; $('#bDump').classList.toggle('on', ctl.release); $('#bDump').textContent = ctl.release ? 'Sheet in' : 'Dump sheet'; };
+  $('#bForce').onclick = () => { showForces = !showForces; $('#bForce').classList.toggle('on', showForces); };
+  $('#bView').onclick = () => { viewMode = viewMode === 'orbit' ? 'chase' : 'orbit'; cam.shift = 0; $('#bView').textContent = viewMode === 'orbit' ? 'View: orbit' : 'View: chase'; };
+  $('#bSpeed').onclick = () => { const v = [1, 2, 4, 0.5]; timeScale = v[(v.indexOf(timeScale) + 1) % v.length]; $('#bSpeed').textContent = timeScale + '\u00d7'; };
+  $('#grip').onclick = () => togglePanel();
+  $('#bRamp').onclick = () => { ramping = !ramping; $('#bRamp').classList.toggle('on', ramping); if (ramping) { if (S && S.capsized) resetBoat(); toast('Wind rises 0.3 kn every second until the boat goes over'); } };
+  const pr = $('#presets'); pr.innerHTML = '';
+  for (const k of Object.keys(PRESETS)) { const b = mk('button', 'preset', PRESETS[k].label); b.dataset.key = k; b.onclick = () => loadPreset(k); pr.appendChild(b); }
+}
+
+/* ---------------- start ---------------- */
+try {
+  P = JSON.parse(JSON.stringify(PRESETS.dinghy)); ctl = makeCtl(P); env = makeEnv(P._env.tws);
+  buildPanel(); wireButtons();
+  document.querySelector('.preset[data-key="dinghy"]').classList.add('on');
+  syncControls(); resize();
+  togglePanel(window.innerWidth >= 900);
+  rebuild(true);
+  requestAnimationFrame(frame);
+} catch (e) { fail('Startup error: ' + e.message); console.error(e); }
+})();
+
+</script>
+</body>
+</html>

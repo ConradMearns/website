@@ -18,12 +18,23 @@
     </header>
 
     <div class="stage">
-        <main class="notes" data-single>
+        <main class="notes">
             <h1>Vintage Story: Ore Survey</h1>
             <section data-view="vintage-ore-survey/index.html" data-label="Prospecting research">
                 <p>Every ore block in several generated Vintage Story worlds, the density readings a player would get over them, and tens of thousands of simulated vertical shafts per strategy. The simulated player only knows what the game tells them. About 5 MB of data loads alongside the page.</p>
                 <p class="who">Last updated 2026-09-28 22:24 UTC · Claude Code · Opus 5.5 and Sonnet 5.5 · medium effort</p>
                 <p><small>Session totals, not this page alone: $20.46 in the main Opus 5.5 session (304,690 output tokens), and $41.21 in the fork that first published it (Opus 5.5 $17.90, Sonnet 5.5 $23.31; about 517,000 output tokens). The two share history, so don’t add them.</small></p>
+            </section>
+            <section data-view="vintage-ore-survey/anim-opus/index.html" data-label="Animation: Opus">
+                <h2>Three animations</h2>
+                <p>I asked Claude Opus and Claude Sonnet for the same thing, a p5.js animation of the finished guide, then had Sonnet read both and merge them. They tell the same eight-step story and disagree about almost everything else. Space pauses any of them; the left and right arrows change scene.</p>
+                <p><b>Opus.</b> Compact and game-styled, loops on its own, and the best closing card. Counts are approximated in 2D.</p>
+            </section>
+            <section data-view="vintage-ore-survey/anim-sonnet/index.html" data-label="Animation: Sonnet">
+                <p><b>Sonnet.</b> Everything computed from the game’s rules, with a scrubber and a live durability ledger. Longer and denser.</p>
+            </section>
+            <section data-view="vintage-ore-survey/anim-sonnet-fixed/index.html" data-label="Animation: Merged">
+                <p><b>Merged.</b> Sonnet’s core plus Opus’s labelled edge rule, a patch filled with shafts, and a “what loses ore” recipe card.</p>
             </section>
         </main>
 
