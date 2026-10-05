@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kOS 02 · Functions &amp; the Pitch Program</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;1,400;1,500&family=Saira+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --vac:#0B1020; --panel:#141B2E; --panel2:#1B2440; --rule:#26324F;
+  --ink:#DDE5F4; --dim:#8A99B8; --burn:#FF6B35; --trace:#5FD3F3; --go:#7DDC8F;
+  --rail:150px;
+}
+*{box-sizing:border-box}
+svg{height:auto; max-width:100%}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--vac); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:16.5px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:radial-gradient(1100px 700px at 78% -8%, rgba(255,107,53,.09), transparent 60%),
+             radial-gradient(900px 800px at 0% 100%, rgba(95,211,243,.055), transparent 62%);
+}
+.wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:0 22px 120px}
+.rail{
+  position:fixed; left:max(18px, calc(50vw - 590px + 4px)); top:0; height:100vh; width:var(--rail);
+  display:none; flex-direction:column; justify-content:center; gap:0; z-index:5; pointer-events:none;
+}
+.rail .spine{position:absolute; left:11px; top:14%; bottom:14%; width:1px; background:linear-gradient(180deg,transparent,var(--rule) 12%,var(--rule) 88%,transparent)}
+.rail .marker{
+  position:absolute; left:4px; width:15px; height:15px; border:1px solid var(--burn);
+  background:var(--vac); transform:rotate(45deg); transition:top .25s cubic-bezier(.4,0,.2,1);
+}
+.rail .marker::after{content:""; position:absolute; inset:3px; background:var(--burn)}
+.tick{
+  position:relative; padding:11px 0 11px 30px; pointer-events:auto; display:block;
+  text-decoration:none; color:var(--dim); font-family:"Saira Condensed",sans-serif;
+  font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; line-height:1.25;
+}
+.tick::before{content:""; position:absolute; left:6px; top:calc(50% - 1px); width:11px; height:1px; background:var(--rule)}
+.tick:hover{color:var(--ink)}
+.tick.on{color:var(--burn)}
+.tick.on::before{background:var(--burn); width:15px; left:4px}
+.tick .alt{display:block; font-size:10.5px; color:#5D6B8A; letter-spacing:.1em}
+@media(min-width:1040px){ .rail{display:flex} .wrap{padding-left:calc(var(--rail) + 40px)} }
+.topbar{position:fixed; top:0; left:0; height:2px; background:var(--burn); width:0; z-index:9}
+@media(min-width:1040px){ .topbar{display:none} }
+header.mast{padding:74px 0 30px; border-bottom:1px solid var(--rule)}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.24em;
+  text-transform:uppercase; color:var(--burn); margin:0 0 16px;
+}
+.eyebrow span{color:var(--dim)}
+h1{
+  font-family:"Saira Condensed",sans-serif; font-weight:700; font-size:clamp(40px,7.5vw,74px);
+  line-height:.94; letter-spacing:-.005em; text-transform:uppercase; margin:0 0 18px; max-width:15ch;
+}
+h1 em{font-style:normal; color:var(--burn)}
+.objective{font-size:18.5px; color:var(--dim); max-width:60ch; margin:0}
+.objective strong{color:var(--ink); font-weight:500}
+.mastgrid{display:grid; gap:36px; grid-template-columns:1fr; align-items:end}
+@media(min-width:820px){ .mastgrid{grid-template-columns:1.35fr .8fr} }
+.profile{border:1px solid var(--rule); background:var(--panel); padding:14px}
+.profile figcaption{
+  font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--dim); margin-top:9px;
+}
+section{padding:58px 0; border-bottom:1px solid var(--rule)}
+.shead{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:8px}
+.evt{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--vac); background:var(--trace); padding:3px 8px 2px; white-space:nowrap;
+}
+.evt.b{background:var(--burn)}
+.evt.g{background:var(--go)}
+h2{
+  font-family:"Saira Condensed",sans-serif; font-weight:600; font-size:clamp(27px,4vw,38px);
+  text-transform:uppercase; letter-spacing:.01em; margin:0; line-height:1.05;
+}
+h3{
+  font-family:"Saira Condensed",sans-serif; font-weight:600; font-size:20px; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--trace); margin:36px 0 12px;
+}
+p{max-width:70ch}
+.lede{color:var(--dim); max-width:68ch; margin:14px 0 0; font-size:17px}
+strong{font-weight:600}
+code{
+  font-family:"IBM Plex Mono",monospace; font-size:.885em; background:var(--panel2);
+  border:1px solid var(--rule); padding:1px 5px; color:var(--trace); white-space:nowrap;
+}
+.ref{border:1px solid var(--rule); margin:22px 0 0}
+.refrow{display:grid; grid-template-columns:1fr; gap:2px 22px; padding:11px 15px; border-bottom:1px solid var(--rule)}
+.refrow:last-child{border-bottom:0}
+.refrow:nth-child(odd){background:rgba(27,36,64,.42)}
+@media(min-width:700px){ .refrow{grid-template-columns:minmax(200px,.9fr) 1.5fr; align-items:baseline} }
+.refrow b{font-family:"IBM Plex Mono",monospace; font-weight:500; font-size:13.5px; color:var(--trace)}
+.refrow span{color:var(--dim); font-size:14.5px}
+.refgroup{
+  font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.16em;
+  font-size:12px; color:var(--burn); padding:14px 15px 6px; background:var(--panel);
+  border-bottom:1px solid var(--rule);
+}
+.code{position:relative; margin:18px 0; border:1px solid var(--rule); background:#0E1425}
+.code .bar{
+  display:flex; justify-content:space-between; align-items:center; gap:12px;
+  padding:7px 11px 6px; border-bottom:1px solid var(--rule); background:var(--panel);
+}
+.code .name{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim)}
+.code pre{margin:0; padding:15px 16px; overflow-x:auto; font-family:"IBM Plex Mono",monospace; font-size:13.4px; line-height:1.72; color:#C9D6EE}
+.code pre .k{color:var(--burn)}
+.code pre .s{color:var(--go)}
+.code pre .c{color:#5D6B8A; font-style:italic}
+.code pre .n{color:var(--trace)}
+button.copy{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  background:transparent; color:var(--dim); border:1px solid var(--rule); padding:4px 10px; cursor:pointer;
+}
+button.copy:hover{color:var(--burn); border-color:var(--burn)}
+button.copy.done{color:var(--go); border-color:var(--go)}
+.eq{
+  font-family:"IBM Plex Serif",Georgia,serif; font-size:20px; text-align:center;
+  padding:20px 14px; margin:20px 0; background:var(--panel); border-left:2px solid var(--trace); overflow-x:auto;
+}
+.eq i{font-style:italic; padding:0 1px}
+.eq .op{padding:0 7px; color:var(--dim)}
+.eq sub{font-size:.68em; vertical-align:-.22em; font-style:normal}
+.eq sup{font-size:.68em; vertical-align:.5em; font-style:normal}
+.frac{display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; padding:0 6px; font-size:.9em}
+.frac .num{padding:0 6px 2px; border-bottom:1px solid var(--dim)}
+.frac .den{padding:3px 6px 0}
+.where{font-size:14.5px; color:var(--dim); text-align:center; margin:-8px 0 22px; font-family:"IBM Plex Serif",serif}
+.task{border:1px solid var(--burn); background:rgba(255,107,53,.045); padding:20px 22px; margin:24px 0}
+.task .lbl{
+  font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.18em;
+  font-size:12.5px; color:var(--burn); font-weight:700; margin-bottom:8px;
+}
+.task p{margin:0 0 10px}
+.task p:last-child{margin-bottom:0}
+ol,ul{max-width:68ch; padding-left:22px}
+li{margin:7px 0}
+li::marker{color:var(--dim)}
+.scratch{margin:16px 0}
+.scratch label{
+  display:block; font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--dim); margin-bottom:7px;
+}
+textarea{
+  width:100%; min-height:110px; resize:vertical; background:#0E1425; color:var(--ink);
+  border:1px solid var(--rule); padding:12px 13px; font-family:"IBM Plex Mono",monospace;
+  font-size:13.4px; line-height:1.7;
+}
+textarea:focus{outline:none; border-color:var(--trace)}
+.saved{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--go); letter-spacing:.1em; opacity:0; transition:opacity .3s}
+.saved.on{opacity:1}
+details{border:1px solid var(--rule); background:var(--panel); margin:20px 0}
+details summary{
+  cursor:pointer; padding:13px 16px; list-style:none; font-family:"Saira Condensed",sans-serif;
+  text-transform:uppercase; letter-spacing:.14em; font-size:14px; font-weight:600; color:var(--go);
+  display:flex; align-items:center; gap:10px;
+}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸"; font-size:11px; transition:transform .18s}
+details[open] summary::before{transform:rotate(90deg)}
+details summary:hover{background:var(--panel2)}
+details .body{padding:4px 18px 18px; border-top:1px solid var(--rule)}
+details .body > :first-child{margin-top:14px}
+.instr{border:1px solid var(--rule); background:var(--panel); margin:26px 0}
+.instr .ihead{
+  padding:10px 15px; border-bottom:1px solid var(--rule); font-family:"Saira Condensed",sans-serif;
+  text-transform:uppercase; letter-spacing:.16em; font-size:13px; color:var(--trace); font-weight:600;
+  display:flex; justify-content:space-between; gap:12px; align-items:center;
+}
+.ibody{display:grid; gap:0; grid-template-columns:1fr}
+@media(min-width:760px){ .ibody{grid-template-columns:290px 1fr} }
+.inputs{padding:16px 15px; display:grid; gap:14px; align-content:start}
+.field label{display:block; font-size:13.5px; color:var(--dim); margin-bottom:5px; display:flex; justify-content:space-between; gap:10px}
+.field label u{text-decoration:none; font-family:"IBM Plex Mono",monospace; color:var(--trace); font-size:13px}
+input[type=range]{width:100%; accent-color:var(--burn); background:transparent}
+.plotwrap{padding:14px 15px; border-top:1px solid var(--rule)}
+@media(min-width:760px){ .plotwrap{border-top:0; border-left:1px solid var(--rule)} }
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); margin-top:8px}
+.legend i{display:inline-block; width:16px; height:2px; vertical-align:middle; margin-right:6px}
+.note{border-left:2px solid var(--rule); padding:2px 0 2px 16px; margin:20px 0; color:var(--dim); font-size:15.5px; max-width:66ch}
+.note b{color:var(--ink)}
+.warnbox{border:1px solid var(--rule); border-left:2px solid var(--burn); background:var(--panel); padding:14px 17px; margin:20px 0; font-size:15.5px; max-width:68ch}
+.warnbox .lbl{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--burn); display:block; margin-bottom:5px}
+.reserved{display:flex; flex-wrap:wrap; gap:6px; margin:14px 0; max-width:68ch}
+.reserved code{background:rgba(255,107,53,.09); border-color:rgba(255,107,53,.35); color:var(--burn)}
+footer{padding:44px 0 0; color:var(--dim); font-size:14.5px}
+footer .nav{display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:14px; font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.12em; font-size:14px}
+footer .nav b{color:var(--ink); font-weight:600}
+::selection{background:var(--burn); color:var(--vac)}
+:focus-visible{outline:2px solid var(--trace); outline-offset:2px}
+@media(prefers-reduced-motion:reduce){ html{scroll-behavior:auto} *{transition:none!important; animation:none!important} }
+</style>
+</head>
+<body>
+<div class="topbar" id="topbar"></div>
+
+<nav class="rail" aria-label="Section navigation">
+  <div class="spine"></div>
+  <div class="marker" id="marker"></div>
+  <a class="tick" href="#ref">Reference<span class="alt">functions</span></a>
+  <a class="tick" href="#fn">Your first fn<span class="alt">params &amp; return</span></a>
+  <a class="tick" href="#math">The lerp<span class="alt">derive it</span></a>
+  <a class="tick" href="#clamp">Clamping<span class="alt">min &amp; max</span></a>
+  <a class="tick" href="#plot">Plotter<span class="alt">shape the curve</span></a>
+  <a class="tick" href="#rate">Pitch rate<span class="alt">the chain rule</span></a>
+  <a class="tick" href="#mission">Your mission<span class="alt">launch2.ks</span></a>
+  <a class="tick" href="#solution">Solution<span class="alt">after you try</span></a>
+</nav>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Arc 1 · Make it fly &nbsp;<span>/</span>&nbsp; Tutorial 02 of 16</p>
+  <div class="mastgrid">
+    <div>
+      <h1>Functions &amp; the <em>pitch program</em></h1>
+      <p class="objective">That hardcoded 80° in <code>launch1.ks</code> is a cliff. Replace it with a <strong>continuous function of altitude</strong>, and your rocket stops fighting itself. You'll derive the interpolation, clamp it, and then find the flaw hiding inside it.</p>
+    </div>
+    <figure class="profile">
+      <svg viewBox="0 0 300 190" width="100%" role="img" aria-label="Comparison of a step pitch change against a continuous ramp">
+        <line x1="30" y1="160" x2="288" y2="160" stroke="#26324F"/>
+        <line x1="30" y1="160" x2="30" y2="14" stroke="#26324F"/>
+        <path d="M30 20 L74 20 L74 44 L288 44" fill="none" stroke="#FF6B35" stroke-width="1.6" stroke-dasharray="4 3"/>
+        <path d="M30 20 L74 26 L288 152" fill="none" stroke="#5FD3F3" stroke-width="2"/>
+        <text x="80" y="16" fill="#FF6B35" font-family="IBM Plex Mono" font-size="9">launch1 — a step</text>
+        <text x="150" y="128" fill="#5FD3F3" font-family="IBM Plex Mono" font-size="9">launch2 — a ramp</text>
+        <text x="8" y="100" fill="#5D6B8A" font-family="IBM Plex Mono" font-size="9" transform="rotate(-90 12,100)">pitch</text>
+        <text x="150" y="177" fill="#5D6B8A" font-family="IBM Plex Mono" font-size="9">altitude</text>
+      </svg>
+      <figcaption>Step vs. ramp</figcaption>
+    </figure>
+  </div>
+</header>
+
+<section id="ref">
+  <div class="shead"><span class="evt">Prelaunch</span><h2>New vocabulary</h2></div>
+  <p class="lede">Small list this time. The work on this page is mathematical, not syntactic.</p>
+
+  <div class="ref">
+    <div class="refgroup">Functions</div>
+    <div class="refrow"><b>FUNCTION name { … }</b><span>Declare. kOS reads the whole file first, so order doesn't matter.</span></div>
+    <div class="refrow"><b>DECLARE PARAMETER x.</b><span>First line(s) of the body. Multiple params: one statement each, or comma-separated.</span></div>
+    <div class="refrow"><b>DECLARE PARAMETER x IS 5.</b><span>Default value — the argument becomes optional.</span></div>
+    <div class="refrow"><b>RETURN expr.</b><span>Hand a value back and exit the function immediately.</span></div>
+    <div class="refrow"><b>LOCAL x IS 3.</b><span>Scope a variable to this block. Use it inside functions, always.</span></div>
+
+    <div class="refgroup">Arithmetic &amp; logic</div>
+    <div class="refrow"><b>MIN(a,b)</b> / <b>MAX(a,b)</b><span>Exactly two arguments each.</span></div>
+    <div class="refrow"><b>ABS(x)</b>, <b>SQRT(x)</b>, <b>ROUND(x,n)</b><span>The usual. <code>ROUND</code> takes an optional digit count.</span></div>
+    <div class="refrow"><b>x ^ n</b><span>Exponent. Works with fractional powers.</span></div>
+    <div class="refrow"><b>IF cond { } ELSE { }</b><span>No <code>ELSE IF</code> keyword — nest an <code>IF</code> inside the <code>ELSE</code> block.</span></div>
+    <div class="refrow"><b>AND, OR, NOT</b><span>Boolean operators, spelled out.</span></div>
+    <div class="refrow"><b>=</b> vs <b>&gt;=, &lt;=, &lt;&gt;</b><span>A single <code>=</code> is equality here, not assignment. Assignment is <code>SET</code>. Inequality is <code>&lt;&gt;</code>.</span></div>
+  </div>
+
+  <div class="warnbox">
+    <span class="lbl">Reserved — do not name a variable any of these</span>
+    <div class="reserved">
+      <code>r</code><code>v</code><code>q</code><code>vd</code><code>path</code><code>step</code><code>node</code><code>list</code><code>log</code><code>range</code><code>heading</code><code>latlng</code><code>char</code><code>body</code><code>stage</code><code>core</code>
+    </div>
+    These fail in ways that don't look like naming errors — you'll get a parse error pointing at the wrong line, or worse, silently wrong behaviour. <code>q</code> and <code>v</code> in particular are the ones you'll instinctively reach for when writing physics.
+  </div>
+
+  <div class="note"><b>A quirk worth knowing now.</b> Functions declared inside a program file can't be called from the terminal prompt — only from other code in a running program. If you want to poke at a function interactively, wrap the call in a tiny throwaway script and <code>RUN</code> that.</div>
+</section>
+
+<section id="fn">
+  <div class="shead"><span class="evt b">Ignition</span><h2>Your first function</h2></div>
+  <p class="lede">A function is just a named expression with holes in it. Here's the whole syntax:</p>
+
+  <div class="code">
+    <div class="bar"><span class="name">shape.ks</span><button class="copy">Copy</button></div>
+<pre><span class="k">FUNCTION</span> twrNow {
+  <span class="k">RETURN</span> <span class="n">SHIP</span>:AVAILABLETHRUST / (<span class="n">SHIP</span>:MASS * <span class="n">9.81</span>).
+}
+
+<span class="k">FUNCTION</span> lerp {
+  <span class="k">DECLARE PARAMETER</span> a.
+  <span class="k">DECLARE PARAMETER</span> b.
+  <span class="k">DECLARE PARAMETER</span> f.
+  <span class="k">RETURN</span> a + (b - a) * f.
+}
+
+<span class="k">PRINT</span> twrNow().
+<span class="k">PRINT</span> lerp(<span class="n">90</span>, <span class="n">0</span>, <span class="n">0.25</span>).   <span class="c">// 67.5</span></pre>
+  </div>
+
+  <p>Now the connection back to Tutorial 01. Because <code>LOCK</code> stores an expression and re-evaluates it, a function call inside a lock becomes a <strong>live control law</strong> — the function runs again on every steering update:</p>
+
+  <div class="code">
+    <div class="bar"><span class="name">the pattern</span><button class="copy">Copy</button></div>
+<pre><span class="k">LOCK</span> <span class="n">STEERING</span> <span class="k">TO</span> <span class="n">HEADING</span>(<span class="n">90</span>, pitchAt(<span class="n">SHIP</span>:ALTITUDE)).</pre>
+  </div>
+
+  <p>One line, locked once, before liftoff. It steers the entire ascent. Everything left to do on this page is deciding what <code>pitchAt</code> should return.</p>
+</section>
+
+<section id="math">
+  <div class="shead"><span class="evt">Ascent</span><h2>Build the interpolation</h2></div>
+  <p class="lede">Don't look this up. You have two points and you want the straight line between them — that's all a linear interpolation is.</p>
+
+  <p>You want pitch to be 90° (straight up) at some altitude <i>h</i><sub>0</sub>, and 0° (flat, at the horizon) at some higher altitude <i>h</i><sub>1</sub>. Between them it should slide smoothly.</p>
+
+  <div class="task">
+    <div class="lbl">Derive it</div>
+    <ol>
+      <li>Define a <strong>progress fraction</strong> <i>f</i> that is 0 at <i>h</i><sub>0</sub> and 1 at <i>h</i><sub>1</sub>. Write it in terms of <i>h</i>, <i>h</i><sub>0</sub>, <i>h</i><sub>1</sub>.</li>
+      <li>Using <i>f</i>, write pitch <i>p</i>(<i>h</i>) so that it equals <i>p</i><sub>0</sub> when <i>f</i>&nbsp;=&nbsp;0 and <i>p</i><sub>1</sub> when <i>f</i>&nbsp;=&nbsp;1.</li>
+      <li>Substitute and simplify into a single expression in <i>h</i>. Check both endpoints.</li>
+      <li>With <i>h</i><sub>0</sub>&nbsp;=&nbsp;1000, <i>h</i><sub>1</sub>&nbsp;=&nbsp;45000, <i>p</i><sub>0</sub>&nbsp;=&nbsp;90, <i>p</i><sub>1</sub>&nbsp;=&nbsp;0 — what is the pitch at 12 km? What is <i>dp/dh</i> in degrees per kilometre?</li>
+    </ol>
+  </div>
+
+  <div class="scratch">
+    <label for="s1">Your working — scratch pad</label>
+    <textarea id="s1" data-key="t02-lerp" placeholder="f = ..."></textarea>
+    <div class="saved" data-for="s1">Saved</div>
+  </div>
+
+  <details>
+    <summary>Show the algebra</summary>
+    <div class="body">
+      <p><strong>1 — The fraction.</strong> Distance travelled divided by total distance:</p>
+      <div class="eq"><i>f</i> <span class="op">=</span> <span class="frac"><span class="num"><i>h</i> <span class="op">−</span> <i>h</i><sub>0</sub></span><span class="den"><i>h</i><sub>1</sub> <span class="op">−</span> <i>h</i><sub>0</sub></span></span></div>
+      <p>At <i>h</i>&nbsp;=&nbsp;<i>h</i><sub>0</sub> the numerator vanishes so <i>f</i>&nbsp;=&nbsp;0. At <i>h</i>&nbsp;=&nbsp;<i>h</i><sub>1</sub> numerator and denominator are identical so <i>f</i>&nbsp;=&nbsp;1.</p>
+
+      <p><strong>2 — The blend.</strong> Start at <i>p</i><sub>0</sub> and add the fraction <i>f</i> of the total change:</p>
+      <div class="eq"><i>p</i> <span class="op">=</span> <i>p</i><sub>0</sub> <span class="op">+</span> <i>f</i> (<i>p</i><sub>1</sub> <span class="op">−</span> <i>p</i><sub>0</sub>)</div>
+      <p>You may have written the equivalent <i>p</i> = (1−<i>f</i>)<i>p</i><sub>0</sub> + <i>f p</i><sub>1</sub>. Same thing, expanded. The first form is better in code: one multiply, and the "start plus a correction" shape generalises to every interpolation you'll write later.</p>
+
+      <p><strong>3 — Combined.</strong></p>
+      <div class="eq"><i>p</i>(<i>h</i>) <span class="op">=</span> <i>p</i><sub>0</sub> <span class="op">+</span> (<i>p</i><sub>1</sub> <span class="op">−</span> <i>p</i><sub>0</sub>) <span class="frac"><span class="num"><i>h</i> <span class="op">−</span> <i>h</i><sub>0</sub></span><span class="den"><i>h</i><sub>1</sub> <span class="op">−</span> <i>h</i><sub>0</sub></span></span></div>
+
+      <p><strong>4 — Numbers.</strong> At <i>h</i> = 12 000:</p>
+      <div class="eq"><i>f</i> <span class="op">=</span> <span class="frac"><span class="num">12000 <span class="op">−</span> 1000</span><span class="den">45000 <span class="op">−</span> 1000</span></span> <span class="op">=</span> <span class="frac"><span class="num">11000</span><span class="den">44000</span></span> <span class="op">=</span> 0.25</div>
+      <p>So <i>p</i> = 90 + 0.25 × (0 − 90) = <strong>67.5°</strong>.</p>
+      <p>And the slope is constant everywhere: <i>dp/dh</i> = (0 − 90) / 44 000 = −0.002045 °/m, or about <strong>−2.05 degrees per kilometre</strong>. Hold on to that number — it's the villain of the last section on this page.</p>
+    </div>
+  </details>
+</section>
+
+<section id="clamp">
+  <div class="shead"><span class="evt">Ascent</span><h2>Clamping, without an if</h2></div>
+  <p class="lede">Your formula is happily defined outside the range you care about, and it will produce nonsense there.</p>
+
+  <p>Below <i>h</i><sub>0</sub>, <i>f</i> goes negative and pitch exceeds 90° — your rocket leans <em>backwards</em>. Above <i>h</i><sub>1</sub>, <i>f</i> exceeds 1 and pitch goes negative, aiming you at the ground. You need <i>f</i> confined to [0, 1].</p>
+
+  <div class="task">
+    <div class="lbl">Work it out</div>
+    <p>kOS gives you <code>MIN(a,b)</code> and <code>MAX(a,b)</code>, two arguments each. Write <strong>clamp(<i>f</i>, 0, 1)</strong> using only those two functions, no <code>IF</code>. Then say which one enforces the floor and which the ceiling — people get this backwards constantly.</p>
+  </div>
+
+  <div class="scratch">
+    <label for="s2">Your working</label>
+    <textarea id="s2" data-key="t02-clamp" placeholder="clamp = ..."></textarea>
+    <div class="saved" data-for="s2">Saved</div>
+  </div>
+
+  <details>
+    <summary>Show the answer</summary>
+    <div class="body">
+      <div class="eq">clamp <span class="op">=</span> MIN( MAX(<i>f</i>, 0), 1 )</div>
+      <p><code>MAX(f, 0)</code> enforces the <strong>floor</strong>: it returns whichever is larger, so anything below 0 comes back as 0. <code>MIN(…, 1)</code> enforces the <strong>ceiling</strong>: anything above 1 comes back as 1.</p>
+      <p>The mnemonic that actually sticks: <em>MAX raises, MIN lowers.</em> MAX can only push a number up to the floor; MIN can only push it down to the ceiling.</p>
+      <p>Order doesn't matter here — <code>MAX(MIN(f,1),0)</code> is identical — as long as your bounds are the right way round. If lo &gt; hi, the two orderings disagree, which is a genuinely nasty bug in generic clamp helpers.</p>
+      <p>Clamp the <strong>fraction</strong>, not the pitch. Clamping <i>f</i> works no matter which direction the pitch runs. Clamping <i>p</i> to [0, 90] would silently break the moment you want a profile ending below the horizon — which you will, in Tutorial 09.</p>
+    </div>
+  </details>
+
+  <div class="code">
+    <div class="bar"><span class="name">pitchAt</span><button class="copy">Copy</button></div>
+<pre><span class="k">FUNCTION</span> pitchAt {
+  <span class="k">DECLARE PARAMETER</span> h.
+  <span class="k">LOCAL</span> f <span class="k">IS</span> (h - turnStart) / (turnEnd - turnStart).
+  <span class="k">SET</span> f <span class="k">TO</span> <span class="k">MIN</span>(<span class="k">MAX</span>(f, <span class="n">0</span>), <span class="n">1</span>).
+  <span class="k">RETURN</span> pitch0 + (pitch1 - pitch0) * f.
+}</pre>
+  </div>
+</section>
+
+<section id="plot">
+  <div class="shead"><span class="evt">Instrument</span><h2>Shape the curve</h2></div>
+  <p class="lede">Drag the values. The straight line is your linear program; the curve adds one exponent.</p>
+
+  <p>A real gravity turn isn't linear. Raising <i>f</i> to a power <i>k</i> before blending lets you pitch aggressively early — while you're slow and drag is cheap — then ease off:</p>
+  <div class="eq"><i>p</i> <span class="op">=</span> <i>p</i><sub>0</sub> <span class="op">+</span> (<i>p</i><sub>1</sub> <span class="op">−</span> <i>p</i><sub>0</sub>) <i>f</i><sup> <i>k</i></sup></div>
+  <p class="where"><i>k</i> &lt; 1 pitches over early &nbsp;·&nbsp; <i>k</i> = 1 is linear &nbsp;·&nbsp; <i>k</i> &gt; 1 holds vertical longer</p>
+
+  <div class="instr">
+    <div class="ihead"><span>Pitch program</span><span id="p-readout" style="font-family:'IBM Plex Mono',monospace;letter-spacing:.04em;text-transform:none;color:var(--dim);font-weight:400;font-size:12px">—</span></div>
+    <div class="ibody">
+      <div class="inputs">
+        <div class="field"><label>Turn start <u id="v-h0">1000 m</u></label><input id="r-h0" type="range" min="0" max="12000" step="250" value="1000"></div>
+        <div class="field"><label>Turn end <u id="v-h1">45000 m</u></label><input id="r-h1" type="range" min="15000" max="70000" step="1000" value="45000"></div>
+        <div class="field"><label>Start pitch <u id="v-p0">90°</u></label><input id="r-p0" type="range" min="60" max="90" step="1" value="90"></div>
+        <div class="field"><label>End pitch <u id="v-p1">0°</u></label><input id="r-p1" type="range" min="-10" max="45" step="1" value="0"></div>
+        <div class="field"><label>Exponent k <u id="v-k">1.00</u></label><input id="r-k" type="range" min="0.3" max="2.5" step="0.05" value="1"></div>
+      </div>
+      <div class="plotwrap">
+        <svg id="plot-svg" viewBox="0 0 460 260" width="100%" role="img" aria-label="Pitch versus altitude curve"></svg>
+        <div class="legend">
+          <span><i style="background:#5FD3F3"></i>pitch — your program</span>
+          <span><i style="background:#FF6B35"></i>|dp/dh| — how fast it turns</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note"><b>Try k = 0.5.</b> That's close to what most hand-tuned KSP ascents converge on, and it's not a coincidence — it's the shape that roughly keeps the rocket following its own velocity vector. In Tutorial 08 you'll stop approximating that shape and just read the velocity vector directly.</div>
+</section>
+
+<section id="rate">
+  <div class="shead"><span class="evt b">Anomaly</span><h2>The flaw you just built in</h2></div>
+  <p class="lede">Your pitch program is smooth in altitude. The rocket doesn't experience altitude — it experiences <em>time</em>. Those are not the same thing, and the gap between them is a real problem.</p>
+
+  <p>You computed <i>dp/dh</i> ≈ −2.05 °/km, constant across the whole turn. But what the airframe feels is the pitch <em>rate</em>, <i>dp/dt</i>.</p>
+
+  <div class="task">
+    <div class="lbl">Two questions</div>
+    <ol>
+      <li>Relate <i>dp/dt</i> to <i>dp/dh</i>. What connects them? (It's the chain rule, and the connecting quantity is something you can read straight off the telemetry.)</li>
+      <li>A rocket passes 5 km climbing at 180 m/s, and passes 40 km climbing at 900 m/s. Using <i>dp/dh</i> = −2.05 °/km, what is the pitch rate in °/s at each? What's the ratio?</li>
+    </ol>
+  </div>
+
+  <div class="scratch">
+    <label for="s3">Your working</label>
+    <textarea id="s3" data-key="t02-rate" placeholder="dp/dt = ..."></textarea>
+    <div class="saved" data-for="s3">Saved</div>
+  </div>
+
+  <details>
+    <summary>Show the algebra</summary>
+    <div class="body">
+      <p><strong>1 — Chain rule.</strong></p>
+      <div class="eq"><span class="frac"><span class="num"><i>dp</i></span><span class="den"><i>dt</i></span></span> <span class="op">=</span> <span class="frac"><span class="num"><i>dp</i></span><span class="den"><i>dh</i></span></span> <span class="op">·</span> <span class="frac"><span class="num"><i>dh</i></span><span class="den"><i>dt</i></span></span></div>
+      <p>And <i>dh/dt</i> is simply <strong>vertical speed</strong> — the rate at which you're gaining altitude. So your pitch program's rate is its slope multiplied by how fast you're climbing.</p>
+
+      <p><strong>2 — Numbers.</strong> Take those climb rates as vertical speed:</p>
+      <ul>
+        <li>At 5 km: −2.05 °/km × 0.180 km/s = <strong>−0.37 °/s</strong></li>
+        <li>At 40 km: −2.05 °/km × 0.900 km/s = <strong>−1.84 °/s</strong></li>
+      </ul>
+      <p>A factor of <strong>5×</strong>, and in exactly the wrong direction.</p>
+
+      <p><strong>Why that's wrong.</strong> Down low the air is thick, the rocket is heavy and sluggish, and you want to commit to the turn — but your program is turning at its slowest. Up high the air is nearly gone, the rocket is light and the turn is almost free — and your program is whipping the nose around fastest, right where you'd rather be settling onto a shallow trajectory.</p>
+
+      <p>You've built a pitch program that is <em>timid when it should be bold and frantic when it should be calm.</em> It works — it will get you to orbit — but it is fighting physics the entire way, and the wasted energy shows up as steering loss.</p>
+
+      <p>Three tutorials from now you'll measure that loss in m/s. Five from now you'll delete this function entirely and replace it with a rocket that simply follows its own velocity vector, where the pitch rate falls out of the physics for free.</p>
+    </div>
+  </details>
+
+  <div class="note"><b>Keep the function anyway.</b> It's your baseline. Every improvement in Arc 3 gets judged against a logged run of this exact profile, so don't throw it away when it stops being the best thing you have.</div>
+</section>
+
+<section id="mission">
+  <div class="shead"><span class="evt b">Your mission</span><h2>launch2.ks</h2></div>
+  <div class="task">
+    <div class="lbl">Requirements</div>
+    <ol>
+      <li>Start from your <code>launch1.ks</code>. Put the tunable numbers — turn start, turn end, start and end pitch, exponent, target apoapsis, azimuth — in named variables at the very top.</li>
+      <li>Write <code>pitchAt(h)</code> with the clamped fraction and the exponent <i>k</i>.</li>
+      <li>Lock steering <strong>once</strong>, before liftoff, to <code>HEADING(azimuth, pitchAt(SHIP:ALTITUDE))</code>. Nothing after that line may touch the steering lock.</li>
+      <li>Add commanded pitch and vertical speed to your telemetry printout.</li>
+      <li>Also print the current pitch <em>rate</em> in °/s — compute it from the chain rule, using <code>SHIP:VERTICALSPEED</code>.</li>
+      <li>Fly it twice on the same rocket: once with <i>k</i>&nbsp;=&nbsp;1, once with <i>k</i>&nbsp;=&nbsp;0.5. Note the apoapsis you reach and the fuel remaining at MECO.</li>
+    </ol>
+  </div>
+
+  <div class="warnbox">
+    <span class="lbl">Requirement 5 has a subtlety</span>
+    Your <code>pitchAt</code> is clamped, so once you're past <code>turnEnd</code> the true pitch rate is zero — but the chain-rule formula doesn't know that. Decide how to handle it. Printing a rate of −1.8 °/s while the nose is locked flat is a lie, and lying telemetry is worse than none.
+  </div>
+
+  <div class="scratch">
+    <label for="s4">Run notes — k=1 vs k=0.5</label>
+    <textarea id="s4" data-key="t02-runs" placeholder="k=1.0   AP:        fuel:&#10;k=0.5   AP:        fuel:"></textarea>
+    <div class="saved" data-for="s4">Saved</div>
+  </div>
+</section>
+
+<section id="solution">
+  <div class="shead"><span class="evt g">Solution</span><h2>Open after you've flown both</h2></div>
+
+  <details>
+    <summary>Show launch2.ks</summary>
+    <div class="body">
+  <div class="code">
+    <div class="bar"><span class="name">launch2.ks</span><button class="copy">Copy</button></div>
+<pre><span class="c">// launch2.ks — continuous pitch program.</span>
+
+<span class="k">CLEARSCREEN</span>.
+
+<span class="c">// ---- tuning ----</span>
+<span class="k">SET</span> azimuth   <span class="k">TO</span> <span class="n">90</span>.
+<span class="k">SET</span> targetAp  <span class="k">TO</span> <span class="n">75000</span>.
+<span class="k">SET</span> turnStart <span class="k">TO</span> <span class="n">1000</span>.
+<span class="k">SET</span> turnEnd   <span class="k">TO</span> <span class="n">45000</span>.
+<span class="k">SET</span> pitch0    <span class="k">TO</span> <span class="n">90</span>.
+<span class="k">SET</span> pitch1    <span class="k">TO</span> <span class="n">0</span>.
+<span class="k">SET</span> kShape    <span class="k">TO</span> <span class="n">0.5</span>.
+
+<span class="c">// ---- launch ----</span>
+<span class="k">FROM</span> {<span class="k">LOCAL</span> t <span class="k">IS</span> <span class="n">5</span>.} <span class="k">UNTIL</span> t = <span class="n">0</span> <span class="k">STEP</span> {<span class="k">SET</span> t <span class="k">TO</span> t - <span class="n">1</span>.} <span class="k">DO</span> {
+  <span class="k">PRINT</span> <span class="s">"T-MINUS "</span> + t <span class="k">AT</span> (<span class="n">0</span>,<span class="n">0</span>).
+  <span class="k">WAIT</span> <span class="n">1</span>.
+}
+
+<span class="n">SAS</span> <span class="k">OFF</span>. <span class="n">RCS</span> <span class="k">OFF</span>.
+<span class="k">LOCK</span> <span class="n">THROTTLE</span> <span class="k">TO</span> <span class="n">1</span>.
+<span class="k">LOCK</span> <span class="n">STEERING</span> <span class="k">TO</span> <span class="n">HEADING</span>(azimuth, pitchAt(<span class="n">SHIP</span>:ALTITUDE)).
+<span class="k">STAGE</span>.
+<span class="k">PRINT</span> <span class="s">"LIFTOFF          "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">0</span>).
+
+<span class="k">UNTIL</span> <span class="n">SHIP</span>:APOAPSIS > targetAp {
+  telemetry().
+  <span class="k">WAIT</span> <span class="n">0</span>.
+}
+
+<span class="k">LOCK</span> <span class="n">THROTTLE</span> <span class="k">TO</span> <span class="n">0</span>.
+<span class="k">PRINT</span> <span class="s">"MECO             "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">0</span>).
+<span class="k">WAIT</span> <span class="n">1</span>.
+<span class="k">UNLOCK</span> <span class="n">STEERING</span>. <span class="k">UNLOCK</span> <span class="n">THROTTLE</span>. <span class="n">SAS</span> <span class="k">ON</span>.
+
+<span class="c">// ---- pitch program ----</span>
+<span class="k">FUNCTION</span> turnFraction {
+  <span class="k">DECLARE PARAMETER</span> h.
+  <span class="k">LOCAL</span> f <span class="k">IS</span> (h - turnStart) / (turnEnd - turnStart).
+  <span class="k">RETURN</span> <span class="k">MIN</span>(<span class="k">MAX</span>(f, <span class="n">0</span>), <span class="n">1</span>).
+}
+
+<span class="k">FUNCTION</span> pitchAt {
+  <span class="k">DECLARE PARAMETER</span> h.
+  <span class="k">RETURN</span> pitch0 + (pitch1 - pitch0) * (turnFraction(h) ^ kShape).
+}
+
+<span class="c">// Pitch rate via chain rule: dp/dt = (dp/dh)(dh/dt).</span>
+<span class="c">// Differentiate numerically — one clean line instead of a derivative</span>
+<span class="c">// that would have to change every time we change the curve shape.</span>
+<span class="k">FUNCTION</span> pitchRate {
+  <span class="k">LOCAL</span> h <span class="k">IS</span> <span class="n">SHIP</span>:ALTITUDE.
+  <span class="k">LOCAL</span> dh <span class="k">IS</span> <span class="n">10</span>.
+  <span class="k">LOCAL</span> slope <span class="k">IS</span> (pitchAt(h + dh) - pitchAt(h - dh)) / (<span class="n">2</span> * dh).
+  <span class="k">RETURN</span> slope * <span class="n">SHIP</span>:VERTICALSPEED.
+}
+
+<span class="k">FUNCTION</span> telemetry {
+  <span class="k">PRINT</span> <span class="s">"ALT    "</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:ALTITUDE) + <span class="s">"     "</span>          <span class="k">AT</span> (<span class="n">0</span>,<span class="n">2</span>).
+  <span class="k">PRINT</span> <span class="s">"AP     "</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:APOAPSIS) + <span class="s">"     "</span>          <span class="k">AT</span> (<span class="n">0</span>,<span class="n">3</span>).
+  <span class="k">PRINT</span> <span class="s">"SPD    "</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:VELOCITY:SURFACE:MAG,<span class="n">1</span>) + <span class="s">"   "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">4</span>).
+  <span class="k">PRINT</span> <span class="s">"VSPD   "</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:VERTICALSPEED,<span class="n">1</span>) + <span class="s">"      "</span>     <span class="k">AT</span> (<span class="n">0</span>,<span class="n">5</span>).
+  <span class="k">PRINT</span> <span class="s">"PITCH  "</span> + <span class="k">ROUND</span>(pitchAt(<span class="n">SHIP</span>:ALTITUDE),<span class="n">1</span>) + <span class="s">"      "</span>  <span class="k">AT</span> (<span class="n">0</span>,<span class="n">6</span>).
+  <span class="k">PRINT</span> <span class="s">"dP/dt  "</span> + <span class="k">ROUND</span>(pitchRate(),<span class="n">2</span>) + <span class="s">" deg/s   "</span>      <span class="k">AT</span> (<span class="n">0</span>,<span class="n">7</span>).
+}</pre>
+  </div>
+
+      <h3>On the numerical derivative</h3>
+      <p>You could differentiate <i>p</i>(<i>h</i>) = <i>p</i><sub>0</sub> + (<i>p</i><sub>1</sub>−<i>p</i><sub>0</sub>)<i>f</i><sup><i>k</i></sup> by hand and get</p>
+      <div class="eq"><span class="frac"><span class="num"><i>dp</i></span><span class="den"><i>dh</i></span></span> <span class="op">=</span> <span class="frac"><span class="num"><i>k</i> (<i>p</i><sub>1</sub> <span class="op">−</span> <i>p</i><sub>0</sub>) <i>f</i><sup><i>k</i>−1</sup></span><span class="den"><i>h</i><sub>1</sub> <span class="op">−</span> <i>h</i><sub>0</sub></span></span></div>
+      <p>That's correct, and it's worth doing on paper. But it goes stale the instant you change the curve shape, and it blows up at <i>f</i>&nbsp;=&nbsp;0 when <i>k</i>&nbsp;&lt;&nbsp;1. The central difference — sample the function 10 m either side, divide by 20 — costs two extra function calls and stays right no matter what <code>pitchAt</code> becomes. It also solves the requirement-5 problem for free: inside the clamped region both samples return the same value, the slope comes out as exactly zero, and the readout tells the truth.</p>
+      <p>That trick generalises. When a quantity is awkward to differentiate but cheap to evaluate, sample it instead.</p>
+
+      <h3>What you should have seen</h3>
+      <p><i>k</i>&nbsp;=&nbsp;0.5 almost certainly reached the target apoapsis with more fuel left. It commits to the turn early, which means more of the thrust goes into horizontal velocity — the velocity you actually need for orbit — instead of being spent climbing against gravity and then having to be bent sideways later.</p>
+      <p>But "almost certainly" and "more fuel left" are not measurements. How much? Where did the saving come from — less gravity loss, or less steering loss? Would <i>k</i>&nbsp;=&nbsp;0.4 be better still? You cannot answer any of that from a fuel gauge, and that's the wall this arc ends on.</p>
+    </div>
+  </details>
+</section>
+
+<footer>
+  <p>Next: <strong>Tutorial 03 — Staging and the delta-v budget.</strong> Tsiolkovsky, mass flow, burn time, and an autostaging routine that won't fire during a coast or dump a stage that's still burning.</p>
+  <div class="nav"><span>Arc 1 · Make it fly</span><b>02 / 16</b></div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  document.querySelectorAll(".code").forEach(function(box){
+    var btn = box.querySelector("button.copy"), pre = box.querySelector("pre");
+    if(!btn || !pre) return;
+    btn.addEventListener("click", function(){
+      var text = pre.innerText;
+      var done = function(){
+        btn.textContent = "Copied"; btn.classList.add("done");
+        setTimeout(function(){ btn.textContent = "Copy"; btn.classList.remove("done"); }, 1400);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else { fallback(); }
+      function fallback(){
+        var ta = document.createElement("textarea");
+        ta.value = text; ta.style.position="fixed"; ta.style.opacity="0";
+        document.body.appendChild(ta); ta.select();
+        try{ document.execCommand("copy"); done(); }catch(e){ btn.textContent="Select manually"; }
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  /* pitch program plotter */
+  var R = {h0:null,h1:null,p0:null,p1:null,k:null};
+  ["h0","h1","p0","p1","k"].forEach(function(id){ R[id] = document.getElementById("r-"+id); });
+  var svg = document.getElementById("plot-svg");
+  var W=460, H=260, L=44, Rt=40, T=16, B=34;
+
+  function val(){
+    return {
+      h0:+R.h0.value, h1:+R.h1.value, p0:+R.p0.value, p1:+R.p1.value, k:+R.k.value
+    };
+  }
+  function pitchAt(h, c){
+    var f = (h - c.h0)/(c.h1 - c.h0);
+    f = Math.min(Math.max(f,0),1);
+    return c.p0 + (c.p1 - c.p0)*Math.pow(f, c.k);
+  }
+  function el(tag, attrs, text){
+    var e = document.createElementNS("http://www.w3.org/2000/svg", tag);
+    for(var a in attrs) e.setAttribute(a, attrs[a]);
+    if(text!=null) e.textContent = text;
+    return e;
+  }
+  function draw(){
+    var c = val();
+    if(c.h1 <= c.h0){ c.h1 = c.h0 + 1000; }
+    document.getElementById("v-h0").textContent = c.h0 + " m";
+    document.getElementById("v-h1").textContent = c.h1 + " m";
+    document.getElementById("v-p0").textContent = c.p0 + "°";
+    document.getElementById("v-p1").textContent = c.p1 + "°";
+    document.getElementById("v-k").textContent  = c.k.toFixed(2);
+
+    var hmax = 70000;
+    var pLo = Math.min(c.p1, c.p0, 0), pHi = Math.max(c.p0, c.p1, 90);
+    var X = function(h){ return L + (h/hmax)*(W-L-Rt); };
+    var Y = function(p){ return T + (1 - (p-pLo)/(pHi-pLo))*(H-T-B); };
+
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+    /* grid */
+    for(var g=0; g<=7; g++){
+      var hh = g*10000;
+      svg.appendChild(el("line",{x1:X(hh),y1:T,x2:X(hh),y2:H-B,stroke:"#1B2440"}));
+      svg.appendChild(el("text",{x:X(hh),y:H-B+15,fill:"#5D6B8A","font-family":"IBM Plex Mono","font-size":"9","text-anchor":"middle"}, g*10+"k"));
+    }
+    [0,30,60,90].forEach(function(p){
+      if(p<pLo||p>pHi) return;
+      svg.appendChild(el("line",{x1:L,y1:Y(p),x2:W-Rt,y2:Y(p),stroke:"#1B2440"}));
+      svg.appendChild(el("text",{x:L-7,y:Y(p)+3,fill:"#5D6B8A","font-family":"IBM Plex Mono","font-size":"9","text-anchor":"end"}, p+"°"));
+    });
+
+    /* rate curve — scaled to its own max, drawn behind */
+    var N=240, rates=[], maxRate=0;
+    for(var i=0;i<=N;i++){
+      var h = i/N*hmax, d = 20;
+      var s = Math.abs((pitchAt(h+d,c)-pitchAt(h-d,c))/(2*d));
+      rates.push(s); if(s>maxRate) maxRate=s;
+    }
+    if(maxRate>0){
+      var rd="";
+      for(var j=0;j<=N;j++){
+        var hx = j/N*hmax;
+        var y = (H-B) - (rates[j]/maxRate)*(H-T-B)*0.82;
+        rd += (j?" L":"M") + X(hx).toFixed(1) + " " + y.toFixed(1);
+      }
+      svg.appendChild(el("path",{d:rd,fill:"none",stroke:"#FF6B35","stroke-width":"1.3","opacity":".72"}));
+    }
+
+    /* pitch curve */
+    var pd="";
+    for(var m=0;m<=N;m++){
+      var hp = m/N*hmax;
+      pd += (m?" L":"M") + X(hp).toFixed(1) + " " + Y(pitchAt(hp,c)).toFixed(1);
+    }
+    svg.appendChild(el("path",{d:pd,fill:"none",stroke:"#5FD3F3","stroke-width":"2.2"}));
+
+    /* endpoints */
+    svg.appendChild(el("circle",{cx:X(c.h0),cy:Y(c.p0),r:3.2,fill:"#5FD3F3"}));
+    svg.appendChild(el("circle",{cx:X(c.h1),cy:Y(c.p1),r:3.2,fill:"#5FD3F3"}));
+    svg.appendChild(el("text",{x:W/2,y:H-4,fill:"#5D6B8A","font-family":"IBM Plex Mono","font-size":"9","text-anchor":"middle"},"altitude (m)"));
+
+    var p12 = pitchAt(12000,c);
+    document.getElementById("p-readout").textContent =
+      "at 12 km → " + p12.toFixed(1) + "°   ·   peak |dp/dh| " + (maxRate*1000).toFixed(2) + " °/km";
+  }
+  ["h0","h1","p0","p1","k"].forEach(function(id){ R[id].addEventListener("input", draw); });
+  draw();
+
+  /* scratch pads */
+  document.querySelectorAll("textarea[data-key]").forEach(function(ta){
+    var key = "kos:"+ta.dataset.key;
+    var flag = document.querySelector('.saved[data-for="'+ta.id+'"]');
+    if(window.storage && window.storage.get){
+      window.storage.get(key).then(function(r){ if(r && r.value) ta.value = r.value; }).catch(function(){});
+    }
+    var timer=null;
+    ta.addEventListener("input", function(){
+      if(!(window.storage && window.storage.set)) return;
+      clearTimeout(timer);
+      timer = setTimeout(function(){
+        window.storage.set(key, ta.value).then(function(){
+          if(flag){ flag.classList.add("on"); setTimeout(function(){ flag.classList.remove("on"); }, 1200); }
+        }).catch(function(){});
+      }, 600);
+    });
+  });
+
+  /* rail */
+  var ticks = Array.prototype.slice.call(document.querySelectorAll(".tick"));
+  var secs  = ticks.map(function(t){ return document.querySelector(t.getAttribute("href")); });
+  var marker = document.getElementById("marker");
+  var topbar = document.getElementById("topbar");
+  function place(i){
+    ticks.forEach(function(t,j){ t.classList.toggle("on", j===i); });
+    if(marker && ticks[i]){
+      var railRect = ticks[0].parentNode.getBoundingClientRect();
+      var r = ticks[i].getBoundingClientRect();
+      marker.style.top = (r.top - railRect.top + r.height/2 - 7.5) + "px";
+    }
+  }
+  function onScroll(){
+    var y = window.scrollY + window.innerHeight*0.32, best = 0;
+    secs.forEach(function(s,i){ if(s && s.offsetTop <= y) best = i; });
+    place(best);
+    if(topbar){
+      var max = document.body.scrollHeight - window.innerHeight;
+      topbar.style.width = (max>0 ? (window.scrollY/max*100) : 0) + "%";
+    }
+  }
+  window.addEventListener("scroll", onScroll, {passive:true});
+  window.addEventListener("resize", onScroll);
+  onScroll();
+})();
+</script>
+</body>
+</html>

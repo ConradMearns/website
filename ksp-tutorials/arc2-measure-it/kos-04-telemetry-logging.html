@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kOS 04 · Telemetry &amp; the Loss Budget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;1,400;1,500&family=Saira+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --vac:#0B1020; --panel:#141B2E; --panel2:#1B2440; --rule:#26324F;
+  --ink:#DDE5F4; --dim:#8A99B8; --burn:#FF6B35; --trace:#5FD3F3; --go:#7DDC8F;
+  --violet:#B48CF2; --amber:#F5C462;
+  --rail:150px;
+}
+*{box-sizing:border-box}
+svg{height:auto; max-width:100%}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--vac); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:16.5px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:radial-gradient(1100px 700px at 78% -8%, rgba(255,107,53,.09), transparent 60%),
+             radial-gradient(900px 800px at 0% 100%, rgba(95,211,243,.055), transparent 62%);
+}
+.wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:0 22px 120px}
+.rail{
+  position:fixed; left:max(18px, calc(50vw - 590px + 4px)); top:0; height:100vh; width:var(--rail);
+  display:none; flex-direction:column; justify-content:center; gap:0; z-index:5; pointer-events:none;
+}
+.rail .spine{position:absolute; left:11px; top:9%; bottom:9%; width:1px; background:linear-gradient(180deg,transparent,var(--rule) 12%,var(--rule) 88%,transparent)}
+.rail .marker{
+  position:absolute; left:4px; width:15px; height:15px; border:1px solid var(--burn);
+  background:var(--vac); transform:rotate(45deg); transition:top .25s cubic-bezier(.4,0,.2,1);
+}
+.rail .marker::after{content:""; position:absolute; inset:3px; background:var(--burn)}
+.tick{
+  position:relative; padding:9px 0 9px 30px; pointer-events:auto; display:block;
+  text-decoration:none; color:var(--dim); font-family:"Saira Condensed",sans-serif;
+  font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; line-height:1.25;
+}
+.tick::before{content:""; position:absolute; left:6px; top:calc(50% - 1px); width:11px; height:1px; background:var(--rule)}
+.tick:hover{color:var(--ink)}
+.tick.on{color:var(--burn)}
+.tick.on::before{background:var(--burn); width:15px; left:4px}
+.tick .alt{display:block; font-size:10.5px; color:#5D6B8A; letter-spacing:.1em}
+@media(min-width:1040px){ .rail{display:flex} .wrap{padding-left:calc(var(--rail) + 40px)} }
+.topbar{position:fixed; top:0; left:0; height:2px; background:var(--burn); width:0; z-index:9}
+@media(min-width:1040px){ .topbar{display:none} }
+header.mast{padding:74px 0 30px; border-bottom:1px solid var(--rule)}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.24em;
+  text-transform:uppercase; color:var(--burn); margin:0 0 16px;
+}
+.eyebrow span{color:var(--dim)}
+h1{
+  font-family:"Saira Condensed",sans-serif; font-weight:700; font-size:clamp(40px,7.5vw,74px);
+  line-height:.94; letter-spacing:-.005em; text-transform:uppercase; margin:0 0 18px; max-width:15ch;
+}
+h1 em{font-style:normal; color:var(--burn)}
+.objective{font-size:18.5px; color:var(--dim); max-width:60ch; margin:0}
+.objective strong{color:var(--ink); font-weight:500}
+.mastgrid{display:grid; gap:36px; grid-template-columns:1fr; align-items:end}
+@media(min-width:820px){ .mastgrid{grid-template-columns:1.35fr .8fr} }
+.profile{border:1px solid var(--rule); background:var(--panel); padding:14px}
+.profile figcaption{
+  font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--dim); margin-top:9px;
+}
+section{padding:58px 0; border-bottom:1px solid var(--rule)}
+.shead{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:8px}
+.evt{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--vac); background:var(--trace); padding:3px 8px 2px; white-space:nowrap;
+}
+.evt.b{background:var(--burn)}
+.evt.g{background:var(--go)}
+h2{
+  font-family:"Saira Condensed",sans-serif; font-weight:600; font-size:clamp(27px,4vw,38px);
+  text-transform:uppercase; letter-spacing:.01em; margin:0; line-height:1.05;
+}
+h3{
+  font-family:"Saira Condensed",sans-serif; font-weight:600; font-size:20px; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--trace); margin:36px 0 12px;
+}
+p{max-width:70ch}
+.lede{color:var(--dim); max-width:68ch; margin:14px 0 0; font-size:17px}
+strong{font-weight:600}
+code{
+  font-family:"IBM Plex Mono",monospace; font-size:.885em; background:var(--panel2);
+  border:1px solid var(--rule); padding:1px 5px; color:var(--trace); white-space:nowrap;
+}
+.ref{border:1px solid var(--rule); margin:22px 0 0}
+.refrow{display:grid; grid-template-columns:1fr; gap:2px 22px; padding:11px 15px; border-bottom:1px solid var(--rule)}
+.refrow:last-child{border-bottom:0}
+.refrow:nth-child(odd){background:rgba(27,36,64,.42)}
+@media(min-width:700px){ .refrow{grid-template-columns:minmax(230px,.9fr) 1.5fr; align-items:baseline} }
+.refrow b{font-family:"IBM Plex Mono",monospace; font-weight:500; font-size:13.5px; color:var(--trace)}
+.refrow span{color:var(--dim); font-size:14.5px}
+.refgroup{
+  font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.16em;
+  font-size:12px; color:var(--burn); padding:14px 15px 6px; background:var(--panel);
+  border-bottom:1px solid var(--rule);
+}
+.code{position:relative; margin:18px 0; border:1px solid var(--rule); background:#0E1425}
+.code .bar{
+  display:flex; justify-content:space-between; align-items:center; gap:12px;
+  padding:7px 11px 6px; border-bottom:1px solid var(--rule); background:var(--panel);
+}
+.code .name{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim)}
+.code pre{margin:0; padding:15px 16px; overflow-x:auto; font-family:"IBM Plex Mono",monospace; font-size:13.4px; line-height:1.72; color:#C9D6EE}
+.code pre .k{color:var(--burn)}
+.code pre .s{color:var(--go)}
+.code pre .c{color:#5D6B8A; font-style:italic}
+.code pre .n{color:var(--trace)}
+button.copy{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  background:transparent; color:var(--dim); border:1px solid var(--rule); padding:4px 10px; cursor:pointer;
+}
+button.copy:hover{color:var(--burn); border-color:var(--burn)}
+button.copy.done{color:var(--go); border-color:var(--go)}
+.eq{
+  font-family:"IBM Plex Serif",Georgia,serif; font-size:20px; text-align:center;
+  padding:20px 14px; margin:20px 0; background:var(--panel); border-left:2px solid var(--trace); overflow-x:auto;
+}
+.eq i{font-style:italic; padding:0 1px}
+.eq .op{padding:0 7px; color:var(--dim)}
+.eq .fn{font-style:normal; padding-right:2px}
+.eq sub{font-size:.68em; vertical-align:-.22em; font-style:normal}
+.eq sup{font-size:.68em; vertical-align:.5em; font-style:normal}
+.frac{display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; padding:0 6px; font-size:.9em}
+.frac .num{padding:0 6px 2px; border-bottom:1px solid var(--dim)}
+.frac .den{padding:3px 6px 0}
+.where{font-size:14.5px; color:var(--dim); text-align:center; margin:-8px 0 22px; font-family:"IBM Plex Serif",serif}
+.task{border:1px solid var(--burn); background:rgba(255,107,53,.045); padding:20px 22px; margin:24px 0}
+.task .lbl{
+  font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.18em;
+  font-size:12.5px; color:var(--burn); font-weight:700; margin-bottom:8px;
+}
+.task p{margin:0 0 10px}
+.task p:last-child{margin-bottom:0}
+ol,ul{max-width:68ch; padding-left:22px}
+li{margin:7px 0}
+li::marker{color:var(--dim)}
+.scratch{margin:16px 0}
+.scratch label{
+  display:block; font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--dim); margin-bottom:7px;
+}
+textarea{
+  width:100%; min-height:110px; resize:vertical; background:#0E1425; color:var(--ink);
+  border:1px solid var(--rule); padding:12px 13px; font-family:"IBM Plex Mono",monospace;
+  font-size:13.4px; line-height:1.7;
+}
+textarea:focus{outline:none; border-color:var(--trace)}
+.saved{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--go); letter-spacing:.1em; opacity:0; transition:opacity .3s}
+.saved.on{opacity:1}
+details{border:1px solid var(--rule); background:var(--panel); margin:20px 0}
+details summary{
+  cursor:pointer; padding:13px 16px; list-style:none; font-family:"Saira Condensed",sans-serif;
+  text-transform:uppercase; letter-spacing:.14em; font-size:14px; font-weight:600; color:var(--go);
+  display:flex; align-items:center; gap:10px;
+}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸"; font-size:11px; transition:transform .18s}
+details[open] summary::before{transform:rotate(90deg)}
+details summary:hover{background:var(--panel2)}
+details .body{padding:4px 18px 18px; border-top:1px solid var(--rule)}
+details .body > :first-child{margin-top:14px}
+.instr{border:1px solid var(--rule); background:var(--panel); margin:26px 0}
+.instr .ihead{
+  padding:10px 15px; border-bottom:1px solid var(--rule); font-family:"Saira Condensed",sans-serif;
+  text-transform:uppercase; letter-spacing:.16em; font-size:13px; color:var(--trace); font-weight:600;
+  display:flex; justify-content:space-between; gap:12px; align-items:center;
+}
+.ibody{display:grid; gap:0; grid-template-columns:1fr}
+@media(min-width:760px){ .ibody{grid-template-columns:290px 1fr} }
+.inputs{padding:16px 15px; display:grid; gap:14px; align-content:start}
+.field label{display:block; font-size:13.5px; color:var(--dim); margin-bottom:5px; display:flex; justify-content:space-between; gap:10px}
+.field label u{text-decoration:none; font-family:"IBM Plex Mono",monospace; color:var(--trace); font-size:13px}
+input[type=range]{width:100%; accent-color:var(--burn); background:transparent}
+.plotwrap{padding:14px 15px; border-top:1px solid var(--rule)}
+@media(min-width:760px){ .plotwrap{border-top:0; border-left:1px solid var(--rule)} }
+.legend{display:flex; gap:16px; flex-wrap:wrap; font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); margin-top:8px}
+.legend i{display:inline-block; width:16px; height:2px; vertical-align:middle; margin-right:6px}
+.legend i.sq{height:9px; width:9px}
+.readout{padding:14px 15px; display:grid; gap:11px; align-content:start; border-top:1px solid var(--rule)}
+.ro{display:flex; justify-content:space-between; align-items:baseline; gap:12px; border-bottom:1px dotted var(--rule); padding-bottom:7px}
+.ro:last-child{border-bottom:0}
+.ro .rk{font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.12em; font-size:12.5px; color:var(--dim)}
+.ro .rv{font-family:"IBM Plex Mono",monospace; font-size:18px; color:var(--trace)}
+.ro .rv.warn{color:var(--burn)}
+.ro .rv.ok{color:var(--go)}
+.ro .rv u{text-decoration:none; font-size:11px; color:var(--dim); margin-left:3px}
+.note{border-left:2px solid var(--rule); padding:2px 0 2px 16px; margin:20px 0; color:var(--dim); font-size:15.5px; max-width:66ch}
+.note b{color:var(--ink)}
+.warnbox{border:1px solid var(--rule); border-left:2px solid var(--burn); background:var(--panel); padding:14px 17px; margin:20px 0; font-size:15.5px; max-width:68ch}
+.warnbox .lbl{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--burn); display:block; margin-bottom:5px}
+.reserved{display:flex; flex-wrap:wrap; gap:6px; margin:14px 0; max-width:68ch}
+.reserved code{background:rgba(255,107,53,.09); border-color:rgba(255,107,53,.35); color:var(--burn)}
+.cols{border:1px solid var(--rule); margin:22px 0; overflow-x:auto}
+table.sch{border-collapse:collapse; width:100%; min-width:560px; font-size:14.5px}
+table.sch th{
+  text-align:left; font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.14em;
+  font-size:12px; color:var(--burn); font-weight:600; padding:11px 14px; background:var(--panel);
+  border-bottom:1px solid var(--rule);
+}
+table.sch td{padding:8px 14px; border-bottom:1px solid rgba(38,50,79,.6); vertical-align:top}
+table.sch tr:last-child td{border-bottom:0}
+table.sch tr:nth-child(even) td{background:rgba(27,36,64,.34)}
+table.sch td:first-child{font-family:"IBM Plex Mono",monospace; font-size:13px; color:var(--trace); white-space:nowrap}
+table.sch td:nth-child(2){font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--dim); white-space:nowrap}
+table.sch td:last-child{color:var(--dim)}
+.filecard{
+  border:1px solid var(--trace); background:rgba(95,211,243,.05); padding:18px 20px; margin:24px 0;
+  display:grid; gap:6px;
+}
+.filecard .fn{font-family:"IBM Plex Mono",monospace; font-size:15px; color:var(--trace)}
+.filecard .fd{color:var(--dim); font-size:15px; max-width:64ch}
+footer{padding:44px 0 0; color:var(--dim); font-size:14.5px}
+footer .nav{display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:14px; font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.12em; font-size:14px}
+footer .nav b{color:var(--ink); font-weight:600}
+::selection{background:var(--burn); color:var(--vac)}
+:focus-visible{outline:2px solid var(--trace); outline-offset:2px}
+@media(prefers-reduced-motion:reduce){ html{scroll-behavior:auto} *{transition:none!important; animation:none!important} }
+</style>
+</head>
+<body>
+<div class="topbar" id="topbar"></div>
+
+<nav class="rail" aria-label="Section navigation">
+  <div class="spine"></div>
+  <div class="marker" id="marker"></div>
+  <a class="tick" href="#ref">Reference<span class="alt">files &amp; volumes</span></a>
+  <a class="tick" href="#rate">Sample rate<span class="alt">derive it</span></a>
+  <a class="tick" href="#schema">The schema<span class="alt">run tags</span></a>
+  <a class="tick" href="#budget">Loss budget<span class="alt">the identity</span></a>
+  <a class="tick" href="#frame">Which frame<span class="alt">a real choice</span></a>
+  <a class="tick" href="#integrate">Accumulators<span class="alt">dt and drift</span></a>
+  <a class="tick" href="#sim">Explorer<span class="alt">where dv goes</span></a>
+  <a class="tick" href="#residual">The residual<span class="alt">what it hides</span></a>
+  <a class="tick" href="#mission">Your mission<span class="alt">launch4.ks</span></a>
+  <a class="tick" href="#solution">Solution<span class="alt">after you fly</span></a>
+</nav>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Arc 2 · Measure it &nbsp;<span>/</span>&nbsp; Tutorial 04 of 16</p>
+  <div class="mastgrid">
+    <div>
+      <h1>Telemetry &amp; the <em>loss budget</em></h1>
+      <p class="objective">Arc 1 ended on a wall: you had opinions about your ascent and no numbers. This tutorial is the hinge of the whole series. You'll write flight data to CSV, <strong>integrate the loss terms in flight</strong>, and end every run with an itemised bill for where your Δ<i>v</i> went. After this, every claim becomes checkable.</p>
+    </div>
+    <figure class="profile">
+      <svg viewBox="0 0 300 190" width="100%" role="img" aria-label="A stacked bar splitting ideal delta-v into orbital speed, gravity loss, drag loss and steering loss">
+        <text x="20" y="22" fill="#5D6B8A" font-family="IBM Plex Mono" font-size="9">ideal Δv from the tanks</text>
+        <rect x="20" y="30" width="258" height="20" fill="none" stroke="#26324F"/>
+        <line x1="20" y1="56" x2="20" y2="72" stroke="#26324F"/>
+        <line x1="278" y1="56" x2="278" y2="72" stroke="#26324F"/>
+        <rect x="20" y="78" width="150" height="20" fill="#5FD3F3" opacity=".85"/>
+        <rect x="170" y="78" width="76" height="20" fill="#FF6B35" opacity=".85"/>
+        <rect x="246" y="78" width="20" height="20" fill="#B48CF2" opacity=".85"/>
+        <rect x="266" y="78" width="12" height="20" fill="#F5C462" opacity=".85"/>
+        <text x="22" y="118" fill="#5FD3F3" font-family="IBM Plex Mono" font-size="9">speed you kept</text>
+        <text x="22" y="134" fill="#FF6B35" font-family="IBM Plex Mono" font-size="9">gravity loss</text>
+        <text x="22" y="150" fill="#B48CF2" font-family="IBM Plex Mono" font-size="9">drag loss</text>
+        <text x="22" y="166" fill="#F5C462" font-family="IBM Plex Mono" font-size="9">steering loss</text>
+      </svg>
+      <figcaption>The bill you're about to itemise</figcaption>
+    </figure>
+  </div>
+</header>
+
+<section id="ref">
+  <div class="shead"><span class="evt">Prelaunch</span><h2>Writing to disk</h2></div>
+  <p class="lede">kOS can write files. That single capability is what turns a script you watch into an experiment you analyse.</p>
+
+  <div class="ref">
+    <div class="refgroup">Volumes &amp; paths</div>
+    <div class="refrow"><b>"0:/name.csv"</b><span>The <em>archive</em> — volume 0. On disk it is your KSP <code>Ships/Script/</code> folder, the same place this tutorial lives. Files written here survive the flight, the vessel, and the save.</span></div>
+    <div class="refrow"><b>"1:/name.csv"</b><span>The local volume — the processor's own disk. Small, capacity-limited, and it dies with the craft. Not what you want for logs.</span></div>
+    <div class="refrow"><b>PATH("0:/x.csv")</b><span>Turns a string into a path object. Rarely needed for logging, useful when you start building filenames.</span></div>
+
+    <div class="refgroup">File operations</div>
+    <div class="refrow"><b>LOG expr TO "0:/x.csv".</b><span>Append one line, then a newline. Creates the file if absent. This is the whole logging API.</span></div>
+    <div class="refrow"><b>EXISTS("0:/x.csv")</b><span>Boolean. Use it before deleting so you don't error on a fresh install.</span></div>
+    <div class="refrow"><b>DELETEPATH("0:/x.csv").</b><span>Remove a file. There is no "overwrite" mode — <code>LOG</code> only ever appends, so deleting first is how you start a clean run.</span></div>
+
+    <div class="refgroup">Numbers &amp; time</div>
+    <div class="refrow"><b>TIME:SECONDS</b><span>Universal time in seconds, as a decimal. Your clock for everything on this page.</span></div>
+    <div class="refrow"><b>SHIP:Q</b><span>Dynamic pressure — in <em>atmospheres</em>, not pascals. Multiply by 101.325 for kPa.</span></div>
+    <div class="refrow"><b>SHIP:BODY:MU</b> / <b>:RADIUS</b><span>Gravitational parameter μ in m³/s², and body radius in m. Local gravity is μ/<i>r</i>².</span></div>
+    <div class="refrow"><b>VANG(v1, v2)</b><span>Angle between two vectors, <strong>in degrees</strong>. You'll meet vectors properly in Tutorial 08; here you need exactly this one function.</span></div>
+    <div class="refrow"><b>SIN(x)</b>, <b>COS(x)</b>, <b>ARCSIN(x)</b><span>kOS trig is in <strong>degrees</strong>, both ways in and out. Every radian habit you have will bite you here.</span></div>
+    <div class="refrow"><b>ROUND(x, n)</b><span>Round to <i>n</i> decimals. Use it on every logged column — see the sizing task below.</span></div>
+  </div>
+
+  <div class="code">
+    <div class="bar"><span class="name">the whole idea, in five lines</span><button class="copy">Copy</button></div>
+<pre><span class="k">SET</span> logFile <span class="k">TO</span> <span class="s">"0:/run_a.csv"</span>.
+<span class="k">IF</span> <span class="k">EXISTS</span>(logFile) { <span class="k">DELETEPATH</span>(logFile). }
+<span class="k">LOG</span> <span class="s">"met,alt,vsrf"</span> <span class="k">TO</span> logFile.
+<span class="k">LOG</span> <span class="k">ROUND</span>(met,<span class="n">2</span>) + <span class="s">","</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:ALTITUDE,<span class="n">1</span>) + <span class="s">","</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:VELOCITY:SURFACE:MAG,<span class="n">2</span>) <span class="k">TO</span> logFile.</pre>
+  </div>
+
+  <div class="warnbox">
+    <span class="lbl">Two ways this bites you</span>
+    <p style="margin:0 0 8px"><code>LOG</code> <strong>appends</strong>. Fly twice without deleting and your second run is stapled onto the first, header and all, and every plot you make will be nonsense in a way that looks almost plausible.</p>
+    <p style="margin:0">Writing to the archive needs a connection to the archive. In stock kOS that's always true, but if you run RemoteTech or kOS's signal-delay option, volume <code>0:</code> goes away the moment you lose the link — usually right as you pitch over. Check <code>HOMECONNECTION:ISCONNECTED</code> before you trust a log if you fly with either of those.</p>
+  </div>
+
+  <div class="note"><b>Reserved words, again.</b> From Tutorial 02's list, two are about to be extremely tempting: <code>log</code> and <code>q</code>. You want a variable for dynamic pressure and you want one for the logfile. Name them <code>dynp</code> and <code>logFile</code>.</div>
+</section>
+
+<section id="rate">
+  <div class="shead"><span class="evt b">Ignition</span><h2>How often should you sample?</h2></div>
+  <p class="lede">The obvious answer — "every tick, in the loop I already have" — is wrong in two separate ways, and one of them is silent.</p>
+
+  <p>Your ascent loop runs <code>WAIT 0</code>, which yields until the next physics tick. KSP's physics tick is <strong>0.02 s</strong>, so the loop runs about 50 times a second. A powered ascent to 75 km takes somewhere around three to four minutes.</p>
+
+  <div class="task">
+    <div class="lbl">Size it</div>
+    <ol>
+      <li>You're logging 23 columns. Assume each rounded number averages 8 characters plus a comma. How many bytes is one row? How many rows in a 220-second ascent at one row per physics tick, and how large is the file?</li>
+      <li>You want to resolve the peak of the dynamic-pressure curve. Max-Q lasts roughly 20 seconds. If you want at least 40 samples across that feature, what sample interval do you need?</li>
+      <li>Given your answer to (2), what is the file size for the same 220-second ascent? What did the tick-rate version buy you?</li>
+      <li>The gravity-loss integral ∫<i>g</i>&nbsp;sin&nbsp;γ&nbsp;<i>dt</i> is a different job from plotting. At the sample interval from (2), roughly what error would you expect in that integral compared to accumulating at tick rate? (Think about how fast sin&nbsp;γ changes, not how fast you sample.)</li>
+    </ol>
+  </div>
+
+  <div class="scratch">
+    <label for="s1">Your working — scratch pad</label>
+    <textarea id="s1" data-key="t04-rate" placeholder="row bytes = ..."></textarea>
+    <div class="saved" data-for="s1">Saved</div>
+  </div>
+
+  <details>
+    <summary>Show the numbers</summary>
+    <div class="body">
+      <p><strong>1 — Tick rate.</strong> 23 columns × 9 bytes ≈ <strong>207 bytes/row</strong>. At 50 Hz for 220 s that's 11 000 rows, about <strong>2.3 MB</strong> — per flight. Fly the six configurations this tutorial asks for and you have 14 MB of CSV to drag into a browser tab.</p>
+
+      <p><strong>2 — Resolving max-Q.</strong> 40 samples across a 20-second feature is one every 0.5 s. Round down for margin: <strong>0.25 s</strong>, or 4 Hz. That is comfortably enough to see the shape of every curve in this series, including the sharp ones.</p>
+
+      <p><strong>3 — What you gave up.</strong> 220 s at 4 Hz is 880 rows, about <strong>180 kB</strong>. You threw away 92% of the data and lost nothing you were going to look at. The tick-rate version bought you resolution finer than the thing you're measuring — and it cost you a file the analyser has to chew through, plus a disk write every 20 ms in the middle of a flight.</p>
+
+      <p><strong>4 — And here is the split that matters.</strong> Nearly nothing. The integrand <i>g</i>&nbsp;sin&nbsp;γ is smooth and slow — γ swings 90° over two minutes — so a 0.25 s rectangle rule tracks it to well under a m/s across the whole ascent.</p>
+      <p>But that is a statement about <em>this</em> integrand. Thrust is not smooth: staging drops it to zero and back in a single tick. Sample the ideal-Δ<i>v</i> integral at 4 Hz and a stage separation that happens between two samples gets integrated as though the engine never cut out.</p>
+      <p>So the answer isn't one rate. It's two:</p>
+      <div class="eq"><span class="fn">integrate every tick</span> <span class="op">·</span> <span class="fn">log every 0.25 s</span></div>
+      <p>The accumulators are cheap — a few multiplies — and they need every tick to stay honest. The file write is expensive and needs 4 Hz. Splitting them is the single most important structural decision in <code>launch4.ks</code>.</p>
+    </div>
+  </details>
+</section>
+
+<section id="schema">
+  <div class="shead"><span class="evt">Ascent</span><h2>Columns, and the run tag</h2></div>
+  <p class="lede">You are going to compare runs against each other. That requirement, and not tidiness, is what fixes the file format.</p>
+
+  <p>The temptation is to write a header block: a few <code>#</code> comment lines at the top of each file recording which <i>k</i> you flew, then the CSV. Don't. Every parser you or anyone else writes then needs a special case, and the moment you concatenate two files the metadata is stranded in the middle of the data.</p>
+
+  <p>Instead: <strong>repeat the run's identity on every row.</strong> Four extra columns, constant down the whole file, and in exchange any tool that can read a CSV can group your runs, overlay them, and filter them — including one you write in twenty minutes.</p>
+
+  <div class="cols">
+    <table class="sch">
+      <tr><th>Column</th><th>Unit</th><th>Why it's here</th></tr>
+      <tr><td>run</td><td>text</td><td>The tag you group and colour by. Make it descriptive: <code>k05_h1000</code>.</td></tr>
+      <tr><td>k, h0, h1</td><td>—, m, m</td><td>The pitch-program settings, so a file is self-describing six months later.</td></tr>
+      <tr><td>ut</td><td>s</td><td>Universal time. The only unambiguous clock; lets you line a log up against a save.</td></tr>
+      <tr><td>met</td><td>s</td><td>Seconds since liftoff. The x-axis you'll actually plot against.</td></tr>
+      <tr><td>alt</td><td>m</td><td>Altitude ASL. The other x-axis you'll plot against.</td></tr>
+      <tr><td>vsrf</td><td>m/s</td><td>Surface-relative speed. What the airframe and the drag equation care about.</td></tr>
+      <tr><td>vorb</td><td>m/s</td><td>Orbital speed. What getting to orbit actually requires.</td></tr>
+      <tr><td>vspd</td><td>m/s</td><td>Vertical speed. Signed — its zero crossing is apoapsis.</td></tr>
+      <tr><td>gamma</td><td>deg</td><td>Flight path angle, from the horizon. The <em>actual</em> one, not the commanded pitch.</td></tr>
+      <tr><td>pitch</td><td>deg</td><td>Commanded pitch out of <code>pitchAt()</code>. Plot it against gamma — the gap is the story.</td></tr>
+      <tr><td>alpha</td><td>deg</td><td>Angle between where you point and where you're going. Steering loss lives here.</td></tr>
+      <tr><td>mass</td><td>t</td><td>Vessel mass. Its staircase shows you staging events for free.</td></tr>
+      <tr><td>thrust</td><td>kN</td><td>Actual thrust now, not available thrust. They differ, and the difference matters.</td></tr>
+      <tr><td>dynp</td><td>kPa</td><td>Dynamic pressure. The max of this column is the number Tutorial 07 exists to control.</td></tr>
+      <tr><td>ap, pe</td><td>m</td><td>Apoapsis and periapsis. Where the flight is going, as opposed to where it is.</td></tr>
+      <tr><td>dvIdeal</td><td>m/s</td><td>∫(<i>F</i>/<i>m</i>)&nbsp;<i>dt</i> — everything the tanks have given you so far.</td></tr>
+      <tr><td>lossGrav</td><td>m/s</td><td>∫<i>g</i>&nbsp;sin&nbsp;γ&nbsp;<i>dt</i>, accumulated live.</td></tr>
+      <tr><td>lossSteer</td><td>m/s</td><td>∫(<i>F</i>/<i>m</i>)(1&nbsp;−&nbsp;cos&nbsp;α)&nbsp;<i>dt</i>, accumulated live.</td></tr>
+      <tr><td>lossDrag</td><td>m/s</td><td>The residual. Read <a href="#residual" style="color:var(--burn)">the section on it</a> before you believe it.</td></tr>
+      <tr><td>stagenum</td><td>—</td><td><code>STAGE:NUMBER</code>. Lets the analyser mark separations on the time axis.</td></tr>
+    </table>
+  </div>
+
+  <div class="note"><b>Round on write, not on read.</b> <code>ROUND(x,2)</code> on a speed costs you nothing physical and roughly halves the file. But don't round <code>ut</code> — it's a number in the millions and two decimals of it are the only thing making your rows distinguishable.</div>
+</section>
+
+<section id="budget">
+  <div class="shead"><span class="evt b">The equation</span><h2>Where the delta-v went</h2></div>
+  <p class="lede">This is the derivation the entire tutorial is built around. It is four lines long and it is the reason Arc 3 exists.</p>
+
+  <p>Take the rocket as a point mass. Let <i>v</i> be its speed, γ the flight path angle above the horizon, <i>F</i> the thrust, <i>m</i> the mass, <i>D</i> the drag force, and α the angle between the thrust direction and the velocity direction.</p>
+
+  <p>Resolve Newton's second law <strong>along the velocity vector</strong>. Only the component of each force parallel to <i>v</i> changes the <em>speed</em>; perpendicular components change the direction instead.</p>
+
+  <div class="task">
+    <div class="lbl">Derive it</div>
+    <ol>
+      <li>Write <i>m</i>&nbsp;<i>dv</i>/<i>dt</i> as the sum of three along-track terms: thrust, gravity, drag. Get the sign and the trig factor right on each. (Gravity points down; the along-track component of "down" when you're climbing at γ is what?)</li>
+      <li>Divide by <i>m</i> and integrate both sides from liftoff to now. Call ∫(<i>F</i>/<i>m</i>)&nbsp;<i>dt</i> the <strong>ideal Δ<i>v</i></strong> — it's what Tsiolkovsky in Tutorial 03 predicted the tanks would give you.</li>
+      <li>Now split the thrust term. You wrote <i>F</i>&nbsp;cos&nbsp;α/<i>m</i>; add and subtract <i>F</i>/<i>m</i> to pull out a term that is zero when α&nbsp;=&nbsp;0 and positive otherwise. That term is the steering loss — name it and check its sign.</li>
+      <li>Rearrange into: ideal Δ<i>v</i> = (speed you actually have) + (three losses). This is your bill.</li>
+      <li>Sanity check: a rocket hovering at constant altitude, engine at exactly TWR&nbsp;=&nbsp;1, for 30 seconds. What does each of the four terms equal? Does it balance?</li>
+    </ol>
+  </div>
+
+  <div class="scratch">
+    <label for="s2">Your working</label>
+    <textarea id="s2" data-key="t04-budget" placeholder="m dv/dt = ..."></textarea>
+    <div class="saved" data-for="s2">Saved</div>
+  </div>
+
+  <details>
+    <summary>Show the algebra</summary>
+    <div class="body">
+      <p><strong>1 — Along-track equation of motion.</strong> Thrust contributes <i>F</i>&nbsp;cos&nbsp;α (only its component along <i>v</i>). Drag acts directly backwards along <i>v</i>, so it's −<i>D</i>. Gravity points at the centre of the body; the angle between "straight down" and "backwards along <i>v</i>" is 90°&nbsp;−&nbsp;γ, so its along-track component is −<i>mg</i>&nbsp;sin&nbsp;γ.</p>
+      <div class="eq"><i>m</i> <span class="frac"><span class="num"><i>dv</i></span><span class="den"><i>dt</i></span></span> <span class="op">=</span> <i>F</i> <span class="fn">cos</span><i>α</i> <span class="op">−</span> <i>mg</i> <span class="fn">sin</span><i>γ</i> <span class="op">−</span> <i>D</i></div>
+      <p>Note that when γ&nbsp;=&nbsp;0 — flying flat — gravity does nothing to your speed at all. It's still bending you, but it isn't slowing you. That single fact is the entire argument for the gravity turn.</p>
+
+      <p><strong>2 — Divide and integrate.</strong></p>
+      <div class="eq"><span class="frac"><span class="num"><i>dv</i></span><span class="den"><i>dt</i></span></span> <span class="op">=</span> <span class="frac"><span class="num"><i>F</i></span><span class="den"><i>m</i></span></span> <span class="fn">cos</span><i>α</i> <span class="op">−</span> <i>g</i> <span class="fn">sin</span><i>γ</i> <span class="op">−</span> <span class="frac"><span class="num"><i>D</i></span><span class="den"><i>m</i></span></span></div>
+      <div class="eq">Δ<i>v</i><sub>gained</sub> <span class="op">=</span> ∫<span class="frac"><span class="num"><i>F</i></span><span class="den"><i>m</i></span></span><span class="fn">cos</span><i>α</i> <i>dt</i> <span class="op">−</span> ∫<i>g</i><span class="fn">sin</span><i>γ</i> <i>dt</i> <span class="op">−</span> ∫<span class="frac"><span class="num"><i>D</i></span><span class="den"><i>m</i></span></span><i>dt</i></div>
+
+      <p><strong>3 — Pull the steering loss out.</strong> Write cos&nbsp;α as 1&nbsp;−&nbsp;(1&nbsp;−&nbsp;cos&nbsp;α):</p>
+      <div class="eq">∫<span class="frac"><span class="num"><i>F</i></span><span class="den"><i>m</i></span></span><span class="fn">cos</span><i>α</i> <i>dt</i> <span class="op">=</span> ∫<span class="frac"><span class="num"><i>F</i></span><span class="den"><i>m</i></span></span><i>dt</i> <span class="op">−</span> ∫<span class="frac"><span class="num"><i>F</i></span><span class="den"><i>m</i></span></span>(<span class="op"></span>1 <span class="op">−</span> <span class="fn">cos</span><i>α</i>)<i>dt</i></div>
+      <p>The first integral is Δ<i>v</i><sub>ideal</sub>. The second is the steering loss, and because cos&nbsp;α&nbsp;≤&nbsp;1 always, it is <strong>never negative</strong> — you cannot gain speed by pointing away from where you're going. It's also quadratic in α for small angles: cos&nbsp;α&nbsp;≈&nbsp;1&nbsp;−&nbsp;α²/2, so 5° of misalignment costs you 0.4% of your thrust and 20° costs 6%. Small angles are genuinely cheap, which is why a slightly-off gravity turn is fine and a badly-off one is not.</p>
+
+      <p><strong>4 — The bill.</strong></p>
+      <div class="eq">Δ<i>v</i><sub>ideal</sub> <span class="op">=</span> Δ<i>v</i><sub>gained</sub> <span class="op">+</span> <i>L</i><sub>grav</sub> <span class="op">+</span> <i>L</i><sub>drag</sub> <span class="op">+</span> <i>L</i><sub>steer</sub></div>
+      <p class="where"><i>L</i><sub>grav</sub> = ∫<i>g</i> sin γ <i>dt</i> &nbsp;·&nbsp; <i>L</i><sub>drag</sub> = ∫(<i>D</i>/<i>m</i>) <i>dt</i> &nbsp;·&nbsp; <i>L</i><sub>steer</sub> = ∫(<i>F</i>/<i>m</i>)(1 − cos α) <i>dt</i></p>
+      <p>Everything the tanks gave you is either speed you still have, or one of three named ways you threw it away. There is no fourth bucket and nothing is unaccounted for. That's what makes this worth measuring rather than estimating.</p>
+
+      <p><strong>5 — The hover check.</strong> TWR = 1 means <i>F</i>/<i>m</i> = <i>g</i>. Pointing straight up and not moving, γ is 90° (you're going nowhere, but the instant you move it's straight up), α = 0, <i>D</i> = 0, and speed never changes.</p>
+      <ul>
+        <li>Δ<i>v</i><sub>ideal</sub> = <i>g</i> × 30 = <strong>294 m/s</strong></li>
+        <li><i>L</i><sub>grav</sub> = <i>g</i> sin 90° × 30 = <strong>294 m/s</strong></li>
+        <li><i>L</i><sub>drag</sub> = <i>L</i><sub>steer</sub> = 0, and Δ<i>v</i><sub>gained</sub> = 0</li>
+      </ul>
+      <p>294 = 0 + 294 + 0 + 0. It balances, and it tells you something brutal: <strong>thirty seconds of hovering costs you 294 m/s and buys you nothing.</strong> Every second your rocket spends pointed straight up is being billed at <i>g</i> per second. That is the number Arc 3 spends four tutorials attacking.</p>
+    </div>
+  </details>
+</section>
+
+<section id="frame">
+  <div class="shead"><span class="evt b">Anomaly</span><h2>Speed relative to what?</h2></div>
+  <p class="lede">The derivation says "<i>v</i>". Your ship has two of them, they differ by 175 m/s on the pad, and picking the wrong one quietly poisons two of your four buckets.</p>
+
+  <p>kOS offers <code>SHIP:VELOCITY:SURFACE</code> — relative to the rotating ground — and <code>SHIP:VELOCITY:ORBIT</code> — relative to the planet's centre, non-rotating. At KSC, sitting still on the pad, the first is 0 m/s and the second is about <strong>175 m/s eastward</strong>, because the pad itself is moving.</p>
+
+  <div class="task">
+    <div class="lbl">Think it through before you pick</div>
+    <ol>
+      <li>At the instant of liftoff, using <strong>orbital</strong> velocity: what is γ? What is α, given the rocket points straight up? What does the steering-loss integrand (<i>F</i>/<i>m</i>)(1 − cos α) evaluate to?</li>
+      <li>Same instant, using <strong>surface</strong> velocity: what are γ and α now? What's the problem with computing γ = arcsin(<i>v</i><sub>vertical</sub>/<i>v</i>) at that instant?</li>
+      <li>The derivation on the last page assumed an inertial frame. Which of the two is inertial? So which one is <em>formally</em> correct?</li>
+      <li>Given (1) and (3) disagree with intuition, which do you log — and what do you have to write down about the choice so that future-you doesn't misread the numbers?</li>
+    </ol>
+  </div>
+
+  <div class="scratch">
+    <label for="s3">Your reasoning</label>
+    <textarea id="s3" data-key="t04-frame" placeholder="orbital at liftoff: gamma = ..."></textarea>
+    <div class="saved" data-for="s3">Saved</div>
+  </div>
+
+  <details>
+    <summary>Show the answer — and why it's a compromise</summary>
+    <div class="body">
+      <p><strong>1 — Orbital frame at liftoff.</strong> You're moving at 175 m/s <em>horizontally</em> (east, with the ground) and 0 m/s vertically. So γ&nbsp;=&nbsp;<strong>0°</strong>. The rocket points straight up, so α&nbsp;=&nbsp;<strong>90°</strong>, and the steering integrand is (<i>F</i>/<i>m</i>)(1&nbsp;−&nbsp;cos&nbsp;90°)&nbsp;=&nbsp;<i>F</i>/<i>m</i> — <strong>the entire thrust is booked as steering loss</strong>, and the gravity loss is <i>g</i>&nbsp;sin&nbsp;0°&nbsp;=&nbsp;0.</p>
+      <p>That is not a bug. It's the honest inertial answer: you are already orbiting slowly, and pointing straight up is 90° away from where that motion is going. But it means your budget reports a vertical launch as a steering problem and not a gravity problem, which is going to be a very hard sell in Arc 3.</p>
+
+      <p><strong>2 — Surface frame at liftoff.</strong> γ&nbsp;=&nbsp;90° once you're moving, α&nbsp;=&nbsp;0, gravity loss runs at the full <i>g</i>. Exactly the intuition, and exactly the hover check from the last section.</p>
+      <p>The problem: at <i>t</i>&nbsp;=&nbsp;0 the surface speed is 0, so γ&nbsp;=&nbsp;arcsin(0/0) and your script divides by zero on its first tick. Guard it — below about 1 m/s of surface speed, just declare γ&nbsp;=&nbsp;90° and α&nbsp;=&nbsp;0. You're on the pad; it's true.</p>
+
+      <p><strong>3 — Formally.</strong> The orbital frame is the inertial one, so the derivation is exactly valid there and only approximately valid in the rotating surface frame. In the surface frame there are centrifugal and Coriolis terms that the derivation dropped.</p>
+
+      <p><strong>4 — What to actually do.</strong> Log the budget in the <strong>surface frame</strong>, and write down why.</p>
+      <p>Two reasons. First, it matches every other ascent analysis you will ever read, so your numbers are comparable to other people's. Second, and more importantly for this series: the surface frame is the one where the losses are attributed to the thing you can <em>change</em>. Your pitch program is written in surface-relative terms; you want a budget that tells you what your pitch program cost you.</p>
+      <p>The price is that the frame terms you dropped don't vanish — they land in the residual, which is the drag bucket. At Kerbin's rotation rate they're small compared to drag through the lower atmosphere, but "small" is a claim, and in Tutorial 06 you'll build a drag model good enough to test it.</p>
+      <p>So the honest column header is not "drag loss". It's "drag loss and everything else I didn't model" — and the next section is about taking that seriously.</p>
+    </div>
+  </details>
+
+  <div class="note"><b>Log both speeds anyway.</b> <code>vsrf</code> and <code>vorb</code> are two columns and one of them is free. The 175 m/s gap between them is a gift from Kerbin's rotation that you'll spend all of Arc 5 learning to aim properly.</div>
+</section>
+
+<section id="integrate">
+  <div class="shead"><span class="evt">Ascent</span><h2>Accumulating in the loop</h2></div>
+  <p class="lede">An integral in a control loop is a running total and a time step. Both halves have a trap in them.</p>
+
+  <p>The pattern is a rectangle rule: every pass, work out how long it's been since the last pass, evaluate the integrand now, multiply, add to a global.</p>
+
+  <div class="code">
+    <div class="bar"><span class="name">the accumulator pattern</span><button class="copy">Copy</button></div>
+<pre><span class="k">SET</span> lossGrav <span class="k">TO</span> <span class="n">0</span>.
+<span class="k">SET</span> lastTick <span class="k">TO</span> <span class="n">TIME</span>:SECONDS.
+
+<span class="c">// ...inside the loop, every tick...</span>
+<span class="k">LOCAL</span> now <span class="k">IS</span> <span class="n">TIME</span>:SECONDS.
+<span class="k">LOCAL</span> dt <span class="k">IS</span> now - lastTick.
+<span class="k">SET</span> lastTick <span class="k">TO</span> now.
+<span class="k">IF</span> dt > <span class="n">0</span> {
+  <span class="k">SET</span> lossGrav <span class="k">TO</span> lossGrav + gNow() * <span class="k">SIN</span>(gammaNow()) * dt.
+}</pre>
+  </div>
+
+  <div class="task">
+    <div class="lbl">Three traps — find them before you read on</div>
+    <ol>
+      <li><strong>The first tick.</strong> What is <i>dt</i> on the very first pass, and what happens if you initialise <code>lastTick</code> at the top of the file rather than immediately before the loop? (Your script does a five-second countdown in between.)</li>
+      <li><strong>Zero-length steps.</strong> <code>WAIT 0</code> yields one tick, but kOS can run your loop more than once per physics tick if the instruction budget allows. What is <i>dt</i> then, and what does that do to a rectangle rule? Now: what does it do to a <em>trapezoid</em> rule?</li>
+      <li><strong>Time warp.</strong> Physics warp at 4× makes each tick cover 0.08 s of game time. Does <code>TIME:SECONDS</code> account for that automatically? Does the accuracy of your rectangle rule survive it?</li>
+    </ol>
+  </div>
+
+  <div class="scratch">
+    <label for="s4">Your answers</label>
+    <textarea id="s4" data-key="t04-traps" placeholder="1. first tick: ..."></textarea>
+    <div class="saved" data-for="s4">Saved</div>
+  </div>
+
+  <details>
+    <summary>Show the answers</summary>
+    <div class="body">
+      <p><strong>1 — Five seconds of phantom gravity loss.</strong> If <code>lastTick</code> is set at the top of the file and the countdown runs for five seconds, the first <i>dt</i> inside the loop is <strong>5.0</strong>, not 0.02. The rocket was sitting on the pad the whole time, but your accumulator books <i>g</i>&nbsp;sin&nbsp;90°&nbsp;×&nbsp;5&nbsp;≈&nbsp;<strong>49 m/s</strong> of gravity loss before liftoff.</p>
+      <p>49 m/s is small enough to look plausible and large enough to change your conclusions. Set <code>lastTick</code> on the line immediately before the loop — after <code>STAGE.</code>, not before the countdown.</p>
+
+      <p><strong>2 — Zero <i>dt</i> is harmless; the guard is for something else.</strong> A pass with <i>dt</i>&nbsp;=&nbsp;0 adds exactly zero to a rectangle rule, so it costs nothing but a wasted evaluation. The <code>IF dt > 0</code> guard exists for a different reason: if you're computing anything by dividing by <i>dt</i> — a numerical derivative, say — that pass is a division by zero.</p>
+      <p>The trapezoid rule is a different story. It averages the current integrand with the previous one, which means it has to <em>store</em> the previous one. A zero-length step overwrites your stored value with an identical one — harmless — but it does mean the trapezoid's error advantage over the rectangle rule evaporates when your step sizes are erratic. At 50 Hz over a smooth integrand, neither is worth arguing about. Use the rectangle rule and spend the attention elsewhere.</p>
+
+      <p><strong>3 — Yes, and mostly.</strong> <code>TIME:SECONDS</code> is game time, so it advances at 0.08 s per tick under 4× physics warp and your <i>dt</i> is automatically right. The integral stays unbiased.</p>
+      <p>What degrades is resolution: you get a quarter as many samples across the same manoeuvre. Through staging events and max-Q that matters. The practical rule for this series is <strong>don't physics-warp a logged ascent</strong> — and since you'll want to compare runs, warping some and not others is worse than warping none.</p>
+      <p>On-rails time warp is a different beast entirely: physics is off, your loop barely runs, and thrust is impossible. That's not a logging problem, it's a "you can't do that" problem, and kOS will refuse to warp on rails while the throttle is up.</p>
+    </div>
+  </details>
+
+  <div class="warnbox">
+    <span class="lbl">Units — this one is free and people still get it wrong</span>
+    kOS gives mass in <strong>tonnes</strong> and thrust in <strong>kilonewtons</strong>. Thrust divided by mass is therefore kN/t = 1000&nbsp;N / 1000&nbsp;kg = <strong>m/s², exactly</strong>. No conversion factor. But <code>SHIP:Q</code> is in atmospheres and <code>SHIP:BODY:MU</code> is in m³/s² — mixed unit systems in the same API. Check every new suffix the first time you use it.
+  </div>
+</section>
+
+<section id="sim">
+  <div class="shead"><span class="evt">Instrument</span><h2>Where the delta-v goes</h2></div>
+  <p class="lede">A point-mass model of the ascent you've been flying, with the four buckets computed exactly the way <code>launch4.ks</code> will compute them. Drag the profile and watch the bill change.</p>
+
+  <div class="instr">
+    <div class="ihead"><span>Ascent loss explorer</span><span id="p-readout" style="font-family:'IBM Plex Mono',monospace;letter-spacing:.04em;text-transform:none;color:var(--dim);font-weight:400;font-size:12px">—</span></div>
+    <div class="ibody">
+      <div class="inputs">
+        <div class="field"><label>Turn start <u id="v-h0">1000 m</u></label><input id="r-h0" type="range" min="0" max="12000" step="250" value="1000"></div>
+        <div class="field"><label>Turn end <u id="v-h1">45000 m</u></label><input id="r-h1" type="range" min="15000" max="70000" step="1000" value="45000"></div>
+        <div class="field"><label>Exponent k <u id="v-k">1.00</u></label><input id="r-k" type="range" min="0.2" max="2.5" step="0.05" value="1"></div>
+        <div class="field"><label>Liftoff TWR <u id="v-twr">1.53</u></label><input id="r-twr" type="range" min="1.15" max="2.4" step="0.01" value="1.53"></div>
+        <div class="field"><label>Drag area C<sub>d</sub>A <u id="v-cda">2.0 m²</u></label><input id="r-cda" type="range" min="0.5" max="14" step="0.5" value="2"></div>
+      </div>
+      <div class="plotwrap">
+        <svg id="plot-svg" viewBox="0 0 460 250" width="100%" role="img" aria-label="Stacked delta-v budget and trajectory profile"></svg>
+        <div class="legend">
+          <span><i class="sq" style="background:#5FD3F3"></i>speed kept</span>
+          <span><i class="sq" style="background:#FF6B35"></i>gravity</span>
+          <span><i class="sq" style="background:#B48CF2"></i>drag</span>
+          <span><i class="sq" style="background:#F5C462"></i>steering</span>
+        </div>
+      </div>
+    </div>
+    <div class="readout" style="grid-template-columns:1fr 1fr; display:grid; gap:11px 24px">
+      <div class="ro"><span class="rk">Δv spent to MECO</span><span class="rv" id="o-spent">—</span></div>
+      <div class="ro"><span class="rk">Circularise at AP</span><span class="rv" id="o-circ">—</span></div>
+      <div class="ro"><span class="rk">Total to orbit</span><span class="rv" id="o-total">—</span></div>
+      <div class="ro"><span class="rk">Peak dynamic pressure</span><span class="rv" id="o-q">—</span></div>
+    </div>
+  </div>
+
+  <div class="task">
+    <div class="lbl">Use it to answer these</div>
+    <ol>
+      <li>Start at <i>k</i>&nbsp;=&nbsp;1 and walk down to <i>k</i>&nbsp;=&nbsp;0.3. Gravity loss falls and drag loss rises. Where is the minimum <strong>total</strong>?</li>
+      <li>Now push C<sub>d</sub>A up to 8 and repeat. Which way did the optimal <i>k</i> move, and does that make physical sense?</li>
+      <li>Raise liftoff TWR. Gravity loss drops — you spend less time fighting it. So why isn't the answer "build the highest-TWR rocket you can"? (Look at what happens to peak <i>q</i>, and remember Tutorial 03's mass ratio.)</li>
+      <li>Set <i>k</i>&nbsp;=&nbsp;2 and note "Δv spent to MECO". It's the <em>lowest</em> of any setting. Explain why that profile is nonetheless the worst one on the list.</li>
+    </ol>
+  </div>
+
+  <div class="warnbox">
+    <span class="lbl">This is a model, not an answer</span>
+    Point mass, exponential atmosphere, one stage, a drag coefficient that doesn't vary with Mach, and no steering lag. Every one of those is wrong in KSP. Its job is to show you the <em>shape</em> of the tradeoff — that there is an optimum, and which way it moves — so that when your own logs disagree with it, you know what you're looking at. Believe your CSVs over this widget.
+  </div>
+</section>
+
+<section id="residual">
+  <div class="shead"><span class="evt b">Anomaly</span><h2>The bucket that isn't drag</h2></div>
+  <p class="lede">Three of your four numbers are measured. The fourth is whatever's left over, and it will happily absorb every mistake you make.</p>
+
+  <p>You can measure Δ<i>v</i><sub>ideal</sub>: thrust and mass are both live telemetry. You can measure the gravity loss: <i>g</i> from μ/<i>r</i>², γ from the velocity. You can measure the steering loss: α is an angle between two vectors you have. And Δ<i>v</i><sub>gained</sub> is just your current surface speed.</p>
+
+  <p>You cannot measure drag. There is no <code>SHIP:DRAG</code>. So you get it the only way available — by rearranging the identity:</p>
+
+  <div class="eq"><i>L</i><sub>drag</sub> <span class="op">=</span> Δ<i>v</i><sub>ideal</sub> <span class="op">−</span> Δ<i>v</i><sub>gained</sub> <span class="op">−</span> <i>L</i><sub>grav</sub> <span class="op">−</span> <i>L</i><sub>steer</sub></div>
+
+  <p>Which works. And which means that if any of the other three is wrong, the error appears — with the wrong sign, attached to the wrong physics — in the column labelled "drag".</p>
+
+  <div class="task">
+    <div class="lbl">List what's actually in there</div>
+    <p>Before reading on, write down everything you can think of that would end up in that residual besides aerodynamic drag. You should be able to get at least four.</p>
+  </div>
+
+  <div class="scratch">
+    <label for="s5">What's in the bucket</label>
+    <textarea id="s5" data-key="t04-residual" placeholder="1. ..."></textarea>
+    <div class="saved" data-for="s5">Saved</div>
+  </div>
+
+  <details>
+    <summary>Show the list</summary>
+    <div class="body">
+      <ul>
+        <li><strong>Rotating-frame terms.</strong> The centrifugal and Coriolis contributions you dropped when you chose the surface frame. Small at Kerbin's rotation rate, but not zero, and they grow as you build horizontal speed.</li>
+        <li><strong>Thrust misreporting.</strong> If you accumulate <code>SHIP:AVAILABLETHRUST</code> instead of actual thrust, then every second at part throttle inflates Δ<i>v</i><sub>ideal</sub>, and the whole inflation lands in drag. This is the big one, and it's why the schema logs actual thrust.</li>
+        <li><strong>The α convention.</strong> <code>VANG(SHIP:FACING:VECTOR, …)</code> is where the nose points, which is not where the engines push if you have gimballed engines mid-correction, or a control-surface trim. Usually within a degree; occasionally not.</li>
+        <li><strong>Integration error at staging.</strong> Thrust steps discontinuously. Any tick where the accumulator's thrust reading and the actual thrust disagree gets billed to drag.</li>
+        <li><strong>Engine spool time.</strong> Real engines take a moment to reach full thrust; if you read thrust at the top of the tick and it changes during the tick, the difference accumulates.</li>
+        <li><strong>Vertical speed vs. radial speed.</strong> <code>SHIP:VERTICALSPEED</code> is the rate of change of altitude, which is radial. Over a curved surface at high horizontal speed, "up" is rotating underneath you. Tiny, but it's in there.</li>
+      </ul>
+
+      <p><strong>So how do you know if your drag number is any good?</strong> Two checks, both cheap:</p>
+      <ol>
+        <li><strong>The vacuum test.</strong> Fly the same script on the Mun, or above 70 km on Kerbin. True aerodynamic drag is exactly zero there. Whatever your residual reports is pure error, and now you know its size.</li>
+        <li><strong>The shape test.</strong> Plot <code>lossDrag</code> against altitude. Real drag loss accumulates almost entirely between about 5 and 20 km and then flattens completely. If your curve keeps climbing above 40 km, you are not looking at drag.</li>
+      </ol>
+      <p>Do the vacuum test before you trust a single drag number in Arc 3. It takes one flight and it calibrates every measurement you make afterwards.</p>
+    </div>
+  </details>
+
+  <div class="note"><b>This is the actual skill.</b> Not the CSV writing — that's twenty lines. Knowing which of your numbers are measured, which are inferred, and what the inferred ones absorb when you're wrong is the difference between instrumenting a rocket and decorating it.</div>
+</section>
+
+<section id="mission">
+  <div class="shead"><span class="evt b">Your mission</span><h2>launch4.ks and the analyser</h2></div>
+  <div class="task">
+    <div class="lbl">Requirements</div>
+    <ol>
+      <li>Start from <code>launch3.ks</code>. Keep the pitch program and the autostaging exactly as they are — this tutorial adds instrumentation and changes nothing about how the rocket flies.</li>
+      <li>Add a <code>runTag</code> variable at the top and build the log filename from it. Delete the file if it exists, then write the header row.</li>
+      <li>Write <code>accumulate()</code> and call it <strong>every tick</strong>. It maintains <code>dvIdeal</code>, <code>lossGrav</code>, <code>lossSteer</code>, and its own <code>lastTick</code>.</li>
+      <li>Write <code>logRow()</code> and call it at <strong>4 Hz</strong>, using the additive-deadline pattern with a catch-up guard.</li>
+      <li>Use <em>actual</em> thrust in the accumulator — sum <code>:THRUST</code> over active engines, not <code>AVAILABLETHRUST</code>. Log both if you want to see the gap.</li>
+      <li>Guard γ and α for the pad case where surface speed is ~0.</li>
+      <li>At MECO, print the four-way budget to the terminal and log one final row.</li>
+      <li>Fly six runs on the same rocket: <i>k</i> ∈ {0.4, 0.5, 1.0} at turn start 1000 m, then <i>k</i> = 0.5 at turn start 250 m, 2000 m, and 4000 m. Tag each one. Do not physics-warp any of them.</li>
+      <li>Drop all six CSVs into the analyser and answer: which had the lowest total loss, and which single loss term explains the difference?</li>
+    </ol>
+  </div>
+
+  <div class="filecard">
+    <div class="fn">analyzer.html</div>
+    <div class="fd">Sitting next to this file. Open it in a browser and drag your CSVs onto it — it groups by the <code>run</code> column, overlays every run on one set of axes, and draws the loss budget as a stacked bar per run. Nothing is uploaded anywhere; it parses in the tab. Your logs land in <code>Ships/Script/</code>, which is the same folder this tutorial is in, so the files are already where you need them.</div>
+  </div>
+
+  <div class="note"><b>Try the analyser before you fly.</b> <code>sample-logs/</code> holds six CSVs in the exact schema above, with run tags prefixed <code>SIM_</code>. They come from the point-mass model in the explorer section, <em>not</em> from KSP — they exist so you can learn the tool and check your parser against a known-good file. Load them once, see what the tool does, then delete them from your working set so you never confuse a simulated curve with a flown one.</div>
+
+  <div class="warnbox">
+    <span class="lbl">Fly them properly or don't bother</span>
+    Same vessel, same launch, no warp, no manual input. Six runs where one of them had a slightly different payload is six runs that tell you nothing, and you will not be able to tell from the CSV that it happened. If you rebuild the rocket, re-fly the whole set.
+  </div>
+
+  <div class="scratch">
+    <label for="s6">Run log — tag, AP, total loss, which term dominated</label>
+    <textarea id="s6" data-key="t04-runs" placeholder="k04_h1000   AP:      grav:     drag:     steer:&#10;k05_h1000   AP:      grav:     drag:     steer:"></textarea>
+    <div class="saved" data-for="s6">Saved</div>
+  </div>
+</section>
+
+<section id="solution">
+  <div class="shead"><span class="evt g">Solution</span><h2>Open after you've flown all six</h2></div>
+
+  <details>
+    <summary>Show launch4.ks</summary>
+    <div class="body">
+  <div class="code">
+    <div class="bar"><span class="name">launch4.ks</span><button class="copy">Copy</button></div>
+<pre><span class="c">// launch4.ks — launch3 plus instrumentation.</span>
+<span class="c">// Flies identically. Ends with an itemised delta-v bill.</span>
+
+<span class="k">CLEARSCREEN</span>.
+
+<span class="c">// ---- constants ----</span>
+<span class="k">SET</span> g0 <span class="k">TO</span> <span class="n">9.80665</span>.
+
+<span class="c">// ---- run identity ----</span>
+<span class="k">SET</span> runTag <span class="k">TO</span> <span class="s">"k05_h1000"</span>.
+<span class="k">SET</span> logFile <span class="k">TO</span> <span class="s">"0:/run_"</span> + runTag + <span class="s">".csv"</span>.
+
+<span class="c">// ---- ascent target ----</span>
+<span class="k">SET</span> targetAp <span class="k">TO</span> <span class="n">75000</span>.
+<span class="k">SET</span> azimuth  <span class="k">TO</span> <span class="n">90</span>.
+
+<span class="c">// ---- ascent profile ----</span>
+<span class="k">SET</span> turnStart <span class="k">TO</span> <span class="n">1000</span>.
+<span class="k">SET</span> turnEnd   <span class="k">TO</span> <span class="n">45000</span>.
+<span class="k">SET</span> pitch0    <span class="k">TO</span> <span class="n">90</span>.
+<span class="k">SET</span> pitch1    <span class="k">TO</span> <span class="n">0</span>.
+<span class="k">SET</span> shapeK    <span class="k">TO</span> <span class="n">0.5</span>.
+
+<span class="c">// ---- staging ----</span>
+<span class="k">SET</span> cooldown     <span class="k">TO</span> <span class="n">1</span>.
+<span class="k">SET</span> lastCooldown <span class="k">TO</span> <span class="n">TIME</span>:SECONDS.
+
+<span class="c">// ---- instrumentation state ----</span>
+<span class="k">SET</span> sampleDt   <span class="k">TO</span> <span class="n">0.25</span>.
+<span class="k">SET</span> nextSample <span class="k">TO</span> <span class="n">0</span>.
+<span class="k">SET</span> lastTick   <span class="k">TO</span> <span class="n">0</span>.
+<span class="k">SET</span> t0         <span class="k">TO</span> <span class="n">0</span>.
+<span class="k">SET</span> dvIdeal    <span class="k">TO</span> <span class="n">0</span>.
+<span class="k">SET</span> lossGrav   <span class="k">TO</span> <span class="n">0</span>.
+<span class="k">SET</span> lossSteer  <span class="k">TO</span> <span class="n">0</span>.
+<span class="k">SET</span> telemetryRow <span class="k">TO</span> <span class="n">0</span>.
+
+<span class="c">// ---- open the log ----</span>
+<span class="k">IF</span> <span class="k">EXISTS</span>(logFile) { <span class="k">DELETEPATH</span>(logFile). }
+<span class="k">LOG</span> <span class="s">"run,k,h0,h1,ut,met,alt,vsrf,vorb,vspd,gamma,pitch,alpha,"</span> +
+    <span class="s">"mass,thrust,dynp,ap,pe,dvIdeal,lossGrav,lossSteer,lossDrag,stagenum"</span> <span class="k">TO</span> logFile.
+
+<span class="c">// ---- countdown ----</span>
+<span class="k">FROM</span> {<span class="k">LOCAL</span> c <span class="k">IS</span> <span class="n">5</span>.} <span class="k">UNTIL</span> c = <span class="n">0</span> <span class="k">STEP</span> {<span class="k">SET</span> c <span class="k">TO</span> c-<span class="n">1</span>.} <span class="k">DO</span> {
+  <span class="k">PRINT</span> <span class="s">"T-MINUS          "</span> + c <span class="k">AT</span> (<span class="n">0</span>,<span class="n">0</span>).
+  <span class="k">WAIT</span> <span class="n">1</span>.
+}
+
+<span class="n">SAS</span> <span class="k">OFF</span>. <span class="n">RCS</span> <span class="k">OFF</span>.
+<span class="k">LOCK</span> <span class="n">THROTTLE</span> <span class="k">TO</span> <span class="n">1</span>.
+<span class="k">LOCK</span> <span class="n">STEERING</span> <span class="k">TO</span> <span class="n">HEADING</span>(azimuth, pitchAt(<span class="n">SHIP</span>:ALTITUDE)).
+<span class="k">STAGE</span>.
+<span class="k">PRINT</span> <span class="s">"LIFTOFF             "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">0</span>).
+
+<span class="c">// Start the clocks HERE — not at the top of the file, or the</span>
+<span class="c">// countdown's five seconds get integrated as gravity loss.</span>
+<span class="k">SET</span> t0         <span class="k">TO</span> <span class="n">TIME</span>:SECONDS.
+<span class="k">SET</span> lastTick   <span class="k">TO</span> <span class="n">TIME</span>:SECONDS.
+<span class="k">SET</span> nextSample <span class="k">TO</span> <span class="n">TIME</span>:SECONDS.
+
+<span class="c">// ---- ascent loop ----</span>
+<span class="k">UNTIL</span> <span class="n">SHIP</span>:APOAPSIS > targetAp {
+  accumulate().            <span class="c">// every tick — the integrals need it</span>
+  <span class="k">IF</span> <span class="n">TIME</span>:SECONDS >= nextSample {
+    logRow().
+    <span class="k">SET</span> nextSample <span class="k">TO</span> nextSample + sampleDt.
+    <span class="c">// If we fell behind (lag, a long tick), don't spend the next</span>
+    <span class="c">// N passes catching up at tick rate — resync to now.</span>
+    <span class="k">IF</span> nextSample < <span class="n">TIME</span>:SECONDS { <span class="k">SET</span> nextSample <span class="k">TO</span> <span class="n">TIME</span>:SECONDS + sampleDt. }
+  }
+  printTelemetry().
+  autoStage().
+  <span class="k">WAIT</span> <span class="n">0</span>.
+}
+
+<span class="c">// ---- MECO ----</span>
+<span class="k">LOCK</span> <span class="n">THROTTLE</span> <span class="k">TO</span> <span class="n">0</span>.
+accumulate().
+logRow().
+<span class="k">PRINT</span> <span class="s">"MECO                          "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">0</span>).
+<span class="k">WAIT</span> <span class="n">1</span>.
+<span class="k">UNLOCK</span> <span class="n">STEERING</span>. <span class="k">UNLOCK</span> <span class="n">THROTTLE</span>.
+printBudget().
+
+<span class="c">// ================= instrumentation =================</span>
+
+<span class="k">FUNCTION</span> gNow {
+  <span class="k">LOCAL</span> r <span class="k">IS</span> <span class="n">SHIP</span>:BODY:RADIUS + <span class="n">SHIP</span>:ALTITUDE.
+  <span class="k">RETURN</span> <span class="n">SHIP</span>:BODY:MU / (r * r).
+}
+
+<span class="c">// Flight path angle above the horizon, surface frame, in degrees.</span>
+<span class="c">// On the pad vsrf is 0 and the ratio is undefined — we're pointed</span>
+<span class="c">// up and going nowhere, so 90 is the honest answer.</span>
+<span class="k">FUNCTION</span> gammaNow {
+  <span class="k">LOCAL</span> sp <span class="k">IS</span> <span class="n">SHIP</span>:VELOCITY:SURFACE:MAG.
+  <span class="k">IF</span> sp < <span class="n">1</span> { <span class="k">RETURN</span> <span class="n">90</span>. }
+  <span class="k">RETURN</span> <span class="k">ARCSIN</span>(<span class="k">MIN</span>(<span class="k">MAX</span>(<span class="n">SHIP</span>:VERTICALSPEED / sp, <span class="n">-1</span>), <span class="n">1</span>)).
+}
+
+<span class="c">// Angle between where we point and where we're going, in degrees.</span>
+<span class="k">FUNCTION</span> alphaNow {
+  <span class="k">IF</span> <span class="n">SHIP</span>:VELOCITY:SURFACE:MAG < <span class="n">1</span> { <span class="k">RETURN</span> <span class="n">0</span>. }
+  <span class="k">RETURN</span> <span class="k">VANG</span>(<span class="n">SHIP</span>:FACING:VECTOR, <span class="n">SHIP</span>:VELOCITY:SURFACE).
+}
+
+<span class="c">// ACTUAL thrust, not available thrust. The difference is</span>
+<span class="c">// throttle setting and atmospheric derating, and it goes</span>
+<span class="c">// straight into dvIdeal if you get it wrong.</span>
+<span class="k">FUNCTION</span> actualThrust {
+  <span class="k">LOCAL</span> total <span class="k">IS</span> <span class="n">0</span>.
+  <span class="k">LIST</span> <span class="k">ENGINES</span> <span class="k">IN</span> es.
+  <span class="k">FOR</span> e <span class="k">IN</span> es {
+    <span class="k">IF</span> e:IGNITION <span class="k">AND</span> <span class="k">NOT</span> e:FLAMEOUT {
+      <span class="k">SET</span> total <span class="k">TO</span> total + e:THRUST.
+    }
+  }
+  <span class="k">RETURN</span> total.
+}
+
+<span class="c">// Called EVERY tick. Rectangle rule on three integrals.</span>
+<span class="k">FUNCTION</span> accumulate {
+  <span class="k">LOCAL</span> now <span class="k">IS</span> <span class="n">TIME</span>:SECONDS.
+  <span class="k">LOCAL</span> dt  <span class="k">IS</span> now - lastTick.
+  <span class="k">SET</span> lastTick <span class="k">TO</span> now.
+  <span class="k">IF</span> dt <= <span class="n">0</span> { <span class="k">RETURN</span>. }
+
+  <span class="c">// kN / t is m/s^2 exactly — no conversion.</span>
+  <span class="k">LOCAL</span> aT <span class="k">IS</span> actualThrust() / <span class="n">SHIP</span>:MASS.
+
+  <span class="k">SET</span> dvIdeal   <span class="k">TO</span> dvIdeal   + aT * dt.
+  <span class="k">SET</span> lossGrav  <span class="k">TO</span> lossGrav  + gNow() * <span class="k">SIN</span>(gammaNow()) * dt.
+  <span class="k">SET</span> lossSteer <span class="k">TO</span> lossSteer + aT * (<span class="n">1</span> - <span class="k">COS</span>(alphaNow())) * dt.
+}
+
+<span class="c">// Drag is the only term we can't measure, so it's the residual.</span>
+<span class="c">// Read the tutorial section on what else ends up in here.</span>
+<span class="k">FUNCTION</span> lossDrag {
+  <span class="k">RETURN</span> dvIdeal - <span class="n">SHIP</span>:VELOCITY:SURFACE:MAG - lossGrav - lossSteer.
+}
+
+<span class="k">FUNCTION</span> logRow {
+  <span class="k">LOG</span> runTag
+    + <span class="s">","</span> + shapeK
+    + <span class="s">","</span> + turnStart
+    + <span class="s">","</span> + turnEnd
+    + <span class="s">","</span> + <span class="k">ROUND</span>(<span class="n">TIME</span>:SECONDS, <span class="n">2</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(<span class="n">TIME</span>:SECONDS - t0, <span class="n">2</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:ALTITUDE, <span class="n">1</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:VELOCITY:SURFACE:MAG, <span class="n">2</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:VELOCITY:ORBIT:MAG, <span class="n">2</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:VERTICALSPEED, <span class="n">2</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(gammaNow(), <span class="n">2</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(pitchAt(<span class="n">SHIP</span>:ALTITUDE), <span class="n">2</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(alphaNow(), <span class="n">2</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:MASS, <span class="n">3</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(actualThrust(), <span class="n">2</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:Q * <span class="n">101.325</span>, <span class="n">3</span>)   <span class="c">// atm -> kPa</span>
+    + <span class="s">","</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:APOAPSIS, <span class="n">1</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:PERIAPSIS, <span class="n">1</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(dvIdeal, <span class="n">2</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(lossGrav, <span class="n">2</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(lossSteer, <span class="n">2</span>)
+    + <span class="s">","</span> + <span class="k">ROUND</span>(lossDrag(), <span class="n">2</span>)
+    + <span class="s">","</span> + <span class="n">STAGE</span>:NUMBER
+    <span class="k">TO</span> logFile.
+}
+
+<span class="k">FUNCTION</span> printBudget {
+  <span class="k">LOCAL</span> kept <span class="k">IS</span> <span class="n">SHIP</span>:VELOCITY:SURFACE:MAG.
+  <span class="k">PRINT</span> <span class="s">"---- delta-v bill ----------"</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">2</span>).
+  <span class="k">PRINT</span> <span class="s">"ideal      "</span> + <span class="k">ROUND</span>(dvIdeal,<span class="n">1</span>)   + <span class="s">"     "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">3</span>).
+  <span class="k">PRINT</span> <span class="s">"kept       "</span> + <span class="k">ROUND</span>(kept,<span class="n">1</span>)      + <span class="s">"     "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">4</span>).
+  <span class="k">PRINT</span> <span class="s">"gravity    "</span> + <span class="k">ROUND</span>(lossGrav,<span class="n">1</span>)  + <span class="s">"     "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">5</span>).
+  <span class="k">PRINT</span> <span class="s">"steering   "</span> + <span class="k">ROUND</span>(lossSteer,<span class="n">1</span>) + <span class="s">"     "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">6</span>).
+  <span class="k">PRINT</span> <span class="s">"drag+resid "</span> + <span class="k">ROUND</span>(lossDrag(),<span class="n">1</span>) + <span class="s">"     "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">7</span>).
+  <span class="k">PRINT</span> <span class="s">"apoapsis   "</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:APOAPSIS)  + <span class="s">"     "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">8</span>).
+  <span class="k">PRINT</span> <span class="s">"logged to  "</span> + logFile <span class="k">AT</span> (<span class="n">0</span>,<span class="n">9</span>).
+}
+
+<span class="c">// ================= from launch3 =================</span>
+
+<span class="k">FUNCTION</span> turnFraction {
+  <span class="k">DECLARE PARAMETER</span> h.
+  <span class="k">LOCAL</span> f <span class="k">IS</span> (h - turnStart) / (turnEnd - turnStart).
+  <span class="k">RETURN</span> <span class="k">MIN</span>(<span class="k">MAX</span>(f, <span class="n">0</span>), <span class="n">1</span>).
+}
+
+<span class="k">FUNCTION</span> pitchAt {
+  <span class="k">DECLARE PARAMETER</span> h.
+  <span class="k">RETURN</span> pitch0 + (pitch1 - pitch0) * (turnFraction(h) ^ shapeK).
+}
+
+<span class="c">// ... allEnginesBurned(), shouldStage(), autoStage(),</span>
+<span class="c">// ... printTelemetry() — unchanged from launch3.ks</span></pre>
+  </div>
+
+      <h3>Why <code>logRow</code> is one enormous expression</h3>
+      <p>Because <code>LOG</code> writes a line per call, and a line is one string. Building it with twenty-two <code>+</code> operators is ugly and it is also the only shape that doesn't cost you an extra file write per column. If it bothers you, build a <code>LIST</code> of values and join it — kOS has <code>JOIN</code> on lists — but be aware you're now allocating a list every quarter second for the rest of the flight.</p>
+
+      <h3>On <code>e:IGNITION AND NOT e:FLAMEOUT</code></h3>
+      <p>Tutorial 03's <code>currentThrust()</code> filtered engines by <code>e:stage = stage:number</code>. That's the right question for "what will this stage do", and the wrong question for "what is pushing me right now" — an engine from a previous stage that's still lit doesn't match, and a not-yet-ignited engine in the current stage does. For the accumulator you want the engines actually burning. Two different questions, two different filters; keep both functions.</p>
+
+      <h3>What you should have seen across the six runs</h3>
+      <p>Lower <i>k</i> should give lower gravity loss and higher drag loss, with the total bottoming out somewhere around <i>k</i>&nbsp;≈&nbsp;0.4–0.5 for a typical stock rocket. If your <i>k</i>&nbsp;=&nbsp;0.4 run reached the same apoapsis with less total loss than <i>k</i>&nbsp;=&nbsp;1, you have just <em>measured</em> the claim Tutorial 02 asked you to take on trust.</p>
+      <p>The turn-start sweep is the more interesting one. Turning at 250 m usually looks great in the gravity-loss column and terrible in the drag column, and on many rockets it also loses control authority low and slow — which shows up as a spike in the <code>alpha</code> column that the steering-loss integral then bills you for. Three columns, one story. That's the analyser earning its keep.</p>
+      <p>If your total losses come out under about 1000 m/s or over about 2500 m/s, be suspicious before you're pleased. Sanity-check <code>dvIdeal</code> at MECO against a hand-computed Tsiolkovsky from Tutorial 03 — they should agree within a few percent, and if they don't, your thrust filter is wrong.</p>
+    </div>
+  </details>
+</section>
+
+<section id="close">
+  <div class="shead"><span class="evt">Arc complete</span><h2>The hinge</h2></div>
+  <p class="lede">Arc 2 is one tutorial long because it does one thing, and everything after it depends on that thing being done.</p>
+
+  <p>Go back to the list Arc 1 ended on. <em>Was k = 0.5 better than k = 1, and by how many m/s? How much Δv did you lose to gravity? Where was peak dynamic pressure?</em> You now have a file that answers each of those, for six different configurations, in a form you can plot.</p>
+
+  <p>And you have something more useful than the answers: a <strong>measurement apparatus you know the limits of</strong>. You know which three numbers are measured and which one is a residual. You know what the residual absorbs. You know the frame you chose and what it cost you. That's what makes the next four tutorials possible — Arc 3 is going to make claims about gravity loss, drag, and steering loss, and every one of them is now a claim you can check against a CSV instead of a claim you have to believe.</p>
+
+  <div class="note"><b>Keep every log.</b> Name them and don't delete them. Tutorial 08 replaces the pitch program with a prograde follower, and the only way to know whether it actually helped is to overlay it on the runs you flew today. Those files are your control group.</div>
+</section>
+
+<footer>
+  <p>Next: <strong>Arc 3 · Tutorial 05 — Where the delta-v actually goes.</strong> Now that you can measure the losses, derive them properly: gravity loss for a constant pitch angle, why 90° is the worst possible ascent, and the first serious attempt at a profile that beats the lerp.</p>
+  <div class="nav"><span>Arc 2 · Measure it — complete</span><b>04 / 16</b></div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  document.querySelectorAll(".code").forEach(function(box){
+    var btn = box.querySelector("button.copy"), pre = box.querySelector("pre");
+    if(!btn || !pre) return;
+    btn.addEventListener("click", function(){
+      var text = pre.innerText;
+      var done = function(){
+        btn.textContent = "Copied"; btn.classList.add("done");
+        setTimeout(function(){ btn.textContent = "Copy"; btn.classList.remove("done"); }, 1400);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else { fallback(); }
+      function fallback(){
+        var ta = document.createElement("textarea");
+        ta.value = text; ta.style.position="fixed"; ta.style.opacity="0";
+        document.body.appendChild(ta); ta.select();
+        try{ document.execCommand("copy"); done(); }catch(e){ btn.textContent="Select manually"; }
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  /* ---------------- ascent loss explorer ---------------- */
+  var MU=3.5316e12, R=600000, G0=9.80665, RHO0=1.225, HS=5600, ATMTOP=70000;
+  var M0=60000, PROP=48000, ISP=280, TARGET=75000;
+
+  var R_ = {};
+  ["h0","h1","k","twr","cda"].forEach(function(id){ R_[id]=document.getElementById("r-"+id); });
+  var svg = document.getElementById("plot-svg");
+  var W=460, H=250;
+
+  function simulate(c){
+    var F = c.twr * M0 * G0;
+    var mdot = F/(ISP*G0), mf = M0-PROP;
+    var m=M0, h=0, vh=0, vv=0.0001, t=0, dt=0.05;
+    var ideal=0, grav=0, steer=0, drag=0;
+    var maxq=0, maxqh=0, ap=0, trace=[];
+    while(t<600){
+      var r=R+h, g=MU/(r*r);
+      var v=Math.sqrt(vh*vh+vv*vv);
+      var rho = h<ATMTOP ? RHO0*Math.exp(-h/HS) : 0;
+      var dynp=0.5*rho*v*v;
+      if(dynp>maxq){ maxq=dynp; maxqh=h; }
+
+      var f=(h-c.h0)/(c.h1-c.h0);
+      f=Math.min(Math.max(f,0),1);
+      var p=(90+(0-90)*Math.pow(f,c.k))*Math.PI/180;
+
+      var burning = m>mf;
+      var Fn = burning?F:0;
+      var aT = Fn/m;
+      var gam = Math.atan2(vv,vh);
+      var alpha = p-gam;
+      var D = dynp*c.cda, aD = D/m;
+
+      ideal += aT*dt;
+      grav  += g*Math.sin(gam)*dt;
+      steer += aT*(1-Math.cos(alpha))*dt;
+      drag  += aD*dt;
+
+      var uh = v>0?vh/v:0, uv = v>0?vv/v:1;
+      vh += (Fn*Math.cos(p)/m - D*uh/m - vh*vv/r)*dt;
+      vv += (Fn*Math.sin(p)/m - D*uv/m - g + vh*vh/r)*dt;
+      h  += vv*dt;
+      if(burning) m -= mdot*dt;
+      t += dt;
+      if(h<0) break;
+
+      var vt=Math.sqrt(vh*vh+vv*vv), en=vt*vt/2-MU/r, sma=-MU/(2*en);
+      var hm=vh*r, ecc=Math.sqrt(Math.max(0,1+2*en*hm*hm/(MU*MU)));
+      ap = sma>0 ? sma*(1+ecc)-R : -1;
+      if(trace.length<4000 && (trace.length===0 || t-trace[trace.length-1][0]>0.5)) trace.push([t,h,dynp]);
+      if(ap>TARGET && burning) break;
+      if(!burning) break;
+    }
+    var kept=Math.sqrt(vh*vh+vv*vv);
+    var circDv=0;
+    if(ap>0){
+      var ra=R+ap, rr=R+h, en2=kept*kept/2-MU/rr, sma2=-MU/(2*en2);
+      var vap=Math.sqrt(Math.max(MU*(2/ra-1/sma2),0));
+      circDv=Math.sqrt(MU/ra)-vap;
+    }
+    return {ideal:ideal,grav:grav,steer:steer,drag:drag,kept:kept,ap:ap,
+            maxq:maxq/1000,maxqh:maxqh,circ:circDv,t:t,fuel:m-mf,trace:trace};
+  }
+
+  function el(tag, attrs, text){
+    var e=document.createElementNS("http://www.w3.org/2000/svg",tag);
+    for(var a in attrs) e.setAttribute(a,attrs[a]);
+    if(text!=null) e.textContent=text;
+    return e;
+  }
+  function fmt(x){ return (x>=0?"":"-")+Math.abs(Math.round(x)); }
+
+  function draw(){
+    var c={h0:+R_.h0.value, h1:+R_.h1.value, k:+R_.k.value, twr:+R_.twr.value, cda:+R_.cda.value};
+    if(c.h1<=c.h0) c.h1=c.h0+1000;
+    document.getElementById("v-h0").textContent=c.h0+" m";
+    document.getElementById("v-h1").textContent=c.h1+" m";
+    document.getElementById("v-k").textContent=c.k.toFixed(2);
+    document.getElementById("v-twr").textContent=c.twr.toFixed(2);
+    document.getElementById("v-cda").textContent=c.cda.toFixed(1)+" m²";
+
+    var o=simulate(c);
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+    var reached = o.ap>=TARGET*0.98;
+
+    /* --- stacked budget bar --- */
+    var bx=40, bw=W-70, by=26, bh=30;
+    var parts=[["kept",o.kept,"#5FD3F3"],["gravity",o.grav,"#FF6B35"],
+               ["drag",o.drag,"#B48CF2"],["steering",o.steer,"#F5C462"]];
+    var tot=parts.reduce(function(s,p){return s+Math.max(p[1],0);},0) || 1;
+    svg.appendChild(el("text",{x:bx,y:by-9,fill:"#8A99B8","font-family":"IBM Plex Mono","font-size":"9"},
+      "delta-v spent to MECO — "+fmt(o.ideal)+" m/s"));
+    var xo=bx;
+    parts.forEach(function(p){
+      var w=Math.max(p[1],0)/tot*bw;
+      if(w<=0) return;
+      svg.appendChild(el("rect",{x:xo.toFixed(1),y:by,width:w.toFixed(1),height:bh,fill:p[2],opacity:".85"}));
+      if(w>34){
+        svg.appendChild(el("text",{x:(xo+w/2).toFixed(1),y:by+19,fill:"#0B1020",
+          "font-family":"IBM Plex Mono","font-size":"10","text-anchor":"middle","font-weight":"500"},fmt(p[1])));
+      }
+      xo+=w;
+    });
+    svg.appendChild(el("rect",{x:bx,y:by,width:bw,height:bh,fill:"none",stroke:"#26324F"}));
+
+    /* --- altitude & q profile --- */
+    var px=40, py=96, pw=W-70, ph=H-py-30;
+    var tmax=Math.max(o.t,1), hmax=Math.max(80000, o.trace.reduce(function(m,r){return Math.max(m,r[1]);},0)*1.1);
+    var qmax=Math.max(o.maxq*1000,1);
+    var X=function(tt){ return px+tt/tmax*pw; };
+    var Yh=function(hh){ return py+ph-hh/hmax*ph; };
+
+    svg.appendChild(el("line",{x1:px,y1:py+ph,x2:px+pw,y2:py+ph,stroke:"#26324F"}));
+    svg.appendChild(el("line",{x1:px,y1:py,x2:px,y2:py+ph,stroke:"#26324F"}));
+    [0,20000,40000,60000,80000].forEach(function(hh){
+      if(hh>hmax) return;
+      svg.appendChild(el("line",{x1:px,y1:Yh(hh),x2:px+pw,y2:Yh(hh),stroke:"#1B2440"}));
+      svg.appendChild(el("text",{x:px-6,y:Yh(hh)+3,fill:"#5D6B8A","font-family":"IBM Plex Mono",
+        "font-size":"8","text-anchor":"end"},(hh/1000)+"k"));
+    });
+
+    if(o.trace.length>1){
+      var dq="", dh="";
+      o.trace.forEach(function(r,i){
+        dh += (i?" L":"M")+X(r[0]).toFixed(1)+" "+Yh(r[1]).toFixed(1);
+        dq += (i?" L":"M")+X(r[0]).toFixed(1)+" "+(py+ph-(r[2]/qmax)*ph*0.85).toFixed(1);
+      });
+      svg.appendChild(el("path",{d:dq,fill:"none",stroke:"#B48CF2","stroke-width":"1.2",opacity:".65"}));
+      svg.appendChild(el("path",{d:dh,fill:"none",stroke:"#5FD3F3","stroke-width":"2"}));
+    }
+    svg.appendChild(el("text",{x:px+pw/2,y:H-6,fill:"#5D6B8A","font-family":"IBM Plex Mono",
+      "font-size":"8","text-anchor":"middle"},"time since liftoff (s) — altitude, and q scaled to its own peak"));
+
+    if(!reached){
+      svg.appendChild(el("text",{x:px+pw/2,y:py+ph/2,fill:"#FF6B35","font-family":"IBM Plex Mono",
+        "font-size":"11","text-anchor":"middle"},"ran out of propellant — AP "+fmt(o.ap/1000)+" km"));
+    }
+
+    /* --- readouts --- */
+    var total=o.ideal+(reached?o.circ:0);
+    document.getElementById("o-spent").innerHTML = fmt(o.ideal)+"<u>m/s</u>";
+    document.getElementById("o-circ").innerHTML  = reached ? fmt(o.circ)+"<u>m/s</u>" : "—";
+    var ot=document.getElementById("o-total");
+    ot.innerHTML = reached ? fmt(total)+"<u>m/s</u>" : "—";
+    ot.className = "rv" + (reached ? (total<3350?" ok":(total>3600?" warn":"")) : " warn");
+    var oq=document.getElementById("o-q");
+    oq.innerHTML = o.maxq.toFixed(1)+"<u>kPa @ "+Math.round(o.maxqh/100)/10+" km</u>";
+    oq.className = "rv" + (o.maxq>40?" warn":"");
+    document.getElementById("p-readout").textContent =
+      reached ? ("AP "+fmt(o.ap/1000)+" km  ·  MECO at T+"+Math.round(o.t)+" s  ·  "+(o.fuel/1000).toFixed(1)+" t left")
+              : ("propellant exhausted at T+"+Math.round(o.t)+" s");
+  }
+  ["h0","h1","k","twr","cda"].forEach(function(id){ R_[id].addEventListener("input",draw); });
+  draw();
+
+  /* ---------------- scratch pads ---------------- */
+  document.querySelectorAll("textarea[data-key]").forEach(function(ta){
+    var key="kos:"+ta.dataset.key;
+    var flag=document.querySelector('.saved[data-for="'+ta.id+'"]');
+    var hasHost = !!(window.storage && window.storage.get && window.storage.set);
+
+    function load(){
+      if(hasHost){
+        window.storage.get(key).then(function(r){ if(r&&r.value) ta.value=r.value; }).catch(local);
+      } else { local(); }
+    }
+    function local(){
+      try{ var v=window.localStorage.getItem(key); if(v!=null&&!ta.value) ta.value=v; }catch(e){}
+    }
+    function save(v){
+      var ok=function(){ if(flag){ flag.classList.add("on"); setTimeout(function(){flag.classList.remove("on");},1200); } };
+      if(hasHost){ window.storage.set(key,v).then(ok).catch(function(){ lset(v); ok(); }); }
+      else { lset(v); ok(); }
+    }
+    function lset(v){ try{ window.localStorage.setItem(key,v); }catch(e){} }
+
+    load();
+    var timer=null;
+    ta.addEventListener("input",function(){
+      clearTimeout(timer);
+      timer=setTimeout(function(){ save(ta.value); },600);
+    });
+  });
+
+  /* ---------------- rail ---------------- */
+  var ticks=Array.prototype.slice.call(document.querySelectorAll(".tick"));
+  var secs=ticks.map(function(t){ return document.querySelector(t.getAttribute("href")); });
+  var marker=document.getElementById("marker");
+  var topbar=document.getElementById("topbar");
+  function place(i){
+    ticks.forEach(function(t,j){ t.classList.toggle("on", j===i); });
+    if(marker&&ticks[i]){
+      var railRect=ticks[0].parentNode.getBoundingClientRect();
+      var r=ticks[i].getBoundingClientRect();
+      marker.style.top=(r.top-railRect.top+r.height/2-7.5)+"px";
+    }
+  }
+  function onScroll(){
+    var y=window.scrollY+window.innerHeight*0.32, best=0;
+    secs.forEach(function(s,i){ if(s&&s.offsetTop<=y) best=i; });
+    place(best);
+    if(topbar){
+      var max=document.body.scrollHeight-window.innerHeight;
+      topbar.style.width=(max>0?(window.scrollY/max*100):0)+"%";
+    }
+  }
+  window.addEventListener("scroll",onScroll,{passive:true});
+  window.addEventListener("resize",onScroll);
+  onScroll();
+})();
+</script>
+</body>
+</html>

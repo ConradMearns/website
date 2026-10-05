@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kOS 03 · Staging &amp; the Delta-V Budget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;1,400;1,500&family=Saira+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --vac:#0B1020; --panel:#141B2E; --panel2:#1B2440; --rule:#26324F;
+  --ink:#DDE5F4; --dim:#8A99B8; --burn:#FF6B35; --trace:#5FD3F3; --go:#7DDC8F;
+  --rail:150px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--vac); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:16.5px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:radial-gradient(1100px 700px at 78% -8%, rgba(255,107,53,.09), transparent 60%),
+             radial-gradient(900px 800px at 0% 100%, rgba(95,211,243,.055), transparent 62%);
+}
+.wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:0 22px 120px}
+.rail{
+  position:fixed; left:max(18px, calc(50vw - 590px + 4px)); top:0; height:100vh; width:var(--rail);
+  display:none; flex-direction:column; justify-content:center; gap:0; z-index:5; pointer-events:none;
+}
+.rail .spine{position:absolute; left:11px; top:14%; bottom:14%; width:1px; background:linear-gradient(180deg,transparent,var(--rule) 12%,var(--rule) 88%,transparent)}
+.rail .marker{
+  position:absolute; left:4px; width:15px; height:15px; border:1px solid var(--burn);
+  background:var(--vac); transform:rotate(45deg); transition:top .25s cubic-bezier(.4,0,.2,1);
+}
+.rail .marker::after{content:""; position:absolute; inset:3px; background:var(--burn)}
+.tick{
+  position:relative; padding:11px 0 11px 30px; pointer-events:auto; display:block;
+  text-decoration:none; color:var(--dim); font-family:"Saira Condensed",sans-serif;
+  font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; line-height:1.25;
+}
+.tick::before{content:""; position:absolute; left:6px; top:calc(50% - 1px); width:11px; height:1px; background:var(--rule)}
+.tick:hover{color:var(--ink)}
+.tick.on{color:var(--burn)}
+.tick.on::before{background:var(--burn); width:15px; left:4px}
+.tick .alt{display:block; font-size:10.5px; color:#5D6B8A; letter-spacing:.1em}
+@media(min-width:1040px){ .rail{display:flex} .wrap{padding-left:calc(var(--rail) + 40px)} }
+.topbar{position:fixed; top:0; left:0; height:2px; background:var(--burn); width:0; z-index:9}
+@media(min-width:1040px){ .topbar{display:none} }
+header.mast{padding:74px 0 30px; border-bottom:1px solid var(--rule)}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.24em;
+  text-transform:uppercase; color:var(--burn); margin:0 0 16px;
+}
+.eyebrow span{color:var(--dim)}
+h1{
+  font-family:"Saira Condensed",sans-serif; font-weight:700; font-size:clamp(40px,7.5vw,74px);
+  line-height:.94; letter-spacing:-.005em; text-transform:uppercase; margin:0 0 18px; max-width:15ch;
+}
+h1 em{font-style:normal; color:var(--burn)}
+.objective{font-size:18.5px; color:var(--dim); max-width:60ch; margin:0}
+.objective strong{color:var(--ink); font-weight:500}
+.mastgrid{display:grid; gap:36px; grid-template-columns:1fr; align-items:end}
+@media(min-width:820px){ .mastgrid{grid-template-columns:1.35fr .8fr} }
+.profile{border:1px solid var(--rule); background:var(--panel); padding:14px}
+.profile figcaption{
+  font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--dim); margin-top:9px;
+}
+section{padding:58px 0; border-bottom:1px solid var(--rule)}
+.shead{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:8px}
+.evt{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--vac); background:var(--trace); padding:3px 8px 2px; white-space:nowrap;
+}
+.evt.b{background:var(--burn)}
+.evt.g{background:var(--go)}
+h2{
+  font-family:"Saira Condensed",sans-serif; font-weight:600; font-size:clamp(27px,4vw,38px);
+  text-transform:uppercase; letter-spacing:.01em; margin:0; line-height:1.05;
+}
+h3{
+  font-family:"Saira Condensed",sans-serif; font-weight:600; font-size:20px; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--trace); margin:36px 0 12px;
+}
+p{max-width:70ch}
+.lede{color:var(--dim); max-width:68ch; margin:14px 0 0; font-size:17px}
+strong{font-weight:600}
+code{
+  font-family:"IBM Plex Mono",monospace; font-size:.885em; background:var(--panel2);
+  border:1px solid var(--rule); padding:1px 5px; color:var(--trace); white-space:nowrap;
+}
+.ref{border:1px solid var(--rule); margin:22px 0 0}
+.refrow{display:grid; grid-template-columns:1fr; gap:2px 22px; padding:11px 15px; border-bottom:1px solid var(--rule)}
+.refrow:last-child{border-bottom:0}
+.refrow:nth-child(odd){background:rgba(27,36,64,.42)}
+@media(min-width:700px){ .refrow{grid-template-columns:minmax(210px,.9fr) 1.5fr; align-items:baseline} }
+.refrow b{font-family:"IBM Plex Mono",monospace; font-weight:500; font-size:13.5px; color:var(--trace)}
+.refrow span{color:var(--dim); font-size:14.5px}
+.refgroup{
+  font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.16em;
+  font-size:12px; color:var(--burn); padding:14px 15px 6px; background:var(--panel);
+  border-bottom:1px solid var(--rule);
+}
+.code{position:relative; margin:18px 0; border:1px solid var(--rule); background:#0E1425}
+.code .bar{
+  display:flex; justify-content:space-between; align-items:center; gap:12px;
+  padding:7px 11px 6px; border-bottom:1px solid var(--rule); background:var(--panel);
+}
+.code .name{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim)}
+.code pre{margin:0; padding:15px 16px; overflow-x:auto; font-family:"IBM Plex Mono",monospace; font-size:13.4px; line-height:1.72; color:#C9D6EE}
+.code pre .k{color:var(--burn)}
+.code pre .s{color:var(--go)}
+.code pre .c{color:#5D6B8A; font-style:italic}
+.code pre .n{color:var(--trace)}
+button.copy{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  background:transparent; color:var(--dim); border:1px solid var(--rule); padding:4px 10px; cursor:pointer;
+}
+button.copy:hover{color:var(--burn); border-color:var(--burn)}
+button.copy.done{color:var(--go); border-color:var(--go)}
+.eq{
+  font-family:"IBM Plex Serif",Georgia,serif; font-size:20px; text-align:center;
+  padding:20px 14px; margin:20px 0; background:var(--panel); border-left:2px solid var(--trace); overflow-x:auto;
+}
+.eq i{font-style:italic; padding:0 1px}
+.eq .op{padding:0 7px; color:var(--dim)}
+.eq sub{font-size:.68em; vertical-align:-.22em; font-style:normal}
+.eq sup{font-size:.68em; vertical-align:.5em; font-style:normal}
+.eq .fn{font-style:normal; padding-right:2px}
+.frac{display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; padding:0 6px; font-size:.9em}
+.frac .num{padding:0 6px 2px; border-bottom:1px solid var(--dim)}
+.frac .den{padding:3px 6px 0}
+.where{font-size:14.5px; color:var(--dim); text-align:center; margin:-8px 0 22px; font-family:"IBM Plex Serif",serif}
+.task{border:1px solid var(--burn); background:rgba(255,107,53,.045); padding:20px 22px; margin:24px 0}
+.task .lbl{
+  font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.18em;
+  font-size:12.5px; color:var(--burn); font-weight:700; margin-bottom:8px;
+}
+.task p{margin:0 0 10px}
+.task p:last-child{margin-bottom:0}
+ol,ul{max-width:68ch; padding-left:22px}
+li{margin:7px 0}
+li::marker{color:var(--dim)}
+.scratch{margin:16px 0}
+.scratch label{
+  display:block; font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--dim); margin-bottom:7px;
+}
+textarea{
+  width:100%; min-height:110px; resize:vertical; background:#0E1425; color:var(--ink);
+  border:1px solid var(--rule); padding:12px 13px; font-family:"IBM Plex Mono",monospace;
+  font-size:13.4px; line-height:1.7;
+}
+textarea:focus{outline:none; border-color:var(--trace)}
+.saved{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--go); letter-spacing:.1em; opacity:0; transition:opacity .3s}
+.saved.on{opacity:1}
+details{border:1px solid var(--rule); background:var(--panel); margin:20px 0}
+details summary{
+  cursor:pointer; padding:13px 16px; list-style:none; font-family:"Saira Condensed",sans-serif;
+  text-transform:uppercase; letter-spacing:.14em; font-size:14px; font-weight:600; color:var(--go);
+  display:flex; align-items:center; gap:10px;
+}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸"; font-size:11px; transition:transform .18s}
+details[open] summary::before{transform:rotate(90deg)}
+details summary:hover{background:var(--panel2)}
+details .body{padding:4px 18px 18px; border-top:1px solid var(--rule)}
+details .body > :first-child{margin-top:14px}
+.instr{border:1px solid var(--rule); background:var(--panel); margin:26px 0}
+.instr .ihead{
+  padding:10px 15px; border-bottom:1px solid var(--rule); font-family:"Saira Condensed",sans-serif;
+  text-transform:uppercase; letter-spacing:.16em; font-size:13px; color:var(--trace); font-weight:600;
+}
+.ibody{display:grid; gap:0; grid-template-columns:1fr}
+@media(min-width:720px){ .ibody{grid-template-columns:1fr 1fr} }
+.inputs{padding:16px 15px; display:grid; gap:12px; align-content:start}
+.field{display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px}
+.field label{font-size:14px; color:var(--dim)}
+.field label small{display:block; font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em; color:#5D6B8A}
+.field input{
+  width:112px; background:#0E1425; border:1px solid var(--rule); color:var(--ink);
+  font-family:"IBM Plex Mono",monospace; font-size:14px; padding:6px 9px; text-align:right;
+}
+.field input:focus{outline:none; border-color:var(--trace)}
+.readout{padding:16px 15px; border-top:1px solid var(--rule); display:grid; gap:13px; align-content:start}
+@media(min-width:720px){ .readout{border-top:0; border-left:1px solid var(--rule)} }
+.ro{display:flex; justify-content:space-between; align-items:baseline; gap:12px; border-bottom:1px dotted var(--rule); padding-bottom:8px}
+.ro:last-child{border-bottom:0}
+.ro .rk{font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.12em; font-size:12.5px; color:var(--dim)}
+.ro .rv{font-family:"IBM Plex Mono",monospace; font-size:19px; color:var(--trace)}
+.ro .rv.warn{color:var(--burn)}
+.ro .rv.ok{color:var(--go)}
+.ro .rv u{text-decoration:none; font-size:11px; color:var(--dim); margin-left:3px}
+.note{border-left:2px solid var(--rule); padding:2px 0 2px 16px; margin:20px 0; color:var(--dim); font-size:15.5px; max-width:66ch}
+.note b{color:var(--ink)}
+.warnbox{border:1px solid var(--rule); border-left:2px solid var(--burn); background:var(--panel); padding:14px 17px; margin:20px 0; font-size:15.5px; max-width:68ch}
+.warnbox .lbl{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--burn); display:block; margin-bottom:5px}
+.guards{border:1px solid var(--rule); margin:22px 0}
+.guard{display:grid; grid-template-columns:auto 1fr; gap:0 16px; padding:15px 17px; border-bottom:1px solid var(--rule); align-items:start}
+.guard:last-child{border-bottom:0}
+.guard .no{font-family:"Saira Condensed",sans-serif; font-size:26px; font-weight:700; color:var(--burn); line-height:1}
+.guard b{display:block; font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.1em; font-size:15px; margin-bottom:3px}
+.guard span{color:var(--dim); font-size:15px}
+footer{padding:44px 0 0; color:var(--dim); font-size:14.5px}
+footer .nav{display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:14px; font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.12em; font-size:14px}
+footer .nav b{color:var(--ink); font-weight:600}
+::selection{background:var(--burn); color:var(--vac)}
+:focus-visible{outline:2px solid var(--trace); outline-offset:2px}
+@media(prefers-reduced-motion:reduce){ html{scroll-behavior:auto} *{transition:none!important; animation:none!important} }
+</style>
+</head>
+<body>
+<div class="topbar" id="topbar"></div>
+
+<nav class="rail" aria-label="Section navigation">
+  <div class="spine"></div>
+  <div class="marker" id="marker"></div>
+  <a class="tick" href="#ref">Reference<span class="alt">parts &amp; lists</span></a>
+  <a class="tick" href="#rocket">Tsiolkovsky<span class="alt">derive it</span></a>
+  <a class="tick" href="#flow">Mass flow<span class="alt">burn time</span></a>
+  <a class="tick" href="#calc">Stage calc<span class="alt">instrument</span></a>
+  <a class="tick" href="#guards">Four guards<span class="alt">why autostage fails</span></a>
+  <a class="tick" href="#mission">Your mission<span class="alt">launch3.ks</span></a>
+  <a class="tick" href="#solution">Solution<span class="alt">after you try</span></a>
+  <a class="tick" href="#close">Arc 1 done<span class="alt">the wall</span></a>
+</nav>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Arc 1 · Make it fly &nbsp;<span>/</span>&nbsp; Tutorial 03 of 16</p>
+  <div class="mastgrid">
+    <div>
+      <h1>Staging &amp; the <em>delta-v budget</em></h1>
+      <p class="objective">Two things here. The equation that governs every rocket ever built — which you're going to derive the useful forms of yourself — and an autostaging routine that <strong>doesn't</strong> jettison a live stage, fire during a coast, or dump your whole rocket in one tick.</p>
+    </div>
+    <figure class="profile">
+      <svg viewBox="0 0 300 190" width="100%" height="auto" role="img" aria-label="Mass falling in steps as stages separate, with delta-v accumulating">
+        <line x1="30" y1="160" x2="288" y2="160" stroke="#26324F"/>
+        <line x1="30" y1="160" x2="30" y2="14" stroke="#26324F"/>
+        <path d="M30 28 L104 96 L104 128 L182 146 L182 152 L288 156" fill="none" stroke="#5FD3F3" stroke-width="2"/>
+        <line x1="104" y1="90" x2="104" y2="134" stroke="#FF6B35" stroke-width="1" stroke-dasharray="3 2"/>
+        <line x1="182" y1="140" x2="182" y2="158" stroke="#FF6B35" stroke-width="1" stroke-dasharray="3 2"/>
+        <text x="110" y="88" fill="#FF6B35" font-family="IBM Plex Mono" font-size="9">sep</text>
+        <text x="188" y="138" fill="#FF6B35" font-family="IBM Plex Mono" font-size="9">sep</text>
+        <text x="8" y="100" fill="#5D6B8A" font-family="IBM Plex Mono" font-size="9" transform="rotate(-90 12,100)">mass</text>
+        <text x="150" y="177" fill="#5D6B8A" font-family="IBM Plex Mono" font-size="9">time</text>
+      </svg>
+      <figcaption>Mass history of a three-stage ascent</figcaption>
+    </figure>
+  </div>
+</header>
+
+<section id="ref">
+  <div class="shead"><span class="evt">Prelaunch</span><h2>Reading the vessel</h2></div>
+  <p class="lede">Autostaging means asking the rocket about itself. These are the questions you can ask.</p>
+
+  <div class="ref">
+    <div class="refgroup">Vessel mass &amp; thrust</div>
+    <div class="refrow"><b>SHIP:MASS</b><span>Current total mass, tonnes.</span></div>
+    <div class="refrow"><b>SHIP:DRYMASS</b><span>Mass with all resources drained from the <em>whole vessel</em> — not just this stage.</span></div>
+    <div class="refrow"><b>SHIP:WETMASS</b><span>Mass with all tanks full.</span></div>
+    <div class="refrow"><b>SHIP:AVAILABLETHRUST</b><span>kN from active, unflamed engines at full throttle, at current ambient pressure.</span></div>
+    <div class="refrow"><b>SHIP:MAXTHRUST</b><span>Similar, but includes engines that have flamed out. The difference between these two is a useful signal.</span></div>
+
+    <div class="refgroup">Parts &amp; lists</div>
+    <div class="refrow"><b>LIST ENGINES IN es.</b><span>Fill <code>es</code> with every engine on the vessel. Note the syntax — this is a statement, not a function.</span></div>
+    <div class="refrow"><b>FOR e IN es { … }</b><span>Iterate. <code>e</code> is each engine part in turn.</span></div>
+    <div class="refrow"><b>e:IGNITION</b><span>True if this engine is currently lit (or was, and has since flamed out).</span></div>
+    <div class="refrow"><b>e:FLAMEOUT</b><span>True if it's lit but out of propellant.</span></div>
+    <div class="refrow"><b>e:ISP</b><span>Specific impulse at current conditions, seconds.</span></div>
+    <div class="refrow"><b>e:AVAILABLETHRUST</b><span>This engine's contribution, kN.</span></div>
+    <div class="refrow"><b>es:LENGTH</b><span>Number of items in a list.</span></div>
+
+    <div class="refgroup">Staging</div>
+    <div class="refrow"><b>STAGE.</b><span>Fire the next stage.</span></div>
+    <div class="refrow"><b>STAGE:READY</b><span>False for a moment after staging. Calling <code>STAGE.</code> when not ready throws an error.</span></div>
+    <div class="refrow"><b>STAGE:NUMBER</b><span>Current stage index, counting <em>down</em> to zero.</span></div>
+    <div class="refrow"><b>THROTTLE</b><span>The current throttle value, 0–1. Readable even while locked.</span></div>
+    <div class="refrow"><b>TIME:SECONDS</b><span>Universal time. This is how you build a cooldown.</span></div>
+  </div>
+
+  <div class="warnbox">
+    <span class="lbl">On WHEN … THEN</span>
+    kOS has a trigger form — <code>WHEN cond THEN { … }</code> — that runs in the background. It looks perfect for autostaging and it is a trap for now: triggers fire between your loop's instructions, must complete within one tick, and interact badly with <code>WAIT</code>. Poll from your main loop instead. You'll know when you actually want a trigger, and it won't be here.
+  </div>
+</section>
+
+<section id="rocket">
+  <div class="shead"><span class="evt b">The equation</span><h2>Tsiolkovsky, rearranged</h2></div>
+  <p class="lede">You know this one. What you probably haven't done is bend it into the three shapes you actually need in flight software.</p>
+
+  <div class="eq">Δ<i>v</i> <span class="op">=</span> <i>I</i><sub>sp</sub> <i>g</i><sub>0</sub> <span class="fn">ln</span> <span class="frac"><span class="num"><i>m</i><sub>0</sub></span><span class="den"><i>m</i><sub>f</sub></span></span></div>
+  <p class="where"><i>m</i><sub>0</sub> = mass at ignition &nbsp;·&nbsp; <i>m</i><sub>f</sub> = mass at burnout &nbsp;·&nbsp; <i>g</i><sub>0</sub> = 9.80665 m/s² <em>always</em>, everywhere, even at Duna</p>
+
+  <div class="warnbox">
+    <span class="lbl">g₀ is not local gravity</span>
+    In Tutorial 01, <i>g</i> was the local gravitational acceleration and it changed with altitude. Here <i>g</i><sub>0</sub> is a <b>unit conversion constant</b>, fixed at 9.80665. It exists only because specific impulse is quoted in seconds instead of exhaust velocity in m/s. Using local <i>g</i> here is a classic and very confusing bug.
+  </div>
+
+  <div class="task">
+    <div class="lbl">Rearrange it three ways</div>
+    <ol>
+      <li>You have a target Δ<i>v</i> and a starting mass. Solve for the <strong>burnout mass</strong> <i>m</i><sub>f</sub>.</li>
+      <li>From that, write the <strong>propellant mass</strong> you must expend, <i>m</i><sub>prop</sub> = <i>m</i><sub>0</sub> − <i>m</i><sub>f</sub>.</li>
+      <li>A stage has <i>I</i><sub>sp</sub> = 320 s, ignition mass 40 t, burnout mass 14 t. How much Δ<i>v</i>? Then: how much would it have if you shaved 2 t off the <em>dry</em> mass, keeping propellant the same?</li>
+    </ol>
+  </div>
+
+  <div class="scratch">
+    <label for="s1">Your working</label>
+    <textarea id="s1" data-key="t03-tsiolkovsky" placeholder="mf = ..."></textarea>
+    <div class="saved" data-for="s1">Saved</div>
+  </div>
+
+  <details>
+    <summary>Show the algebra</summary>
+    <div class="body">
+      <p><strong>1 — Burnout mass.</strong> Divide by <i>I</i><sub>sp</sub><i>g</i><sub>0</sub> and exponentiate both sides:</p>
+      <div class="eq"><span class="frac"><span class="num">Δ<i>v</i></span><span class="den"><i>I</i><sub>sp</sub> <i>g</i><sub>0</sub></span></span> <span class="op">=</span> <span class="fn">ln</span> <span class="frac"><span class="num"><i>m</i><sub>0</sub></span><span class="den"><i>m</i><sub>f</sub></span></span> &nbsp;&nbsp;⟹&nbsp;&nbsp; <i>e</i><sup>Δ<i>v</i>/<i>I</i><sub>sp</sub><i>g</i><sub>0</sub></sup> <span class="op">=</span> <span class="frac"><span class="num"><i>m</i><sub>0</sub></span><span class="den"><i>m</i><sub>f</sub></span></span></div>
+      <div class="eq"><i>m</i><sub>f</sub> <span class="op">=</span> <i>m</i><sub>0</sub> <i>e</i><sup>−Δ<i>v</i>/<i>I</i><sub>sp</sub><i>g</i><sub>0</sub></sup></div>
+      <p>Note the negative exponent — that's the form you want in code, because it's numerically better behaved and reads as "shrink the mass by this factor".</p>
+
+      <p><strong>2 — Propellant required.</strong></p>
+      <div class="eq"><i>m</i><sub>prop</sub> <span class="op">=</span> <i>m</i><sub>0</sub> ( 1 <span class="op">−</span> <i>e</i><sup>−Δ<i>v</i>/<i>I</i><sub>sp</sub><i>g</i><sub>0</sub></sup> )</div>
+      <p>This is the single most useful rearrangement in the whole game. It answers "can I make this burn with what's in the tank?" without simulating anything.</p>
+
+      <p><strong>3 — Numbers.</strong> <i>I</i><sub>sp</sub><i>g</i><sub>0</sub> = 320 × 9.80665 = 3138.1 m/s.</p>
+      <div class="eq">Δ<i>v</i> <span class="op">=</span> 3138.1 × <span class="fn">ln</span>(40/14) <span class="op">=</span> 3138.1 × 1.0498 <span class="op">≈</span> <strong>3294 m/s</strong></div>
+      <p>Now shave 2 t of dry mass. Propellant was 40 − 14 = 26 t, so the new masses are <i>m</i><sub>0</sub> = 38 t, <i>m</i><sub>f</sub> = 12 t:</p>
+      <div class="eq">Δ<i>v</i> <span class="op">=</span> 3138.1 × <span class="fn">ln</span>(38/12) <span class="op">=</span> 3138.1 × 1.1526 <span class="op">≈</span> <strong>3617 m/s</strong></div>
+      <p><strong>+323 m/s for 2 tonnes.</strong> That's the whole argument for staging in one line: mass you're no longer accelerating is Δ<i>v</i> you get to keep. An empty tank is dead weight that the logarithm punishes you for, and dropping it mid-flight is the only way to move the ratio.</p>
+    </div>
+  </details>
+</section>
+
+<section id="flow">
+  <div class="shead"><span class="evt b">The equation</span><h2>How long will it burn?</h2></div>
+  <p class="lede">Tsiolkovsky tells you nothing about time. It doesn't contain thrust at all — a 5 kN ion engine and a 5 MN booster with the same mass ratio and Isp give identical Δ<i>v</i>. Time comes from mass flow.</p>
+
+  <p>Two facts to start from. Thrust is momentum thrown per second:</p>
+  <div class="eq"><i>F</i> <span class="op">=</span> <i>ṁ</i> <i>v</i><sub>e</sub></div>
+  <p>and specific impulse is just exhaust velocity in disguise:</p>
+  <div class="eq"><i>v</i><sub>e</sub> <span class="op">=</span> <i>I</i><sub>sp</sub> <i>g</i><sub>0</sub></div>
+
+  <div class="task">
+    <div class="lbl">Derive the burn time</div>
+    <ol>
+      <li>Combine those two into an expression for <strong>mass flow rate</strong> <i>ṁ</i> in terms of <i>F</i>, <i>I</i><sub>sp</sub>, <i>g</i><sub>0</sub>.</li>
+      <li>Assuming constant thrust and constant Isp, write <strong>burn time</strong> in terms of <i>m</i><sub>0</sub>, <i>m</i><sub>f</sub> and <i>ṁ</i>.</li>
+      <li>Now substitute your result from the previous section to get burn time as a function of <strong>Δ<i>v</i> alone</strong> — no masses on the right-hand side except <i>m</i><sub>0</sub>. This is the form flight software actually uses.</li>
+      <li>Sanity check the units. Mass is in tonnes and thrust in kN. Does your <i>ṁ</i> come out in t/s, and does the time come out in seconds?</li>
+    </ol>
+  </div>
+
+  <div class="scratch">
+    <label for="s2">Your working</label>
+    <textarea id="s2" data-key="t03-burntime" placeholder="mdot = ..."></textarea>
+    <div class="saved" data-for="s2">Saved</div>
+  </div>
+
+  <details>
+    <summary>Show the algebra</summary>
+    <div class="body">
+      <p><strong>1 — Mass flow.</strong> Substitute <i>v</i><sub>e</sub> and solve for <i>ṁ</i>:</p>
+      <div class="eq"><i>ṁ</i> <span class="op">=</span> <span class="frac"><span class="num"><i>F</i></span><span class="den"><i>I</i><sub>sp</sub> <i>g</i><sub>0</sub></span></span></div>
+
+      <p><strong>2 — Time to expend the propellant.</strong> Constant flow, so it's just quantity over rate:</p>
+      <div class="eq"><i>t</i> <span class="op">=</span> <span class="frac"><span class="num"><i>m</i><sub>0</sub> <span class="op">−</span> <i>m</i><sub>f</sub></span><span class="den"><i>ṁ</i></span></span> <span class="op">=</span> <span class="frac"><span class="num">(<i>m</i><sub>0</sub> <span class="op">−</span> <i>m</i><sub>f</sub>) <i>I</i><sub>sp</sub> <i>g</i><sub>0</sub></span><span class="den"><i>F</i></span></span></div>
+
+      <p><strong>3 — In terms of Δ<i>v</i>.</strong> Substitute <i>m</i><sub>f</sub> = <i>m</i><sub>0</sub><i>e</i><sup>−Δ<i>v</i>/<i>I</i><sub>sp</sub><i>g</i><sub>0</sub></sup>, factor out <i>m</i><sub>0</sub>:</p>
+      <div class="eq"><i>t</i> <span class="op">=</span> <span class="frac"><span class="num"><i>m</i><sub>0</sub> <i>I</i><sub>sp</sub> <i>g</i><sub>0</sub></span><span class="den"><i>F</i></span></span> ( 1 <span class="op">−</span> <i>e</i><sup>−Δ<i>v</i>/<i>I</i><sub>sp</sub><i>g</i><sub>0</sub></sup> )</div>
+      <p>Give this one a name — it's how you'll split a maneuver node in half in Tutorial 10, so that you start burning early enough to finish late enough. Every burn you plan from here on runs through it.</p>
+
+      <p><strong>4 — Units.</strong> kN ÷ (s × m/s²) = kN ÷ (m/s) = (kg·m/s²·10³) ÷ (m/s) = 10³ kg/s = <strong>t/s</strong>. So <i>ṁ</i> is in tonnes per second, and tonnes ÷ (t/s) gives seconds. The kilo-prefix on newtons and the kilo-prefix on grams cancel exactly. This is why KSP's unit choices are quietly excellent and why you should never introduce a conversion factor in kOS — if you find yourself writing 1000 somewhere, you've made an error.</p>
+
+      <div class="note"><b>Where this breaks.</b> Isp changes with ambient pressure, and thrust with it, so during a first stage this is an approximation. In vacuum it's essentially exact. When you need in-atmosphere accuracy, read <code>SHIP:AVAILABLETHRUST</code> live rather than trusting a number computed at ignition.</div>
+    </div>
+  </details>
+</section>
+
+<section id="calc">
+  <div class="shead"><span class="evt">Instrument</span><h2>Stage calculator</h2></div>
+  <p class="lede">Everything you just derived, wired together. Put a real stage from your VAB into it.</p>
+
+  <div class="instr">
+    <div class="ihead">Single stage performance</div>
+    <div class="ibody">
+      <div class="inputs">
+        <div class="field"><label>Ignition mass <small>tonnes</small></label><input id="i-m0" type="number" value="40" step="0.5"></div>
+        <div class="field"><label>Burnout mass <small>tonnes</small></label><input id="i-mf" type="number" value="14" step="0.5"></div>
+        <div class="field"><label>Specific impulse <small>seconds</small></label><input id="i-isp" type="number" value="320" step="5"></div>
+        <div class="field"><label>Thrust <small>kN</small></label><input id="i-F" type="number" value="600" step="10"></div>
+      </div>
+      <div class="readout">
+        <div class="ro"><span class="rk">Delta-v</span><span class="rv" id="o-dv">—</span></div>
+        <div class="ro"><span class="rk">Mass ratio</span><span class="rv" id="o-mr">—</span></div>
+        <div class="ro"><span class="rk">Mass flow</span><span class="rv" id="o-md">—</span></div>
+        <div class="ro"><span class="rk">Burn time</span><span class="rv" id="o-bt">—</span></div>
+        <div class="ro"><span class="rk">TWR ignition → burnout</span><span class="rv" id="o-twr">—</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="note">TWR here uses sea-level Kerbin gravity, so it's the pad figure. Watch how far it climbs by burnout — a booster that lifts off at 1.5 often ends up past 4, which is uncomfortable for the airframe and a hint that you should be throttling back. That's Tutorial 07.</div>
+</section>
+
+<section id="guards">
+  <div class="shead"><span class="evt b">Anomaly</span><h2>Why the obvious autostage fails</h2></div>
+  <p class="lede">Nearly everyone writes this first. It works on one rocket and then destroys the next one.</p>
+
+  <div class="code">
+    <div class="bar"><span class="name">the naive version — do not use</span><button class="copy">Copy</button></div>
+<pre><span class="k">WHEN</span> <span class="n">SHIP</span>:AVAILABLETHRUST < <span class="n">0.1</span> <span class="k">THEN</span> {
+  <span class="k">STAGE</span>.
+  <span class="k">PRESERVE</span>.
+}</pre>
+  </div>
+
+  <p>Four separate ways this bites:</p>
+
+  <div class="guards">
+    <div class="guard">
+      <span class="no">1</span>
+      <div><b>It fires during coasts</b>
+      <span>Throttle at zero means available thrust is still nonzero — but the moment you add a real coast phase, or the check is on actual thrust rather than available, the condition trips and you shed stages while drifting. <em>Never stage at zero throttle.</em></span></div>
+    </div>
+    <div class="guard">
+      <span class="no">2</span>
+      <div><b>It fires repeatedly in one tick</b>
+      <span>Right after separation there's a moment where the new engine hasn't ignited and thrust is still zero. The condition is still true, so it stages again. And again. Rockets have been reduced to a command pod in under a second this way. You need a <em>cooldown</em>.</span></div>
+    </div>
+    <div class="guard">
+      <span class="no">3</span>
+      <div><b>It fires while engines are still burning</b>
+      <span>With asymmetric boosters or a mix of engine types, <em>one</em> flameout doesn't mean the stage is spent. Requiring only that <em>some</em> engine is out throws away live propellant. Require that <b>all</b> currently-burning engines have flamed out.</span></div>
+    </div>
+    <div class="guard">
+      <span class="no">4</span>
+      <div><b>It calls STAGE when staging isn't ready</b>
+      <span>There's a brief interval after a separation when the staging system is busy. Calling <code>STAGE.</code> then raises a hard error and kills your script mid-ascent, leaving the rocket unsteered. Check <code>STAGE:READY</code>.</span></div>
+    </div>
+  </div>
+
+  <div class="task">
+    <div class="lbl">Design it before you code it</div>
+    <p>Write the staging condition as plain boolean logic — four clauses joined by AND. Then decide: what should your cooldown duration be, and what should the function return in the edge case where <strong>no engines are ignited at all</strong>? Both answers depend on when your loop starts running relative to liftoff.</p>
+  </div>
+
+  <div class="scratch">
+    <label for="s3">Your logic</label>
+    <textarea id="s3" data-key="t03-guards" placeholder="stage if:&#10;  throttle > 0 AND&#10;  ..."></textarea>
+    <div class="saved" data-for="s3">Saved</div>
+  </div>
+</section>
+
+<section id="mission">
+  <div class="shead"><span class="evt b">Your mission</span><h2>launch3.ks</h2></div>
+  <div class="task">
+    <div class="lbl">Requirements</div>
+    <ol>
+      <li>Start from <code>launch2.ks</code>. Keep the pitch program exactly as it is.</li>
+      <li>Write <code>shouldStage()</code> returning a boolean, implementing all four guards.</li>
+      <li>Write <code>autoStage()</code> that calls it, stages when true, and records the time so the cooldown works.</li>
+      <li>Call <code>autoStage()</code> from your ascent loop, every pass.</li>
+      <li>Add a <code>stageDeltaV()</code> function: current mass, current available thrust, a mass-weighted Isp across active engines, and the propellant remaining <em>in the current stage</em>. Print the result live.</li>
+      <li>Print stage number and remaining stage Δ<i>v</i> in your telemetry block.</li>
+      <li>Fly a three-stage rocket to 75 km without touching the space bar.</li>
+    </ol>
+  </div>
+
+  <div class="warnbox">
+    <span class="lbl">Requirement 5 is genuinely hard</span>
+    "Propellant remaining in the current stage" is not <code>SHIP:MASS − SHIP:DRYMASS</code> — that's the whole vessel's propellant, including upper stages you haven't lit. Getting a correct per-stage figure means looking at which resources are actually reachable by the burning engines. Attempt it, get it wrong, and read the solution's discussion — this is a case where the honest answer is that the clean version needs tools you don't have yet.
+  </div>
+
+  <div class="scratch">
+    <label for="s4">Design notes</label>
+    <textarea id="s4" data-key="t03-plan" placeholder=""></textarea>
+    <div class="saved" data-for="s4">Saved</div>
+  </div>
+</section>
+
+<section id="solution">
+  <div class="shead"><span class="evt g">Solution</span><h2>Open after you've flown it</h2></div>
+
+  <details>
+    <summary>Show launch3.ks</summary>
+    <div class="body">
+  <div class="code">
+    <div class="bar"><span class="name">launch3.ks</span><button class="copy">Copy</button></div>
+<pre><span class="c">// launch3.ks — pitch program + autostaging + live stage dV.</span>
+
+<span class="k">CLEARSCREEN</span>.
+
+<span class="c">// ---- tuning ----</span>
+<span class="k">SET</span> azimuth   <span class="k">TO</span> <span class="n">90</span>.
+<span class="k">SET</span> targetAp  <span class="k">TO</span> <span class="n">75000</span>.
+<span class="k">SET</span> turnStart <span class="k">TO</span> <span class="n">1000</span>.
+<span class="k">SET</span> turnEnd   <span class="k">TO</span> <span class="n">45000</span>.
+<span class="k">SET</span> pitch0    <span class="k">TO</span> <span class="n">90</span>.
+<span class="k">SET</span> pitch1    <span class="k">TO</span> <span class="n">0</span>.
+<span class="k">SET</span> kShape    <span class="k">TO</span> <span class="n">0.5</span>.
+
+<span class="c">// ---- staging state ----</span>
+<span class="k">SET</span> g0            <span class="k">TO</span> <span class="n">9.80665</span>.
+<span class="k">SET</span> stageCooldown <span class="k">TO</span> <span class="n">1.0</span>.
+<span class="k">SET</span> lastStageAt   <span class="k">TO</span> <span class="n">0</span>.
+
+<span class="c">// ---- launch ----</span>
+<span class="n">SAS</span> <span class="k">OFF</span>. <span class="n">RCS</span> <span class="k">OFF</span>.
+<span class="k">LOCK</span> <span class="n">THROTTLE</span> <span class="k">TO</span> <span class="n">1</span>.
+<span class="k">LOCK</span> <span class="n">STEERING</span> <span class="k">TO</span> <span class="n">HEADING</span>(azimuth, pitchAt(<span class="n">SHIP</span>:ALTITUDE)).
+<span class="k">SET</span> lastStageAt <span class="k">TO</span> <span class="n">TIME</span>:SECONDS.
+<span class="k">STAGE</span>.
+<span class="k">PRINT</span> <span class="s">"LIFTOFF          "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">0</span>).
+
+<span class="k">UNTIL</span> <span class="n">SHIP</span>:APOAPSIS > targetAp {
+  autoStage().
+  telemetry().
+  <span class="k">WAIT</span> <span class="n">0</span>.
+}
+
+<span class="k">LOCK</span> <span class="n">THROTTLE</span> <span class="k">TO</span> <span class="n">0</span>.
+<span class="k">PRINT</span> <span class="s">"MECO             "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">0</span>).
+<span class="k">WAIT</span> <span class="n">1</span>.
+<span class="k">UNLOCK</span> <span class="n">STEERING</span>. <span class="k">UNLOCK</span> <span class="n">THROTTLE</span>. <span class="n">SAS</span> <span class="k">ON</span>.
+
+<span class="c">// =========== pitch program (from tutorial 02) ===========</span>
+<span class="k">FUNCTION</span> pitchAt {
+  <span class="k">DECLARE PARAMETER</span> h.
+  <span class="k">LOCAL</span> f <span class="k">IS</span> (h - turnStart) / (turnEnd - turnStart).
+  <span class="k">SET</span> f <span class="k">TO</span> <span class="k">MIN</span>(<span class="k">MAX</span>(f, <span class="n">0</span>), <span class="n">1</span>).
+  <span class="k">RETURN</span> pitch0 + (pitch1 - pitch0) * (f ^ kShape).
+}
+
+<span class="c">// =========== staging ===========</span>
+<span class="k">FUNCTION</span> shouldStage {
+  <span class="c">// Guard 1: never while coasting.</span>
+  <span class="k">IF</span> <span class="n">THROTTLE</span> <= <span class="n">0.01</span> { <span class="k">RETURN</span> <span class="k">FALSE</span>. }
+
+  <span class="c">// Guard 4: never when the staging system is busy.</span>
+  <span class="k">IF</span> <span class="k">NOT</span> <span class="n">STAGE</span>:READY { <span class="k">RETURN</span> <span class="k">FALSE</span>. }
+
+  <span class="c">// Guard 2: debounce.</span>
+  <span class="k">IF</span> <span class="n">TIME</span>:SECONDS < lastStageAt + stageCooldown { <span class="k">RETURN</span> <span class="k">FALSE</span>. }
+
+  <span class="c">// Guard 3: every lit engine must be spent.</span>
+  <span class="k">LOCAL</span> es <span class="k">IS</span> <span class="k">LIST</span>().
+  <span class="k">LIST</span> <span class="n">ENGINES</span> <span class="k">IN</span> es.
+  <span class="k">LOCAL</span> lit <span class="k">IS</span> <span class="n">0</span>.
+  <span class="k">LOCAL</span> spent <span class="k">IS</span> <span class="n">0</span>.
+  <span class="k">FOR</span> e <span class="k">IN</span> es {
+    <span class="k">IF</span> e:IGNITION {
+      <span class="k">SET</span> lit <span class="k">TO</span> lit + <span class="n">1</span>.
+      <span class="k">IF</span> e:FLAMEOUT { <span class="k">SET</span> spent <span class="k">TO</span> spent + <span class="n">1</span>. }
+    }
+  }
+  <span class="k">IF</span> lit = <span class="n">0</span> { <span class="k">RETURN</span> <span class="k">TRUE</span>. }   <span class="c">// nothing lit and we want thrust</span>
+  <span class="k">RETURN</span> spent = lit.
+}
+
+<span class="k">FUNCTION</span> autoStage {
+  <span class="k">IF</span> shouldStage() {
+    <span class="k">SET</span> lastStageAt <span class="k">TO</span> <span class="n">TIME</span>:SECONDS.
+    <span class="k">STAGE</span>.
+    <span class="k">PRINT</span> <span class="s">"STAGE "</span> + <span class="n">STAGE</span>:NUMBER + <span class="s">"          "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">0</span>).
+  }
+}
+
+<span class="c">// =========== performance ===========</span>
+<span class="k">FUNCTION</span> activeIsp {
+  <span class="k">LOCAL</span> es <span class="k">IS</span> <span class="k">LIST</span>().
+  <span class="k">LIST</span> <span class="n">ENGINES</span> <span class="k">IN</span> es.
+  <span class="k">LOCAL</span> fTot <span class="k">IS</span> <span class="n">0</span>.
+  <span class="k">LOCAL</span> fOverIsp <span class="k">IS</span> <span class="n">0</span>.
+  <span class="k">FOR</span> e <span class="k">IN</span> es {
+    <span class="k">IF</span> e:IGNITION <span class="k">AND</span> <span class="k">NOT</span> e:FLAMEOUT <span class="k">AND</span> e:ISP > <span class="n">0</span> {
+      <span class="k">SET</span> fTot <span class="k">TO</span> fTot + e:AVAILABLETHRUST.
+      <span class="k">SET</span> fOverIsp <span class="k">TO</span> fOverIsp + e:AVAILABLETHRUST / e:ISP.
+    }
+  }
+  <span class="k">IF</span> fOverIsp <= <span class="n">0</span> { <span class="k">RETURN</span> <span class="n">0</span>. }
+  <span class="k">RETURN</span> fTot / fOverIsp.
+}
+
+<span class="c">// Approximate: treats all remaining onboard propellant as usable.</span>
+<span class="c">// Honest about being an upper bound. See the notes below.</span>
+<span class="k">FUNCTION</span> vesselDeltaV {
+  <span class="k">LOCAL</span> isp <span class="k">IS</span> activeIsp().
+  <span class="k">IF</span> isp <= <span class="n">0</span> { <span class="k">RETURN</span> <span class="n">0</span>. }
+  <span class="k">LOCAL</span> m0 <span class="k">IS</span> <span class="n">SHIP</span>:MASS.
+  <span class="k">LOCAL</span> mf <span class="k">IS</span> <span class="n">SHIP</span>:DRYMASS.
+  <span class="k">IF</span> mf <= <span class="n">0</span> { <span class="k">RETURN</span> <span class="n">0</span>. }
+  <span class="k">RETURN</span> isp * g0 * <span class="k">LN</span>(m0 / mf).
+}
+
+<span class="k">FUNCTION</span> burnTimeFor {
+  <span class="k">DECLARE PARAMETER</span> dv.
+  <span class="k">LOCAL</span> isp <span class="k">IS</span> activeIsp().
+  <span class="k">LOCAL</span> f <span class="k">IS</span> <span class="n">SHIP</span>:AVAILABLETHRUST.
+  <span class="k">IF</span> isp <= <span class="n">0</span> <span class="k">OR</span> f <= <span class="n">0</span> { <span class="k">RETURN</span> <span class="n">0</span>. }
+  <span class="k">LOCAL</span> ve <span class="k">IS</span> isp * g0.
+  <span class="k">RETURN</span> (<span class="n">SHIP</span>:MASS * ve / f) * (<span class="n">1</span> - <span class="k">CONSTANT</span>:E ^ (-dv / ve)).
+}
+
+<span class="k">FUNCTION</span> telemetry {
+  <span class="k">PRINT</span> <span class="s">"ALT    "</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:ALTITUDE) + <span class="s">"     "</span>       <span class="k">AT</span> (<span class="n">0</span>,<span class="n">2</span>).
+  <span class="k">PRINT</span> <span class="s">"AP     "</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:APOAPSIS) + <span class="s">"     "</span>       <span class="k">AT</span> (<span class="n">0</span>,<span class="n">3</span>).
+  <span class="k">PRINT</span> <span class="s">"SPD    "</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:VELOCITY:SURFACE:MAG,<span class="n">1</span>)+<span class="s">"   "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">4</span>).
+  <span class="k">PRINT</span> <span class="s">"PITCH  "</span> + <span class="k">ROUND</span>(pitchAt(<span class="n">SHIP</span>:ALTITUDE),<span class="n">1</span>)+<span class="s">"     "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">5</span>).
+  <span class="k">PRINT</span> <span class="s">"STAGE  "</span> + <span class="n">STAGE</span>:NUMBER + <span class="s">"          "</span>         <span class="k">AT</span> (<span class="n">0</span>,<span class="n">6</span>).
+  <span class="k">PRINT</span> <span class="s">"ISP    "</span> + <span class="k">ROUND</span>(activeIsp(),<span class="n">1</span>) + <span class="s">"       "</span>    <span class="k">AT</span> (<span class="n">0</span>,<span class="n">7</span>).
+  <span class="k">PRINT</span> <span class="s">"dV     "</span> + <span class="k">ROUND</span>(vesselDeltaV()) + <span class="s">"        "</span>   <span class="k">AT</span> (<span class="n">0</span>,<span class="n">8</span>).
+  <span class="k">PRINT</span> <span class="s">"TWR    "</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:AVAILABLETHRUST/(<span class="n">SHIP</span>:MASS*<span class="n">9.81</span>),<span class="n">2</span>)+<span class="s">"  "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">9</span>).
+}</pre>
+  </div>
+
+      <h3>On the mass-weighted Isp</h3>
+      <p>Combining engines of different Isp is not an average of their Isp values. The correct combination weights by <em>mass flow</em>, and since flow is <i>F</i>/(<i>I</i><sub>sp</sub><i>g</i><sub>0</sub>), the total flow is Σ<i>F<sub>i</sub></i>/<i>I</i><sub>sp,<i>i</i></sub> divided by <i>g</i><sub>0</sub>. Setting total thrust over total flow equal to an effective Isp gives:</p>
+      <div class="eq"><i>I</i><sub>sp,eff</sub> <span class="op">=</span> <span class="frac"><span class="num">Σ <i>F<sub>i</sub></i></span><span class="den">Σ <i>F<sub>i</sub></i> / <i>I</i><sub>sp,<i>i</i></sub></span></span></div>
+      <p>That's a thrust-weighted <em>harmonic</em> mean, which is exactly what <code>activeIsp()</code> computes. Take a plain arithmetic average of a 320 s vacuum engine and a 170 s solid booster and you'll overestimate your Δ<i>v</i> badly — the low-Isp engine is gulping propellant far faster than its thrust share suggests.</p>
+
+      <h3>On requirement 5 — and why it's marked approximate</h3>
+      <p><code>vesselDeltaV()</code> uses <code>SHIP:DRYMASS</code>, which is the whole vessel with every tank empty. So during your first stage it counts the propellant sitting in stages two and three as though the first stage's engines could burn it. The number is an <strong>upper bound</strong>, and it's wrong by more the earlier in the flight you are.</p>
+      <p>Doing this properly means walking the fuel-crossfeed graph: for each burning engine, find which tanks it can actually draw from, sum only those resources, and account for tanks that will separate. kOS exposes what you'd need — <code>e:CONSUMEDRESOURCES</code>, part-level resource lists, decoupler stage assignments — but assembling it correctly is a genuine project, not a paragraph.</p>
+      <p>So the right call for now is the one taken above: compute the approximation, and <em>know</em> it's an approximation. Flight software full of quantities whose error you haven't characterised is how missions get lost. A number you understand the bias of is more useful than a number you merely hope is right. When you build the per-stage version in Arc 3, the logged data will tell you exactly how far off this one was.</p>
+
+      <h3>The edge case in guard 3</h3>
+      <p><code>IF lit = 0 { RETURN TRUE. }</code> reads as reckless — no engines lit, so stage. It's safe here only because guards 1, 2 and 4 have already run: throttle is up, the cooldown has elapsed, and staging is ready. Together those mean "we are asking for thrust, we've waited, and nothing is burning" — which genuinely is the signal to fire the next stage, and it's what catches a separation where the next engine needs an explicit ignition.</p>
+      <p>Reorder those four checks and this becomes a rocket-shredder. Guard ordering is load-bearing, not stylistic.</p>
+    </div>
+  </details>
+</section>
+
+<section id="close">
+  <div class="shead"><span class="evt">Arc complete</span><h2>What you have, and what you can't answer</h2></div>
+  <p class="lede">Three tutorials in, you have a script that flies a multi-stage rocket to orbit unattended. That's the point where most people stop.</p>
+
+  <p><strong>You now know:</strong> that <code>LOCK</code> binds an expression and makes control laws live; how to build a function and call it from inside a lock; how to derive an interpolation, clamp it, and differentiate it numerically; the three useful rearrangements of Tsiolkovsky; where burn time comes from; and why an autostage routine needs four independent guards rather than one clever condition.</p>
+
+  <p><strong>You cannot yet answer any of these:</strong></p>
+  <ul>
+    <li>Was <i>k</i> = 0.5 better than <i>k</i> = 1, and by how many m/s?</li>
+    <li>How much Δ<i>v</i> did you lose to gravity? To drag? To steering?</li>
+    <li>Would starting the turn at 500 m instead of 1000 m help, or hurt?</li>
+    <li>Your rocket hit peak dynamic pressure somewhere. Where, and how bad was it?</li>
+    <li>Your <code>vesselDeltaV()</code> is biased high. By how much, at what point in the flight?</li>
+  </ul>
+
+  <p>Every one of those is a question about a number you didn't record. Arc 2 is one tutorial long and it's the hinge of the whole series: you'll write telemetry to CSV, accumulate the loss integrals in-flight, and build the analyser that overlays runs against each other. After that, every claim any tutorial makes — including the ones above about <i>k</i> = 0.5 — becomes something you can check rather than accept.</p>
+
+  <div class="note"><b>Before you move on.</b> Fly <code>launch3.ks</code> at least three times with different turn parameters, on the same rocket, and write down apoapsis and remaining fuel each time. In the next tutorial you'll re-fly those same configurations with logging on — and having the crude numbers first makes it much more obvious how much you were missing.</div>
+</section>
+
+<footer>
+  <p>Next: <strong>Arc 2 · Tutorial 04 — Recording flight data.</strong> Fixed-rate CSV logging, run-tagged headers, in-flight accumulation of gravity and drag losses, and an analyser that plots your runs on top of each other.</p>
+  <div class="nav"><span>Arc 1 · Make it fly — complete</span><b>03 / 16</b></div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  document.querySelectorAll(".code").forEach(function(box){
+    var btn = box.querySelector("button.copy"), pre = box.querySelector("pre");
+    if(!btn || !pre) return;
+    btn.addEventListener("click", function(){
+      var text = pre.innerText;
+      var done = function(){
+        btn.textContent = "Copied"; btn.classList.add("done");
+        setTimeout(function(){ btn.textContent = "Copy"; btn.classList.remove("done"); }, 1400);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else { fallback(); }
+      function fallback(){
+        var ta = document.createElement("textarea");
+        ta.value = text; ta.style.position="fixed"; ta.style.opacity="0";
+        document.body.appendChild(ta); ta.select();
+        try{ document.execCommand("copy"); done(); }catch(e){ btn.textContent="Select manually"; }
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  /* stage calculator */
+  var ids = ["m0","mf","isp","F"], el = {};
+  ids.forEach(function(i){ el[i] = document.getElementById("i-"+i); });
+  function out(id){ return document.getElementById("o-"+id); }
+  function calc(){
+    var m0=parseFloat(el.m0.value), mf=parseFloat(el.mf.value),
+        isp=parseFloat(el.isp.value), F=parseFloat(el.F.value);
+    var g0=9.80665, gk=9.81;
+    var bad = !isFinite(m0)||!isFinite(mf)||!isFinite(isp)||!isFinite(F)||mf<=0||m0<=0||isp<=0||F<=0;
+    if(bad || mf>m0){
+      ["dv","mr","md","bt","twr"].forEach(function(k){ out(k).textContent="—"; out(k).className="rv warn"; });
+      if(mf>m0 && !bad) out("mr").textContent = "mf > m0";
+      return;
+    }
+    var ve = isp*g0;
+    var mr = m0/mf;
+    var dv = ve*Math.log(mr);
+    var md = F/ve;
+    var bt = (m0-mf)/md;
+    var t0 = F/(m0*gk), t1 = F/(mf*gk);
+    out("dv").innerHTML  = Math.round(dv)+'<u>m/s</u>';   out("dv").className="rv";
+    out("mr").textContent = mr.toFixed(2)+" : 1";          out("mr").className="rv";
+    out("md").innerHTML  = md.toFixed(4)+'<u>t/s</u>';     out("md").className="rv";
+    out("bt").innerHTML  = bt.toFixed(1)+'<u>s</u>';       out("bt").className="rv";
+    out("twr").textContent = t0.toFixed(2)+" → "+t1.toFixed(2);
+    out("twr").className = "rv " + (t0<1 ? "warn" : (t0>=1.35 && t0<=1.9 ? "ok" : ""));
+  }
+  ids.forEach(function(i){ el[i].addEventListener("input", calc); });
+  calc();
+
+  /* scratch pads */
+  document.querySelectorAll("textarea[data-key]").forEach(function(ta){
+    var key = "kos:"+ta.dataset.key;
+    var flag = document.querySelector('.saved[data-for="'+ta.id+'"]');
+    if(window.storage && window.storage.get){
+      window.storage.get(key).then(function(r){ if(r && r.value) ta.value = r.value; }).catch(function(){});
+    }
+    var timer=null;
+    ta.addEventListener("input", function(){
+      if(!(window.storage && window.storage.set)) return;
+      clearTimeout(timer);
+      timer = setTimeout(function(){
+        window.storage.set(key, ta.value).then(function(){
+          if(flag){ flag.classList.add("on"); setTimeout(function(){ flag.classList.remove("on"); }, 1200); }
+        }).catch(function(){});
+      }, 600);
+    });
+  });
+
+  /* rail */
+  var ticks = Array.prototype.slice.call(document.querySelectorAll(".tick"));
+  var secs  = ticks.map(function(t){ return document.querySelector(t.getAttribute("href")); });
+  var marker = document.getElementById("marker");
+  var topbar = document.getElementById("topbar");
+  function place(i){
+    ticks.forEach(function(t,j){ t.classList.toggle("on", j===i); });
+    if(marker && ticks[i]){
+      var railRect = ticks[0].parentNode.getBoundingClientRect();
+      var r = ticks[i].getBoundingClientRect();
+      marker.style.top = (r.top - railRect.top + r.height/2 - 7.5) + "px";
+    }
+  }
+  function onScroll(){
+    var y = window.scrollY + window.innerHeight*0.32, best = 0;
+    secs.forEach(function(s,i){ if(s && s.offsetTop <= y) best = i; });
+    place(best);
+    if(topbar){
+      var max = document.body.scrollHeight - window.innerHeight;
+      topbar.style.width = (max>0 ? (window.scrollY/max*100) : 0) + "%";
+    }
+  }
+  window.addEventListener("scroll", onScroll, {passive:true});
+  window.addEventListener("resize", onScroll);
+  onScroll();
+})();
+</script>
+</body>
+</html>

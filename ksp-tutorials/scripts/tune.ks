@@ -1,0 +1,3 @@
+RUNONCEPATH("0:/intercept.ks").
+SET CONFIG:IPU TO 2000.
+TUNE().

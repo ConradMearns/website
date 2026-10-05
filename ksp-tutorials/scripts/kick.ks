@@ -1,0 +1,10 @@
+PARAMETER vinf IS 2350.
+PARAMETER maxBurn IS 120.
+
+SET vinf TO vinf:TONUMBER(2350).
+SET maxBurn TO maxBurn:TONUMBER(120).
+
+RUNONCEPATH("0:/perikick.ks").
+SET CONFIG:IPU TO 2000.
+KICKRUN(vinf, maxBurn).
+

@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kOS 04a · Where the Delta-V Went</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;1,400;1,500&family=Saira+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --vac:#0B1020; --panel:#141B2E; --panel2:#1B2440; --rule:#26324F;
+  --ink:#DDE5F4; --dim:#8A99B8; --burn:#FF6B35; --trace:#5FD3F3; --go:#7DDC8F;
+  --violet:#B48CF2; --amber:#F5C462;
+  --rail:150px;
+}
+*{box-sizing:border-box}
+svg{height:auto; max-width:100%}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--vac); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:16.5px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:radial-gradient(1100px 700px at 78% -8%, rgba(255,107,53,.09), transparent 60%),
+             radial-gradient(900px 800px at 0% 100%, rgba(95,211,243,.055), transparent 62%);
+}
+.wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:0 22px 120px}
+.rail{
+  position:fixed; left:max(18px, calc(50vw - 590px + 4px)); top:0; height:100vh; width:var(--rail);
+  display:none; flex-direction:column; justify-content:center; gap:0; z-index:5; pointer-events:none;
+}
+.rail .spine{position:absolute; left:11px; top:12%; bottom:12%; width:1px; background:linear-gradient(180deg,transparent,var(--rule) 12%,var(--rule) 88%,transparent)}
+.rail .marker{
+  position:absolute; left:4px; width:15px; height:15px; border:1px solid var(--burn);
+  background:var(--vac); transform:rotate(45deg); transition:top .25s cubic-bezier(.4,0,.2,1);
+}
+.rail .marker::after{content:""; position:absolute; inset:3px; background:var(--burn)}
+.tick{
+  position:relative; padding:10px 0 10px 30px; pointer-events:auto; display:block;
+  text-decoration:none; color:var(--dim); font-family:"Saira Condensed",sans-serif;
+  font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; line-height:1.25;
+}
+.tick::before{content:""; position:absolute; left:6px; top:calc(50% - 1px); width:11px; height:1px; background:var(--rule)}
+.tick:hover{color:var(--ink)}
+.tick.on{color:var(--burn)}
+.tick.on::before{background:var(--burn); width:15px; left:4px}
+.tick .alt{display:block; font-size:10.5px; color:#5D6B8A; letter-spacing:.1em}
+@media(min-width:1040px){ .rail{display:flex} .wrap{padding-left:calc(var(--rail) + 40px)} }
+.topbar{position:fixed; top:0; left:0; height:2px; background:var(--burn); width:0; z-index:9}
+@media(min-width:1040px){ .topbar{display:none} }
+header.mast{padding:74px 0 30px; border-bottom:1px solid var(--rule)}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.24em;
+  text-transform:uppercase; color:var(--burn); margin:0 0 16px;
+}
+.eyebrow span{color:var(--dim)}
+h1{
+  font-family:"Saira Condensed",sans-serif; font-weight:700; font-size:clamp(40px,7.5vw,74px);
+  line-height:.94; letter-spacing:-.005em; text-transform:uppercase; margin:0 0 18px; max-width:16ch;
+}
+h1 em{font-style:normal; color:var(--burn)}
+.objective{font-size:18.5px; color:var(--dim); max-width:62ch; margin:0}
+.objective strong{color:var(--ink); font-weight:500}
+section{padding:58px 0; border-bottom:1px solid var(--rule)}
+.shead{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:8px}
+.evt{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--vac); background:var(--trace); padding:3px 8px 2px; white-space:nowrap;
+}
+.evt.b{background:var(--burn)}
+.evt.g{background:var(--go)}
+.evt.v{background:var(--violet)}
+h2{
+  font-family:"Saira Condensed",sans-serif; font-weight:600; font-size:clamp(27px,4vw,38px);
+  text-transform:uppercase; letter-spacing:.01em; margin:0; line-height:1.05;
+}
+h3{
+  font-family:"Saira Condensed",sans-serif; font-weight:600; font-size:20px; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--trace); margin:36px 0 12px;
+}
+p{max-width:70ch}
+.lede{color:var(--dim); max-width:68ch; margin:14px 0 0; font-size:17px}
+strong{font-weight:600}
+code{
+  font-family:"IBM Plex Mono",monospace; font-size:.885em; background:var(--panel2);
+  border:1px solid var(--rule); padding:1px 5px; color:var(--trace); white-space:nowrap;
+}
+.code{position:relative; margin:18px 0; border:1px solid var(--rule); background:#0E1425}
+.code .bar{
+  display:flex; justify-content:space-between; align-items:center; gap:12px;
+  padding:7px 11px 6px; border-bottom:1px solid var(--rule); background:var(--panel);
+}
+.code .name{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim)}
+.code pre{margin:0; padding:15px 16px; overflow-x:auto; font-family:"IBM Plex Mono",monospace; font-size:13.4px; line-height:1.72; color:#C9D6EE}
+.code pre .k{color:var(--burn)}
+.code pre .s{color:var(--go)}
+.code pre .c{color:#5D6B8A; font-style:italic}
+.code pre .n{color:var(--trace)}
+button.copy{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  background:transparent; color:var(--dim); border:1px solid var(--rule); padding:4px 10px; cursor:pointer;
+}
+button.copy:hover{color:var(--burn); border-color:var(--burn)}
+button.copy.done{color:var(--go); border-color:var(--go)}
+.eq{
+  font-family:"IBM Plex Serif",Georgia,serif; font-size:20px; text-align:center;
+  padding:20px 14px; margin:20px 0; background:var(--panel); border-left:2px solid var(--trace); overflow-x:auto;
+}
+.eq i{font-style:italic; padding:0 1px}
+.eq .op{padding:0 7px; color:var(--dim)}
+.eq .fn{font-style:normal; padding-right:2px}
+.eq .vec{font-style:normal; font-weight:600}
+.eq sub{font-size:.68em; vertical-align:-.22em; font-style:normal}
+.eq sup{font-size:.68em; vertical-align:.5em; font-style:normal}
+.eq small{font-size:.62em; color:var(--dim); display:block; margin-top:9px; font-family:"IBM Plex Sans",sans-serif}
+.frac{display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; padding:0 6px; font-size:.9em}
+.frac .num{padding:0 6px 2px; border-bottom:1px solid var(--dim)}
+.frac .den{padding:3px 6px 0}
+.where{font-size:14.5px; color:var(--dim); text-align:center; margin:-8px 0 22px; font-family:"IBM Plex Serif",serif}
+.task{border:1px solid var(--burn); background:rgba(255,107,53,.045); padding:20px 22px; margin:24px 0}
+.task .lbl{
+  font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.18em;
+  font-size:12.5px; color:var(--burn); font-weight:700; margin-bottom:8px;
+}
+.task p{margin:0 0 10px}
+.task p:last-child{margin-bottom:0}
+ol,ul{max-width:68ch; padding-left:22px}
+li{margin:7px 0}
+li::marker{color:var(--dim)}
+.scratch{margin:16px 0}
+.scratch label{
+  display:block; font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--dim); margin-bottom:7px;
+}
+textarea{
+  width:100%; min-height:110px; resize:vertical; background:#0E1425; color:var(--ink);
+  border:1px solid var(--rule); padding:12px 13px; font-family:"IBM Plex Mono",monospace;
+  font-size:13.4px; line-height:1.7;
+}
+textarea:focus{outline:none; border-color:var(--trace)}
+.saved{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--go); letter-spacing:.1em; opacity:0; transition:opacity .3s}
+.saved.on{opacity:1}
+details{border:1px solid var(--rule); background:var(--panel); margin:20px 0}
+details summary{
+  cursor:pointer; padding:13px 16px; list-style:none; font-family:"Saira Condensed",sans-serif;
+  text-transform:uppercase; letter-spacing:.14em; font-size:14px; font-weight:600; color:var(--go);
+  display:flex; align-items:center; gap:10px;
+}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸"; font-size:11px; transition:transform .18s}
+details[open] summary::before{transform:rotate(90deg)}
+details summary:hover{background:var(--panel2)}
+details .body{padding:4px 18px 18px; border-top:1px solid var(--rule)}
+details .body > :first-child{margin-top:14px}
+details.tool summary{color:var(--amber)}
+details.tool{border-color:rgba(245,196,98,.35)}
+
+/* ---- toolbox ---- */
+.tools{display:grid; gap:14px; margin:24px 0; grid-template-columns:1fr}
+@media(min-width:780px){ .tools{grid-template-columns:1fr 1fr} }
+.tool{border:1px solid var(--rule); background:var(--panel); padding:15px 17px}
+.tool .tn{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--amber); margin-bottom:7px;
+}
+.tool .tt{font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.05em;
+  font-size:17px; font-weight:600; margin-bottom:5px}
+.tool p{margin:0; font-size:15px; color:var(--dim); max-width:none}
+.tool p + p{margin-top:8px}
+.tool .mini{
+  font-family:"IBM Plex Mono",monospace; font-size:12.5px; color:var(--trace);
+  background:#0E1425; border:1px solid var(--rule); padding:7px 9px; margin-top:9px; overflow-x:auto;
+}
+.ref{border:1px solid var(--rule); margin:22px 0 0}
+.refrow{display:grid; grid-template-columns:1fr; gap:2px 22px; padding:11px 15px; border-bottom:1px solid var(--rule)}
+.refrow:last-child{border-bottom:0}
+.refrow:nth-child(odd){background:rgba(27,36,64,.42)}
+@media(min-width:700px){ .refrow{grid-template-columns:minmax(255px,.9fr) 1.5fr; align-items:baseline} }
+.refrow b{font-family:"IBM Plex Mono",monospace; font-weight:500; font-size:13.5px; color:var(--trace)}
+.refrow span{color:var(--dim); font-size:14.5px}
+.refgroup{
+  font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.16em;
+  font-size:12px; color:var(--burn); padding:14px 15px 6px; background:var(--panel);
+  border-bottom:1px solid var(--rule);
+}
+/* ---- instruments ---- */
+.instr{border:1px solid var(--rule); background:var(--panel); margin:26px 0}
+.instr .ihead{
+  padding:10px 15px; border-bottom:1px solid var(--rule); font-family:"Saira Condensed",sans-serif;
+  text-transform:uppercase; letter-spacing:.16em; font-size:13px; color:var(--trace); font-weight:600;
+  display:flex; justify-content:space-between; gap:12px; align-items:center;
+}
+.ibody{display:grid; gap:0; grid-template-columns:1fr}
+@media(min-width:800px){ .ibody{grid-template-columns:275px 1fr} }
+.inputs{padding:16px 15px; display:grid; gap:14px; align-content:start}
+.field label{font-size:13.5px; color:var(--dim); margin-bottom:5px; display:flex; justify-content:space-between; gap:10px}
+.field label u{text-decoration:none; font-family:"IBM Plex Mono",monospace; color:var(--trace); font-size:13px}
+input[type=range]{width:100%; accent-color:var(--burn); background:transparent}
+.plotwrap{padding:14px 15px; border-top:1px solid var(--rule)}
+@media(min-width:800px){ .plotwrap{border-top:0; border-left:1px solid var(--rule)} }
+.readout{padding:14px 15px; display:grid; gap:10px; border-top:1px solid var(--rule)}
+@media(min-width:620px){ .readout{grid-template-columns:1fr 1fr; gap:10px 26px} }
+.ro{display:flex; justify-content:space-between; align-items:baseline; gap:12px; border-bottom:1px dotted var(--rule); padding-bottom:7px}
+.ro .rk{font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.12em; font-size:12.5px; color:var(--dim)}
+.ro .rv{font-family:"IBM Plex Mono",monospace; font-size:17px; color:var(--trace)}
+.ro .rv.warn{color:var(--burn)}
+.ro .rv.ok{color:var(--go)}
+.ro .rv u{text-decoration:none; font-size:11px; color:var(--dim); margin-left:3px}
+.legend{display:flex; gap:15px; flex-wrap:wrap; font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); margin-top:9px}
+.legend i{display:inline-block; width:16px; height:2.5px; vertical-align:middle; margin-right:6px}
+/* ---- checklist ---- */
+.check{border:1px solid var(--rule); margin:22px 0}
+.crow{display:grid; grid-template-columns:auto 1fr; gap:0 15px; padding:13px 16px; border-bottom:1px solid var(--rule); align-items:start}
+.crow:last-child{border-bottom:0}
+.crow:nth-child(even){background:rgba(27,36,64,.34)}
+.crow .mk{font-family:"IBM Plex Mono",monospace; font-size:15px; color:var(--go); line-height:1.4}
+.crow .mk.no{color:var(--burn)}
+.crow b{display:block; font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.08em; font-size:15px; margin-bottom:3px}
+.crow span{color:var(--dim); font-size:15px}
+.note{border-left:2px solid var(--rule); padding:2px 0 2px 16px; margin:20px 0; color:var(--dim); font-size:15.5px; max-width:68ch}
+.note b{color:var(--ink)}
+.warnbox{border:1px solid var(--rule); border-left:2px solid var(--burn); background:var(--panel); padding:14px 17px; margin:20px 0; font-size:15.5px; max-width:68ch}
+.warnbox .lbl{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--burn); display:block; margin-bottom:5px}
+.qbox{border:1px solid var(--violet); background:rgba(180,140,242,.05); padding:16px 19px; margin:22px 0}
+.qbox .lbl{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--violet); display:block; margin-bottom:6px}
+.qbox p{margin:0 0 9px}
+.qbox p:last-child{margin-bottom:0}
+footer{padding:44px 0 0; color:var(--dim); font-size:14.5px}
+footer .nav{display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:14px; font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.12em; font-size:14px}
+footer .nav b{color:var(--ink); font-weight:600}
+::selection{background:var(--burn); color:var(--vac)}
+:focus-visible{outline:2px solid var(--trace); outline-offset:2px}
+@media(prefers-reduced-motion:reduce){ html{scroll-behavior:auto} *{transition:none!important; animation:none!important} }
+</style>
+</head>
+<body>
+<div class="topbar" id="topbar"></div>
+
+<nav class="rail" aria-label="Section navigation">
+  <div class="spine"></div>
+  <div class="marker" id="marker"></div>
+  <a class="tick" href="#tools">Toolbox<span class="alt">everything up front</span></a>
+  <a class="tick" href="#circle">Unit circle<span class="alt">components</span></a>
+  <a class="tick" href="#dot">Dot product<span class="alt">the one tool</span></a>
+  <a class="tick" href="#draw">Draw it<span class="alt">your turn</span></a>
+  <a class="tick" href="#split">Speed vs turn<span class="alt">instrument</span></a>
+  <a class="tick" href="#derive">The equation<span class="alt">algebra only</span></a>
+  <a class="tick" href="#bill">The bill<span class="alt">four buckets</span></a>
+  <a class="tick" href="#kos">In kOS<span class="alt">no trig at all</span></a>
+  <a class="tick" href="#linalg">Linear algebra<span class="alt">your question</span></a>
+</nav>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Arc 2 · Measure it &nbsp;<span>/</span>&nbsp; Tutorial 04a &nbsp;<span>/</span>&nbsp; rebuilt section</p>
+  <h1>Where the <em>delta-v</em> went</h1>
+  <p class="objective">Your rocket burned 2500 m/s of propellant and is going 1700 m/s. <strong>Something took 800 m/s.</strong> This page finds out what, and it assumes you remember algebra and nothing else. Every tool you need is on this page before you're asked to use it.</p>
+</header>
+
+<section id="tools">
+  <div class="shead"><span class="evt g">Toolbox</span><h2>Everything you need, up front</h2></div>
+  <p class="lede">Nothing below this point requires you to remember something from school. If a step needs a fact, that fact is in this section. Read it, then use it — that's the whole method.</p>
+
+  <div class="tools">
+    <div class="tool">
+      <div class="tn">tool 01</div>
+      <div class="tt">A vector is a list of numbers</div>
+      <p>In 2D, <b>(3, 4)</b> means "3 across, 4 up". That's it. Its <em>length</em> comes from Pythagoras: √(3²+4²) = 5.</p>
+      <p>A <strong>unit vector</strong> is one with length 1. It carries direction and nothing else. We put a hat on it: <b>v̂</b>.</p>
+      <div class="mini">v:MAG        // length<br>v:NORMALIZED // same direction, length 1</div>
+    </div>
+
+    <div class="tool">
+      <div class="tn">tool 02</div>
+      <div class="tt">Adding forces</div>
+      <p>Forces add component by component. (3,4) + (1,−9) = (4,−5). No trig, no angles.</p>
+      <p>Newton says the sum of forces equals mass × acceleration. That is the only physics law on this page.</p>
+      <div class="mini">F<sub>total</sub> = F₁ + F₂ + F₃ = m·a</div>
+    </div>
+
+    <div class="tool">
+      <div class="tn">tool 03</div>
+      <div class="tt">Integrating a rate</div>
+      <p>If you know a <em>rate</em> and you want the <em>total</em>, you add it up over time. That's all an integral is here.</p>
+      <p>Losing 3 m/s every second for 10 seconds loses 30 m/s. Written formally: ∫3&nbsp;<i>dt</i> over 10 s = 30. In code it's <code>total = total + rate*dt</code>.</p>
+    </div>
+
+    <div class="tool">
+      <div class="tn">tool 04</div>
+      <div class="tt">Splitting an integral</div>
+      <p>If a rate is a sum of parts, the total is the sum of the parts' totals:</p>
+      <p style="font-family:'IBM Plex Serif',serif;color:var(--ink)">∫(A − B − C) <i>dt</i> &nbsp;=&nbsp; ∫A <i>dt</i> − ∫B <i>dt</i> − ∫C <i>dt</i></p>
+      <p>This single fact is what turns one equation into four labelled buckets. It is the whole trick of this page.</p>
+    </div>
+  </div>
+
+  <details class="tool">
+    <summary>Identities this page depends on — open if you want them stated explicitly</summary>
+    <div class="body">
+      <p>There are three, and you will be told when each is used.</p>
+      <ol>
+        <li><strong>Unit-circle components.</strong> A unit vector pointing at angle θ above horizontal has components (cos θ, sin θ). <em>Used in: writing down the vectors.</em> There's a widget for it in the next section.</li>
+        <li><strong>The dot product picks out "how much of A points along B".</strong> <em>Used in: every single step of the derivation.</em> Section after next.</li>
+        <li><strong>Linearity of the integral</strong> — tool 04 above. <em>Used in: splitting the bill.</em></li>
+      </ol>
+      <p><strong>Not needed:</strong> the chain rule (that was Tutorial 02), any angle-addition formula, any co-function identity like cos(90°−θ)=sin θ, or the derivative of anything. If you find yourself reaching for one, you've taken a harder path than the one on this page — back up and use the dot product.</p>
+    </div>
+  </details>
+
+  <h3>The vectors kOS will actually hand you</h3>
+  <p>You asked how to get useful vectors out of kOS. Here is the complete list you need for this page. Every one is a real 3D vector object, not an angle.</p>
+
+  <div class="ref">
+    <div class="refgroup">Directions &amp; motion</div>
+    <div class="refrow"><b>SHIP:VELOCITY:SURFACE</b><span>Which way you're actually going, and how fast, relative to the ground. <strong>This is the reference direction for the whole page.</strong></span></div>
+    <div class="refrow"><b>SHIP:FACING:VECTOR</b><span>Which way the nose points. A unit vector already.</span></div>
+    <div class="refrow"><b>SHIP:UP:VECTOR</b><span>Straight up — directly away from the planet's centre. A unit vector.</span></div>
+    <div class="refrow"><b>SHIP:NORTH:VECTOR</b><span>Points north along the surface. Only needed if you want a compass heading for your log.</span></div>
+    <div class="refrow"><b>SHIP:BODY:POSITION</b><span>Vector from <em>your ship</em> to the planet's centre — kOS positions are always relative to the vessel. So <code>-SHIP:BODY:POSITION</code> points up, which is why <code>SHIP:UP:VECTOR</code> exists as a shortcut.</span></div>
+
+    <div class="refgroup">Operations</div>
+    <div class="refrow"><b>VDOT(a, b)</b><span>The dot product. Returns a <em>number</em>. The tool this page is built on.</span></div>
+    <div class="refrow"><b>VANG(a, b)</b><span>Angle between two vectors, in <strong>degrees</strong>, always 0–180. Good for logging, rarely what you want for math.</span></div>
+    <div class="refrow"><b>VCRS(a, b)</b><span>Cross product — returns a vector perpendicular to both. You need it in Arc 5 for orbital planes, not here.</span></div>
+    <div class="refrow"><b>VXCL(k, v)</b><span>"v with all of its k removed" — flattens v into the plane perpendicular to k. Used for compass headings.</span></div>
+    <div class="refrow"><b>v:MAG</b> / <b>v:NORMALIZED</b><span>Length, and the same direction at length 1.</span></div>
+  </div>
+
+  <div class="warnbox">
+    <span class="lbl">The one that trips everyone</span>
+    <code>SHIP:BODY:POSITION</code> is not the planet's position in space — it's the vector <em>from your ship to</em> the planet's centre. Every kOS position is relative to the CPU vessel. If a formula ever gives you an answer that's wrong by exactly your own position, this is why.
+  </div>
+</section>
+
+<section id="circle">
+  <div class="shead"><span class="evt g">Toolbox</span><h2>The unit circle, since you asked for it</h2></div>
+  <p class="lede">You said you know to reach for a unit circle but would have to look it up. Don't — here it is, and here is the single sentence it's for.</p>
+
+  <div class="eq" style="font-size:19px">
+    A unit vector pointing at angle <i>θ</i> above horizontal has components ( cos <i>θ</i> , sin <i>θ</i> ).
+    <small>cos gives you the across-part. sin gives you the up-part. That is the entire content of the unit circle.</small>
+  </div>
+
+  <div class="instr">
+    <div class="ihead"><span>Unit circle</span><span id="uc-read" style="font-family:'IBM Plex Mono',monospace;letter-spacing:.04em;text-transform:none;color:var(--dim);font-weight:400;font-size:12px">—</span></div>
+    <div class="ibody" style="grid-template-columns:1fr">
+      <div class="plotwrap" style="border-left:0">
+        <div class="field" style="max-width:340px;margin-bottom:10px">
+          <label>Angle θ above horizontal <u id="v-uc">40°</u></label>
+          <input id="r-uc" type="range" min="-20" max="110" step="1" value="40">
+        </div>
+        <svg id="uc-svg" viewBox="0 0 420 250" width="100%" role="img" aria-label="Unit circle showing cosine as the horizontal component and sine as the vertical component"></svg>
+        <div class="legend">
+          <span><i style="background:#5FD3F3"></i>the unit vector</span>
+          <span><i style="background:#F5C462"></i>cos θ — across</span>
+          <span><i style="background:#7DDC8F"></i>sin θ — up</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note"><b>Two values worth burning in.</b> At θ = 0° (flat), cos = 1 and sin = 0 — all across, nothing up. At θ = 90° (straight up), cos = 0 and sin = 1 — all up, nothing across. Every gravity-turn argument in this series is somewhere between those two.</div>
+</section>
+
+<section id="dot">
+  <div class="shead"><span class="evt g">Toolbox</span><h2>The dot product, which replaces all the trig</h2></div>
+  <p class="lede">This is the tool. If you take one thing from this page, take this one — it is why the derivation needs no identities you'd have to look up.</p>
+
+  <p>The dot product of two vectors multiplies them component by component and adds the results:</p>
+  <div class="eq">( <i>a</i><sub>1</sub>, <i>a</i><sub>2</sub> ) <span class="op">·</span> ( <i>b</i><sub>1</sub>, <i>b</i><sub>2</sub> ) <span class="op">=</span> <i>a</i><sub>1</sub><i>b</i><sub>1</sub> <span class="op">+</span> <i>a</i><sub>2</sub><i>b</i><sub>2</sub></div>
+  <p>Pure algebra — multiply, multiply, add. But here's what it <em>means</em>, and this is the part that does the work:</p>
+
+  <div class="eq" style="border-left-color:var(--amber); font-size:19px">
+    If <b>b̂</b> is a <em>unit</em> vector, then <b>a</b> · <b>b̂</b> is<br>
+    <strong>how much of <b>a</b> points along <b>b̂</b>.</strong>
+    <small>A single number. Positive means "with", negative means "against", zero means "perpendicular — no contribution at all".</small>
+  </div>
+
+  <p>That's the projection. It is the answer to "how much of this force is actually speeding me up?", and you get it without ever naming an angle.</p>
+
+  <div class="task">
+    <div class="lbl">Try it — pure arithmetic, 60 seconds</div>
+    <p>Let <b>v̂</b> = (0.8, 0.6) — check it: 0.8² + 0.6² = 1, so it really is a unit vector. It's pointing up and to the right.</p>
+    <ol>
+      <li>Gravity is <b>g</b> = (0, −9.81). Compute <b>g</b> · <b>v̂</b>. Is it speeding you up or slowing you down?</li>
+      <li>Thrust is <b>T</b> = (16, 12). Compute <b>T</b> · <b>v̂</b>. Now compute the length of <b>T</b>. Compare the two numbers — what does the gap tell you?</li>
+      <li>A force <b>P</b> = (−0.6, 0.8). Compute <b>P</b> · <b>v̂</b>. What does that answer mean physically?</li>
+    </ol>
+  </div>
+
+  <div class="scratch">
+    <label for="s1">Your arithmetic</label>
+    <textarea id="s1" data-key="t04a-dot" placeholder="1. g · v̂ = (0)(0.8) + (-9.81)(0.6) = ..."></textarea>
+    <div class="saved" data-for="s1">Saved</div>
+  </div>
+
+  <details>
+    <summary>Check your arithmetic</summary>
+    <div class="body">
+      <p><strong>1.</strong> (0)(0.8) + (−9.81)(0.6) = <strong>−5.886</strong>. Negative, so gravity is <em>slowing you down</em> at 5.886 m/s every second. Note it isn't the full 9.81 — because you're not going straight up, only part of gravity opposes your motion. That number, −5.886, is the gravity loss rate, and you just computed it with two multiplications.</p>
+
+      <p><strong>2.</strong> <b>T</b> · <b>v̂</b> = (16)(0.8) + (12)(0.6) = 12.8 + 7.2 = <strong>20.0</strong>. The length of <b>T</b> is √(16² + 12²) = √400 = <strong>20.0</strong>. They're equal, which means <em>every bit</em> of that thrust is pushing along your direction of travel — the thrust is perfectly aligned. Nothing wasted.</p>
+      <p>If the projection had come out to 18 instead, you'd know 2 m/s² of your thrust was being spent turning rather than accelerating. <strong>That gap is the steering loss</strong>, and you now have a way to measure it.</p>
+
+      <p><strong>3.</strong> (−0.6)(0.8) + (0.8)(0.6) = −0.48 + 0.48 = <strong>0</strong>. Zero means <b>P</b> is exactly perpendicular to your motion. It is bending your path without changing your speed at all — it costs you nothing in the delta-v budget. <em>This is the single most important idea on the page:</em> perpendicular forces are free.</p>
+    </div>
+  </details>
+
+  <div class="qbox">
+    <span class="lbl">Why this is the whole trick</span>
+    <p>The usual textbook derivation says "resolve along the velocity vector" and then produces <i>F</i> cos α and <i>mg</i> sin γ out of thin air, expecting you to see which angle goes where and to remember that cos(90°−γ) = sin γ.</p>
+    <p>You don't have to. Write the vectors down, dot each one with <b>v̂</b>, and the cosines and sines appear on their own — as the <em>output</em> of arithmetic you can check, not as an identity you had to recall.</p>
+  </div>
+</section>
+
+<section id="draw">
+  <div class="shead"><span class="evt b">Your turn</span><h2>Draw the point mass</h2></div>
+  <p class="lede">Before you look at anything below: get a piece of paper. This is the exercise you said you wanted, and it works best if you commit to an answer first.</p>
+
+  <div class="task">
+    <div class="lbl">Draw it</div>
+    <p>Draw a rocket climbing at an angle — a dot for the vehicle is fine, that's what "point mass" means. Then mark <strong>every vector you care about</strong> and <strong>every angle you'd have to name</strong> to describe the situation.</p>
+    <p>Don't worry about getting them exactly right. The point is to find out which ones you didn't think of.</p>
+    <p>Two prompts if you're stuck: <em>what is pushing or pulling on this rocket?</em> and <em>what do I need to draw before I can say what "climbing at an angle" even means?</em></p>
+  </div>
+
+  <div class="scratch">
+    <label for="s2">List what you drew — vectors and angles</label>
+    <textarea id="s2" data-key="t04a-draw" placeholder="vectors:&#10;  1.&#10;  2.&#10;angles:&#10;  1."></textarea>
+    <div class="saved" data-for="s2">Saved</div>
+  </div>
+
+  <details>
+    <summary>Now compare — the full picture</summary>
+    <div class="body">
+      <figure style="border:1px solid var(--rule); background:#0E1425; padding:16px; margin:16px 0">
+        <svg viewBox="0 0 560 330" width="100%" role="img" aria-label="Free body diagram of a rocket as a point mass with thrust, gravity, drag, velocity, the local horizon and the angles gamma, alpha and pitch">
+          <!-- horizon -->
+          <line x1="40" y1="235" x2="530" y2="235" stroke="#26324F" stroke-dasharray="5 4"/>
+          <text x="44" y="251" fill="#5D6B8A" font-family="IBM Plex Mono" font-size="10">local horizon</text>
+          <!-- up -->
+          <line x1="150" y1="235" x2="150" y2="120" stroke="#26324F" stroke-dasharray="3 3"/>
+          <text x="156" y="128" fill="#5D6B8A" font-family="IBM Plex Mono" font-size="10">up (away from centre)</text>
+          <!-- velocity -->
+          <line x1="150" y1="235" x2="430" y2="130" stroke="#5FD3F3" stroke-width="2.4" marker-end="url(#ah-t)"/>
+          <text x="352" y="128" fill="#5FD3F3" font-family="IBM Plex Mono" font-size="11">v — velocity (surface)</text>
+          <!-- thrust -->
+          <line x1="150" y1="235" x2="316" y2="107" stroke="#FF6B35" stroke-width="2.4" marker-end="url(#ah-b)"/>
+          <text x="238" y="98" fill="#FF6B35" font-family="IBM Plex Mono" font-size="11">T — thrust (along the nose)</text>
+          <!-- gravity -->
+          <line x1="150" y1="235" x2="150" y2="310" stroke="#DDE5F4" stroke-width="2.4" marker-end="url(#ah-w)"/>
+          <text x="158" y="303" fill="#DDE5F4" font-family="IBM Plex Mono" font-size="11">mg — weight (toward centre)</text>
+          <!-- drag -->
+          <line x1="150" y1="235" x2="62" y2="268" stroke="#B48CF2" stroke-width="2.4" marker-end="url(#ah-v)"/>
+          <text x="34" y="286" fill="#B48CF2" font-family="IBM Plex Mono" font-size="11">D — drag (opposes v)</text>
+          <!-- angles -->
+          <path d="M 226 235 A 76 76 0 0 0 208 200" fill="none" stroke="#5FD3F3" stroke-width="1.2"/>
+          <text x="230" y="219" fill="#5FD3F3" font-family="IBM Plex Serif" font-size="14" font-style="italic">γ</text>
+          <path d="M 208 200 A 76 76 0 0 0 196 184" fill="none" stroke="#F5C462" stroke-width="1.2"/>
+          <text x="204" y="186" fill="#F5C462" font-family="IBM Plex Serif" font-size="14" font-style="italic">α</text>
+          <path d="M 150 155 A 80 80 0 0 0 196 184" fill="none" stroke="#8A99B8" stroke-width="1.2" stroke-dasharray="3 2"/>
+          <text x="156" y="176" fill="#8A99B8" font-family="IBM Plex Serif" font-size="13" font-style="italic">pitch</text>
+          <circle cx="150" cy="235" r="5" fill="#DDE5F4"/>
+          <defs>
+            <marker id="ah-t" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="#5FD3F3"/></marker>
+            <marker id="ah-b" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="#FF6B35"/></marker>
+            <marker id="ah-w" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="#DDE5F4"/></marker>
+            <marker id="ah-v" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="#B48CF2"/></marker>
+          </defs>
+        </svg>
+      </figure>
+
+      <div class="check">
+        <div class="crow"><span class="mk">✓</span><div><b>Velocity v</b><span>The direction you're actually moving. Everything else on this page is measured against it. Most people draw the rocket's <em>nose</em> and forget that where you point and where you go are different things.</span></div></div>
+        <div class="crow"><span class="mk">✓</span><div><b>Thrust T</b><span>Along the nose, not along the velocity. Its magnitude in kN, direction from <code>SHIP:FACING:VECTOR</code>.</span></div></div>
+        <div class="crow"><span class="mk">✓</span><div><b>Weight mg</b><span>Straight at the planet's centre. Always. It does not care which way you're pointing or moving.</span></div></div>
+        <div class="crow"><span class="mk">✓</span><div><b>Drag D</b><span>Directly <em>opposite</em> your velocity. This is why drag can only ever slow you down, never turn you.</span></div></div>
+        <div class="crow"><span class="mk">✓</span><div><b>The local horizon and "up"</b><span>Not forces — but you cannot define "climbing at an angle" without them. If you didn't draw these, you couldn't have labelled γ. Half of getting this right is drawing the reference lines.</span></div></div>
+        <div class="crow"><span class="mk">✓</span><div><b>γ — flight path angle</b><span>Between the horizon and your <em>velocity</em>. How steeply you are actually climbing.</span></div></div>
+        <div class="crow"><span class="mk">✓</span><div><b>α — angle of attack</b><span>Between your <em>velocity</em> and your <em>nose</em>. The gap between where you're going and where you're pointing.</span></div></div>
+        <div class="crow"><span class="mk">✓</span><div><b>pitch — commanded angle</b><span>Between the horizon and your <em>nose</em>. This is what <code>pitchAt()</code> returns. And here's the relationship worth writing on your hand: <strong>pitch = γ + α</strong>.</span></div></div>
+        <div class="crow"><span class="mk no">✗</span><div><b>Lift / normal aerodynamic force</b><span>Real, and perpendicular to the airflow. We're ignoring it: a symmetric rocket at small α makes very little, and what it makes acts perpendicular to v — which you proved in the last section costs zero delta-v. Honest simplification, not an oversight.</span></div></div>
+        <div class="crow"><span class="mk no">✗</span><div><b>"Centrifugal force"</b><span>If you drew this, erase it. It isn't a force — it's an artifact of choosing a rotating frame. There is nothing pushing you outward. Adding it here would double-count.</span></div></div>
+      </div>
+
+      <div class="note"><b>The one most people miss.</b> Three separate angles — γ, α, and pitch — where they expected one. Tutorial 02 had you write a pitch program, so it's natural to assume "pitch" describes the flight. It doesn't: <strong>pitch is what you command, γ is what you get, and α is the difference.</strong> Arc 3 is essentially four tutorials about driving α to zero.</div>
+    </div>
+  </details>
+</section>
+
+<section id="split">
+  <div class="shead"><span class="evt">Instrument</span><h2>Which forces change your speed?</h2></div>
+  <p class="lede">Drag the angles. Watch each force split into the part that changes your <em>speed</em> and the part that changes your <em>direction</em>. The dot product is doing the splitting.</p>
+
+  <div class="instr">
+    <div class="ihead"><span>Free-body split</span><span id="fbd-read" style="font-family:'IBM Plex Mono',monospace;letter-spacing:.04em;text-transform:none;color:var(--dim);font-weight:400;font-size:12px">—</span></div>
+    <div class="ibody">
+      <div class="inputs">
+        <div class="field"><label>γ — climb angle <u id="v-g">45°</u></label><input id="r-g" type="range" min="0" max="90" step="1" value="45"></div>
+        <div class="field"><label>α — nose off velocity <u id="v-a">0°</u></label><input id="r-a" type="range" min="-40" max="40" step="1" value="0"></div>
+        <div class="field"><label>Thrust accel <u id="v-t">14.7 m/s²</u></label><input id="r-t" type="range" min="0" max="25" step="0.1" value="14.7"></div>
+        <div class="field"><label>Drag accel <u id="v-d">1.5 m/s²</u></label><input id="r-d" type="range" min="0" max="8" step="0.1" value="1.5"></div>
+      </div>
+      <div class="plotwrap">
+        <svg id="fbd-svg" viewBox="0 0 480 330" width="100%" role="img" aria-label="Force vectors projected onto the velocity direction"></svg>
+        <div class="legend">
+          <span><i style="background:#5FD3F3"></i>velocity axis</span>
+          <span><i style="background:#FF6B35"></i>thrust</span>
+          <span><i style="background:#DDE5F4"></i>gravity</span>
+          <span><i style="background:#B48CF2"></i>drag</span>
+        </div>
+      </div>
+    </div>
+    <div class="readout">
+      <div class="ro"><span class="rk">Thrust along v &nbsp;<i style="color:var(--dim);font-style:normal">T·v̂</i></span><span class="rv" id="o-tv">—</span></div>
+      <div class="ro"><span class="rk">Gravity along v &nbsp;<i style="color:var(--dim);font-style:normal">g·v̂</i></span><span class="rv" id="o-gv">—</span></div>
+      <div class="ro"><span class="rk">Drag along v</span><span class="rv" id="o-dv">—</span></div>
+      <div class="ro"><span class="rk">Net dv/dt</span><span class="rv" id="o-net">—</span></div>
+      <div class="ro"><span class="rk">Thrust wasted turning</span><span class="rv" id="o-waste">—</span></div>
+      <div class="ro"><span class="rk">Gravity loss rate</span><span class="rv" id="o-gl">—</span></div>
+    </div>
+  </div>
+
+  <div class="task">
+    <div class="lbl">Use it to answer these</div>
+    <ol>
+      <li>Set α = 0. Now sweep γ from 0° to 90°. At which climb angle does gravity cost you <em>nothing</em>? At which does it cost the full 9.81 m/s²? Does that match the unit circle?</li>
+      <li>Set γ = 45°, α = 0, and note "thrust along v". Now set α = 20°. How much thrust did you lose? Now α = 40°. Did the loss double, or more than double?</li>
+      <li>Find a setting where "net dv/dt" is negative while the engine is at full thrust. What is physically happening to the rocket?</li>
+      <li>Set γ = 90° (straight up), α = 0. Gravity loss rate reads 9.81 — the maximum possible. Now set γ = 5°. What did the gravity loss rate become? <strong>This is the entire argument for the gravity turn</strong>, in one slider.</li>
+    </ol>
+  </div>
+
+  <div class="scratch">
+    <label for="s3">What you found</label>
+    <textarea id="s3" data-key="t04a-split" placeholder="1. gravity costs nothing at γ = ..."></textarea>
+    <div class="saved" data-for="s3">Saved</div>
+  </div>
+
+  <details>
+    <summary>What you should have seen</summary>
+    <div class="body">
+      <p><strong>1.</strong> Gravity costs nothing at <strong>γ = 0°</strong> — flying flat — and costs the full 9.81 at <strong>γ = 90°</strong>. That's sin 0° = 0 and sin 90° = 1, exactly the two unit-circle values from earlier. Flying horizontally, gravity is perpendicular to your motion, and perpendicular forces are free.</p>
+
+      <p><strong>2.</strong> At α = 20° you keep about 94% of your thrust — you lose roughly 0.9 m/s² out of 14.7. At α = 40° you keep about 77%, losing about 3.4 m/s². The loss <strong>more than doubled</strong> — it nearly quadrupled.</p>
+      <p>That's because cos α falls off quadratically for small angles: the loss goes roughly as α². Practically: <strong>small misalignments are nearly free, large ones are brutal.</strong> Being 5° off costs 0.4% of your thrust. Being 30° off costs 13%.</p>
+
+      <p><strong>3.</strong> Any setting where drag plus the gravity component exceeds the thrust along v. Easiest: γ = 90°, thrust accel below 9.81. The rocket is still climbing — still moving up — but it is <em>slowing down</em> while it does. A TWR below 1 pointed straight up. It's the "hover" case from the budget: burning propellant and going nowhere useful.</p>
+
+      <p><strong>4.</strong> At γ = 90° the gravity loss rate is <strong>9.81 m/s per second</strong>. At γ = 5° it's <strong>0.86</strong> — less than a tenth.</p>
+      <p>Turn that into propellant. Sixty seconds of vertical climb costs 589 m/s of delta-v you will never get back. Sixty seconds at 5° costs 51 m/s. Same minute, same engine, <strong>538 m/s difference</strong> — and on a rocket with 3400 m/s of budget, that is the difference between reaching orbit and not.</p>
+      <p>That's the whole reason a gravity turn exists. Not elegance — you cannot afford to point up.</p>
+    </div>
+  </details>
+</section>
+
+<section id="derive">
+  <div class="shead"><span class="evt b">Now apply it</span><h2>Build the equation</h2></div>
+  <p class="lede">Every tool is now on the page. This derivation is four steps and each one is arithmetic you've already practised.</p>
+
+  <p><strong>Are we in 2D?</strong> Yes, for the derivation. At any instant, your velocity and "up" define a plane, and every force we kept lies in it — so two components is enough. (The code you write at the end works in 3D unchanged, and never picks a coordinate system at all. More on that in the last section.)</p>
+
+  <p>Set up axes: <strong>x is horizontal</strong> (along the ground, in the direction you're heading) and <strong>y is up</strong>.</p>
+
+  <div class="task">
+    <div class="lbl">Step 1 — write the vectors</div>
+    <p>Using the unit-circle tool: a unit vector at angle θ above horizontal is (cos θ, sin θ). Write down, in components:</p>
+    <ol>
+      <li><b>v̂</b>, the unit vector along your velocity. It sits at angle γ above the horizon.</li>
+      <li><b>T</b>, the thrust. Its magnitude is <i>F</i> and it sits at angle <strong>γ + α</strong> above the horizon (remember: pitch = γ + α).</li>
+      <li><b>W</b>, the weight. Magnitude <i>mg</i>, pointing straight down.</li>
+      <li><b>D</b>, the drag. Magnitude <i>D</i>, pointing exactly opposite <b>v̂</b>. <em>Hint: "opposite" just means multiply by −1.</em></li>
+    </ol>
+  </div>
+
+  <div class="scratch">
+    <label for="s4">Step 1 — your vectors</label>
+    <textarea id="s4" data-key="t04a-step1" placeholder="v̂ = (cos γ, sin γ)&#10;T = ..."></textarea>
+    <div class="saved" data-for="s4">Saved</div>
+  </div>
+
+  <details>
+    <summary>Check step 1</summary>
+    <div class="body">
+      <div class="eq" style="font-size:18px">
+        <b>v̂</b> = ( cos γ , sin γ )<br><br>
+        <b>T</b> = <i>F</i> ( cos(γ+α) , sin(γ+α) )<br><br>
+        <b>W</b> = ( 0 , −<i>mg</i> )<br><br>
+        <b>D</b> = −<i>D</i> ( cos γ , sin γ )
+      </div>
+      <p>Weight has no horizontal part at all — that's what "straight down" means, and it's why its x-component is 0. Drag is just <b>v̂</b> scaled by −<i>D</i>: same line, opposite way, length <i>D</i>.</p>
+    </div>
+  </details>
+
+  <div class="task">
+    <div class="lbl">Step 2 — project each one onto v̂</div>
+    <p>Dot each vector with <b>v̂</b>. Multiply component by component, add. You did exactly this arithmetic in the toolbox.</p>
+    <p>Two of them are easy. For <b>T</b> · <b>v̂</b> you'll get <code>cos(γ+α)cos γ + sin(γ+α)sin γ</code> — which is ugly, and you are <em>not</em> expected to simplify it with an identity. Instead, look at the picture: <b>T</b> is a vector of length <i>F</i> sitting at angle α away from <b>v̂</b>. Ask what its component along <b>v̂</b> must be, using the unit circle directly.</p>
+  </div>
+
+  <div class="scratch">
+    <label for="s5">Step 2 — your three projections</label>
+    <textarea id="s5" data-key="t04a-step2" placeholder="W · v̂ = (0)(cos γ) + (-mg)(sin γ) = ..."></textarea>
+    <div class="saved" data-for="s5">Saved</div>
+  </div>
+
+  <details>
+    <summary>Check step 2</summary>
+    <div class="body">
+      <p><strong>Weight.</strong> Straight arithmetic:</p>
+      <div class="eq"><b>W</b> · <b>v̂</b> <span class="op">=</span> (0)(cos γ) <span class="op">+</span> (−<i>mg</i>)(sin γ) <span class="op">=</span> <span style="color:var(--burn)">−<i>mg</i> sin γ</span></div>
+      <p>There's the sin γ everyone expects you to pull from memory. You didn't — it fell out of multiplying by zero and adding.</p>
+
+      <p><strong>Drag.</strong> Even easier, since <b>D</b> is a multiple of <b>v̂</b> and <b>v̂</b>·<b>v̂</b> = 1 (it's a unit vector):</p>
+      <div class="eq"><b>D</b> · <b>v̂</b> <span class="op">=</span> −<i>D</i> (<b>v̂</b> · <b>v̂</b>) <span class="op">=</span> <span style="color:var(--burn)">−<i>D</i></span></div>
+      <p>All of drag opposes you. None of it is wasted sideways, because drag has no sideways.</p>
+
+      <p><strong>Thrust.</strong> Don't expand the trig. Use the picture: <b>T</b> has length <i>F</i> and sits α away from <b>v̂</b>. Rotate your head so <b>v̂</b> is the horizontal axis — now <b>T</b> is a vector of length <i>F</i> at angle α above "horizontal", so by the unit circle its component along that axis is <i>F</i> cos α.</p>
+      <div class="eq"><b>T</b> · <b>v̂</b> <span class="op">=</span> <span style="color:var(--burn)"><i>F</i> cos α</span></div>
+      <p><em>(If you did expand it, you'd get cos(γ+α)cos γ + sin(γ+α)sin γ, and the angle-difference identity collapses it to cos((γ+α)−γ) = cos α. Same answer. The point is you never needed to know that identity — turning your head was enough.)</em></p>
+
+      <p>And the piece that <em>doesn't</em> go along <b>v̂</b> is <i>F</i> sin α — the part bending your path. It never appears in the speed equation, which is exactly why it's free from the delta-v budget's point of view. It costs you elsewhere, in Tutorial 07.</p>
+    </div>
+  </details>
+
+  <div class="task">
+    <div class="lbl">Step 3 — assemble</div>
+    <p>Newton (tool 02): the sum of the along-<b>v̂</b> forces equals <i>m</i> times the rate of change of speed. Add your three projections, set them equal to <i>m</i>&nbsp;·&nbsp;<i>dv</i>/<i>dt</i>, then divide everything by <i>m</i>.</p>
+    <p>One substitution at the end: local gravity <i>g</i> = μ/<i>r</i>², and write the drag term as <i>D</i>/<i>m</i>. Both are numbers you can read from telemetry.</p>
+  </div>
+
+  <details>
+    <summary>Check step 3</summary>
+    <div class="body">
+      <div class="eq"><i>m</i> <span class="frac"><span class="num"><i>dv</i></span><span class="den"><i>dt</i></span></span> <span class="op">=</span> <i>F</i> <span class="fn">cos</span><i>α</i> <span class="op">−</span> <i>mg</i> <span class="fn">sin</span><i>γ</i> <span class="op">−</span> <i>D</i></div>
+      <p>Divide by <i>m</i> to get it in accelerations — which is what you can actually measure, and what the delta-v budget is denominated in:</p>
+      <div class="eq"><span class="frac"><span class="num"><i>dv</i></span><span class="den"><i>dt</i></span></span> <span class="op">=</span> <span class="frac"><span class="num"><i>F</i></span><span class="den"><i>m</i></span></span> <span class="fn">cos</span><i>α</i> <span class="op">−</span> <i>g</i> <span class="fn">sin</span><i>γ</i> <span class="op">−</span> <span class="frac"><span class="num"><i>D</i></span><span class="den"><i>m</i></span></span></div>
+      <p class="where">This is the whole physics of the page. Everything after it is bookkeeping.</p>
+      <p>Read it in English: <em>your speed changes at a rate given by the thrust you're actually using, minus what gravity takes because you're climbing, minus what the air takes.</em> That sentence is the equation.</p>
+      <p>It's also the equation the instrument above was computing the entire time — the "net dv/dt" readout is exactly this line.</p>
+    </div>
+  </details>
+</section>
+
+<section id="bill">
+  <div class="shead"><span class="evt b">Now apply it</span><h2>Turn the rate into a bill</h2></div>
+  <p class="lede">You have a rate of change of speed. You want a total, itemised by cause. Tools 03 and 04 do the rest — no new physics.</p>
+
+  <div class="task">
+    <div class="lbl">Step 4 — integrate, then split</div>
+    <ol>
+      <li>Integrate both sides of the step-3 equation from liftoff to now (tool 03). The left side becomes the total speed you've gained. Use tool 04 to break the right side into three separate integrals.</li>
+      <li>The first term ∫(<i>F</i>/<i>m</i>)cos α <i>dt</i> is annoying — the cos α is tangled up in it. Pull it apart with a pure algebra trick: <strong>cos α = 1 − (1 − cos α)</strong>. Substitute that in and split again.</li>
+      <li>You should now have ∫(<i>F</i>/<i>m</i>)<i>dt</i> standing alone. That's the delta-v your tanks gave you — call it Δ<i>v</i><sub>ideal</sub>. Rearrange so it's alone on the left.</li>
+      <li>Name each of the three remaining terms. What physical thing does each one measure?</li>
+    </ol>
+  </div>
+
+  <div class="scratch">
+    <label for="s6">Step 4 — your working</label>
+    <textarea id="s6" data-key="t04a-step4" placeholder="∫dv/dt dt = ..."></textarea>
+    <div class="saved" data-for="s6">Saved</div>
+  </div>
+
+  <details>
+    <summary>Check step 4</summary>
+    <div class="body">
+      <p><strong>1 — Integrate and split.</strong> The left side adds up all your speed changes, which is just the speed you ended up with:</p>
+      <div class="eq">Δ<i>v</i><sub>gained</sub> <span class="op">=</span> ∫<span class="frac"><span class="num"><i>F</i></span><span class="den"><i>m</i></span></span><span class="fn">cos</span><i>α</i> <i>dt</i> <span class="op">−</span> ∫<i>g</i><span class="fn">sin</span><i>γ</i> <i>dt</i> <span class="op">−</span> ∫<span class="frac"><span class="num"><i>D</i></span><span class="den"><i>m</i></span></span><i>dt</i></div>
+
+      <p><strong>2 — The algebra trick.</strong> Replace cos α with 1 − (1 − cos α). It's obviously true — the brackets cancel — but it separates "all the thrust" from "the bit you're wasting":</p>
+      <div class="eq">∫<span class="frac"><span class="num"><i>F</i></span><span class="den"><i>m</i></span></span><span class="fn">cos</span><i>α</i> <i>dt</i> <span class="op">=</span> ∫<span class="frac"><span class="num"><i>F</i></span><span class="den"><i>m</i></span></span><i>dt</i> <span class="op">−</span> ∫<span class="frac"><span class="num"><i>F</i></span><span class="den"><i>m</i></span></span>(1 <span class="op">−</span> <span class="fn">cos</span><i>α</i>)<i>dt</i></div>
+      <p>Check it's sane: if α = 0, cos α = 1, the second integral is zero and you keep all your thrust. If α = 90°, cos α = 0, the second integral cancels the first exactly and you get nothing. Both correct.</p>
+
+      <p><strong>3 — Rearrange.</strong> Move everything except ∫(<i>F</i>/<i>m</i>)<i>dt</i> to the other side:</p>
+      <div class="eq" style="border-left-color:var(--burn); font-size:21px">Δ<i>v</i><sub>ideal</sub> <span class="op">=</span> Δ<i>v</i><sub>gained</sub> <span class="op">+</span> <i>L</i><sub>grav</sub> <span class="op">+</span> <i>L</i><sub>drag</sub> <span class="op">+</span> <i>L</i><sub>steer</sub></div>
+
+      <p><strong>4 — The names.</strong></p>
+      <div class="check">
+        <div class="crow"><span class="mk" style="color:var(--trace)">Δv<sub>ideal</sub></span><div><b>∫ (F/m) dt</b><span>Everything the tanks gave you. This is what Tsiolkovsky in Tutorial 03 predicted. It's the total on the bill.</span></div></div>
+        <div class="crow"><span class="mk" style="color:var(--trace)">Δv<sub>gained</sub></span><div><b>your actual speed</b><span>What you have to show for it. The only line item that isn't a loss.</span></div></div>
+        <div class="crow"><span class="mk" style="color:var(--burn)">L<sub>grav</sub></span><div><b>∫ g sin γ dt</b><span>What gravity took because you were climbing. Zero if you fly flat, maximum if you fly straight up. The slider proved it.</span></div></div>
+        <div class="crow"><span class="mk" style="color:var(--violet)">L<sub>drag</sub></span><div><b>∫ (D/m) dt</b><span>What the air took. Small above 20 km, and the only term you cannot measure directly.</span></div></div>
+        <div class="crow"><span class="mk" style="color:var(--amber)">L<sub>steer</sub></span><div><b>∫ (F/m)(1 − cos α) dt</b><span>Thrust you spent pointing rather than accelerating. Never negative — you cannot gain speed by aiming away from where you're going.</span></div></div>
+      </div>
+
+      <p>Everything the tanks gave you is either speed you still have, or one of exactly three named ways you threw it away. Nothing is unaccounted for. That closure is what makes the number trustworthy — and it's what you'll check in code.</p>
+    </div>
+  </details>
+
+  <div class="qbox">
+    <span class="lbl">The sanity check that costs nothing</span>
+    <p>A rocket hovering at exactly TWR = 1 for 30 seconds — straight up, not moving, α = 0, no drag.</p>
+    <p>TWR = 1 means <i>F</i>/<i>m</i> = <i>g</i>, so Δ<i>v</i><sub>ideal</sub> = 9.81 × 30 = <strong>294 m/s</strong>. γ = 90° so sin γ = 1, and <i>L</i><sub>grav</sub> = 9.81 × 30 = <strong>294 m/s</strong>. The other three terms are all zero.</p>
+    <p><strong>294 = 0 + 294 + 0 + 0.</strong> It balances — and it says that thirty seconds of hovering costs 294 m/s and buys you nothing at all. Run this check on your own equation before you trust it.</p>
+  </div>
+</section>
+
+<section id="kos">
+  <div class="shead"><span class="evt v">In code</span><h2>All of it, with no trig functions</h2></div>
+  <p class="lede">Here's the payoff for building the derivation on the dot product. The kOS version needs no <code>SIN</code>, no <code>COS</code>, no <code>ARCSIN</code>, and no guarding against divide-by-zero in the angle math.</p>
+
+  <p>Look back at what you actually need: <strong>sin γ</strong> and <strong>cos α</strong>. Both are projections, and you have a projection operator.</p>
+
+  <div class="eq" style="font-size:18px">
+    sin γ &nbsp;=&nbsp; how much of <b>v̂</b> points <em>up</em> &nbsp;=&nbsp; <b>v̂</b> · <b>û</b><br><br>
+    cos α &nbsp;=&nbsp; how much of the <em>nose</em> points along <b>v̂</b> &nbsp;=&nbsp; <b>n̂</b> · <b>v̂</b>
+  </div>
+  <p class="where">Both are dot products of two unit vectors. kOS hands you all three vectors directly.</p>
+
+  <div class="code">
+    <div class="bar"><span class="name">the whole thing</span><button class="copy">Copy</button></div>
+<pre><span class="k">FUNCTION</span> accumulate {
+  <span class="k">LOCAL</span> now <span class="k">IS</span> <span class="n">TIME</span>:SECONDS.
+  <span class="k">LOCAL</span> dt  <span class="k">IS</span> now - lastTick.
+  <span class="k">SET</span> lastTick <span class="k">TO</span> now.
+  <span class="k">IF</span> dt <= <span class="n">0</span> { <span class="k">RETURN</span>. }
+
+  <span class="k">LOCAL</span> vel <span class="k">IS</span> <span class="n">SHIP</span>:VELOCITY:SURFACE.
+  <span class="k">LOCAL</span> spd <span class="k">IS</span> vel:MAG.
+
+  <span class="c">// On the pad the velocity vector has no direction to speak of.</span>
+  <span class="c">// We're pointed up and going nowhere: sin(90) = 1, cos(0) = 1.</span>
+  <span class="k">LOCAL</span> sinGamma <span class="k">IS</span> <span class="n">1</span>.
+  <span class="k">LOCAL</span> cosAlpha <span class="k">IS</span> <span class="n">1</span>.
+  <span class="k">IF</span> spd > <span class="n">1</span> {
+    <span class="k">LOCAL</span> vhat <span class="k">IS</span> vel:NORMALIZED.
+    <span class="k">SET</span> sinGamma <span class="k">TO</span> <span class="k">VDOT</span>(vhat, <span class="n">SHIP</span>:UP:VECTOR).
+    <span class="k">SET</span> cosAlpha <span class="k">TO</span> <span class="k">VDOT</span>(<span class="n">SHIP</span>:FACING:VECTOR, vhat).
+  }
+
+  <span class="c">// kN / t is m/s^2 exactly — no conversion factor.</span>
+  <span class="k">LOCAL</span> aT <span class="k">IS</span> actualThrust() / <span class="n">SHIP</span>:MASS.
+  <span class="k">LOCAL</span> r  <span class="k">IS</span> <span class="n">SHIP</span>:BODY:RADIUS + <span class="n">SHIP</span>:ALTITUDE.
+  <span class="k">LOCAL</span> g  <span class="k">IS</span> <span class="n">SHIP</span>:BODY:MU / (r * r).
+
+  <span class="k">SET</span> dvIdeal   <span class="k">TO</span> dvIdeal   + aT * dt.
+  <span class="k">SET</span> lossGrav  <span class="k">TO</span> lossGrav  + g * sinGamma * dt.
+  <span class="k">SET</span> lossSteer <span class="k">TO</span> lossSteer + aT * (<span class="n">1</span> - cosAlpha) * dt.
+}</pre>
+  </div>
+
+  <p>Six lines of physics. Each one is a term you derived, in the same order you derived it.</p>
+
+  <div class="note"><b>Compare against the scalar version.</b> Doing this with trig means <code>ARCSIN(MIN(MAX(SHIP:VERTICALSPEED / spd, -1), 1))</code> — where the <code>MIN</code>/<code>MAX</code> exist only to stop floating-point noise pushing the ratio past 1.0 and making <code>ARCSIN</code> return an error. Then you'd take <code>SIN</code> of it to get back the number you already had. <strong>The vector form skips the round trip entirely:</strong> <code>VDOT</code> of two unit vectors <em>is</em> the cosine, already clamped by construction.</div>
+
+  <div class="warnbox">
+    <span class="lbl">Only convert to angles for the log file</span>
+    Your CSV wants γ and α in degrees, because you're going to plot them. That's the one place the trig belongs: <code>ROUND(ARCSIN(sinGamma), 2)</code> and <code>ROUND(VANG(SHIP:FACING:VECTOR, vel), 2)</code>. Compute in vectors, display in degrees, and never feed a displayed angle back into the math.
+  </div>
+
+  <h3>Getting a compass heading, since you asked</h3>
+  <p>You don't need this for the budget — that's the point of the last two sections — but you will want it in Arc 5, and it's the other thing <code>VXCL</code> is for. <code>VXCL(k, v)</code> means "v with everything along k removed", which flattens a vector into the horizontal plane:</p>
+
+  <div class="code">
+    <div class="bar"><span class="name">heading &amp; pitch from any direction vector</span><button class="copy">Copy</button></div>
+<pre><span class="c">// Pitch above the horizon, degrees. VANG is measured from</span>
+<span class="c">// "up", so subtract from 90 to measure from the horizon.</span>
+<span class="k">FUNCTION</span> pitchOf {
+  <span class="k">DECLARE PARAMETER</span> dir.
+  <span class="k">RETURN</span> <span class="n">90</span> - <span class="k">VANG</span>(dir, <span class="n">SHIP</span>:UP:VECTOR).
+}
+
+<span class="c">// Compass heading, 0-360. Flatten both vectors into the</span>
+<span class="c">// local horizontal plane, then measure against north.</span>
+<span class="k">FUNCTION</span> headingOf {
+  <span class="k">DECLARE PARAMETER</span> dir.
+  <span class="k">LOCAL</span> up    <span class="k">IS</span> <span class="n">SHIP</span>:UP:VECTOR.
+  <span class="k">LOCAL</span> north <span class="k">IS</span> <span class="k">VXCL</span>(up, <span class="n">SHIP</span>:NORTH:VECTOR):NORMALIZED.
+  <span class="k">LOCAL</span> flat  <span class="k">IS</span> <span class="k">VXCL</span>(up, dir).
+  <span class="k">IF</span> flat:MAG < <span class="n">0.001</span> { <span class="k">RETURN</span> <span class="n">0</span>. }   <span class="c">// pointing straight up: no heading</span>
+  <span class="k">LOCAL</span> hdg <span class="k">IS</span> <span class="k">VANG</span>(north, flat:NORMALIZED).
+  <span class="c">// VANG only returns 0-180, so decide which side of north we're on.</span>
+  <span class="k">IF</span> <span class="k">VDOT</span>(flat, <span class="k">VCRS</span>(up, north)) < <span class="n">0</span> { <span class="k">SET</span> hdg <span class="k">TO</span> <span class="n">360</span> - hdg. }
+  <span class="k">RETURN</span> hdg.
+}</pre>
+  </div>
+
+  <div class="warnbox">
+    <span class="lbl">Verify the sign on your first run</span>
+    kOS uses a <strong>left-handed</strong> coordinate system, which means cross products point the opposite way from the right-hand rule you may have been taught. The <code>VCRS(up, north)</code> line above is meant to give "east" — check it once by sitting on the pad and pointing at a known heading. If <code>headingOf(SHIP:FACING:VECTOR)</code> reads 270 when you're facing east, swap the arguments to <code>VCRS</code>. Do this once, write down which way it went, and never think about it again.
+  </div>
+</section>
+
+<section id="linalg">
+  <div class="shead"><span class="evt v">Your question</span><h2>Is linear algebra worth it here?</h2></div>
+  <p class="lede">You asked whether linear algebra helps with any of this, or whether it makes working with kOS worse. Short answer: it is the single biggest quality-of-life improvement available to you, and this page is the evidence.</p>
+
+  <h3>It replaces the trig you don't remember</h3>
+  <p>The scalar derivation needs you to know that the along-track component of gravity is −<i>mg</i> sin γ. Where does the sin come from? From a co-function identity most people last used in school. The vector derivation gets the same answer from <code>(0)(cos γ) + (−mg)(sin γ)</code> — two multiplications and an addition, and the sin γ is the <em>output</em>, not a prerequisite.</p>
+  <p>That pattern holds for the rest of the series. <strong>Every place a textbook produces a mystery sine or cosine, a dot product produces it mechanically.</strong></p>
+
+  <h3>It's dimension-free, so the 2D/3D question stops mattering</h3>
+  <p>The derivation was 2D because pictures are easier in 2D. But <code>VDOT(vhat, SHIP:UP:VECTOR)</code> never asked how many dimensions it was working in, and never asked you to choose axes. The same line is correct for a launch due east, a polar launch, and a dogleg — all of which genuinely need 3D, and all of which would need a new scalar derivation each.</p>
+  <p>This matters concretely in Arc 5. "What's the angle between my orbital plane and the target's?" has no clean scalar form at all. As vectors it's one cross product and one <code>VANG</code>.</p>
+
+  <h3>It's what kOS is built out of</h3>
+  <p><code>LOCK STEERING TO</code> takes a direction. <code>SHIP:FACING</code>, <code>SHIP:UP</code>, <code>SHIP:NORTH</code>, <code>SHIP:VELOCITY</code>, and every position in the API are vectors. Working in angles means converting <em>out</em> of the representation the API gives you, doing scalar work, and converting back — two lossy steps that are also where the divide-by-zero and domain errors live.</p>
+
+  <h3>What you actually need to know</h3>
+  <p>Not much, and you now have all of it:</p>
+  <ul>
+    <li><strong>Add and scale vectors</strong> — component-wise. Tool 01 and 02.</li>
+    <li><strong>The dot product</strong> — "how much of A points along B". This page.</li>
+    <li><strong>The cross product</strong> — "give me a vector perpendicular to both of these". You need it in Arc 5 for orbital planes and nowhere before.</li>
+    <li><strong>Normalising</strong> — throw away length, keep direction.</li>
+  </ul>
+  <p>That's four ideas. There is no matrix anywhere in this series, no eigenvalue, no basis change, and no determinant. "Linear algebra" here means vector arithmetic, and the ceiling is genuinely this low.</p>
+
+  <div class="qbox">
+    <span class="lbl">Where it would make things worse</span>
+    <p>Two places, for honesty. <strong>Reading a log</strong> — a CSV column of unit vectors is unplottable, so convert to degrees on the way out. And <strong>talking to other people</strong> — every KSP tutorial and wiki page is written in angles, so you'll need to translate to compare notes.</p>
+    <p>Both are display concerns, not math concerns. The rule that falls out: <em>compute in vectors, display in angles, never round-trip.</em></p>
+  </div>
+</section>
+
+<footer>
+  <p>This section replaces "Where the delta-v actually goes" in <strong>Tutorial 04</strong>. The rest of that tutorial — sampling rates, the CSV schema, the accumulator traps, and the residual — is unchanged, and the <code>accumulate()</code> above drops straight into <code>launch4.ks</code>.</p>
+  <div class="nav"><span>Arc 2 · Measure it</span><b>04a</b></div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var D2R = Math.PI/180;
+
+  document.querySelectorAll(".code").forEach(function(box){
+    var btn=box.querySelector("button.copy"), pre=box.querySelector("pre");
+    if(!btn||!pre) return;
+    btn.addEventListener("click", function(){
+      var text=pre.innerText;
+      var done=function(){
+        btn.textContent="Copied"; btn.classList.add("done");
+        setTimeout(function(){ btn.textContent="Copy"; btn.classList.remove("done"); },1400);
+      };
+      if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(done,fb); }
+      else fb();
+      function fb(){
+        var ta=document.createElement("textarea");
+        ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
+        document.body.appendChild(ta); ta.select();
+        try{ document.execCommand("copy"); done(); }catch(e){ btn.textContent="Select manually"; }
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  function el(tag,attrs,text){
+    var e=document.createElementNS("http://www.w3.org/2000/svg",tag);
+    for(var a in attrs) e.setAttribute(a,attrs[a]);
+    if(text!=null) e.textContent=text;
+    return e;
+  }
+  function clear(s){ while(s.firstChild) s.removeChild(s.firstChild); }
+  function arrow(svg,x1,y1,x2,y2,color,w,id){
+    svg.appendChild(el("line",{x1:x1.toFixed(1),y1:y1.toFixed(1),x2:x2.toFixed(1),y2:y2.toFixed(1),
+      stroke:color,"stroke-width":w||2.2,"marker-end":"url(#"+id+")"}));
+  }
+  function defs(svg,list){
+    var d=el("defs");
+    list.forEach(function(c){
+      var m=el("marker",{id:c[0],markerWidth:"9",markerHeight:"9",refX:"8",refY:"4.5",orient:"auto"});
+      m.appendChild(el("path",{d:"M0 0 L9 4.5 L0 9 z",fill:c[1]}));
+      d.appendChild(m);
+    });
+    svg.appendChild(d);
+  }
+
+  /* ================= unit circle ================= */
+  var ucS=document.getElementById("uc-svg"), ucR=document.getElementById("r-uc");
+  function drawUC(){
+    var th=+ucR.value;
+    document.getElementById("v-uc").textContent=th+"°";
+    clear(ucS);
+    defs(ucS,[["uc-b","#5FD3F3"],["uc-a","#F5C462"],["uc-g","#7DDC8F"]]);
+    var Ox=150, Oy=140, R=95;
+    var c=Math.cos(th*D2R), s=Math.sin(th*D2R);
+    var Px=Ox+c*R, Py=Oy-s*R;
+
+    ucS.appendChild(el("circle",{cx:Ox,cy:Oy,r:R,fill:"none",stroke:"#26324F"}));
+    ucS.appendChild(el("line",{x1:Ox-R-16,y1:Oy,x2:Ox+R+16,y2:Oy,stroke:"#1B2440"}));
+    ucS.appendChild(el("line",{x1:Ox,y1:Oy-R-16,x2:Ox,y2:Oy+R+16,stroke:"#1B2440"}));
+
+    /* components */
+    ucS.appendChild(el("line",{x1:Px,y1:Py,x2:Px,y2:Oy,stroke:"#5D6B8A","stroke-dasharray":"3 3"}));
+    ucS.appendChild(el("line",{x1:Px,y1:Py,x2:Ox,y2:Py,stroke:"#5D6B8A","stroke-dasharray":"3 3"}));
+    arrow(ucS,Ox,Oy,Px,Oy,"#F5C462",2.6,"uc-a");
+    arrow(ucS,Ox,Oy,Ox,Py,"#7DDC8F",2.6,"uc-g");
+    arrow(ucS,Ox,Oy,Px,Py,"#5FD3F3",2.6,"uc-b");
+    ucS.appendChild(el("circle",{cx:Px.toFixed(1),cy:Py.toFixed(1),r:3.6,fill:"#5FD3F3"}));
+
+    /* angle arc */
+    var ar=34, sweep = th>=0?0:1;
+    ucS.appendChild(el("path",{d:"M "+(Ox+ar)+" "+Oy+" A "+ar+" "+ar+" 0 0 "+sweep+" "+
+      (Ox+Math.cos(th*D2R)*ar).toFixed(1)+" "+(Oy-Math.sin(th*D2R)*ar).toFixed(1),
+      fill:"none",stroke:"#8A99B8","stroke-width":"1.2"}));
+    ucS.appendChild(el("text",{x:Ox+ar+8,y:Oy-ar*0.35,fill:"#8A99B8","font-family":"IBM Plex Serif",
+      "font-size":"14","font-style":"italic"},"θ"));
+
+    /* value panel */
+    var bx=300;
+    ucS.appendChild(el("text",{x:bx,y:76,fill:"#5D6B8A","font-family":"IBM Plex Mono","font-size":"10"},"components"));
+    ucS.appendChild(el("text",{x:bx,y:100,fill:"#F5C462","font-family":"IBM Plex Mono","font-size":"14"},
+      "cos θ = "+c.toFixed(3)));
+    ucS.appendChild(el("text",{x:bx,y:124,fill:"#7DDC8F","font-family":"IBM Plex Mono","font-size":"14"},
+      "sin θ = "+s.toFixed(3)));
+    ucS.appendChild(el("text",{x:bx,y:158,fill:"#5D6B8A","font-family":"IBM Plex Mono","font-size":"10"},"so the vector is"));
+    ucS.appendChild(el("text",{x:bx,y:180,fill:"#5FD3F3","font-family":"IBM Plex Mono","font-size":"13"},
+      "("+c.toFixed(2)+", "+s.toFixed(2)+")"));
+    ucS.appendChild(el("text",{x:bx,y:212,fill:"#5D6B8A","font-family":"IBM Plex Mono","font-size":"10"},
+      "length = "+Math.sqrt(c*c+s*s).toFixed(3)));
+
+    ucS.appendChild(el("text",{x:Ox+R*0.5,y:Oy+18,fill:"#F5C462","font-family":"IBM Plex Mono",
+      "font-size":"10","text-anchor":"middle"},"across"));
+    ucS.appendChild(el("text",{x:Ox-12,y:Oy-R*0.55,fill:"#7DDC8F","font-family":"IBM Plex Mono",
+      "font-size":"10","text-anchor":"end"},"up"));
+
+    document.getElementById("uc-read").textContent =
+      "at θ = "+th+"°  →  ("+c.toFixed(3)+", "+s.toFixed(3)+")";
+  }
+  ucR.addEventListener("input",drawUC);
+  drawUC();
+
+  /* ================= free-body split ================= */
+  var F={g:document.getElementById("r-g"),a:document.getElementById("r-a"),
+         t:document.getElementById("r-t"),d:document.getElementById("r-d")};
+  var fS=document.getElementById("fbd-svg");
+
+  function drawFBD(){
+    var gam=+F.g.value, alp=+F.a.value, aT=+F.t.value, aD=+F.d.value;
+    document.getElementById("v-g").textContent=gam+"°";
+    document.getElementById("v-a").textContent=alp+"°";
+    document.getElementById("v-t").textContent=aT.toFixed(1)+" m/s²";
+    document.getElementById("v-d").textContent=aD.toFixed(1)+" m/s²";
+
+    var G=9.81, S=5.4;               /* px per m/s^2 */
+    var Ox=120, Oy=232;
+    var cg=Math.cos(gam*D2R), sg=Math.sin(gam*D2R);
+    var th=(gam+alp)*D2R;
+
+    /* projections onto v-hat, computed exactly as the page derives them */
+    var tv = aT*Math.cos(alp*D2R);   /* T · v̂ */
+    var gv = -G*sg;                  /* g · v̂ */
+    var dv = -aD;                    /* D · v̂ */
+    var net = tv+gv+dv;
+    var waste = aT*(1-Math.cos(alp*D2R));
+
+    clear(fS);
+    defs(fS,[["f-v","#5FD3F3"],["f-t","#FF6B35"],["f-g","#DDE5F4"],["f-d","#B48CF2"]]);
+
+    /* horizon + up */
+    fS.appendChild(el("line",{x1:40,y1:Oy,x2:452,y2:Oy,stroke:"#26324F","stroke-dasharray":"5 4"}));
+    fS.appendChild(el("text",{x:42,y:Oy+16,fill:"#5D6B8A","font-family":"IBM Plex Mono","font-size":"9"},"horizon"));
+    fS.appendChild(el("line",{x1:Ox,y1:Oy,x2:Ox,y2:Oy-118,stroke:"#1B2440","stroke-dasharray":"3 3"}));
+
+    /* velocity axis (long dashed ray) + arrow */
+    var AX=250;
+    fS.appendChild(el("line",{x1:Ox,y1:Oy,x2:(Ox+cg*AX).toFixed(1),y2:(Oy-sg*AX).toFixed(1),
+      stroke:"#2C4C63","stroke-dasharray":"4 4"}));
+    arrow(fS,Ox,Oy,Ox+cg*104,Oy-sg*104,"#5FD3F3",2.6,"f-v");
+    fS.appendChild(el("text",{x:(Ox+cg*116).toFixed(1),y:(Oy-sg*116).toFixed(1),
+      fill:"#5FD3F3","font-family":"IBM Plex Mono","font-size":"11"},"v"));
+
+    /* force vectors */
+    var Tx=Ox+Math.cos(th)*aT*S, Ty=Oy-Math.sin(th)*aT*S;
+    if(aT>0.05){ arrow(fS,Ox,Oy,Tx,Ty,"#FF6B35",2.6,"f-t");
+      fS.appendChild(el("text",{x:(Tx+6).toFixed(1),y:(Ty-5).toFixed(1),fill:"#FF6B35",
+        "font-family":"IBM Plex Mono","font-size":"11"},"T")); }
+    var Gx=Ox, Gy=Oy+G*S;
+    arrow(fS,Ox,Oy,Gx,Gy,"#DDE5F4",2.6,"f-g");
+    fS.appendChild(el("text",{x:Gx+7,y:Gy-3,fill:"#DDE5F4","font-family":"IBM Plex Mono","font-size":"11"},"g"));
+    if(aD>0.05){
+      var Dx=Ox-cg*aD*S, Dy=Oy+sg*aD*S;
+      arrow(fS,Ox,Oy,Dx,Dy,"#B48CF2",2.6,"f-d");
+      fS.appendChild(el("text",{x:(Dx-16).toFixed(1),y:(Dy+13).toFixed(1),fill:"#B48CF2",
+        "font-family":"IBM Plex Mono","font-size":"11"},"D"));
+    }
+
+    /* dashed perpendicular from each tip down to the velocity axis */
+    function proj(px,py,color){
+      var dx=px-Ox, dy=-(py-Oy);
+      var t=dx*cg+dy*sg;                       /* the dot product, in px */
+      var fx=Ox+cg*t, fy=Oy-sg*t;
+      fS.appendChild(el("line",{x1:px.toFixed(1),y1:py.toFixed(1),x2:fx.toFixed(1),y2:fy.toFixed(1),
+        stroke:color,"stroke-width":"1","stroke-dasharray":"2 3",opacity:".75"}));
+      fS.appendChild(el("circle",{cx:fx.toFixed(1),cy:fy.toFixed(1),r:3,fill:color}));
+    }
+    if(aT>0.05) proj(Tx,Ty,"#FF6B35");
+    proj(Gx,Gy,"#DDE5F4");
+    if(aD>0.05) proj(Ox-cg*aD*S,Oy+sg*aD*S,"#B48CF2");
+
+    fS.appendChild(el("circle",{cx:Ox,cy:Oy,r:4.5,fill:"#DDE5F4"}));
+
+    /* along-track bar */
+    var by=296, bx0=44, bw=392, half=bw/2, mid=bx0+half;
+    var scale=half/28;
+    fS.appendChild(el("line",{x1:bx0,y1:by,x2:bx0+bw,y2:by,stroke:"#1B2440"}));
+    fS.appendChild(el("line",{x1:mid,y1:by-16,x2:mid,y2:by+8,stroke:"#26324F"}));
+    fS.appendChild(el("text",{x:mid,y:by+21,fill:"#5D6B8A","font-family":"IBM Plex Mono",
+      "font-size":"8.5","text-anchor":"middle"},"0"));
+    fS.appendChild(el("text",{x:bx0,y:by-20,fill:"#5D6B8A","font-family":"IBM Plex Mono",
+      "font-size":"9"},"along v  (m/s²)"));
+    var stackR=mid, stackL=mid;
+    [[tv,"#FF6B35"],[gv,"#DDE5F4"],[dv,"#B48CF2"]].forEach(function(p){
+      var w=Math.abs(p[0])*scale;
+      if(w<0.5) return;
+      var x = p[0]>=0 ? stackR : stackL-w;
+      fS.appendChild(el("rect",{x:x.toFixed(1),y:by-13,width:w.toFixed(1),height:12,fill:p[1],opacity:".85"}));
+      if(p[0]>=0) stackR+=w; else stackL-=w;
+    });
+    var nx=mid+net*scale;
+    fS.appendChild(el("line",{x1:nx.toFixed(1),y1:by-19,x2:nx.toFixed(1),y2:by+5,
+      stroke:net>=0?"#7DDC8F":"#FF6B35","stroke-width":"2"}));
+    fS.appendChild(el("text",{x:nx.toFixed(1),y:by+21,fill:net>=0?"#7DDC8F":"#FF6B35",
+      "font-family":"IBM Plex Mono","font-size":"9","text-anchor":"middle"},"net "+net.toFixed(1)));
+
+    function set(id,v,unit,cls){
+      var e=document.getElementById(id);
+      e.innerHTML=v+(unit?"<u>"+unit+"</u>":"");
+      e.className="rv"+(cls?" "+cls:"");
+    }
+    set("o-tv",tv.toFixed(2),"m/s²");
+    set("o-gv",gv.toFixed(2),"m/s²");
+    set("o-dv",dv.toFixed(2),"m/s²");
+    set("o-net",net.toFixed(2),"m/s²",net>=0?"ok":"warn");
+    set("o-waste",waste.toFixed(2),"m/s²",waste>0.5?"warn":"");
+    set("o-gl",(G*sg).toFixed(2),"m/s² lost",G*sg>5?"warn":"");
+    document.getElementById("fbd-read").textContent =
+      "cos α = "+Math.cos(alp*D2R).toFixed(3)+"   ·   sin γ = "+sg.toFixed(3)+
+      "   ·   pitch = "+(gam+alp)+"°";
+  }
+  ["g","a","t","d"].forEach(function(k){ F[k].addEventListener("input",drawFBD); });
+  drawFBD();
+
+  /* ================= scratch pads ================= */
+  document.querySelectorAll("textarea[data-key]").forEach(function(ta){
+    var key="kos:"+ta.dataset.key;
+    var flag=document.querySelector('.saved[data-for="'+ta.id+'"]');
+    var hasHost=!!(window.storage&&window.storage.get&&window.storage.set);
+    function lset(v){ try{ window.localStorage.setItem(key,v); }catch(e){} }
+    function local(){ try{ var v=window.localStorage.getItem(key); if(v!=null&&!ta.value) ta.value=v; }catch(e){} }
+    if(hasHost){ window.storage.get(key).then(function(r){ if(r&&r.value) ta.value=r.value; }).catch(local); }
+    else local();
+    var timer=null;
+    ta.addEventListener("input",function(){
+      clearTimeout(timer);
+      timer=setTimeout(function(){
+        var ok=function(){ if(flag){ flag.classList.add("on"); setTimeout(function(){flag.classList.remove("on");},1200);} };
+        if(hasHost){ window.storage.set(key,ta.value).then(ok).catch(function(){ lset(ta.value); ok(); }); }
+        else { lset(ta.value); ok(); }
+      },600);
+    });
+  });
+
+  /* ================= rail ================= */
+  var ticks=Array.prototype.slice.call(document.querySelectorAll(".tick"));
+  var secs=ticks.map(function(t){ return document.querySelector(t.getAttribute("href")); });
+  var marker=document.getElementById("marker"), topbar=document.getElementById("topbar");
+  function place(i){
+    ticks.forEach(function(t,j){ t.classList.toggle("on",j===i); });
+    if(marker&&ticks[i]){
+      var rr=ticks[0].parentNode.getBoundingClientRect(), r=ticks[i].getBoundingClientRect();
+      marker.style.top=(r.top-rr.top+r.height/2-7.5)+"px";
+    }
+  }
+  function onScroll(){
+    var y=window.scrollY+window.innerHeight*0.32, best=0;
+    secs.forEach(function(s,i){ if(s&&s.offsetTop<=y) best=i; });
+    place(best);
+    if(topbar){
+      var max=document.body.scrollHeight-window.innerHeight;
+      topbar.style.width=(max>0?(window.scrollY/max*100):0)+"%";
+    }
+  }
+  window.addEventListener("scroll",onScroll,{passive:true});
+  window.addEventListener("resize",onScroll);
+  onScroll();
+})();
+</script>
+</body>
+</html>

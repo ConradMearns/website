@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kOS 01 · Cooked Control &amp; the Flight Loop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;1,400;1,500&family=Saira+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --vac:#0B1020; --panel:#141B2E; --panel2:#1B2440; --rule:#26324F;
+  --ink:#DDE5F4; --dim:#8A99B8; --burn:#FF6B35; --trace:#5FD3F3; --go:#7DDC8F;
+  --rail:150px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--vac); color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,sans-serif; font-size:16.5px; line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:radial-gradient(1100px 700px at 78% -8%, rgba(255,107,53,.09), transparent 60%),
+             radial-gradient(900px 800px at 0% 100%, rgba(95,211,243,.055), transparent 62%);
+}
+.wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:0 22px 120px}
+
+/* ---------- altitude tape rail ---------- */
+.rail{
+  position:fixed; left:max(18px, calc(50vw - 590px + 4px)); top:0; height:100vh; width:var(--rail);
+  display:none; flex-direction:column; justify-content:center; gap:0; z-index:5; pointer-events:none;
+}
+.rail .spine{position:absolute; left:11px; top:14%; bottom:14%; width:1px; background:linear-gradient(180deg,transparent,var(--rule) 12%,var(--rule) 88%,transparent)}
+.rail .marker{
+  position:absolute; left:4px; width:15px; height:15px; border:1px solid var(--burn);
+  background:var(--vac); transform:rotate(45deg) translateY(0); transition:top .25s cubic-bezier(.4,0,.2,1);
+}
+.rail .marker::after{content:""; position:absolute; inset:3px; background:var(--burn)}
+.tick{
+  position:relative; padding:11px 0 11px 30px; pointer-events:auto; display:block;
+  text-decoration:none; color:var(--dim); font-family:"Saira Condensed",sans-serif;
+  font-size:12px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; line-height:1.25;
+}
+.tick::before{content:""; position:absolute; left:6px; top:calc(50% - 1px); width:11px; height:1px; background:var(--rule)}
+.tick:hover{color:var(--ink)}
+.tick.on{color:var(--burn)}
+.tick.on::before{background:var(--burn); width:15px; left:4px}
+.tick .alt{display:block; font-size:10.5px; color:#5D6B8A; letter-spacing:.1em}
+@media(min-width:1040px){ .rail{display:flex} .wrap{padding-left:calc(var(--rail) + 40px)} }
+.topbar{position:fixed; top:0; left:0; height:2px; background:var(--burn); width:0; z-index:9}
+@media(min-width:1040px){ .topbar{display:none} }
+
+/* ---------- masthead ---------- */
+header.mast{padding:74px 0 30px; border-bottom:1px solid var(--rule)}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace; font-size:11.5px; letter-spacing:.24em;
+  text-transform:uppercase; color:var(--burn); margin:0 0 16px;
+}
+.eyebrow span{color:var(--dim)}
+h1{
+  font-family:"Saira Condensed",sans-serif; font-weight:700; font-size:clamp(40px,7.5vw,74px);
+  line-height:.94; letter-spacing:-.005em; text-transform:uppercase; margin:0 0 18px; max-width:15ch;
+}
+h1 em{font-style:normal; color:var(--burn)}
+.objective{font-size:18.5px; color:var(--dim); max-width:60ch; margin:0}
+.objective strong{color:var(--ink); font-weight:500}
+.mastgrid{display:grid; gap:36px; grid-template-columns:1fr; align-items:end}
+@media(min-width:820px){ .mastgrid{grid-template-columns:1.35fr .8fr} }
+.profile{border:1px solid var(--rule); background:var(--panel); padding:14px}
+.profile figcaption{
+  font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--dim); margin-top:9px;
+}
+
+/* ---------- sections ---------- */
+section{padding:58px 0; border-bottom:1px solid var(--rule)}
+.shead{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:8px}
+.evt{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--vac); background:var(--trace); padding:3px 8px 2px; white-space:nowrap;
+}
+.evt.b{background:var(--burn)}
+.evt.g{background:var(--go)}
+h2{
+  font-family:"Saira Condensed",sans-serif; font-weight:600; font-size:clamp(27px,4vw,38px);
+  text-transform:uppercase; letter-spacing:.01em; margin:0; line-height:1.05;
+}
+h3{
+  font-family:"Saira Condensed",sans-serif; font-weight:600; font-size:20px; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--trace); margin:36px 0 12px;
+}
+p{max-width:70ch}
+.lede{color:var(--dim); max-width:68ch; margin:14px 0 0; font-size:17px}
+strong{font-weight:600}
+code{
+  font-family:"IBM Plex Mono",monospace; font-size:.885em; background:var(--panel2);
+  border:1px solid var(--rule); padding:1px 5px; color:var(--trace); white-space:nowrap;
+}
+
+/* ---------- reference table ---------- */
+.ref{border:1px solid var(--rule); margin:22px 0 0}
+.refrow{display:grid; grid-template-columns:1fr; gap:2px 22px; padding:11px 15px; border-bottom:1px solid var(--rule)}
+.refrow:last-child{border-bottom:0}
+.refrow:nth-child(odd){background:rgba(27,36,64,.42)}
+@media(min-width:700px){ .refrow{grid-template-columns:minmax(200px,.9fr) 1.5fr; align-items:baseline} }
+.refrow b{font-family:"IBM Plex Mono",monospace; font-weight:500; font-size:13.5px; color:var(--trace)}
+.refrow span{color:var(--dim); font-size:14.5px}
+.refgroup{
+  font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.16em;
+  font-size:12px; color:var(--burn); padding:14px 15px 6px; background:var(--panel);
+  border-bottom:1px solid var(--rule);
+}
+
+/* ---------- code ---------- */
+.code{position:relative; margin:18px 0; border:1px solid var(--rule); background:#0E1425}
+.code .bar{
+  display:flex; justify-content:space-between; align-items:center; gap:12px;
+  padding:7px 11px 6px; border-bottom:1px solid var(--rule); background:var(--panel);
+}
+.code .name{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim)}
+.code pre{margin:0; padding:15px 16px; overflow-x:auto; font-family:"IBM Plex Mono",monospace; font-size:13.4px; line-height:1.72; color:#C9D6EE}
+.code pre .k{color:var(--burn)}
+.code pre .s{color:var(--go)}
+.code pre .c{color:#5D6B8A; font-style:italic}
+.code pre .n{color:var(--trace)}
+button.copy{
+  font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  background:transparent; color:var(--dim); border:1px solid var(--rule); padding:4px 10px; cursor:pointer;
+}
+button.copy:hover{color:var(--burn); border-color:var(--burn)}
+button.copy.done{color:var(--go); border-color:var(--go)}
+
+/* ---------- math ---------- */
+.eq{
+  font-family:"IBM Plex Serif",Georgia,serif; font-size:20px; text-align:center;
+  padding:20px 14px; margin:20px 0; background:var(--panel); border-left:2px solid var(--trace); overflow-x:auto;
+}
+.eq i{font-style:italic; padding:0 1px}
+.eq .op{padding:0 7px; color:var(--dim)}
+.eq sub{font-size:.68em; vertical-align:-.22em; font-style:normal}
+.eq sup{font-size:.68em; vertical-align:.5em; font-style:normal}
+.frac{display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; padding:0 6px; font-size:.9em}
+.frac .num{padding:0 6px 2px; border-bottom:1px solid var(--dim)}
+.frac .den{padding:3px 6px 0}
+.where{font-size:14.5px; color:var(--dim); text-align:center; margin:-8px 0 22px; font-family:"IBM Plex Serif",serif}
+
+/* ---------- task / scratch / reveal ---------- */
+.task{border:1px solid var(--burn); background:rgba(255,107,53,.045); padding:20px 22px; margin:24px 0}
+.task .lbl{
+  font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.18em;
+  font-size:12.5px; color:var(--burn); font-weight:700; margin-bottom:8px;
+}
+.task p{margin:0 0 10px}
+.task p:last-child{margin-bottom:0}
+ol,ul{max-width:68ch; padding-left:22px}
+li{margin:7px 0}
+li::marker{color:var(--dim)}
+.scratch{margin:16px 0}
+.scratch label{
+  display:block; font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--dim); margin-bottom:7px;
+}
+textarea{
+  width:100%; min-height:110px; resize:vertical; background:#0E1425; color:var(--ink);
+  border:1px solid var(--rule); padding:12px 13px; font-family:"IBM Plex Mono",monospace;
+  font-size:13.4px; line-height:1.7;
+}
+textarea:focus{outline:none; border-color:var(--trace)}
+.saved{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--go); letter-spacing:.1em; opacity:0; transition:opacity .3s}
+.saved.on{opacity:1}
+details{border:1px solid var(--rule); background:var(--panel); margin:20px 0}
+details summary{
+  cursor:pointer; padding:13px 16px; list-style:none; font-family:"Saira Condensed",sans-serif;
+  text-transform:uppercase; letter-spacing:.14em; font-size:14px; font-weight:600; color:var(--go);
+  display:flex; align-items:center; gap:10px;
+}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸"; font-size:11px; transition:transform .18s}
+details[open] summary::before{transform:rotate(90deg)}
+details summary:hover{background:var(--panel2)}
+details .body{padding:4px 18px 18px; border-top:1px solid var(--rule)}
+details .body > :first-child{margin-top:14px}
+
+/* ---------- calculator instrument ---------- */
+.instr{border:1px solid var(--rule); background:var(--panel); margin:26px 0}
+.instr .ihead{
+  padding:10px 15px; border-bottom:1px solid var(--rule); font-family:"Saira Condensed",sans-serif;
+  text-transform:uppercase; letter-spacing:.16em; font-size:13px; color:var(--trace); font-weight:600;
+}
+.ibody{display:grid; gap:0; grid-template-columns:1fr}
+@media(min-width:720px){ .ibody{grid-template-columns:1fr 1fr} }
+.inputs{padding:16px 15px; display:grid; gap:12px}
+.field{display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px}
+.field label{font-size:14px; color:var(--dim)}
+.field label small{display:block; font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.1em; color:#5D6B8A}
+.field input{
+  width:112px; background:#0E1425; border:1px solid var(--rule); color:var(--ink);
+  font-family:"IBM Plex Mono",monospace; font-size:14px; padding:6px 9px; text-align:right;
+}
+.field input:focus{outline:none; border-color:var(--trace)}
+.readout{padding:16px 15px; border-top:1px solid var(--rule); display:grid; gap:13px; align-content:start}
+@media(min-width:720px){ .readout{border-top:0; border-left:1px solid var(--rule)} }
+.ro{display:flex; justify-content:space-between; align-items:baseline; gap:12px; border-bottom:1px dotted var(--rule); padding-bottom:8px}
+.ro:last-child{border-bottom:0}
+.ro .rk{font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.12em; font-size:12.5px; color:var(--dim)}
+.ro .rv{font-family:"IBM Plex Mono",monospace; font-size:19px; color:var(--trace)}
+.ro .rv.warn{color:var(--burn)}
+.ro .rv.ok{color:var(--go)}
+.ro .rv u{text-decoration:none; font-size:11px; color:var(--dim); margin-left:3px}
+
+.note{border-left:2px solid var(--rule); padding:2px 0 2px 16px; margin:20px 0; color:var(--dim); font-size:15.5px; max-width:66ch}
+.note b{color:var(--ink)}
+.warnbox{border:1px solid var(--rule); border-left:2px solid var(--burn); background:var(--panel); padding:14px 17px; margin:20px 0; font-size:15.5px; max-width:68ch}
+.warnbox .lbl{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--burn); display:block; margin-bottom:5px}
+footer{padding:44px 0 0; color:var(--dim); font-size:14.5px}
+footer .nav{display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-top:14px; font-family:"Saira Condensed",sans-serif; text-transform:uppercase; letter-spacing:.12em; font-size:14px}
+footer .nav b{color:var(--ink); font-weight:600}
+::selection{background:var(--burn); color:var(--vac)}
+:focus-visible{outline:2px solid var(--trace); outline-offset:2px}
+@media(prefers-reduced-motion:reduce){ html{scroll-behavior:auto} *{transition:none!important; animation:none!important} }
+</style>
+</head>
+<body>
+<div class="topbar" id="topbar"></div>
+
+<nav class="rail" aria-label="Section navigation">
+  <div class="spine"></div>
+  <div class="marker" id="marker"></div>
+  <a class="tick" href="#ref">Reference<span class="alt">the vocabulary</span></a>
+  <a class="tick" href="#lock">Set vs Lock<span class="alt">the core idea</span></a>
+  <a class="tick" href="#loop">The loop<span class="alt">holding control</span></a>
+  <a class="tick" href="#math">Thrust math<span class="alt">TWR &amp; accel</span></a>
+  <a class="tick" href="#mission">Your mission<span class="alt">launch1.ks</span></a>
+  <a class="tick" href="#solution">Solution<span class="alt">after you try</span></a>
+  <a class="tick" href="#break">Break it<span class="alt">experiments</span></a>
+</nav>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Arc 1 · Make it fly &nbsp;<span>/</span>&nbsp; Tutorial 01 of 16</p>
+  <div class="mastgrid">
+    <div>
+      <h1>Cooked control<br>&amp; the <em>flight loop</em></h1>
+      <p class="objective">By the end of this page you will have a script that counts down, lifts off, tips over once, and shuts down at a target apoapsis. It will be <strong>crude</strong> — that is deliberate. Every tutorial after this one earns its keep by beating it.</p>
+    </div>
+    <figure class="profile">
+      <svg viewBox="0 0 300 190" width="100%" height="auto" role="img" aria-label="Ascent profile: vertical climb, single pitch-over, coast to apoapsis">
+        <defs><linearGradient id="g1" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stop-color="#FF6B35"/><stop offset="1" stop-color="#5FD3F3"/></linearGradient></defs>
+        <line x1="26" y1="166" x2="288" y2="166" stroke="#26324F"/>
+        <line x1="26" y1="166" x2="26" y2="14" stroke="#26324F"/>
+        <path d="M26 166 L26 108 Q26 96 44 88 L150 44 Q220 20 288 22" fill="none" stroke="url(#g1)" stroke-width="2"/>
+        <circle cx="26" cy="108" r="3.4" fill="#FF6B35"/>
+        <text x="35" y="104" fill="#8A99B8" font-family="IBM Plex Mono" font-size="9">pitch-over</text>
+        <circle cx="288" cy="22" r="3.4" fill="#5FD3F3"/>
+        <text x="222" y="16" fill="#8A99B8" font-family="IBM Plex Mono" font-size="9">MECO</text>
+        <text x="4" y="90" fill="#5D6B8A" font-family="IBM Plex Mono" font-size="9" transform="rotate(-90 10,90)">altitude</text>
+        <text x="140" y="182" fill="#5D6B8A" font-family="IBM Plex Mono" font-size="9">downrange</text>
+      </svg>
+      <figcaption>Tutorial 01 flight profile</figcaption>
+    </figure>
+  </div>
+</header>
+
+<section id="ref">
+  <div class="shead"><span class="evt">Prelaunch</span><h2>The vocabulary</h2></div>
+  <p class="lede">Everything below is what you need for this tutorial and nothing more. Skim it, don't memorise it — you'll come back.</p>
+
+  <div class="warnbox">
+    <span class="lbl">Three rules that bite everyone</span>
+    Every statement ends with a <b>period</b>. Identifiers and keywords are <b>case-insensitive</b>. And when your script ends, kOS <b>hands control back to the game</b> — so a script that exits still leaves your rocket unsteered.
+  </div>
+
+  <div class="ref">
+    <div class="refgroup">Terminal &amp; flow</div>
+    <div class="refrow"><b>CLEARSCREEN.</b><span>Wipe the terminal.</span></div>
+    <div class="refrow"><b>PRINT x.</b><span>Print a value or string on the next line.</span></div>
+    <div class="refrow"><b>PRINT x AT (col,row).</b><span>Print at a fixed spot — use this in loops so text doesn't scroll away.</span></div>
+    <div class="refrow"><b>WAIT 2.5.</b><span>Pause this many seconds. <code>WAIT 0.</code> yields one physics tick.</span></div>
+    <div class="refrow"><b>WAIT UNTIL cond.</b><span>Block until the condition is true. Nothing else in your script runs meanwhile.</span></div>
+    <div class="refrow"><b>UNTIL cond { }</b><span>Loop the body until the condition becomes true.</span></div>
+    <div class="refrow"><b>FROM {…} UNTIL {…} STEP {…} DO { }</b><span>Counting loop. Verbose, but it's what kOS gives you.</span></div>
+
+    <div class="refgroup">Values</div>
+    <div class="refrow"><b>SET x TO 5.</b><span>Assign a value <em>once</em>, right now.</span></div>
+    <div class="refrow"><b>LOCK x TO expr.</b><span>Bind an <em>expression</em>. It re-evaluates every time something reads <code>x</code>.</span></div>
+    <div class="refrow"><b>UNLOCK x.</b><span>Break the binding.</span></div>
+
+    <div class="refgroup">Control</div>
+    <div class="refrow"><b>SAS OFF. RCS OFF.</b><span>Turn stock autopilot off. SAS fights kOS steering — always disable it.</span></div>
+    <div class="refrow"><b>LOCK THROTTLE TO 1.</b><span>Throttle, 0 to 1.</span></div>
+    <div class="refrow"><b>LOCK STEERING TO HEADING(90,90).</b><span>Point the ship. This is <em>cooked</em> control: you give a direction, kOS flies to it.</span></div>
+    <div class="refrow"><b>HEADING(az, pitch)</b><span><code>az</code> = compass bearing (90 = east). <code>pitch</code> = degrees <em>above the horizon</em>, so 90 is straight up.</span></div>
+    <div class="refrow"><b>STAGE.</b><span>Fire the next stage. Same as pressing space.</span></div>
+
+    <div class="refgroup">Telemetry</div>
+    <div class="refrow"><b>SHIP:ALTITUDE</b><span>Metres above sea level.</span></div>
+    <div class="refrow"><b>ALT:RADAR</b><span>Metres above the terrain directly below.</span></div>
+    <div class="refrow"><b>SHIP:APOAPSIS</b> / <b>:PERIAPSIS</b><span>Metres. Available even while suborbital.</span></div>
+    <div class="refrow"><b>SHIP:VELOCITY:SURFACE:MAG</b><span>Speed relative to the rotating surface, m/s.</span></div>
+    <div class="refrow"><b>SHIP:MASS</b><span>Current total mass in <em>tonnes</em>.</span></div>
+    <div class="refrow"><b>SHIP:AVAILABLETHRUST</b><span>Thrust of active, non-flamed-out engines at full throttle, in <em>kilonewtons</em>.</span></div>
+    <div class="refrow"><b>TIME:SECONDS</b><span>Universal time in seconds. Your only clock.</span></div>
+  </div>
+
+  <div class="note"><b>Units matter and they're friendly here.</b> Mass is in tonnes, thrust in kilonewtons. kN ÷ t = m/s² exactly, so you can divide thrust by mass and read the answer as acceleration with no conversion factor at all.</div>
+</section>
+
+<section id="lock">
+  <div class="shead"><span class="evt b">Ignition</span><h2>SET freezes. LOCK follows.</h2></div>
+  <p class="lede">This is the single idea that makes kOS click. Get it now and the next fifteen tutorials are mostly arithmetic.</p>
+
+  <p><code>SET</code> evaluates the right-hand side immediately and stores the resulting <em>number</em>. <code>LOCK</code> stores the <em>expression itself</em> and re-runs it every time the value is read. Steering and throttle are read many times per second, so a locked expression becomes a live control law.</p>
+
+  <div class="code">
+    <div class="bar"><span class="name">set-vs-lock.ks</span><button class="copy">Copy</button></div>
+<pre><span class="c">// Run this on the pad and watch the difference.</span>
+<span class="k">SET</span> frozen <span class="k">TO</span> <span class="n">SHIP</span>:ALTITUDE.      <span class="c">// a number, captured once</span>
+<span class="k">LOCK</span> live <span class="k">TO</span> <span class="n">SHIP</span>:ALTITUDE.        <span class="c">// an expression, re-read forever</span>
+
+<span class="k">PRINT</span> frozen.   <span class="c">// e.g. 76</span>
+<span class="k">PRINT</span> live.     <span class="c">// e.g. 76</span>
+
+<span class="k">WAIT</span> <span class="n">10</span>.       <span class="c">// (go fly around, or just let time pass)</span>
+
+<span class="k">PRINT</span> frozen.   <span class="c">// still 76 — it was never anything but a number</span>
+<span class="k">PRINT</span> live.     <span class="c">// whatever the altitude is right now</span></pre>
+  </div>
+
+  <p>So this is a control law that works:</p>
+  <div class="code">
+    <div class="bar"><span class="name">works</span><button class="copy">Copy</button></div>
+<pre><span class="k">LOCK</span> <span class="n">STEERING</span> <span class="k">TO</span> <span class="n">HEADING</span>(<span class="n">90</span>, <span class="n">90</span> - <span class="n">SHIP</span>:ALTITUDE / <span class="n">500</span>).</pre>
+  </div>
+  <p>…and this one points at a fixed direction forever, because the subtraction happened once, on the pad, when altitude was about 76&nbsp;m:</p>
+  <div class="code">
+    <div class="bar"><span class="name">does not work</span><button class="copy">Copy</button></div>
+<pre><span class="k">SET</span> <span class="n">STEERING</span> <span class="k">TO</span> <span class="n">HEADING</span>(<span class="n">90</span>, <span class="n">90</span> - <span class="n">SHIP</span>:ALTITUDE / <span class="n">500</span>).</pre>
+  </div>
+
+  <div class="note"><b>The cost of LOCK.</b> A locked expression runs on every read. Put something expensive inside one — a loop, a list scan — and you will feel it. That's a real constraint you'll hit in Tutorial 03.</div>
+</section>
+
+<section id="loop">
+  <div class="shead"><span class="evt b">Liftoff</span><h2>Holding control</h2></div>
+  <p class="lede">A kOS program runs top to bottom and then quits. Your rocket is only under script control for as long as the script is still executing — so the script has to stay alive for the whole ascent.</p>
+
+  <p>Two ways to stay alive. <code>WAIT UNTIL</code> blocks silently until a condition flips:</p>
+  <div class="code">
+    <div class="bar"><span class="name">blocking</span><button class="copy">Copy</button></div>
+<pre><span class="k">WAIT UNTIL</span> <span class="n">SHIP</span>:ALTITUDE > <span class="n">1000</span>.</pre>
+  </div>
+
+  <p>An <code>UNTIL</code> loop stays alive <em>and</em> lets you do work each pass — printing telemetry, checking several conditions, changing the control law:</p>
+  <div class="code">
+    <div class="bar"><span class="name">polling</span><button class="copy">Copy</button></div>
+<pre><span class="k">UNTIL</span> <span class="n">SHIP</span>:APOAPSIS > <span class="n">75000</span> {
+  <span class="k">PRINT</span> <span class="s">"ALT  "</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:ALTITUDE) + <span class="s">"   "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">4</span>).
+  <span class="k">PRINT</span> <span class="s">"AP   "</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:APOAPSIS) + <span class="s">"   "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">5</span>).
+  <span class="k">WAIT</span> <span class="n">0</span>.   <span class="c">// yield one tick — never spin a loop without this</span>
+}</pre>
+  </div>
+
+  <div class="warnbox">
+    <span class="lbl">Always yield</span>
+    A loop with no <code>WAIT</code> in it burns the whole instruction budget every tick and makes the game stutter. <code>WAIT 0.</code> gives up the rest of the tick. Put one in every loop you write.
+  </div>
+
+  <p>The trailing spaces in those <code>PRINT … AT</code> strings aren't a typo. Printing at a fixed position overwrites characters but doesn't clear the rest of the line, so <code>1000</code> replacing <code>10000</code> leaves a stray digit behind.</p>
+
+  <h3>A countdown</h3>
+  <div class="code">
+    <div class="bar"><span class="name">countdown</span><button class="copy">Copy</button></div>
+<pre><span class="k">FROM</span> {<span class="k">LOCAL</span> t <span class="k">IS</span> <span class="n">5</span>.} <span class="k">UNTIL</span> t = <span class="n">0</span> <span class="k">STEP</span> {<span class="k">SET</span> t <span class="k">TO</span> t - <span class="n">1</span>.} <span class="k">DO</span> {
+  <span class="k">PRINT</span> <span class="s">"T-MINUS "</span> + t.
+  <span class="k">WAIT</span> <span class="n">1</span>.
+}</pre>
+  </div>
+</section>
+
+<section id="math">
+  <div class="shead"><span class="evt">Ascent</span><h2>How hard does it push?</h2></div>
+  <p class="lede">One number decides whether you leave the pad at all, and it isn't thrust. Work this out yourself before opening the panel.</p>
+
+  <p>Thrust-to-weight ratio is thrust divided by weight — and weight is mass times the <em>local</em> gravitational acceleration, not a constant:</p>
+
+  <div class="eq">TWR <span class="op">=</span> <span class="frac"><span class="num"><i>F</i></span><span class="den"><i>m</i> <i>g</i>(<i>h</i>)</span></span></div>
+
+  <div class="eq"><i>g</i>(<i>h</i>) <span class="op">=</span> <i>g</i><sub>0</sub> <span class="frac"><span class="num"><i>R</i><sup>2</sup></span><span class="den">(<i>R</i> <span class="op">+</span> <i>h</i>)<sup>2</sup></span></span></div>
+  <p class="where">Kerbin: <i>g</i><sub>0</sub> = 9.81 m/s², <i>R</i> = 600 000 m</p>
+
+  <div class="task">
+    <div class="lbl">Derive these three</div>
+    <ol>
+      <li>Write the <strong>vertical acceleration</strong> of a rocket climbing straight up, in terms of <i>F</i>, <i>m</i> and <i>g</i>. Then rewrite it using only <i>g</i> and TWR. Ignore drag.</li>
+      <li>Starting from rest at TWR = 1.6, how long to reach 100 m/s if TWR stayed constant? (It won't — that's question 3.)</li>
+      <li>Throttle is pinned at 100% and the engine's thrust never changes. Explain in one sentence why TWR nevertheless <strong>climbs</strong> throughout the burn, and name the <em>two</em> separate reasons.</li>
+    </ol>
+  </div>
+
+  <div class="scratch">
+    <label for="s1">Your working — scratch pad</label>
+    <textarea id="s1" data-key="t01-math" placeholder="a = ..."></textarea>
+    <div class="saved" data-for="s1">Saved</div>
+  </div>
+
+  <details>
+    <summary>Show the algebra</summary>
+    <div class="body">
+      <p><strong>1 — Vertical acceleration.</strong> Two forces act along the vertical: thrust up, weight down.</p>
+      <div class="eq"><i>a</i> <span class="op">=</span> <span class="frac"><span class="num"><i>F</i> <span class="op">−</span> <i>m g</i></span><span class="den"><i>m</i></span></span> <span class="op">=</span> <span class="frac"><span class="num"><i>F</i></span><span class="den"><i>m</i></span></span> <span class="op">−</span> <i>g</i></div>
+      <p>Now substitute <i>F</i> = TWR · <i>m g</i> and the mass cancels:</p>
+      <div class="eq"><i>a</i> <span class="op">=</span> <i>g</i> (TWR <span class="op">−</span> <span class="op"></span>1)</div>
+      <p>Read that carefully: <strong>TWR = 1 gives zero acceleration.</strong> You hover, burning fuel, going nowhere. Below 1 you don't move. This is why a launch clamp release at TWR 1.05 feels so awful.</p>
+
+      <p><strong>2 — Time to 100 m/s.</strong> <i>a</i> = 9.81 × (1.6 − 1) = 5.886 m/s². Then <i>t</i> = <i>v</i>/<i>a</i> = 100 / 5.886 ≈ <strong>17.0 s</strong>, and you'd have covered <i>½at²</i> ≈ 850 m doing it.</p>
+
+      <p><strong>3 — Why TWR climbs anyway.</strong> The numerator is fixed but the denominator shrinks for two independent reasons:</p>
+      <ul>
+        <li><strong>Mass falls.</strong> You are throwing propellant overboard at a constant rate, so <i>m</i> drops steadily and <i>F/m</i> rises.</li>
+        <li><strong>Gravity weakens.</strong> <i>g</i>(<i>h</i>) falls off as 1/(<i>R</i>+<i>h</i>)². At 70 km, <i>g</i> is about 80% of its sea-level value.</li>
+      </ul>
+      <p>Mass is by far the bigger effect during a first stage. But there's a third thing you may have written down that isn't a TWR change at all: on Kerbin, most engines get <em>more</em> thrust as ambient pressure drops, so <i>F</i> also rises. Give yourself credit for that — <code>SHIP:AVAILABLETHRUST</code> already accounts for it, which is exactly why we read it live rather than hardcoding a number.</p>
+    </div>
+  </details>
+
+  <div class="instr">
+    <div class="ihead">Liftoff calculator</div>
+    <div class="ibody">
+      <div class="inputs">
+        <div class="field"><label>Available thrust <small>kN</small></label><input id="i-F" type="number" value="1500" step="10"></div>
+        <div class="field"><label>Total mass <small>tonnes</small></label><input id="i-m" type="number" value="72" step="1"></div>
+        <div class="field"><label>Altitude <small>m</small></label><input id="i-h" type="number" value="0" step="1000"></div>
+      </div>
+      <div class="readout">
+        <div class="ro"><span class="rk">Local g</span><span class="rv" id="o-g">—</span></div>
+        <div class="ro"><span class="rk">TWR</span><span class="rv" id="o-twr">—</span></div>
+        <div class="ro"><span class="rk">Vertical accel</span><span class="rv" id="o-a">—</span></div>
+        <div class="ro"><span class="rk">To 100 m/s</span><span class="rv" id="o-t">—</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="note">Aim for <b>1.4 – 1.8</b> at liftoff. Below 1.3 you bleed delta-v hovering; much above 2.0 and you hit thick air too fast and pay it back in drag. You'll be able to <em>prove</em> both of those claims yourself in Tutorial 05, once you're logging data.</div>
+</section>
+
+<section id="mission">
+  <div class="shead"><span class="evt b">Your mission</span><h2>launch1.ks</h2></div>
+  <p class="lede">Write it yourself. You have every command you need above — nothing new is required.</p>
+
+  <div class="task">
+    <div class="lbl">Requirements</div>
+    <ol>
+      <li>Print a 5-second countdown.</li>
+      <li>Disable SAS. Lock throttle to full and steering to straight up, due east.</li>
+      <li>Stage.</li>
+      <li>Hold vertical until <strong>1 000 m</strong>.</li>
+      <li>Pitch over to <strong>80° above the horizon</strong>, still due east, and hold it.</li>
+      <li>Keep printing altitude, apoapsis and surface speed at fixed screen positions throughout.</li>
+      <li>Cut the throttle when apoapsis passes <strong>75 km</strong>, print <code>MECO</code>, and hand steering back to the player.</li>
+    </ol>
+  </div>
+
+  <div class="warnbox">
+    <span class="lbl">Before you fly</span>
+    Quicksave with <b>F5</b>. Use a rocket that reaches ~75 km on a single stage, or be ready to press space yourself — automatic staging is Tutorial 03. Save the file as <code>launch1.ks</code> in <code>Ships/Script/</code> and run it with <code>RUN launch1.</code>
+  </div>
+
+  <div class="task">
+    <div class="lbl">Two traps in this spec</div>
+    <p>Requirement 5 says "hold it". Requirement 7 says "hand steering back". Think about what each one means for how your script is structured — and about what happens between them if you use <code>WAIT UNTIL</code> for step 6.</p>
+  </div>
+
+  <div class="scratch">
+    <label for="s2">Sketch your structure before you write code</label>
+    <textarea id="s2" data-key="t01-plan" placeholder="countdown&#10;lock throttle&#10;stage&#10;..."></textarea>
+    <div class="saved" data-for="s2">Saved</div>
+  </div>
+</section>
+
+<section id="solution">
+  <div class="shead"><span class="evt g">Solution</span><h2>Open after you've flown yours</h2></div>
+  <p class="lede">If your script works and looks nothing like this, that's fine — compare the reasoning, not the characters.</p>
+
+  <details>
+    <summary>Show launch1.ks</summary>
+    <div class="body">
+  <div class="code">
+    <div class="bar"><span class="name">launch1.ks</span><button class="copy">Copy</button></div>
+<pre><span class="c">// launch1.ks — fixed pitch-over ascent. Crude on purpose.</span>
+
+<span class="k">CLEARSCREEN</span>.
+<span class="k">SET</span> targetAp <span class="k">TO</span> <span class="n">75000</span>.
+<span class="k">SET</span> turnAlt <span class="k">TO</span> <span class="n">1000</span>.
+<span class="k">SET</span> azimuth <span class="k">TO</span> <span class="n">90</span>.
+
+<span class="k">FROM</span> {<span class="k">LOCAL</span> t <span class="k">IS</span> <span class="n">5</span>.} <span class="k">UNTIL</span> t = <span class="n">0</span> <span class="k">STEP</span> {<span class="k">SET</span> t <span class="k">TO</span> t - <span class="n">1</span>.} <span class="k">DO</span> {
+  <span class="k">PRINT</span> <span class="s">"T-MINUS "</span> + t <span class="k">AT</span> (<span class="n">0</span>,<span class="n">0</span>).
+  <span class="k">WAIT</span> <span class="n">1</span>.
+}
+
+<span class="n">SAS</span> <span class="k">OFF</span>.
+<span class="n">RCS</span> <span class="k">OFF</span>.
+<span class="k">SET</span> pitch <span class="k">TO</span> <span class="n">90</span>.
+<span class="k">LOCK</span> <span class="n">THROTTLE</span> <span class="k">TO</span> <span class="n">1</span>.
+<span class="k">LOCK</span> <span class="n">STEERING</span> <span class="k">TO</span> <span class="n">HEADING</span>(azimuth, pitch).
+<span class="k">STAGE</span>.
+<span class="k">PRINT</span> <span class="s">"LIFTOFF          "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">0</span>).
+
+<span class="c">// --- vertical climb ---</span>
+<span class="k">UNTIL</span> <span class="n">SHIP</span>:ALTITUDE > turnAlt {
+  telemetry().
+  <span class="k">WAIT</span> <span class="n">0</span>.
+}
+
+<span class="c">// --- one crude pitch-over, then hold ---</span>
+<span class="k">SET</span> pitch <span class="k">TO</span> <span class="n">80</span>.
+<span class="k">PRINT</span> <span class="s">"PITCH PROGRAM    "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">0</span>).
+
+<span class="k">UNTIL</span> <span class="n">SHIP</span>:APOAPSIS > targetAp {
+  telemetry().
+  <span class="k">WAIT</span> <span class="n">0</span>.
+}
+
+<span class="c">// --- MECO ---</span>
+<span class="k">LOCK</span> <span class="n">THROTTLE</span> <span class="k">TO</span> <span class="n">0</span>.
+<span class="k">PRINT</span> <span class="s">"MECO             "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">0</span>).
+<span class="k">WAIT</span> <span class="n">1</span>.
+<span class="k">UNLOCK</span> <span class="n">STEERING</span>.
+<span class="k">UNLOCK</span> <span class="n">THROTTLE</span>.
+<span class="n">SAS</span> <span class="k">ON</span>.
+
+<span class="k">FUNCTION</span> telemetry {
+  <span class="k">PRINT</span> <span class="s">"ALT   "</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:ALTITUDE) + <span class="s">"    "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">2</span>).
+  <span class="k">PRINT</span> <span class="s">"AP    "</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:APOAPSIS) + <span class="s">"    "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">3</span>).
+  <span class="k">PRINT</span> <span class="s">"SPD   "</span> + <span class="k">ROUND</span>(<span class="n">SHIP</span>:VELOCITY:SURFACE:MAG,<span class="n">1</span>) + <span class="s">"    "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">4</span>).
+  <span class="k">PRINT</span> <span class="s">"PITCH "</span> + pitch + <span class="s">"     "</span> <span class="k">AT</span> (<span class="n">0</span>,<span class="n">5</span>).
+}</pre>
+  </div>
+
+      <h3>The two traps</h3>
+      <p><strong>Trap one — the pitch variable.</strong> Steering is locked to <code>HEADING(azimuth, pitch)</code> once, before liftoff, and never re-locked. Yet changing <code>pitch</code> later with a plain <code>SET</code> steers the rocket. That's the whole lesson of this page: <code>LOCK</code> captured the <em>expression</em>, so it re-reads whatever <code>pitch</code> currently holds. This is the pattern every remaining tutorial builds on — one lock at the top, a value that evolves underneath it.</p>
+      <p><strong>Trap two — the loop, not the wait.</strong> Requirement 6 says keep printing throughout. <code>WAIT UNTIL SHIP:APOAPSIS &gt; targetAp.</code> would satisfy requirements 5 and 7 perfectly and leave you staring at a frozen display for four minutes. Blocking waits are for moments; loops are for phases.</p>
+      <p>And the <code>UNLOCK</code> at the end matters more than it looks. Without it the script ends with steering still locked, kOS relinquishes control mid-command, and the ship tumbles. <code>SAS ON</code> after unlocking hands you a stable vessel.</p>
+
+      <div class="note"><b>Why the function is at the bottom.</b> kOS reads the whole file before executing, so a <code>FUNCTION</code> can be declared after the code that calls it. Keeping helpers out of the flight sequence keeps the sequence readable — you'll have a lot more of both by Tutorial 03.</div>
+    </div>
+  </details>
+</section>
+
+<section id="break">
+  <div class="shead"><span class="evt">Break it</span><h2>Five experiments</h2></div>
+  <p class="lede">Quicksave first. Each of these teaches something the working version hides.</p>
+  <ol>
+    <li>Change the steering lock to <code>SET STEERING TO HEADING(azimuth, pitch).</code> and fly it. Where does the rocket point, and why that direction specifically?</li>
+    <li>Delete the <code>UNLOCK STEERING.</code> line. Watch what happens the instant the script ends.</li>
+    <li>Remove <code>WAIT 0.</code> from the ascent loop. Watch your framerate, then check the terminal for an instruction-limit message.</li>
+    <li>Move <code>STAGE.</code> to <em>before</em> the throttle lock. Explain the delay you see.</li>
+    <li>Set the pitch-over to 45° instead of 80°, on the same rocket. It will probably still reach orbit-ish. Now ask yourself the question you can't yet answer: <strong>which one was cheaper, and by how many m/s?</strong></li>
+  </ol>
+  <div class="note">That last question is the entire reason Tutorial 04 exists. Guessing at ascent efficiency is how most players do it forever. You're going to measure it.</div>
+</section>
+
+<footer>
+  <p>Next: <strong>Tutorial 02 — Pitch as a function of altitude.</strong> You'll replace that single hardcoded 80° with a continuous pitch program, write your first real kOS function, and derive the interpolation yourself.</p>
+  <div class="nav"><span>Arc 1 · Make it fly</span><b>01 / 16</b></div>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* copy buttons */
+  document.querySelectorAll(".code").forEach(function(box){
+    var btn = box.querySelector("button.copy"), pre = box.querySelector("pre");
+    if(!btn || !pre) return;
+    btn.addEventListener("click", function(){
+      var text = pre.innerText;
+      var done = function(){
+        btn.textContent = "Copied"; btn.classList.add("done");
+        setTimeout(function(){ btn.textContent = "Copy"; btn.classList.remove("done"); }, 1400);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else { fallback(); }
+      function fallback(){
+        var ta = document.createElement("textarea");
+        ta.value = text; ta.style.position="fixed"; ta.style.opacity="0";
+        document.body.appendChild(ta); ta.select();
+        try{ document.execCommand("copy"); done(); }catch(e){ btn.textContent="Select manually"; }
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  /* liftoff calculator */
+  var F=document.getElementById("i-F"), m=document.getElementById("i-m"), h=document.getElementById("i-h");
+  function calc(){
+    var Fv=parseFloat(F.value), mv=parseFloat(m.value), hv=parseFloat(h.value);
+    var og=document.getElementById("o-g"), ot=document.getElementById("o-twr"),
+        oa=document.getElementById("o-a"), od=document.getElementById("o-t");
+    if(!isFinite(Fv)||!isFinite(mv)||!isFinite(hv)||mv<=0){
+      og.textContent=ot.textContent=oa.textContent=od.textContent="—"; return;
+    }
+    var R=600000, g0=9.81;
+    var g = g0 * (R*R)/((R+hv)*(R+hv));
+    var twr = Fv/(mv*g);
+    var a = Fv/mv - g;
+    og.innerHTML = g.toFixed(3)+'<u>m/s²</u>';
+    ot.textContent = twr.toFixed(2);
+    ot.className = "rv " + (twr<1 ? "warn" : (twr>=1.35 && twr<=1.9 ? "ok" : ""));
+    oa.innerHTML = a.toFixed(2)+'<u>m/s²</u>';
+    oa.className = "rv " + (a<=0 ? "warn" : "");
+    od.innerHTML = a>0 ? (100/a).toFixed(1)+'<u>s</u>' : "never";
+    od.className = "rv " + (a<=0 ? "warn" : "");
+  }
+  [F,m,h].forEach(function(el){ el.addEventListener("input", calc); });
+  calc();
+
+  /* scratch pads — persist if storage is available, otherwise stay session-only */
+  document.querySelectorAll("textarea[data-key]").forEach(function(ta){
+    var key = "kos:"+ta.dataset.key;
+    var flag = document.querySelector('.saved[data-for="'+ta.id+'"]');
+    if(window.storage && window.storage.get){
+      window.storage.get(key).then(function(r){ if(r && r.value) ta.value = r.value; }).catch(function(){});
+    }
+    var timer=null;
+    ta.addEventListener("input", function(){
+      if(!(window.storage && window.storage.set)) return;
+      clearTimeout(timer);
+      timer = setTimeout(function(){
+        window.storage.set(key, ta.value).then(function(){
+          if(flag){ flag.classList.add("on"); setTimeout(function(){ flag.classList.remove("on"); }, 1200); }
+        }).catch(function(){});
+      }, 600);
+    });
+  });
+
+  /* rail marker tracks the section in view */
+  var ticks = Array.prototype.slice.call(document.querySelectorAll(".tick"));
+  var secs  = ticks.map(function(t){ return document.querySelector(t.getAttribute("href")); });
+  var marker = document.getElementById("marker");
+  var topbar = document.getElementById("topbar");
+  function place(i){
+    ticks.forEach(function(t,j){ t.classList.toggle("on", j===i); });
+    if(marker && ticks[i]){
+      var railRect = ticks[0].parentNode.getBoundingClientRect();
+      var r = ticks[i].getBoundingClientRect();
+      marker.style.top = (r.top - railRect.top + r.height/2 - 7.5) + "px";
+    }
+  }
+  function onScroll(){
+    var y = window.scrollY + window.innerHeight*0.32, best = 0;
+    secs.forEach(function(s,i){ if(s && s.offsetTop <= y) best = i; });
+    place(best);
+    if(topbar){
+      var max = document.body.scrollHeight - window.innerHeight;
+      topbar.style.width = (max>0 ? (window.scrollY/max*100) : 0) + "%";
+    }
+  }
+  window.addEventListener("scroll", onScroll, {passive:true});
+  window.addEventListener("resize", onScroll);
+  onScroll();
+})();
+</script>
+</body>
+</html>

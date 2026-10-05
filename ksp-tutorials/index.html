@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>kOS Ascent Guidance — Conrad Mearns</title>
+    <script src="../js/theme.js"></script>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/post.css">
+    <style>
+        td:first-child { min-width: 13em; font-weight: 500; }
+        td:last-child { white-space: nowrap; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="../index.html">conrads.website</a>
+        <button type="button" data-theme-toggle aria-label="Toggle light and dark mode"></button>
+    </header>
+
+    <main>
+        <article>
+            <header>
+                <h1>kOS Ascent Guidance</h1>
+                <p>Tutorials for the Kerbal Operating System mod: each lesson pairs a kOS mechanic with a derivation you do yourself. Six arcs and sixteen lessons are planned; the first six pages are written. The scripts are the ones I fly with.</p>
+            </header>
+
+            <table>
+                <thead><tr><th>Lesson</th><th>What it covers</th><th>Arc</th></tr></thead>
+                <tbody>
+                    <tr><td><a href="arc1-make-it-fly/kos-01-cooked-control.html">01 · Cooked control and the flight loop</a></td><td>LOCK STEERING and THROTTLE, WAIT UNTIL, HEADING(): a hardcoded climb and one pitch-over</td><td>Make it fly</td></tr>
+                    <tr><td><a href="arc1-make-it-fly/kos-02-pitch-program.html">02 · Functions and the pitch program</a></td><td>pitch as a function of altitude: derive the lerp, then clamp it</td><td>Make it fly</td></tr>
+                    <tr><td><a href="arc1-make-it-fly/kos-03-staging-deltav.html">03 · Staging and the delta-V budget</a></td><td>Tsiolkovsky, burn time from mass flow, and autostaging debounce</td><td>Make it fly</td></tr>
+                    <tr><td><a href="arc2-measure-it/kos-04-telemetry-logging.html">04 · Telemetry and the loss budget</a></td><td>log a run to CSV at a fixed rate and break the delta-V down into losses</td><td>Measure it</td></tr>
+                    <tr><td><a href="arc2-measure-it/kos-04a-where-the-dv-goes.html">04a · Where the delta-V went</a></td><td>reading those logs: gravity, drag and steering losses</td><td>Measure it</td></tr>
+                    <tr><td><a href="arc2-measure-it/analyzer.html">Flight log analyser</a></td><td>drop flight-log CSVs in and get overlaid plots</td><td>Measure it</td></tr>
+                </tbody>
+            </table>
+
+            <section>
+                <h2>More</h2>
+                <ul>
+                    <li><a href="LESSON_PLAN.md">Lesson plan</a>, all sixteen lessons, and <a href="META.md">writing notes</a> on how they should be built.</li>
+                    <li><a href="https://github.com/ConradMearns/website/tree/main/ksp-tutorials/scripts">The .ks scripts</a>: launch, circularize, intercept, rover and more.</li>
+                    <li><a href="../artifacts/ksp-maneuver-planner.html">&Delta;v computer</a> and <a href="../artifacts/orbit-viewer.html">orbit viewer</a>, browser tools for orbital maneuvers.</li>
+                </ul>
+            </section>
+        </article>
+    </main>
+
+</body>
+</html>
