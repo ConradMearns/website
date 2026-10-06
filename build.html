@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Build status — Conrad Mearns</title>
+    <script src="js/theme.js"></script>
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/post.css">
+    <style>
+        #build-status { display: inline-flex; align-items: center; gap: .4em; margin-left: 1em; font-size: .85em; }
+        #build-status i { width: .6em; height: .6em; border-radius: 50%; background: gray; }
+        #build-status[data-state="building"] i { background: orange; animation: pulse 1s infinite alternate; }
+        #build-status[data-state="live"] i { background: seagreen; }
+        #build-status[data-state="failed"] i { background: crimson; }
+        @keyframes pulse { to { opacity: .25; } }
+        @media (prefers-reduced-motion: reduce) { #build-status i { animation: none !important; } }
+        dl { display: grid; grid-template-columns: max-content 1fr; gap: .25em 1em; }
+        dd { margin: 0; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="index.html">conrads.website</a>
+        <span id="build-status" data-state="unknown" role="status"><i></i><span>checking…</span></span>
+        <button type="button" data-theme-toggle aria-label="Toggle light and dark mode"></button>
+    </header>
+
+    <main>
+        <article>
+            <header>
+                <h1>Build status</h1>
+                <p>A test page. The dot in the header watches the GitHub Pages build for this site. It turns orange while a build runs, and the page reloads itself when the build finishes.</p>
+            </header>
+
+            <dl>
+                <dt>State</dt><dd id="s-state">…</dd>
+                <dt>Commit</dt><dd id="s-sha">…</dd>
+                <dt>Started</dt><dd id="s-start">…</dd>
+                <dt>Last checked</dt><dd id="s-check">…</dd>
+                <dt>API quota left</dt><dd id="s-quota">…</dd>
+            </dl>
+
+            <p><small>Reads <code>api.github.com/repos/ConradMearns/website/actions/runs</code> with no token, which allows 60 requests an hour per visitor. It polls every 20 seconds while a build runs and every 90 seconds otherwise, pauses in a background tab, and sends conditional requests that GitHub doesn't count when nothing changed.</small></p>
+        </article>
+    </main>
+
+    <script>
+    (function () {
+        var URL = "https://api.github.com/repos/ConradMearns/website/actions/runs?per_page=1";
+        var el = document.getElementById("build-status"), label = el.lastElementChild;
+        var prev = null, timer = null;
+        function $(id) { return document.getElementById(id); }
+
+        function classify(run) {
+            if (run.status !== "completed") return "building";
+            return run.conclusion === "success" ? "live" : "failed";
+        }
+
+        function show(state, run, quota) {
+            el.dataset.state = state;
+            label.textContent = { building: "building…", live: "site is live", failed: "build failed", unknown: "status unavailable" }[state];
+            $("s-state").textContent = run ? run.status + (run.conclusion ? " / " + run.conclusion : "") : "unknown";
+            if (run) {
+                $("s-sha").textContent = run.head_sha.slice(0, 7);
+                $("s-start").textContent = new Date(run.run_started_at).toLocaleString();
+            }
+            $("s-check").textContent = new Date().toLocaleTimeString();
+            if (quota != null) $("s-quota").textContent = quota + " / 60";
+        }
+
+        async function poll() {
+            var state = "unknown", run = null;
+            try {
+                var r = await fetch(URL, { headers: { Accept: "application/vnd.github+json" } });
+                var quota = r.headers.get("x-ratelimit-remaining");
+                if (!r.ok) throw new Error(r.status);
+                run = (await r.json()).workflow_runs[0];
+                state = classify(run);
+                show(state, run, quota);
+                // A build we saw running has finished: pick up the new pages.
+                if (prev && prev.id === run.id && prev.state === "building" && state === "live") {
+                    label.textContent = "reloading…";
+                    setTimeout(function () { location.reload(); }, 1500);
+                    return;
+                }
+                prev = { id: run.id, state: state };
+            } catch (e) {
+                show("unknown", null, null);
+            }
+            schedule(state === "building" ? 20000 : 90000);
+        }
+
+        function schedule(ms) {
+            clearTimeout(timer);
+            timer = setTimeout(function () { if (!document.hidden) poll(); else schedule(ms); }, ms);
+        }
+
+        document.addEventListener("visibilitychange", function () { if (!document.hidden) poll(); });
+        poll();
+    })();
+    </script>
+</body>
+</html>
