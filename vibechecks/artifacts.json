@@ -1,15 +1,31 @@
 {
   "synced": "2026-10-06",
   "latest": {
-    "title": "Dizzy execution domain, LCARS study",
-    "slug": "dizzy-lcars-study",
-    "artifact_id": "UfAEshgVRWjUHPNBnhs25J",
-    "version": "1791326338-4653",
-    "updated_utc": "2026-10-06T22:38:58Z"
+    "title": "Dizzy execution domain, board study",
+    "slug": "dizzy-board-study",
+    "artifact_id": "B88dE4d3VJNAiipQ1iAz98",
+    "version": "1791328895-3e58",
+    "updated_utc": "2026-10-06T23:21:35Z"
   },
   "how_to_check": "Ask Claude to list your artifacts. Anything whose id is not below, or whose version differs from the one recorded here, is new or changed. Versions start with a unix timestamp, so updated_utc is exact; the artifact list itself only shows the day.",
   "generation_note": "generation is null for artifacts made on claude.ai: the page carries no model, effort or cost. For Claude Code ones it comes from the local session transcripts under ~/.claude/projects.",
   "artifacts": [
+    {
+      "title": "Dizzy execution domain, board study",
+      "slug": "dizzy-board-study",
+      "url": "https://claude.ai/artifact/B88dE4d3VJNAiipQ1iAz98",
+      "artifact_id": "B88dE4d3VJNAiipQ1iAz98",
+      "version": "1791328895-3e58",
+      "updated_utc": "2026-10-06T23:21:35Z",
+      "status": "pulled",
+      "page": "vibechecks/dizzy-board-study.html",
+      "notes": "vibechecks/dizzy-execution-study-notes.html",
+      "source": "claude.ai",
+      "bytes": 100038,
+      "generation": null,
+      "note": "second view in the dizzy-execution-study notes; local source path in embedded data redacted",
+      "lineage_of": "dizzy-lcars-study"
+    },
     {
       "title": "Dizzy execution domain, LCARS study",
       "slug": "dizzy-lcars-study",
@@ -19,7 +35,7 @@
       "updated_utc": "2026-10-06T22:38:58Z",
       "status": "pulled",
       "page": "vibechecks/dizzy-lcars-study.html",
-      "notes": "vibechecks/dizzy-lcars-study-notes.html",
+      "notes": "vibechecks/dizzy-execution-study-notes.html",
       "source": "claude.ai",
       "bytes": 94066,
       "generation": null,
