@@ -185,6 +185,17 @@ ul.hist li b{font-family:var(--ui)}
 .ix td.tn a{color:var(--clash)}
 .ix td.mu{color:var(--muted);font-family:var(--ui);font-size:.84rem}
 
+.eq{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px 10px;margin:8px 0 14px;font-family:var(--ui)}
+.eq > span{align-self:center;color:var(--muted);font-size:1.2rem}
+.eq .lhs{align-self:center;font-size:1.05rem}
+.eq .term{flex:1 1 150px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.eq .term b{display:block;font-size:1rem}
+.eq .term i{display:block;font-style:normal;font-size:.84rem;color:var(--muted);margin-top:3px;line-height:1.35}
+.eq .term.hi{border-color:var(--clash);background:var(--clash-soft)}
+#gatebox p.sub{margin:0 0 12px;color:var(--muted);max-width:66ch}
+#gatebox p.sub.wide{max-width:74ch;color:var(--ink)}
+td.plain{font-family:var(--text)!important;font-weight:400!important}
+
 /* tables, lists */
 .tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
 table{border-collapse:collapse;width:100%;min-width:720px;font-size:.95rem}
@@ -212,7 +223,7 @@ footer{margin:70px 0 50px;padding-top:18px;border-top:1px solid var(--line);colo
     <h1>Design principles, and where they collide</h1>
     <p class="lede">A linked reference to the hard-to-define rules of software design. Each entry gives the primary source, the claim it makes, the strength of the evidence, and the principles it fights with.</p>
     <p class="lede">Most of these principles answer the same three questions: where knowledge lives, how far a change spreads, and how quickly you find out you were wrong. The interesting part is where they disagree, and the tensions section sets those conflicts side by side.</p>
-    <nav class="jump" aria-label="Sections"><a href="#theme-K">Principles</a><a href="#index">Index</a><a href="#tensions">Tensions</a><a href="#timeline">Timeline</a><a href="#standards">Standards</a><a href="#evidence">Evidence</a><a href="#agents">Coding agents</a><a href="#ethics">Ethics</a><a href="#accountability">Accountability</a></nav>
+    <nav class="jump" aria-label="Sections"><a href="#theme-K">Principles</a><a href="#index">Index</a><a href="#tensions">Tensions</a><a href="#timeline">Timeline</a><a href="#standards">Standards</a><a href="#gate">Merge gate</a><a href="#evidence">Evidence</a><a href="#agents">Coding agents</a><a href="#ethics">Ethics</a><a href="#accountability">Accountability</a></nav>
   </header>
 
   <div class="mapbox" aria-label="Map of principles">
@@ -261,6 +272,12 @@ footer{margin:70px 0 50px;padding-top:18px;border-top:1px solid var(--line);colo
     <h2>How real projects write these down</h2>
     <p class="sub">Principle-level standards rank trade-offs, explain why, and hand the mechanical rules to tools. These are the clearest published examples.</p>
     <div class="tscroll"><table><thead><tr><th>Document</th><th>What it says at the principle level</th><th>How it is made checkable</th></tr></thead><tbody id="stbody"></tbody></table></div>
+  </section>
+
+  <section id="gate">
+    <h2>The merge gate</h2>
+    <p class="sub">Where a change is approved or refused, what an approval is taken to mean, what large projects require, and what the research says each approach costs.</p>
+    <div id="gatebox"></div>
   </section>
 
   <section id="evidence">
@@ -2541,6 +2558,166 @@ const GROUPS=[
   P.sort((a,b)=>a.ord-b.ord);
 })();
 
+/* ---------- sixth pass: the merge gate ---------- */
+Object.assign(S,{
+kernelpatches:["Linux kernel documentation, “Submitting patches”","https://www.kernel.org/doc/html/latest/process/submitting-patches.html",0],
+kernelcopy:["The kernel’s tag definitions and Reviewer’s Statement of Oversight (as reproduced in the Gerrit documentation)","https://gerrit-review.googlesource.com/Documentation/user-signedoffby.html",1],
+k8sowners:["Kubernetes contributor guide, “OWNERS Files” and the two-phase review process","https://www.k8s.dev/docs/guide/owners/",1],
+gogerrit:["Go Wiki, “Gerrit Access” (code review requirements)","https://go.dev/wiki/GerritAccess",1],
+chromiumreview:["Chromium documentation, code reviews and OWNERS files",null,0],
+rustreview:["Rust compiler development guide, review policy and bors",null,0],
+rfcrust:["The Rust RFC process","https://rust-lang.github.io/rfcs/",0],
+cpythondev:["Python Developer’s Guide","https://devguide.python.org/",0],
+llvmpolicy:["LLVM Developer Policy","https://llvm.org/docs/DeveloperPolicy.html",0],
+apachevoting:["Apache Software Foundation, “Apache Voting Process”","https://www.apache.org/foundation/voting.html",0],
+pcidss:["PCI DSS v4.0, requirement 6.2.3 (review of bespoke and custom software)",null,0],
+do178c:["RTCA DO-178C, Software Considerations in Airborne Systems and Equipment Certification, 2011",null,0],
+fagan:["Michael Fagan, “Design and Code Inspections to Reduce Errors in Program Development”, IBM Systems Journal, 1976",null,0],
+rigbybird:["Rigby and Bird, “Convergent Contemporary Software Peer Review Practices”, FSE 2013",null,0],
+czerwonka:["Czerwonka, Greiler and Tilford, “Code Reviews Do Not Find Bugs: How the Current Code Review Best Practice Slows Us Down”, ICSE 2015",null,0],
+mcintosh:["McIntosh, Kamei, Adams and Hassan, “The Impact of Code Review Coverage and Code Review Participation on Software Quality”, MSR 2014",null,0],
+kononenko:["Kononenko, Baysal, Guerrouj, Cao and Godfrey, “Investigating Code Review Quality: Do People and Participation Matter?”, ICSME 2015",null,0],
+bosu:["Bosu, Greiler and Bird, “Characteristics of Useful Code Reviews: An Empirical Study at Microsoft”, MSR 2015",null,0],
+sadowski:["Sadowski, Söderberg, Church, Sipko and Bacchelli, “Modern Code Review: A Case Study at Google”, ICSE-SEIP 2018",null,0],
+cohen:["Jason Cohen, Best Kept Secrets of Peer Code Review (the Cisco study), SmartBear, 2006",null,0],
+shipshowask:["Rouan Wilsenach, “Ship / Show / Ask”, 2021","https://martinfowler.com/articles/ship-show-ask.html",0],
+duma:["Duma and colleagues, “These Aren’t the Reviews You’re Looking For: How Humans Review AI-Generated Pull Requests”, EASE 2026 (as reported)",null,0],
+faros:["Faros AI, “The AI Productivity Paradox” (vendor report, as reported)",null,0],
+baselrisk:["Basel Committee on Banking Supervision, the internal ratings-based approach to credit risk",null,0],
+kprule:["W. Edwards Deming, Out of the Crisis, chapter 15 (the all-or-none rule for inspection)",null,0],
+fmea:["IEC 60812, Failure modes and effects analysis",null,0],
+clarkwilson:["Clark and Wilson, “A Comparison of Commercial and Military Computer Security Policies”, IEEE S&P, 1987",null,0]
+});
+
+P.push(
+{id:"assumebad",th:"K",n:"Assume the change is bad",ml:"Assume it is bad",g:"Ask what a change can damage if it is wrong, whatever review said.",
+d:"Before merging, suppose the change is defective or hostile. Work out the most it could damage and how much of that could be recovered, and decide how to ship it from that answer. The chance that a change is bad is unknown, and review lowers it only modestly, so plan on the parts that can be bounded: exposure and recoverability.",
+c:"Expected loss is the chance that a change is bad, times the chance that review misses it, times what it can reach, times the share that cannot be undone. Review works on the second term only. Design can make the last two small.",
+x:"Worst-case thinking is expensive if applied to everything, and containment has costs of its own.",
+e:"Credit risk, acceptance sampling and failure-mode analysis all separate the probability of a failure from its severity. The software evidence is the review studies, which find that reviewed changes still carry defects.",ev:"case",
+k:"Record the radius and the reversibility rung of each change. Their product is the loss given a bad merge, and it sets the rollout.",
+a:"Stated in this collection. It is the security rule “assume breach” and the lender’s “loss given default”, applied to a merge.",s:["baselrisk","kprule","zerotrustsrc","czerwonka"]},
+{id:"attest",th:"H",n:"Say what an approval attests",ml:"Define the approval",g:"An approval should be a specific claim made by a named person.",
+d:"Put in writing what a reviewer asserts by approving. The Linux kernel’s Reviewed-by tag carries a statement: the reviewer has carried out a technical review, their concerns have been resolved, and they believe the patch is worthwhile and free of known issues, without warranting it. Kubernetes separates /lgtm, a judgment of quality, from /approve, acceptance by an owner of the code. Google separates correctness, ownership and readability.",
+c:"“Looks good to me” asserts nothing, so nobody can be wrong for saying it.",
+x:"Formal statements slow casual contribution, and people sign statements without reading them too.",
+e:"In three large open-source projects, components whose changes were approved with little discussion had more defects after release.",ev:"corr",
+k:"Separate sign-offs for separate claims, each recorded with a name.",s:["kernelpatches","kernelcopy","k8sowners","swebook","mcintosh"]},
+{id:"riskgate",th:"H",n:"Gate by risk, not by habit",ml:"Gate by risk",g:"The scrutiny a change gets should follow what it can damage.",
+d:"Choose the gate for each change. Ship / Show / Ask lets an author merge directly, merge and then tell people, or ask first. Apache projects choose between review-then-commit and commit-then-review. Deming’s rule for inspection supplies the arithmetic: inspect when the chance of a defect times the cost of one escaping is greater than the cost of inspecting, and otherwise do not.",
+c:"Uniform review spends most of its effort where the risk is lowest.",
+x:"Someone has to classify the change honestly, and the author is the worst placed to do it.",
+e:"None found that tests it directly.",ev:"none",
+k:"Derive the gate from radius and reversibility by rule, and not from the author’s choice.",s:["shipshowask","apachevoting","kprule","llvmpolicy"]},
+{id:"designfirst",th:"H",n:"Review the design before the code",ml:"Design review first",g:"Refusal is cheap only before the work is done.",
+d:"For changes that matter, agree the approach in a design document or RFC before the code is written. Rust requires an RFC and team consensus for substantial changes. Review of the code then checks that it does what was agreed.",
+c:"A reviewer who objects to the design of finished code is asking someone to throw work away, so they rarely object.",
+x:"Design documents get approved and then ignored, and writing them delays what would be learned from real code.",
+e:"None.",ev:"none",s:["rfcrust","oxide","nygard"]},
+{id:"foureyes",th:"V",n:"Separation of duties",ml:"Separation of duties",g:"No one person can make a critical change alone.",
+d:"Require a second person for any change to something critical. Saltzer and Schroeder call it separation of privilege. An earlier version of Go’s review rule stated the purpose plainly: two people, so that code cannot be submitted unilaterally from a single compromised account.",
+c:"It defends against the compromised or malicious insider, which review for quality does not.",
+x:"When it is imposed for audit, people supply the approval and skip the review.",
+e:"Security practice and incident reports.",ev:"case",
+k:"Branch protection that the author cannot override.",s:["saltzer","clarkwilson","gogerrit","pcidss"]}
+);
+(function(){
+  const add=(key,ids)=>GROUPS.find(g=>g[1]===key)[4].push(...ids);
+  add("scope",["assumebad"]);add("reviewown",["attest","riskgate","designfirst"]);add("sec",["foureyes"]);
+  const m=Object.fromEntries(P.map(p=>[p.id,p]));let i=0;
+  GROUPS.forEach(([th,key,,,ids])=>ids.forEach(id=>{const p=m[id];p.th=th;p.sg=key;p.ord=i++;}));
+  P.sort((a,b)=>a.ord-b.ord);
+})();
+
+X.push(
+{id:"catch-contain",a:["Catch it in review","review"],b:["Assume it is bad","assumebad"],
+why:"One effort lowers the chance that a bad change is merged. The other limits what a bad change can do.",
+res:"Do both, and spend in proportion. Where the radius is small and the change is reversible, containment is nearly free and review adds little. Where neither holds, review is all there is, and it should be slow."},
+{id:"before-after",a:["Review, then commit",null],b:["Commit, then review",null],
+why:"Blocking review stops a bad change and delays every good one. Review after the fact keeps work moving and lets mistakes land.",
+res:"Block where a mistake is costly or cannot be undone. Review afterwards where a revert is cheap."},
+{id:"audit-scrutiny",a:["Mandatory approval","foureyes"],b:["Real scrutiny","attest"],
+why:"A rule that every change needs an approval guarantees approvals. It cannot guarantee that anyone read the change.",
+res:"Keep the two-person rule for what it does well, which is stopping unilateral changes. Judge review by participation, and not by the presence of a tick."}
+);
+Object.assign(AP,{
+"catch-contain":{a:[["Michael Fagan","fagan","Formal inspection removes most defects before testing begins."],["Eric S. Raymond","catb","With enough reviewers, every bug is shallow."]],
+ b:[["Czerwonka, Greiler and Tilford","czerwonka","Most review comments are not about defects, and review slows delivery."],["Colm MacCárthaigh","awscells","Design so that a failure reaches a fraction of customers."]],
+ m:[["James Reason","reason","Every barrier has holes, so use more than one."]]},
+"before-after":{a:[["Google","googleeng","Every change is reviewed before it is submitted."],["Kubernetes","k8sowners","A change needs both an lgtm and an owner’s approval before automation will merge it."]],
+ b:[["The Apache Software Foundation","apachevoting","Under commit-then-review, a change stands unless someone objects."],["The LLVM project","llvmpolicy","Small and obvious changes may be committed first and reviewed afterwards."]],
+ m:[["Rouan Wilsenach","shipshowask","Let the kind of change decide: ship, show, or ask."],["W. Edwards Deming","kprule","Inspect all or none, depending on the cost of a defect against the cost of inspecting."]]},
+"audit-scrutiny":{a:[["PCI DSS","pcidss","Custom code must be reviewed by someone other than its author before release."],["Saltzer and Schroeder","saltzer","A mechanism that needs two keys is more robust than one that needs a single key."]],
+ b:[["McIntosh and colleagues","mcintosh","Approvals given without discussion go with more defects after release."],["Forsgren, Humble and Kim","accelerate","Approval by an outside body slows delivery and does not improve stability."]],
+ m:[["The Linux kernel","kernelcopy","A Reviewed-by tag is a defined statement, offered by a reviewer who has done the work."]]}
+});
+KIN.push(["assumebad","blast"],["assumebad","revchange"],["assumebad","zerotrust"],["assumebad","defdepth"],["assumebad","stability"],
+["attest","review"],["attest","dbc"],["attest","ownership"],["riskgate","blast"],["riskgate","revchange"],["riskgate","deming"],["riskgate","review"],
+["designfirst","adr"],["designfirst","lrm"],["designfirst","review"],["foureyes","leastpriv"],["foureyes","trust"],["foureyes","review"]);
+
+TL.push(
+[1976,"fagan","Fagan inspections","IBM’s formal inspections, with roles and entry and exit criteria.","review",null,"fagan"],
+[2007,"reviewedby","The kernel defines “Reviewed-by”","A written statement of what a reviewer attests is added to the kernel’s documentation.","attest","fagan","kernelcopy"],
+[2013,"rigbybird","Review practices converge","Rigby and Bird find the same pattern across projects: small changes, quick review, about two reviewers.","review","fagan","rigbybird"],
+[2014,"mcintosh","Review participation and defects","Changes approved without discussion go with more defects after release.","attest",null,"mcintosh"],
+[2015,"czerwonka","“Code Reviews Do Not Find Bugs”","A Microsoft study finds that most review comments are not about defects.","review","catb","czerwonka"],
+[2021,"shipshowask","Ship / Show / Ask","Wilsenach proposes letting the kind of change choose its gate.","riskgate",null,"shipshowask"]
+);
+TL.sort((a,b)=>a[0]-b[0]);
+
+/* ---------- merge gate section data ---------- */
+const SIGN=[
+["Signed-off-by","Linux kernel","That the contributor has the right to submit the work under the project’s licence. It is about provenance and says nothing of quality.","The author, and each person who passes the patch on.",["kernelpatches"]],
+["Acked-by","Linux kernel","That a maintainer of the affected code has looked and accepts it. Less formal than a review, and it may cover only part of a patch.","Usually the maintainer of the code touched.",["kernelcopy"]],
+["Reviewed-by","Linux kernel","The Reviewer’s Statement of Oversight: a technical review was carried out, concerns raised were resolved, and the reviewer believes the patch is worthwhile and free of known issues. The reviewer does not warrant it.","Any reviewer who has done the work.",["kernelcopy"]],
+["Tested-by","Linux kernel","That the patch was tested in some environment by the person named.","Anyone who tested it.",["kernelcopy"]],
+["/lgtm","Kubernetes","That a reviewer has checked general code quality, correctness, sound engineering and style.","A reviewer. The label is one of two needed to merge.",["k8sowners"]],
+["/approve","Kubernetes","That an owner of that part of the tree accepts the change into it.","An approver listed in the OWNERS file for the code touched.",["k8sowners"]],
+["Code-Review+2","Go","That the reviewer has read the change and is confident it is correct and appropriate to submit.","An approver. A +1 vote is optional and does not satisfy the requirement.",["gogerrit"]],
+["LGTM, Approval, Readability","Google (internal)","Three separate claims: the change is correct and understandable, it belongs in this part of the codebase, and it follows the language’s style. One person often gives all three.","Any engineer, an owner of the directory, and someone certified for the language.",["swebook","googleeng"]],
+["+1 and -1","Apache projects","A vote. On a code change a -1 is a veto, and it must come with a technical justification.","Committers. Binding votes belong to the project’s management committee.",["apachevoting"]]
+];
+const BARS=[
+["Linux kernel",["kernelpatches","kernelcopy"],"No fixed number of reviews. A patch must carry sign-offs and be accepted by the maintainer of its subsystem, whose tree is then pulled upward.","Subsystem maintainers, and finally Linus Torvalds.","Build and boot robots, and the linux-next integration tree. None of them blocks a maintainer.","Trust runs through people. Review tags raise the odds of acceptance and do not compel it."],
+["Kubernetes",["k8sowners"],"An lgtm label from a reviewer, an approved label from an owner of every directory touched, no hold, and passing tests.","Reviewers and approvers named in OWNERS files.","Automation merges the change once the labels and tests are in place.","The human signals are inputs to a machine that does the merging."],
+["Go",["gogerrit"],"One Code-Review+2 from an approver, the involvement of at least two Google employees as author or reviewer, and passing trybots.","Approvers. Access is granted by the release team.","The review server enforces the requirements and can submit automatically.","An earlier form of the rule gave its reason: no change from a single compromised account."],
+["Google (internal)",["swebook","googleeng"],"LGTM from a reviewer, approval from an owner, and readability approval for the language. A change should be approved once it improves the overall health of the code.","Owners of each directory.","Presubmit checks.","Most changes are small and have one reviewer."],
+["Chromium",["chromiumreview"],"An LGTM from an owner of every file touched, with a committer as author or reviewer.","Owners named in OWNERS files.","A commit queue runs the tests and lands the change.","Described from memory."],
+["Rust",["rustreview","rfcrust"],"Approval from a reviewer with rights to that part of the project. Substantial changes need an accepted RFC first.","Team members, by area.","A bot tests the merged result and only then lands it.","Described from memory. The design gate and the code gate are separate."],
+["CPython",["cpythondev"],"Approval from a core developer, and passing checks.","Core developers.","Continuous integration.","Described from memory."],
+["LLVM",["llvmpolicy"],"Review before commit for most changes, by someone familiar with the code. Small and obvious changes may be committed first.","Reviewers and maintainers of each area.","Build bots after commit, with reverts as the remedy.","Described from memory. The project relies on being able to revert."],
+["Apache projects",["apachevoting"],"Each project chooses. Review-then-commit needs consensus approval. Commit-then-review lets a change stand unless a committer vetoes it with a technical reason.","Committers and the project’s management committee.","Varies by project.","Described from memory. The veto is the defining feature."],
+["Regulated software",["pcidss","do178c"],"Review by someone other than the author, and in the highest avionics levels verification by someone independent of the developer.","The organisation, answerable to an auditor or certification authority.","Evidence is collected for audit.","Described from memory. The requirement is that a review is recorded."]
+];
+const GATEPOS=[
+["Before the code","A design document or RFC is agreed first.","Refusal is cheap here and nowhere else.","Slow to start, and the design may not survive contact with the code."],
+["Before the merge","A person must approve before the change lands.","Stops a bad change from reaching others.","Every change waits in a queue, and the reviewer sees finished work."],
+["At the merge","A merge queue tests the combined result and lands it.","The main branch always passes.","Checks only what the tests check."],
+["After the merge","The change lands and is reviewed afterwards.","No waiting.","Mistakes land, so it depends on cheap reverts."],
+["At deployment","A change board or pipeline approves the release.","A last look at the whole.","Furthest from the people who know the change. The delivery research found it slows teams without making them more stable."],
+["At release","Flags, canaries and staged rollout decide who is exposed.","Limits the damage whatever was missed earlier.","Adds states to the system and needs good monitoring."]
+];
+const RSRCH=[
+["Formal inspection, with defined roles and entry and exit criteria, found a large share of defects before testing.","Slow and expensive. A meeting for every change.",["fagan"]],
+["Across open-source and industrial projects, review converged on the same shape: small changes, reviewed quickly, by about two people.","More reviewers added little.",["rigbybird"]],
+["At Microsoft, developers expected review to find defects. What it mostly produced was shared understanding and better solutions.","If defects are the goal, review is a costly way to find few of them.",["bacchelli"]],
+["Also at Microsoft, only a minority of review comments concerned possible defects, and usefulness fell as changes grew.","Review as practised slows delivery.",["czerwonka","bosu"]],
+["In three open-source projects, components with low review coverage or with approvals given without discussion had more defects after release.","Review that is only a tick is worth little.",["mcintosh"]],
+["At Mozilla, about half of the reviewed changes studied were later implicated in bugs. Reviewer workload and experience mattered.","Review is a weak filter.",["kononenko"]],
+["At Google, most changes are small, have one reviewer and are reviewed within hours.","The cost is kept low by keeping changes small.",["sadowski"]],
+["Approval by an outside body made delivery slower and did not make it more stable. Peer review did not carry that cost.","Distance from the change costs more than it buys.",["accelerate"]],
+["A vendor study at Cisco found that reviewers’ yield fell beyond a few hundred lines or about an hour.","Vendor data, widely repeated.",["cohen"]],
+["With AI assistance, one vendor reports far more pull requests and much longer review times, and one 2026 study reports that most pull requests opened by agents received no review.","As reported, and not checked against the originals.",["faros","duma"]]
+];
+const ANALOG=[
+["Credit risk","Expected loss is the probability of default, times the exposure at default, times the loss given default. A lender caps exposure however good the borrower looks.","The chance of a bad merge, times its radius, times the share that cannot be undone. Cap the last two whatever review says.",["baselrisk"]],
+["Diagnostic testing","A test with modest sensitivity leaves a real chance of disease after a negative result. If one change in ten is defective and review catches half of those, about one approved change in nineteen is still defective.","An approval moves the odds. It does not settle them.",["kononenko","czerwonka"]],
+["Acceptance sampling","Deming’s all-or-none rule: inspect every item when the defect rate times the cost of a defect escaping exceeds the cost of inspecting one, and inspect none otherwise.","Review when the chance of a defect times the loss given a bad merge exceeds the cost of the review. A contained, reversible change falls below the line.",["kprule"]],
+["Failure-mode analysis","Risk is severity times occurrence times detection.","Review improves detection. Radius and reversibility set severity.",["fmea"]],
+["Clinical trials","A treatment is given to a few people, then more, as evidence accumulates, with rules for stopping.","Staged rollout, with automatic rollback as the stopping rule.",[]],
+["Security","Assume breach: design so that a compromised component can reach little.","Assume the change is bad: design so that it can reach little.",["zerotrustsrc","saltzer"]]
+];
+
 /* ---------- helpers ---------- */
 const $=(s,r=document)=>r.querySelector(s);
 const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
@@ -2678,6 +2855,38 @@ function renderAccountability(){
   add("h3","acch","Protections that do not exist yet");
   add("p","sub","Each entry gives the gap, the nearest thing the law does provide, and why the gap matters.");
   GAPS.forEach(g=>add("div","tension gap",`<h3>${g[0]}</h3><p><span>What exists</span>${g[1]}</p><p><span>Why it matters</span>${g[2]}</p>${g[3].length?srcList(g[3]):""}`));
+}
+
+/* ---------- merge gate ---------- */
+function renderGate(){
+  const box=$("#gatebox");
+  const add=(tag,cls,html)=>{const e=el(tag,cls,html);box.appendChild(e);return e};
+  const src=k=>k&&k.length?srcList(k):"";
+  const table=(heads,rows,min)=>`<div class="tscroll"><table style="min-width:${min}px"><thead><tr>${heads.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  add("h3","acch","What an approval can mean");
+  add("p","sub","Projects that take review seriously give each kind of sign-off a defined meaning. These are the clearest examples.");
+  add("div",null,table(["Sign-off","Where","What it attests","Who gives it"],
+    SIGN.map(r=>`<tr><td>${r[0]}${src(r[4])}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join(""),860));
+  add("h3","acch","The minimum bar in large projects");
+  add("p","sub","What each project’s own guidance requires before a change can land. Rows marked as described from memory were not checked against the current documents.");
+  add("div",null,table(["Project","Minimum to merge","Who decides","Machine gate","Note"],
+    BARS.map(r=>`<tr><td>${r[0]}${src(r[1])}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td></tr>`).join(""),1040));
+  add("h3","acch","Where the gate can sit");
+  add("div",null,table(["Position","How it works","What it buys","What it costs"],
+    GATEPOS.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join(""),820));
+  add("h3","acch","What the research says");
+  add("div",null,table(["Finding","Cost or caveat"],
+    RSRCH.map(r=>`<tr><td class="plain">${r[0]}${src(r[2])}</td><td>${r[1]}</td></tr>`).join(""),700));
+  add("h3","acch","Assume the change is bad");
+  add("p","sub wide",`Review lowers the chance that a bad change gets through. The studies above say it does not make that chance small. So ask a second question for every change: if this is bad, how much can it damage, and how much of that can be recovered? The pattern is the one other fields use when they cannot know in advance which case will fail. It is stated on this page as <a href="#p-assumebad" data-go="p-assumebad">Assume the change is bad</a>, and it rests on <a href="#p-blast" data-go="p-blast">blast radius</a> and the <a href="#p-revchange" data-go="p-revchange">reversibility ladder</a>.`);
+  add("div","eq",`<div class="lhs"><b>Expected loss</b></div><span>=</span>
+    <div class="term"><b>P(bad)</b><i>Unknown. Lowered by skill, tests and types.</i></div><span>×</span>
+    <div class="term"><b>P(missed | bad)</b><i>What review works on, and only modestly.</i></div><span>×</span>
+    <div class="term hi"><b>exposure</b><i>The blast radius. Set by design and rollout.</i></div><span>×</span>
+    <div class="term hi"><b>1 − recovery</b><i>The reversibility rung.</i></div>`);
+  add("p","sub wide","The last two terms together are the loss given a bad merge. They do not depend on how likely the change is to be bad, which nobody knows, so they can be worked out for every change before it lands. A change with a small product needs little ceremony. A change with a large one needs the heavy gate, however good it looks.");
+  add("div",null,table(["Field","How that field puts it","What it says about a merge"],
+    ANALOG.map(r=>`<tr><td>${r[0]}${src(r[3])}</td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join(""),820));
 }
 
 /* ---------- filters ---------- */
@@ -2881,7 +3090,7 @@ function renderStatic(){
 }
 
 /* ---------- boot ---------- */
-renderPrinciples();renderIndex();renderEthics();renderAccountability();renderGroupMap();renderMap();wireMapToggle();renderChips();renderTensions(X,$("#tlist"));renderTensions(XE,$("#etlist"));renderTimeline();renderStatic();applyFilters();
+renderPrinciples();renderIndex();renderEthics();renderAccountability();renderGate();renderGroupMap();renderMap();wireMapToggle();renderChips();renderTensions(X,$("#tlist"));renderTensions(XE,$("#etlist"));renderTimeline();renderStatic();applyFilters();
 fromHash();
 </script>
 </body>

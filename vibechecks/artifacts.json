@@ -1,27 +1,56 @@
 {
-  "synced": "2026-10-05",
+  "synced": "2026-10-06",
   "latest": {
-    "title": "Design Principles, and Where They Collide",
-    "slug": "design-principles",
-    "artifact_id": "ELrJpytiNjEDzyGnwJhaW2",
-    "version": "1791245192-ef26",
-    "updated_utc": "2026-10-06T00:06:32Z"
+    "title": "Dizzy execution domain, LCARS study",
+    "slug": "dizzy-lcars-study",
+    "artifact_id": "UfAEshgVRWjUHPNBnhs25J",
+    "version": "1791326338-4653",
+    "updated_utc": "2026-10-06T22:38:58Z"
   },
   "how_to_check": "Ask Claude to list your artifacts. Anything whose id is not below, or whose version differs from the one recorded here, is new or changed. Versions start with a unix timestamp, so updated_utc is exact; the artifact list itself only shows the day.",
   "generation_note": "generation is null for artifacts made on claude.ai: the page carries no model, effort or cost. For Claude Code ones it comes from the local session transcripts under ~/.claude/projects.",
   "artifacts": [
     {
+      "title": "Dizzy execution domain, LCARS study",
+      "slug": "dizzy-lcars-study",
+      "url": "https://claude.ai/artifact/UfAEshgVRWjUHPNBnhs25J",
+      "artifact_id": "UfAEshgVRWjUHPNBnhs25J",
+      "version": "1791326338-4653",
+      "updated_utc": "2026-10-06T22:38:58Z",
+      "status": "pulled",
+      "page": "vibechecks/dizzy-lcars-study.html",
+      "notes": "vibechecks/dizzy-lcars-study-notes.html",
+      "source": "claude.ai",
+      "bytes": 94066,
+      "generation": null,
+      "note": "local source path in embedded data redacted to a relative path"
+    },
+    {
+      "title": "One bus shelter, twenty-two design methods",
+      "slug": "bus-shelter-design-methods",
+      "url": "https://claude.ai/artifact/AFPeu12PkgJCXK91JK8UVL",
+      "artifact_id": "AFPeu12PkgJCXK91JK8UVL",
+      "version": "1791305833-cb7b",
+      "updated_utc": "2026-10-06T16:57:13Z",
+      "status": "pulled",
+      "page": "vibechecks/bus-shelter-design-methods.html",
+      "notes": "vibechecks/bus-shelter-design-methods-notes.html",
+      "source": "claude.ai",
+      "bytes": 74575,
+      "generation": null
+    },
+    {
       "title": "Design Principles, and Where They Collide",
       "slug": "design-principles",
       "url": "https://claude.ai/artifact/ELrJpytiNjEDzyGnwJhaW2",
       "artifact_id": "ELrJpytiNjEDzyGnwJhaW2",
-      "version": "1791245192-ef26",
-      "updated_utc": "2026-10-06T00:06:32Z",
+      "version": "1791261338-8e9e",
+      "updated_utc": "2026-10-06T04:35:38Z",
       "status": "pulled",
       "page": "vibechecks/design-principles.html",
       "notes": "vibechecks/design-principles-notes.html",
       "source": "claude.ai",
-      "bytes": 297037,
+      "bytes": 323981,
       "generation": null
     },
     {
@@ -581,7 +610,7 @@
       "generation": null
     },
     {
-      "title": "goalc \u00b7 graph",
+      "title": "goalc · graph",
       "slug": "goalc-graph-2026-08-04",
       "url": "https://claude.ai/artifact/5XYwWeFBEynPEfrwgNSLna",
       "artifact_id": "5XYwWeFBEynPEfrwgNSLna",
@@ -596,7 +625,7 @@
       "note": "excluded by Conrad: Plan / Dizzy / goalc topic"
     },
     {
-      "title": "goalc \u00b7 graph",
+      "title": "goalc · graph",
       "slug": "goalc-graph-2026-07-25b",
       "url": "https://claude.ai/artifact/1wkdXxcqC8BwfQmhAXmCCN",
       "artifact_id": "1wkdXxcqC8BwfQmhAXmCCN",
@@ -611,7 +640,7 @@
       "note": "excluded by Conrad: Plan / Dizzy / goalc topic"
     },
     {
-      "title": "goalc \u00b7 graph",
+      "title": "goalc · graph",
       "slug": "goalc-graph-2026-07-25a",
       "url": "https://claude.ai/artifact/Np9vMTYRqqnbMMngoMmrHo",
       "artifact_id": "Np9vMTYRqqnbMMngoMmrHo",

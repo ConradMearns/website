@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>One bus shelter, twenty-two design methods</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&family=Literata:opsz,wght@7..72,400..600&display=swap">
+<style>
+:root{
+  --paper:#EEF1F2; --sheet:#FFFFFF; --ink:#14213D; --soft:#4C5A73; --rule:#C5CDD6;
+  --flag:#F2B705; --flag-ink:#14213D; --teal:#2F6F73; --red:#B3392F; --tint:#E2E8EC;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1626; --sheet:#172036; --ink:#E6EAF0; --soft:#A3AEC2; --rule:#33405C;
+    --flag:#F2B705; --flag-ink:#14213D; --teal:#6FC1C4; --red:#F08A7E; --tint:#1F2B47;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1626; --sheet:#172036; --ink:#E6EAF0; --soft:#A3AEC2; --rule:#33405C;
+  --flag:#F2B705; --flag-ink:#14213D; --teal:#6FC1C4; --red:#F08A7E; --tint:#1F2B47;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Literata",Georgia,"Times New Roman",serif; font-size:1.0625rem; line-height:1.6;
+}
+.wrap{max-width:44rem; margin:0 auto; padding:1.5rem 1.125rem 4rem}
+h1,h2,h3,button,.ui,th,summary,.year,nav a{font-family:"Archivo","Helvetica Neue",Arial,sans-serif}
+h1{font-size:clamp(2.1rem,9vw,3.6rem); line-height:1; font-weight:800; font-stretch:80%; margin:1.5rem 0 1rem; letter-spacing:-0.01em}
+h2{font-size:1.6rem; line-height:1.1; font-weight:750; font-stretch:88%; margin:0}
+h3{font-size:1rem; font-weight:700; margin:1.25rem 0 .4rem}
+p{margin:.6rem 0}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--flag); outline-offset:2px}
+
+.brief{background:var(--flag); color:var(--flag-ink); padding:1rem 1.125rem; border-radius:.25rem; font-size:1.05rem}
+.brief strong{font-family:"Archivo","Helvetica Neue",Arial,sans-serif}
+.lede{color:var(--soft)}
+
+nav ul{list-style:none; padding:0; margin:1.5rem 0 0; display:grid; grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr)); gap:.4rem}
+nav a{display:flex; gap:.5rem; align-items:baseline; text-decoration:none; padding:.45rem .6rem; background:var(--sheet); border-radius:.25rem; font-size:.9rem; font-weight:600}
+nav a span{color:var(--soft); font-weight:500; font-variant-numeric:tabular-nums}
+
+section.method{background:var(--sheet); margin-top:2.25rem; border-radius:.375rem; padding:1.25rem 1.125rem 1.4rem; border-top:.5rem solid var(--ink)}
+.head{display:flex; gap:.85rem; align-items:center}
+.year{flex:none; width:3.6rem; height:3.6rem; border-radius:50%; background:var(--flag); color:var(--flag-ink); display:grid; place-items:center; font-weight:800; font-size:1.05rem; font-variant-numeric:tabular-nums}
+.by{font-family:"Archivo","Helvetica Neue",Arial,sans-serif; color:var(--soft); font-size:.92rem; margin:.15rem 0 0}
+.claim{margin-top:1rem}
+.breaks{border-left:.25rem solid var(--red); padding-left:.75rem; margin-top:1.1rem; color:var(--soft)}
+.breaks b,.claim b{font-family:"Archivo","Helvetica Neue",Arial,sans-serif; color:var(--ink)}
+.specimen{background:var(--tint); border-radius:.25rem; padding:.9rem; margin-top:.9rem}
+.scroll{overflow-x:auto; max-width:100%}
+table{border-collapse:collapse; width:100%; font-size:.9rem; font-family:"Archivo","Helvetica Neue",Arial,sans-serif}
+th,td{text-align:left; padding:.4rem .5rem; border-bottom:1px solid var(--rule); vertical-align:top}
+th{font-weight:700}
+svg{max-width:100%; height:auto; display:block}
+svg text{font-family:"Archivo","Helvetica Neue",Arial,sans-serif; fill:var(--ink)}
+button{font-size:.88rem; font-weight:600; color:var(--ink); background:var(--sheet); border:1.5px solid var(--rule); border-radius:.25rem; padding:.45rem .65rem; cursor:pointer}
+button[aria-pressed="true"]{background:var(--ink); color:var(--sheet); border-color:var(--ink)}
+
+/* Archer */
+.stages{list-style:none; padding:0; margin:0; counter-reset:s}
+.stages li{counter-increment:s; padding:.5rem 0 .5rem 2.2rem; position:relative; border-bottom:1px solid var(--rule); font-size:.95rem}
+.stages li::before{content:counter(s); position:absolute; left:0; top:.55rem; width:1.5rem; height:1.5rem; border-radius:50%; background:var(--ink); color:var(--sheet); display:grid; place-items:center; font:700 .8rem "Archivo",Arial,sans-serif}
+.stages b{font-family:"Archivo","Helvetica Neue",Arial,sans-serif}
+.phase{font:600 .8rem "Archivo",Arial,sans-serif; color:var(--teal); margin:.8rem 0 .1rem}
+
+/* Alexander graph */
+.g-link{stroke:var(--soft); stroke-width:1.5}
+.g-node{fill:var(--sheet); stroke:var(--ink); stroke-width:1.5}
+.split .g-link.cross{stroke:var(--red); stroke-dasharray:4 4}
+.split .cA{fill:var(--flag)} .split .cA + text{fill:var(--flag-ink)}
+.split .cB{fill:var(--teal)} .split .cB + text{fill:var(--sheet)}
+.split .cC{fill:var(--ink)} .split .cC + text{fill:var(--sheet)}
+.reqs{columns:2; column-gap:1.2rem; padding-left:1.3rem; margin:.6rem 0 0; font:500 .85rem/1.35 "Archivo",Arial,sans-serif}
+.reqs li{break-inside:avoid; margin-bottom:.25rem}
+
+/* Morph */
+.mrow{margin-bottom:.7rem}
+.mrow .ui{font-weight:700; font-size:.88rem; margin-bottom:.3rem}
+.opts{display:flex; flex-wrap:wrap; gap:.35rem}
+.result{background:var(--sheet); border-radius:.25rem; padding:.7rem; margin-top:.6rem; font-size:.95rem}
+
+/* Simon */
+.sliders label{display:block; font:600 .88rem "Archivo",Arial,sans-serif; margin-top:.6rem}
+.sliders input{width:100%; accent-color:var(--teal)}
+tr.pick td{background:var(--flag); color:var(--flag-ink); font-weight:700}
+tr.unseen td{opacity:.45}
+
+/* IBIS */
+details{margin:.35rem 0 .35rem .1rem}
+details details,.leaf{margin-left:1rem}
+summary{cursor:pointer; font-size:.93rem; font-weight:600; padding:.2rem 0}
+.leaf{font:500 .93rem/1.4 "Archivo",Arial,sans-serif; padding:.2rem 0 .2rem 1rem}
+.tag{display:inline-block; font:700 .72rem "Archivo",Arial,sans-serif; padding:.1rem .4rem; border-radius:.2rem; margin-right:.35rem; vertical-align:.08em}
+.t-i{background:var(--ink); color:var(--sheet)}
+.t-p{background:var(--flag); color:var(--flag-ink)}
+.t-f{background:var(--teal); color:var(--sheet)}
+.t-a{background:var(--red); color:var(--sheet)}
+
+/* Pattern */
+.pair{display:grid; gap:.9rem}
+@media (min-width:44rem){.pair{grid-template-columns:1fr 1fr}}
+.card{background:var(--sheet); border-radius:.25rem; padding:.9rem; font-size:.95rem}
+.card h3{margin-top:0}
+.therefore{font-style:italic; margin:.7rem 0 .2rem}
+.gof dt{font:700 .85rem "Archivo",Arial,sans-serif; margin-top:.55rem}
+.gof dd{margin:0; font-size:.92rem}
+
+/* Schön */
+.talk{list-style:none; padding:0; margin:0}
+.talk li{padding:.55rem .7rem; border-radius:.25rem; margin-bottom:.4rem; font-size:.95rem; background:var(--sheet)}
+.talk li.back{margin-left:1.25rem; border-left:.25rem solid var(--teal)}
+.talk li.frame{background:var(--flag); color:var(--flag-ink)}
+.talk b{font-family:"Archivo","Helvetica Neue",Arial,sans-serif}
+
+/* ADR */
+.adr{font:500 .92rem/1.5 "Archivo",Arial,sans-serif}
+.adr h3{margin:0 0 .3rem; font-size:1.05rem}
+.adr dt{font-weight:700; margin-top:.6rem}
+.adr dd{margin:0}
+footer{margin-top:2.5rem; color:var(--soft); font-size:.92rem}
+
+/* ---- part two ---- */
+.navlabel{font:700 .95rem "Archivo","Helvetica Neue",Arial,sans-serif; margin:1.4rem 0 0}
+nav ul{margin-top:.45rem}
+.part{margin-top:3.5rem}
+.part h2{font-size:2.1rem}
+.part p{color:var(--soft)}
+pre{font:500 .8rem/1.5 ui-monospace,"SF Mono",Menlo,Consolas,monospace; background:var(--sheet); border-radius:.25rem; padding:.75rem; overflow-x:auto; margin:.5rem 0; white-space:pre; color:var(--ink)}
+.t-n{border:1.5px solid var(--soft); color:var(--ink)}
+.small{font:500 .9rem/1.45 "Archivo","Helvetica Neue",Arial,sans-serif; margin:.6rem 0 0}
+.btns{display:flex; flex-wrap:wrap; gap:.4rem; margin-top:.7rem}
+
+/* inverse */
+#bracket .after{display:none}
+#bracket.opt .after{display:inline}
+#bracket.opt .before{display:none}
+
+/* set-based */
+.setrow{display:flex; flex-wrap:wrap; gap:.35rem; align-items:center; margin-bottom:.45rem}
+.setrow b{font:700 .88rem "Archivo",Arial,sans-serif; width:4.2rem}
+.chip{font:600 .85rem "Archivo",Arial,sans-serif; padding:.3rem .55rem; border-radius:.25rem; background:var(--sheet); border:1.5px solid var(--ink)}
+.chip.out{text-decoration:line-through; opacity:.45; border-color:var(--rule)}
+.gatelog{list-style:none; padding:0; margin:.7rem 0 0; font:500 .9rem/1.4 "Archivo",Arial,sans-serif}
+.gatelog li{padding:.35rem 0; border-top:1px solid var(--rule)}
+
+/* quadratic voting */
+.qrow{display:grid; grid-template-columns:1fr auto; gap:.5rem; align-items:center; padding:.45rem 0; border-bottom:1px solid var(--rule); font:600 .9rem "Archivo",Arial,sans-serif}
+.qctl{display:flex; align-items:center; gap:.4rem}
+.qctl button{width:2.2rem; height:2.2rem; padding:0; font-size:1.1rem}
+.qctl output{min-width:5.6rem; text-align:center; font-weight:500}
+
+/* clustering */
+.stmt{padding:.6rem 0; border-bottom:1px solid var(--rule); font:500 .92rem/1.35 "Archivo",Arial,sans-serif}
+.barrow{display:grid; grid-template-columns:4.6rem 1fr 2.6rem; gap:.4rem; align-items:center; font-size:.8rem; margin-top:.25rem}
+.track{background:var(--sheet); height:.6rem; border-radius:.15rem}
+.bar{display:block; height:100%; background:var(--teal); border-radius:.15rem}
+
+/* event storming */
+.wall{display:flex; gap:.45rem; overflow-x:auto; padding-bottom:.6rem}
+.colm{flex:none; width:7rem; display:flex; flex-direction:column; gap:.35rem}
+.st{padding:.45rem; font:600 .76rem/1.25 "Archivo",Arial,sans-serif; color:#1b1b1b; min-height:3.4rem}
+.st.ev{background:#F6A04D} .st.cmd{background:#7CB7E8} .st.act{background:#F7E26B; min-height:0}
+.st.pol{background:#C9A6E4} .st.ext{background:#F4A6C0} .st.rm{background:#9BD08B} .st.hot{background:#D7343A; color:#fff}
+.legend{display:flex; flex-wrap:wrap; gap:.3rem; margin-bottom:.7rem}
+.legend .st{min-height:0; padding:.2rem .45rem}
+
+/* shape up */
+.pitch dt{font:700 .88rem "Archivo",Arial,sans-serif; margin-top:.65rem}
+.pitch dd{margin:0; font-size:.95rem}
+
+/* malleable */
+.disp{background:#0B1220; color:#FFC940; border-radius:.35rem; padding:.9rem 1rem; font:700 1rem/1.5 "Archivo","Helvetica Neue",Arial,sans-serif; font-stretch:85%}
+.disp .r{display:flex; justify-content:space-between; gap:1rem}
+.disp.big .r{font-size:1.7rem; line-height:1.3}
+.disp .x{font-weight:500; font-size:.85rem; color:#D7DEEA; margin-top:.4rem; border-top:1px solid #33405C; padding-top:.4rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>One bus shelter, twenty-two design methods</h1>
+  <p class="brief"><strong>The brief.</strong> The Mill Street stop is a pole in the pavement. Riders stand at the kerb in the rain because they cannot see the bus coming from anywhere else. Design a shelter, and its arrival display, for under 25 thousand.</p>
+  <p class="lede">Each method below is applied to that same brief. The first nine are the design methods lineage, in the order they appeared. The next thirteen are later arrivals, some descended from it and some not. The examples are invented for illustration; the formats are the real ones.</p>
+  <nav aria-label="Methods">
+    <p class="navlabel">The lineage</p>
+    <ul>
+      <li><a href="#morph"><span>1962</span>Morphological chart</a></li>
+      <li><a href="#archer"><span>1963</span>Systematic method</a></li>
+      <li><a href="#notes"><span>1964</span>Decomposition</a></li>
+      <li><a href="#simon"><span>1969</span>Satisficing search</a></li>
+      <li><a href="#ibis"><span>1970</span>IBIS</a></li>
+      <li><a href="#pattern"><span>1977</span>Pattern</a></li>
+      <li><a href="#schon"><span>1983</span>Reflective practice</a></li>
+      <li><a href="#diamond"><span>2004</span>Double Diamond</a></li>
+      <li><a href="#adr"><span>2011</span>Decision record</a></li>
+    </ul>
+    <p class="navlabel">Later arrivals and outsiders</p>
+    <ul>
+      <li><a href="#inverse"><span>1988</span>Inverse design</a></li>
+      <li><a href="#setbased"><span>1995</span>Set-based design</a></li>
+      <li><a href="#gsn"><span>1998</span>Assurance case</a></li>
+      <li><a href="#tla"><span>1999</span>Formal methods</a></li>
+      <li><a href="#stpa"><span>2004</span>STPA</a></li>
+      <li><a href="#qv"><span>2012</span>Quadratic voting</a></li>
+      <li><a href="#cluster"><span>2012</span>Opinion clustering</a></li>
+      <li><a href="#storm"><span>2013</span>Event Storming</a></li>
+      <li><a href="#ost"><span>2016</span>Opportunity tree</a></li>
+      <li><a href="#shapeup"><span>2019</span>Shape Up</a></li>
+      <li><a href="#evals"><span>2023</span>Generate and select</a></li>
+      <li><a href="#capture"><span>2024</span>Machine-kept rationale</a></li>
+      <li><a href="#malleable"><span>2025</span>Malleable software</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- 1962 -->
+<section class="method" id="morph">
+  <div class="head"><div class="year">1962</div><div><h2>Morphological chart</h2><p class="by">Fritz Zwicky's method, brought to design at the first Design Methods conference</p></div></div>
+  <p class="claim"><b>What it believes.</b> A design is one choice per function. List the functions, list the options, and the whole space of designs is laid out in front of you.</p>
+  <div class="specimen">
+    <div id="morphRows"></div>
+    <div class="result" id="morphOut" aria-live="polite"></div>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> The chart assumes the rows are independent. A hedge windbreak and a mains-powered display are not independent of the roof, and nothing in the chart tells you which of the hundreds of combinations is any good.</p>
+</section>
+
+<!-- 1963 -->
+<section class="method" id="archer">
+  <div class="head"><div class="year">1963</div><div><h2>Systematic method</h2><p class="by">Bruce Archer, Royal College of Art</p></div></div>
+  <p class="claim"><b>What it believes.</b> Design is a sequence of stages with a checkable output at each one. Analysis comes before ideas, and a written performance specification is the contract.</p>
+  <div class="specimen">
+    <p class="phase">Analytical phase</p>
+    <ol class="stages">
+      <li><b>Programming.</b> Agree the brief, the budget, and who signs off.</li>
+      <li><b>Data collection.</b> Count boardings by hour. Measure pavement width. Log wind direction for a month.</li>
+      <li><b>Analysis.</b> Write the performance specification (below).</li>
+    </ol>
+    <p class="phase">Creative phase</p>
+    <ol class="stages" start="4" style="counter-reset:s 3">
+      <li><b>Synthesis.</b> Outline three proposals that meet every line of the specification.</li>
+      <li><b>Development.</b> Build one bay as a prototype and test it against the specification.</li>
+    </ol>
+    <p class="phase">Executive phase</p>
+    <ol class="stages" start="6" style="counter-reset:s 5">
+      <li><b>Communication.</b> Issue fabrication drawings and a maintenance schedule.</li>
+    </ol>
+    <h3>Performance specification, extract</h3>
+    <div class="scroll"><table>
+      <tr><th>Ref</th><th>Requirement</th><th>Test</th></tr>
+      <tr><td>P1</td><td>Seated rider sees a bus 150 m upstream</td><td>Sightline survey</td></tr>
+      <tr><td>P2</td><td>Dry seat in rain driven from the south-west</td><td>Hose test at 30°</td></tr>
+      <tr><td>P3</td><td>1.8 m clear pavement behind the shelter</td><td>Tape measure</td></tr>
+      <tr><td>P4</td><td>Installed cost under 25 thousand</td><td>Tender price</td></tr>
+    </table></div>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> You cannot write P1 until someone has already half-imagined a shelter with a seat in it. The specification smuggles in a solution, which is what Archer himself later conceded.</p>
+</section>
+
+<!-- 1964 -->
+<section class="method" id="notes">
+  <div class="head"><div class="year">1964</div><div><h2>Decomposition</h2><p class="by">Christopher Alexander, <i>Notes on the Synthesis of Form</i></p></div></div>
+  <p class="claim"><b>What it believes.</b> List every way the form could fail to fit its context. Link the requirements that interact. Then cut the graph where the links are fewest, and solve each piece with its own diagram.</p>
+  <div class="specimen">
+    <svg id="graph" viewBox="0 0 340 300" role="img" aria-label="Graph of nine requirements linked where they interact">
+      <g>
+        <line class="g-link" x1="70" y1="60" x2="150" y2="40"/><line class="g-link" x1="70" y1="60" x2="120" y2="120"/><line class="g-link" x1="150" y1="40" x2="120" y2="120"/>
+        <line class="g-link" x1="260" y1="90" x2="300" y2="170"/><line class="g-link" x1="260" y1="90" x2="230" y2="180"/><line class="g-link" x1="300" y1="170" x2="230" y2="180"/>
+        <line class="g-link" x1="60" y1="220" x2="140" y2="210"/><line class="g-link" x1="60" y1="220" x2="100" y2="275"/><line class="g-link" x1="140" y1="210" x2="100" y2="275"/>
+        <line class="g-link cross" x1="70" y1="60" x2="260" y2="90"/><line class="g-link cross" x1="120" y1="120" x2="140" y2="210"/><line class="g-link cross" x1="230" y1="180" x2="60" y2="220"/>
+      </g>
+      <g font-size="13" font-weight="700" text-anchor="middle">
+        <circle class="g-node cA" cx="70" cy="60" r="15"/><text x="70" y="65">1</text>
+        <circle class="g-node cA" cx="150" cy="40" r="15"/><text x="150" y="45">2</text>
+        <circle class="g-node cA" cx="120" cy="120" r="15"/><text x="120" y="125">6</text>
+        <circle class="g-node cB" cx="260" cy="90" r="15"/><text x="260" y="95">3</text>
+        <circle class="g-node cB" cx="300" cy="170" r="15"/><text x="300" y="175">4</text>
+        <circle class="g-node cB" cx="230" cy="180" r="15"/><text x="230" y="185">5</text>
+        <circle class="g-node cC" cx="60" cy="220" r="15"/><text x="60" y="225">7</text>
+        <circle class="g-node cC" cx="140" cy="210" r="15"/><text x="140" y="215">8</text>
+        <circle class="g-node cC" cx="100" cy="275" r="15"/><text x="100" y="280">9</text>
+      </g>
+    </svg>
+    <button id="splitBtn" aria-pressed="false">Decompose the graph</button>
+    <p id="splitNote" class="ui" style="font-size:.9rem;margin:.6rem 0 0" aria-live="polite">Nine requirements, twelve interactions.</p>
+    <ol class="reqs">
+      <li>Rider sees the bus coming</li><li>Driver sees the rider</li><li>Shelter from wind and rain</li>
+      <li>Somewhere to sit</li><li>Pavement stays clear</li><li>Feels safe at night</li>
+      <li>Arrival times readable</li><li>Survives vandalism</li><li>Cheap to maintain</li>
+    </ol>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> The three dashed links are the ones the method throws away, and the first of them, seeing against sheltering, is the entire brief. Alexander made this objection himself a year later in "A City Is Not a Tree".</p>
+</section>
+
+<!-- 1969 -->
+<section class="method" id="simon">
+  <div class="head"><div class="year">1969</div><div><h2>Satisficing search</h2><p class="by">Herbert Simon, <i>The Sciences of the Artificial</i></p></div></div>
+  <p class="claim"><b>What it believes.</b> Design is search through a space of alternatives. You cannot look at them all, so set aspiration levels and stop at the first candidate that clears every one.</p>
+  <div class="specimen">
+    <div class="sliders">
+      <label>Cost at most <output id="oCost"></output> thousand<input type="range" id="sCost" min="5" max="70" value="25"></label>
+      <label>At least <output id="oSeat"></output> seats<input type="range" id="sSeat" min="0" max="10" value="4"></label>
+      <label>At least <output id="oSide"></output> sheltered sides<input type="range" id="sSide" min="0" max="3" value="2"></label>
+    </div>
+    <div class="scroll" style="margin-top:.8rem"><table id="simonTable"></table></div>
+    <p id="simonNote" class="ui" style="font-size:.9rem;margin:.7rem 0 0" aria-live="polite"></p>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> Everything interesting happened before the search started: someone chose these three measures and this order of generation. Sightlines are not a column, so no setting of the sliders can find the answer to the brief.</p>
+</section>
+
+<!-- 1970 -->
+<section class="method" id="ibis">
+  <div class="head"><div class="year">1970</div><div><h2>IBIS</h2><p class="by">Werner Kunz and Horst Rittel</p></div></div>
+  <p class="claim"><b>What it believes.</b> There is no correct shelter, only positions that people argue for. Record the issues, the positions taken on them, and the arguments, and the design is whatever survives.</p>
+  <div class="specimen">
+    <details open>
+      <summary><span class="tag t-i">Issue</span>Where should the Mill Street stop go?</summary>
+      <details open>
+        <summary><span class="tag t-p">Position</span>Outside the clinic</summary>
+        <div class="leaf"><span class="tag t-f">For</span>A third of riders are clinic patients.</div>
+        <div class="leaf"><span class="tag t-a">Against</span>The pavement there is 2.1 m wide. A shelter leaves no room for a wheelchair to pass.</div>
+        <details>
+          <summary><span class="tag t-i">Issue</span>Can the clinic give up its front planter?</summary>
+          <div class="leaf"><span class="tag t-p">Position</span>Yes, in exchange for the transit authority maintaining the forecourt.</div>
+          <div class="leaf"><span class="tag t-a">Against</span>The clinic board meets quarterly. The budget expires first.</div>
+        </details>
+      </details>
+      <details open>
+        <summary><span class="tag t-p">Position</span>At the grocery corner</summary>
+        <div class="leaf"><span class="tag t-f">For</span>Wide pavement, and the shop lights it until ten.</div>
+        <div class="leaf"><span class="tag t-a">Against</span>The bus would stop inside the junction's sightline.</div>
+      </details>
+      <details>
+        <summary><span class="tag t-i">Issue</span>Should the route run along Mill Street at all?</summary>
+        <div class="leaf"><span class="tag t-p">Position</span>Move it one block east, where there is already a lay-by.</div>
+        <div class="leaf"><span class="tag t-a">Against</span>That puts a hill between the stop and the clinic.</div>
+      </details>
+    </details>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> The map grows faster than anyone can read it, and the third issue shows why: every problem turns out to be a symptom of another one. Keeping it tidy takes a trained facilitator, and the people who pay that cost are not the ones who benefit later.</p>
+</section>
+
+<!-- 1977 -->
+<section class="method" id="pattern">
+  <div class="head"><div class="year">1977</div><div><h2>Pattern</h2><p class="by">Christopher Alexander and colleagues, <i>A Pattern Language</i>; then the software version, 1994</p></div></div>
+  <p class="claim"><b>What it believes.</b> Good places resolve recurring conflicts between human forces. Name the conflict, state the resolving arrangement loosely enough that it never comes out the same way twice, and link it to the patterns above and below it.</p>
+  <div class="specimen pair">
+    <div class="card">
+      <h3>Waiting in sight of the road</h3>
+      <p>This pattern helps complete a neighbourhood stop and gives shape to the small public places along a street.</p>
+      <p><b>A person waiting for a bus wants two things that pull apart: to get out of the weather, and to keep watching the road. A shelter that serves only one makes the wait anxious or miserable.</b></p>
+      <p>Watch any walled shelter in the rain. Half the riders stand outside it, at the kerb, looking upstream. The walls that keep them dry are the walls that hide the bus.</p>
+      <p class="therefore">Therefore:</p>
+      <p>Open the shelter toward oncoming traffic. Put the solid wall behind the seat and on the windward side only. Turn the seat so that someone sitting down can see two blocks up the road without standing.</p>
+      <svg viewBox="0 0 320 170" role="img" aria-label="Plan sketch of a shelter open toward the approaching bus">
+        <rect x="0" y="120" width="320" height="42" fill="none" stroke="var(--soft)" stroke-width="1.5"/>
+        <rect x="18" y="130" width="52" height="22" rx="4" fill="var(--flag)"/>
+        <text x="44" y="146" font-size="11" font-weight="700" text-anchor="middle" style="fill:var(--flag-ink)">bus</text>
+        <path d="M78 141h26m-7-5 7 5-7 5" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+        <path d="M200 40H292V102" fill="none" stroke="var(--ink)" stroke-width="5" stroke-linejoin="round"/>
+        <line x1="222" y1="66" x2="272" y2="56" stroke="var(--teal)" stroke-width="6" stroke-linecap="round"/>
+        <line x1="238" y1="70" x2="74" y2="134" stroke="var(--red)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <text x="200" y="30" font-size="11">solid wall, windward</text>
+        <text x="96" y="78" font-size="11">open toward traffic</text>
+        <text x="228" y="90" font-size="11">angled seat</text>
+      </svg>
+      <p>Then give the seat a back, put a light at the open edge, and place something worth reading where the eye rests between buses.</p>
+    </div>
+    <div class="card">
+      <h3>Observer, for the arrival display</h3>
+      <dl class="gof">
+        <dt>Intent</dt><dd>Let many displays update when the arrival feed changes, without the feed knowing about displays.</dd>
+        <dt>Applicability</dt><dd>Use when a change to one object requires changing others, and you do not know how many.</dd>
+        <dt>Participants</dt><dd>Subject (ArrivalFeed), Observer (Display), ConcreteObserver (ShelterDisplay, PhoneApp).</dd>
+        <dt>Consequences</dt><dd>Loose coupling between feed and displays. Updates can cascade unexpectedly.</dd>
+        <dt>Related patterns</dt><dd>Mediator, Singleton.</dd>
+      </dl>
+      <p style="margin-top:.9rem;color:var(--soft)">Same section headings, different subject. The forces here belong to the code and the programmer. No rider appears, nothing says what to do next, and the entry sits in a catalogue rather than a language.</p>
+    </div>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> A pattern is only as good as the claim that the conflict is real and recurring, and Alexander's test for that was whether the place feels alive. Architects found the test unscientific. Programmers dropped it.</p>
+</section>
+
+<!-- 1983 -->
+<section class="method" id="schon">
+  <div class="head"><div class="year">1983</div><div><h2>Reflective practice</h2><p class="by">Donald Schön, <i>The Reflective Practitioner</i></p></div></div>
+  <p class="claim"><b>What it believes.</b> Designers do not solve a given problem. They make a move, the situation talks back, and the problem gets renamed. The method is that conversation.</p>
+  <div class="specimen">
+    <ul class="talk">
+      <li><b>Move.</b> Put the bench against the back wall, under the deepest cover.</li>
+      <li class="back"><b>Back-talk.</b> From the bench you see the far kerb and nothing else. People will stand up to look.</li>
+      <li class="frame"><b>Reframe.</b> This is a place for watching in comfort. Staying dry is secondary.</li>
+      <li><b>Move.</b> Swing the bench thirty degrees toward the traffic and drop the upstream wall.</li>
+      <li class="back"><b>Back-talk.</b> The angle leaves a wedge behind the bench, out of the walking line.</li>
+      <li><b>Move.</b> Keep the wedge. It is where the pushchair goes.</li>
+    </ul>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> It describes what skilled designers do and gives a beginner nothing to follow. It cannot be audited, scheduled, or handed to a committee.</p>
+</section>
+
+<!-- 2004 -->
+<section class="method" id="diamond">
+  <div class="head"><div class="year">2004</div><div><h2>Double Diamond</h2><p class="by">UK Design Council; the house diagram of design thinking</p></div></div>
+  <p class="claim"><b>What it believes.</b> Diverge before you converge, twice: once to find the right problem, once to find the right answer. Anyone can do it with real users and a wall of notes.</p>
+  <div class="specimen">
+    <svg viewBox="0 0 340 112" role="img" aria-label="Two diamonds: discover and define, then develop and deliver">
+      <polygon points="8,56 88,10 168,56 88,102" fill="none" stroke="var(--ink)" stroke-width="2"/>
+      <polygon points="172,56 252,10 332,56 252,102" fill="var(--flag)" stroke="var(--ink)" stroke-width="2"/>
+      <line x1="88" y1="10" x2="88" y2="102" stroke="var(--rule)"/><line x1="252" y1="10" x2="252" y2="102" stroke="var(--ink)" stroke-opacity=".3"/>
+      <g font-size="11" font-weight="700" text-anchor="middle">
+        <text x="56" y="60">Discover</text><text x="122" y="60">Define</text>
+        <text x="220" y="60" style="fill:var(--flag-ink)">Develop</text><text x="286" y="60" style="fill:var(--flag-ink)">Deliver</text>
+      </g>
+    </svg>
+    <div class="scroll"><table style="margin-top:.6rem">
+      <tr><th>Discover</th><td>Ride the route for a week. Riders stand at the kerb in the rain, next to an empty shelter two stops down.</td></tr>
+      <tr><th>Define</th><td>How might we let a rider stop watching the road?</td></tr>
+      <tr><th>Develop</th><td>Countdown display. Angled seat. A light that tells the driver someone is waiting. A chime at two minutes.</td></tr>
+      <tr><th>Deliver</th><td>Cardboard bay and a tablet taped to a post. Test for five mornings. Keep the countdown and the angled seat.</td></tr>
+    </table></div>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> The diagram is true of nearly any project in hindsight and tells you little in advance. Run as a workshop, it produces a wall of notes and a prototype nobody has budget to build.</p>
+</section>
+
+<!-- 2011 -->
+<section class="method" id="adr">
+  <div class="head"><div class="year">2011</div><div><h2>Decision record</h2><p class="by">Michael Nygard's architecture decision records; IBIS, shrunk until it stuck</p></div></div>
+  <p class="claim"><b>What it believes.</b> Nobody will maintain a map of the whole argument. One short note per decision, written by the person who decided, kept beside the thing it describes, will actually get written.</p>
+  <div class="specimen adr">
+    <h3>7. The shelter display pulls arrival times</h3>
+    <dl>
+      <dt>Status</dt><dd>Accepted. Supersedes record 3.</dd>
+      <dt>Context</dt><dd>The display runs on a solar panel and a mobile data link that drops several times a day. A pushed feed needs a connection held open, and a display that misses a push shows a wrong time with no sign that it is wrong.</dd>
+      <dt>Decision</dt><dd>The display asks for times every 30 seconds. If its last answer is older than 90 seconds, it shows the timetable and says so.</dd>
+      <dt>Consequences</dt><dd>Times can be up to 30 seconds stale. The radio wakes more often, which costs battery in winter. A dropped link degrades to a printed-timetable equivalent instead of a lie.</dd>
+    </dl>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> It records the winning position and its consequences, and loses the positions that lost. Rittel would say the argument is the part worth keeping.</p>
+</section>
+
+
+<div class="part" id="part2">
+  <h2>Later arrivals and outsiders</h2>
+  <p>Thirteen more, from 1988 to now. Some descend from the methods above. Others came in from manufacturing, safety engineering and economics, and never heard of Rittel or Alexander.</p>
+</div>
+
+<!-- 1988 -->
+<section class="method" id="inverse">
+  <div class="head"><div class="year">1988</div><div><h2>Inverse design</h2><p class="by">Bendsøe and Kikuchi's topology optimisation; now routine in photonics and protein design</p></div></div>
+  <p class="claim"><b>What it believes.</b> Do not draw the form. State the loads, the limits and the objective, and let an optimiser remove every bit of material that is not doing work.</p>
+  <div class="specimen">
+    <div class="scroll"><table>
+      <tr><th>Design space</th><td>A 2.4 m by 1.1 m box where the roof bracket may exist</td></tr>
+      <tr><th>Fixed</th><td>Bolted to the post along the left edge</td></tr>
+      <tr><th>Loads</th><td>Snow at 1.5 kN/m² along the top; wind uplift as a second case</td></tr>
+      <tr><th>Limits</th><td>Tip deflection under 12 mm; at most 30% of the box filled</td></tr>
+      <tr><th>Objective</th><td>Maximum stiffness for the steel used</td></tr>
+    </table></div>
+    <svg id="bracket" viewBox="0 0 340 185" role="img" aria-label="Roof bracket before and after optimisation" style="margin-top:.7rem">
+      <rect x="22" y="20" width="14" height="150" fill="var(--ink)"/>
+      <g class="before">
+        <rect x="36" y="32" width="270" height="124" fill="var(--soft)" fill-opacity=".45" stroke="var(--ink)" stroke-width="1.5"/>
+        <text x="171" y="100" font-size="12" font-weight="700" text-anchor="middle">design space, 100% filled</text>
+      </g>
+      <g class="after" stroke="var(--ink)" stroke-linecap="round" fill="none">
+        <line x1="38" y1="38" x2="304" y2="38" stroke-width="9"/>
+        <path d="M38 150 Q150 140 304 44" stroke-width="9"/>
+        <path d="M40 40 L97 139 L120 40 L160 118 L200 40 L227 86 L260 40" stroke-width="5" stroke-linejoin="round"/>
+        <text x="200" y="165" font-size="12" font-weight="700" stroke="none">28% of the steel, 11 mm at the tip</text>
+      </g>
+      <g stroke="var(--red)" stroke-width="1.5" fill="none">
+        <path d="M80 8v16m-4-6 4 6 4-6M150 8v16m-4-6 4 6 4-6M220 8v16m-4-6 4 6 4-6M290 8v16m-4-6 4 6 4-6"/>
+      </g>
+    </svg>
+    <div class="btns"><button id="optBtn" aria-pressed="false">Run the optimiser</button></div>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> The result is optimal for the two load cases in the table and for nothing else. A child swinging on the tip is not a load case. Neither is the fabricator, who has to cut that shape, unless you add manufacturability as a limit. And nothing here asks whether a cantilever was the right roof.</p>
+</section>
+
+<!-- 1995 -->
+<section class="method" id="setbased">
+  <div class="head"><div class="year">1995</div><div><h2>Set-based design</h2><p class="by">Toyota's practice, described by Ward, Liker, Cristiano and Sobek</p></div></div>
+  <p class="claim"><b>What it believes.</b> Picking one design early and iterating on it is the slow way. Carry whole sets of options forward. Let each specialty strike out only what it cannot live with. Decide at the last responsible gate, and never reopen a gate.</p>
+  <div class="specimen">
+    <div id="setRows"></div>
+    <p class="small" id="setCount" aria-live="polite"></p>
+    <div class="btns"><button id="gateBtn">Run the next gate</button><button id="gateReset">Start over</button></div>
+    <ol class="gatelog" id="gateLog"></ol>
+  </div>
+  <p class="claim" style="color:var(--soft)">The point-based alternative would have chosen a steel cantilever with an LED sign in week one, and met the December power problem in week nine with the steelwork already ordered.</p>
+  <p class="breaks"><b>Where it breaks.</b> Carrying several options costs real money until the last gate, so it needs an organisation patient enough to pay for prototypes it will throw away. It also only narrows the sets you started with. An option nobody listed in week one never appears.</p>
+</section>
+
+<!-- 1998 -->
+<section class="method" id="gsn">
+  <div class="head"><div class="year">1998</div><div><h2>Assurance case</h2><p class="by">Goal Structuring Notation, Tim Kelly, University of York</p></div></div>
+  <p class="claim"><b>What it believes.</b> A design is acceptable when you can lay out the argument for it, from top claim down to evidence someone can inspect. Every goal is either broken into sub-goals by a stated strategy, or closed by a piece of evidence. Anything else is marked as undeveloped.</p>
+  <div class="specimen">
+    <details open>
+      <summary><span class="tag t-i">Goal G1</span>The shelter is acceptably safe for riders and passers-by</summary>
+      <div class="leaf"><span class="tag t-n">Context C1</span>Mill Street: 30 mph limit, pavement 2.1 to 3.4 m, lit until 22:00.</div>
+      <details open>
+        <summary><span class="tag t-p">Strategy S1</span>Argue over each hazard in the hazard log</summary>
+        <div class="leaf"><span class="tag t-n">Assumption A1</span>The hazard log is complete.</div>
+        <details open>
+          <summary><span class="tag t-i">Goal G2</span>Broken glazing does not cause injury</summary>
+          <div class="leaf"><span class="tag t-f">Evidence E1</span>Impact test certificate for the laminated panels.</div>
+        </details>
+        <details open>
+          <summary><span class="tag t-i">Goal G3</span>The roof stays on in a one-in-fifty-year wind</summary>
+          <div class="leaf"><span class="tag t-f">Evidence E2</span>Structural calculation, revision C.</div>
+          <div class="leaf"><span class="tag t-f">Evidence E3</span>Pull test on the prototype bay, 14 March.</div>
+        </details>
+        <details open>
+          <summary><span class="tag t-i">Goal G4</span>A waiting rider is visible to an approaching driver at night</summary>
+          <div class="leaf"><span class="tag t-a">Undeveloped</span>No evidence yet. Light survey not commissioned.</div>
+        </details>
+      </details>
+    </details>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> You build the case for the conclusion you already want, so it invites confirmation bias. The whole structure also hangs from assumption A1. If a hazard is missing from the log, the argument is complete, well evidenced, and wrong.</p>
+</section>
+
+<!-- 1999 -->
+<section class="method" id="tla">
+  <div class="head"><div class="year">1999</div><div><h2>Lightweight formal methods</h2><p class="by">Leslie Lamport's TLA+; property-based testing from QuickCheck, 2000</p></div></div>
+  <p class="claim"><b>What it believes.</b> Before building, write down what must always be true. Then let a machine try every sequence of events it can find to break that statement. The bugs worth finding live in orderings no person would think to try.</p>
+  <div class="specimen">
+    <h3 style="margin-top:0">The display from the decision record, as a specification</h3>
+<pre>VARIABLES clock, fetchedAt, mode, trueAge
+
+FetchOk  == /\ fetchedAt' = clock
+            /\ trueAge'   = 0
+            /\ mode'      = "live"
+            /\ UNCHANGED clock
+
+Tick     == /\ clock'   = clock + 1
+            /\ trueAge' = trueAge + 1
+            /\ mode'    = IF clock' - fetchedAt &gt; 90
+                          THEN "timetable" ELSE mode
+            /\ UNCHANGED fetchedAt
+
+Brownout == /\ clock' = 0      \* the panel loses power at dusk
+            /\ UNCHANGED &lt;&lt;fetchedAt, mode, trueAge&gt;&gt;
+
+NeverLie == mode = "live" =&gt; trueAge &lt;= 90</pre>
+    <h3>What the model checker reports</h3>
+    <div class="scroll"><table>
+      <tr><th>Step</th><th>Action</th><th>clock</th><th>fetchedAt</th><th>trueAge</th><th>mode</th></tr>
+      <tr><td>1</td><td>FetchOk</td><td>500</td><td>500</td><td>0</td><td>live</td></tr>
+      <tr><td>2</td><td>Brownout</td><td>0</td><td>500</td><td>0</td><td>live</td></tr>
+      <tr><td>3 to 93</td><td>Tick, 91 times</td><td>91</td><td>500</td><td>91</td><td>live</td></tr>
+    </table></div>
+    <p class="small">NeverLie is violated. After a power dip the clock restarts at zero, so the age works out as 91 minus 500. That is never greater than 90, and the display shows stale times as live until the link returns.</p>
+    <h3>The same property as a test against the real code</h3>
+<pre>@given(lists(one_of(tick(), fetch_ok(), fetch_fail(), brownout())))
+def test_never_shows_stale_as_live(events):
+    d = Display()
+    for e in events:
+        d.apply(e)
+    assert not (d.mode == "live" and d.true_age() &gt; 90)
+
+# Falsifying example, shrunk:
+#   [fetch_ok(), brownout(), tick(91)]</pre>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> The checker proves things about the model, and the model is whatever you thought to write down. Brownout is in this one only because somebody had seen a panel fail at dusk. And the property that matters most on Mill Street, that a seated rider can see the bus, cannot be stated in this language at all.</p>
+</section>
+
+<!-- 2004 -->
+<section class="method" id="stpa">
+  <div class="head"><div class="year">2004</div><div><h2>STPA</h2><p class="by">Nancy Leveson, MIT; hazard analysis from systems theory</p></div></div>
+  <p class="claim"><b>What it believes.</b> Accidents are rarely a broken part. They are a control problem: someone issued the wrong action, or the right one at the wrong time, because their picture of the situation was wrong. So draw who controls what, then interrogate every control action four ways.</p>
+  <div class="specimen">
+    <svg viewBox="0 0 340 192" role="img" aria-label="Control structure: rider, driver, bus, arrival feed and display">
+      <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="var(--ink)"/></marker></defs>
+      <g fill="var(--sheet)" stroke="var(--ink)" stroke-width="1.5">
+        <rect x="16" y="10" width="92" height="30" rx="3"/><rect x="232" y="10" width="92" height="30" rx="3"/>
+        <rect x="16" y="100" width="92" height="30" rx="3"/><rect x="232" y="100" width="92" height="30" rx="3"/>
+        <rect x="124" y="154" width="92" height="30" rx="3"/>
+      </g>
+      <g font-size="12" font-weight="700" text-anchor="middle">
+        <text x="62" y="30">Rider</text><text x="278" y="30">Driver</text><text x="62" y="120">Display</text><text x="278" y="120">Bus</text><text x="170" y="174">Arrival feed</text>
+      </g>
+      <g stroke="var(--ink)" stroke-width="1.5" marker-end="url(#ah)" fill="none">
+        <line x1="108" y1="25" x2="230" y2="25"/><line x1="278" y1="40" x2="278" y2="98"/>
+        <line x1="262" y1="130" x2="218" y2="162"/><line x1="124" y1="162" x2="80" y2="132"/><line x1="62" y1="100" x2="62" y2="42"/>
+      </g>
+      <g font-size="10.5">
+        <text x="169" y="19" text-anchor="middle">is seen, hails</text>
+        <text x="271" y="73" text-anchor="end">brakes, opens doors</text>
+        <text x="250" y="158">position</text>
+        <text x="94" y="158" text-anchor="end">times</text>
+        <text x="69" y="75">time shown</text>
+      </g>
+    </svg>
+    <h3>Control action: the driver stops at the shelter</h3>
+    <div class="scroll"><table>
+      <tr><th>Unsafe when</th><th>Scenario</th></tr>
+      <tr><td>Not provided</td><td>A rider is waiting but the bus drives past. The rider is seated behind the solid wall and the driver never saw them.</td></tr>
+      <tr><td>Provided wrongly</td><td>The bus stops while people sheltering from rain are standing in the kerb lane.</td></tr>
+      <tr><td>Too late</td><td>The rider stands only when the bus is level with the shelter. The driver brakes hard; standing passengers fall.</td></tr>
+      <tr><td>Ended too soon</td><td>The doors close before a rider who was seated has reached them.</td></tr>
+    </table></div>
+    <h3>Requirements that fall out</h3>
+    <p class="small">R1. A seated rider is visible to a driver from 60 m upstream, day and night.<br>R2. The display gives two minutes' warning, so that riders stand before the bus is in view.<br>R3. Standing room under cover lies behind the kerb line.</p>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> It is slow and it is thorough, and the output is a long flat list of requirements with no ranking and no budget attached. It also takes the control structure as given. If the diagram leaves out the dispatcher who tells drivers to skip stops when running late, so does the analysis.</p>
+</section>
+
+<!-- 2012 QV -->
+<section class="method" id="qv">
+  <div class="head"><div class="year">2012</div><div><h2>Quadratic voting</h2><p class="by">Glen Weyl and colleagues; mechanism design applied to group choice</p></div></div>
+  <p class="claim"><b>What it believes.</b> Design the rule for choosing, and good choices follow. One person, one vote hides how much each person cares. Give everyone the same budget of credits and charge the square of the votes cast on any one item, so that caring a lot is allowed but expensive.</p>
+  <div class="specimen">
+    <p class="small" style="margin-top:0">You are one resident with 25 credits. Spend them.</p>
+    <div id="qvRows"></div>
+    <p class="small" id="qvNote" aria-live="polite"></p>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> Two neighbours who split their votes between them pay less than one person casting the same total, so the rule is only as strong as the check that each ballot is one real person. And someone still wrote the four items on the ballot. Moving the route off Mill Street is not among them.</p>
+</section>
+
+<!-- 2012 clustering -->
+<section class="method" id="cluster">
+  <div class="head"><div class="year">2012</div><div><h2>Opinion clustering</h2><p class="by">Pol.is; used in Taiwan's vTaiwan consultations</p></div></div>
+  <p class="claim"><b>What it believes.</b> A thousand people cannot hold a debate, but they can each write a sentence and tap agree, disagree or pass on other people's sentences. Group people by how they voted. Then look for the statements that every group supports, and start there.</p>
+  <div class="specimen">
+    <p class="small" style="margin-top:0">104 residents, 37 statements. Two groups emerge from the votes: group A, 41 people, mostly clinic users; group B, 63 people, mostly commuters and shopkeepers. Share agreeing:</p>
+    <div class="stmt"><span class="tag t-a">Divides</span>The stop should be outside the clinic.
+      <div class="barrow"><span>Group A</span><span class="track"><span class="bar" style="width:92%"></span></span><span>92%</span></div>
+      <div class="barrow"><span>Group B</span><span class="track"><span class="bar" style="width:18%"></span></span><span>18%</span></div></div>
+    <div class="stmt"><span class="tag t-a">Divides</span>The grocery corner is safer after dark.
+      <div class="barrow"><span>Group A</span><span class="track"><span class="bar" style="width:30%"></span></span><span>30%</span></div>
+      <div class="barrow"><span>Group B</span><span class="track"><span class="bar" style="width:85%"></span></span><span>85%</span></div></div>
+    <div class="stmt"><span class="tag t-f">Shared</span>I would sit down if I knew when the bus was coming.
+      <div class="barrow"><span>Group A</span><span class="track"><span class="bar" style="width:88%"></span></span><span>88%</span></div>
+      <div class="barrow"><span>Group B</span><span class="track"><span class="bar" style="width:81%"></span></span><span>81%</span></div></div>
+    <div class="stmt"><span class="tag t-f">Shared</span>Buses drive past people who are waiting.
+      <div class="barrow"><span>Group A</span><span class="track"><span class="bar" style="width:83%"></span></span><span>83%</span></div>
+      <div class="barrow"><span>Group B</span><span class="track"><span class="bar" style="width:77%"></span></span><span>77%</span></div></div>
+    <div class="stmt" style="border-bottom:0"><span class="tag t-f">Shared</span>The stop as it is blocks the pavement.
+      <div class="barrow"><span>Group A</span><span class="track"><span class="bar" style="width:74%"></span></span><span>74%</span></div>
+      <div class="barrow"><span>Group B</span><span class="track"><span class="bar" style="width:79%"></span></span><span>79%</span></div></div>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> It tells you where agreement lies and stops there. Somebody still has to turn "I would sit down if I knew" into a shelter, and somebody with a budget has to have promised in advance to act on the result. Without that promise it is a survey.</p>
+</section>
+
+<!-- 2013 -->
+<section class="method" id="storm">
+  <div class="head"><div class="year">2013</div><div><h2>Event Storming</h2><p class="by">Alberto Brandolini; Event Modeling, Adam Dymitruk, 2018</p></div></div>
+  <p class="claim"><b>What it believes.</b> The people who understand a business never share one room or one vocabulary. Put them at a long wall with sticky notes. Start with events only, written in the past tense, in time order. Arguments about wording are the point, and each unresolved one gets a red note.</p>
+  <div class="specimen">
+    <div class="legend">
+      <span class="st ev">Event</span><span class="st cmd">Command</span><span class="st act">Actor</span><span class="st pol">Policy</span><span class="st ext">External system</span><span class="st rm">Read model</span><span class="st hot">Hot spot</span>
+    </div>
+    <div class="wall" tabindex="0" aria-label="Sticky-note timeline, scrolls sideways">
+      <div class="colm"><div class="st act">Dispatcher</div><div class="st cmd">Publish trip</div><div class="st ev">Trip scheduled</div></div>
+      <div class="colm"><div class="st ext">Vehicle GPS</div><div class="st ev">Vehicle position reported</div></div>
+      <div class="colm"><div class="st pol">Whenever a position arrives, recalculate</div><div class="st cmd">Recalculate arrival</div><div class="st ev">Arrival time predicted</div></div>
+      <div class="colm"><div class="st rm">Next arrivals at this stop</div><div class="st act">Display</div><div class="st cmd">Fetch arrivals</div><div class="st ev">Arrivals fetched</div></div>
+      <div class="colm"><div class="st ev">Fetch failed</div><div class="st pol">After 90 s with no fetch, fall back</div><div class="st ev">Display fell back to timetable</div></div>
+      <div class="colm"><div class="st act">Dispatcher</div><div class="st cmd">Divert route</div><div class="st ev">Route diverted</div><div class="st hot">Who corrects the printed timetable the display falls back to?</div></div>
+      <div class="colm"><div class="st ev">Bus arrived at stop</div><div class="st ev">Bus departed stop</div><div class="st hot">If the bus drove past without stopping, did it arrive?</div></div>
+    </div>
+    <h3>One slice, written as Event Modeling would</h3>
+    <div class="scroll"><table>
+      <tr><th>Given</th><td>Trip scheduled; Vehicle position reported, 1.2 km from Mill Street</td></tr>
+      <tr><th>When</th><td>Recalculate arrival</td></tr>
+      <tr><th>Then</th><td>Arrival time predicted: route 14, Mill Street, 4 minutes</td></tr>
+    </table></div>
+    <p class="small">The session is run in passes: events first, then the commands and actors that cause them, then policies, then boundaries drawn around clusters that share a vocabulary. Those clusters become the candidate services.</p>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> The wall records one afternoon and the people who came. A dispatcher, an engineer and a planner produced this one, and no rider did, so the timeline ends when the bus departs and says nothing about the person left on the bench. It is also tempting to treat the notes as a design and code them directly.</p>
+</section>
+
+<!-- 2016 -->
+<section class="method" id="ost">
+  <div class="head"><div class="year">2016</div><div><h2>Opportunity solution tree</h2><p class="by">Teresa Torres, continuous discovery</p></div></div>
+  <p class="claim"><b>What it believes.</b> Teams jump from a target straight to a feature. Force a layer in between: the needs you heard in interviews, in the customer's words. Compare several solutions under one need, and test the assumption each one rests on before building any of them.</p>
+  <div class="specimen">
+    <details open>
+      <summary><span class="tag t-i">Outcome</span>Winter boardings at Mill Street up 15%</summary>
+      <details open>
+        <summary><span class="tag t-p">Opportunity</span>"I never know if I've just missed it."</summary>
+        <details open>
+          <summary><span class="tag t-p">Opportunity</span>"I can't see the road from the seat."</summary>
+          <details open>
+            <summary><span class="tag t-f">Solution</span>Angled seat, upstream side left open</summary>
+            <div class="leaf"><span class="tag t-n">Assumes</span>Riders will accept more wind in exchange for the view.</div>
+            <div class="leaf"><span class="tag t-n">Test</span>Remove one panel from the shelter at the next stop for two weeks. Count who sits.</div>
+          </details>
+          <details>
+            <summary><span class="tag t-f">Solution</span>Mirror on the lamp post</summary>
+            <div class="leaf"><span class="tag t-n">Assumes</span>A bus is recognisable in a 40 cm convex mirror at 150 m.</div>
+            <div class="leaf"><span class="tag t-n">Test</span>Borrow a mirror from the depot. Ten riders, one morning.</div>
+          </details>
+        </details>
+        <details open>
+          <summary><span class="tag t-p">Opportunity</span>"The timetable is never right."</summary>
+          <details open>
+            <summary><span class="tag t-f">Solution</span>Countdown display</summary>
+            <div class="leaf"><span class="tag t-n">Assumes</span>Riders trust the number enough to stop watching the road.</div>
+            <div class="leaf"><span class="tag t-n">Test</span>Tablet on a post, five mornings. Count riders seated against riders at the kerb.</div>
+            <div class="leaf"><span class="tag t-n">Assumes</span>A solar panel can run it through December.</div>
+            <div class="leaf"><span class="tag t-n">Test</span>Bench test at the December light level for one week.</div>
+          </details>
+        </details>
+      </details>
+      <details>
+        <summary><span class="tag t-p">Opportunity</span>"I don't like waiting there after dark."</summary>
+        <div class="leaf">Not explored this quarter. Parked, with the three interview quotes attached.</div>
+      </details>
+      <details>
+        <summary><span class="tag t-p">Opportunity</span>"There's nowhere for the pushchair."</summary>
+        <div class="leaf">Not explored this quarter.</div>
+      </details>
+    </details>
+    <p class="small">The working rhythm is a weekly interview, one opportunity chosen at a time, three solutions compared, and the riskiest assumption tested first.</p>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> The outcome at the root came from the transit authority and the tree has no way to question it. The opportunities come only from people you could interview, which means people still standing at the stop. Those who gave up and now drive are not on the tree.</p>
+</section>
+
+<!-- 2019 -->
+<section class="method" id="shapeup">
+  <div class="head"><div class="year">2019</div><div><h2>Shape Up</h2><p class="by">Ryan Singer, Basecamp; draws openly on Alexander's <i>Notes</i></p></div></div>
+  <p class="claim"><b>What it believes.</b> Estimates are fiction. Fix the time you are willing to spend, called the appetite, and let the scope move. A senior person shapes the work first: rough enough to leave room, solved enough that the known traps are marked. Then a small team gets six uninterrupted weeks.</p>
+  <div class="specimen">
+    <dl class="pitch">
+      <dt>Problem</dt><dd>Riders at Mill Street stand at the kerb because the display, when it works, shows times they have learned not to trust.</dd>
+      <dt>Appetite</dt><dd>Six weeks, one programmer and one designer. If it cannot be done in six, it is the wrong shape.</dd>
+      <dt>Solution, as a breadboard</dt>
+      <dd>
+<pre>Arrivals screen
+  - next three buses, minutes only
+  - age of data, shown when over 30 s
+        |
+        |  no fetch for 90 s
+        v
+Timetable screen
+  - scheduled times from the printed table
+  - "Live times unavailable"
+        |
+        |  fetch succeeds
+        v
+Arrivals screen</pre>
+      </dd>
+      <dt>Rabbit holes</dt><dd>Clock resets after a power dip: use time since boot and treat any reset as stale. Diverted routes: out of scope, show the timetable.</dd>
+      <dt>No-gos</dt><dd>No maps. No adverts. No per-rider alerts. No second language in this cycle.</dd>
+    </dl>
+    <h3>Hill chart, week four</h3>
+    <svg viewBox="0 0 340 128" role="img" aria-label="Hill chart with three scopes of work">
+      <path d="M10 92 C90 92 110 17 170 17 S250 92 330 92" fill="none" stroke="var(--ink)" stroke-width="2"/>
+      <line x1="170" y1="10" x2="170" y2="100" stroke="var(--rule)" stroke-dasharray="4 4"/>
+      <circle cx="68" cy="76" r="7" fill="var(--red)"/><circle cx="170" cy="17" r="7" fill="var(--flag)" stroke="var(--ink)"/><circle cx="272" cy="76" r="7" fill="var(--teal)"/>
+      <g font-size="10.5" font-weight="600">
+        <text x="80" y="72">Night dimming</text><text x="182" y="14">Legible at 10 m</text><text x="262" y="62" text-anchor="end">Fetch and fallback</text>
+      </g>
+      <g font-size="10.5"><text x="90" y="118" text-anchor="middle">Figuring it out</text><text x="250" y="118" text-anchor="middle">Getting it done</text></g>
+    </svg>
+    <p class="small">A dot that stays on the left for two weeks is the signal to cut that scope, not to extend the cycle.</p>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> Everything depends on the shaper, who must already understand the problem well enough to mark the traps. The method says little about how they got there. It also assumes you own your roadmap. A contractor with a signed specification cannot let scope move.</p>
+</section>
+
+<!-- 2023 -->
+<section class="method" id="evals">
+  <div class="head"><div class="year">2023</div><div><h2>Generate and select</h2><p class="by">Common practice with generative models; Simon's search with the cost of generation removed</p></div></div>
+  <p class="claim"><b>What it believes.</b> When a model can produce forty candidate designs in a minute, drawing one carefully is the wrong use of a person. Write the checks a good design must pass. The checks are the specification, and the design is whatever survives them.</p>
+  <div class="specimen">
+<pre>task: display layout, 800 x 480, one colour
+generate: 40 candidates
+
+checks:
+  - glyph_height_mm &gt;= 40        # legible from the seat
+  - arrivals_shown &gt;= 3
+  - shows_data_age == true
+  - contrast_ratio &gt;= 7
+  - render_ms &lt;= 50              # on the shelter's own hardware
+  - judge: "Would a first-time rider know when the
+            next bus to the clinic comes? Answer yes or no."</pre>
+    <div class="scroll"><table>
+      <tr><th>After check</th><th>Left</th><th></th></tr>
+      <tr><td>Generated</td><td>40</td><td style="width:45%"><span class="track"><span class="bar" style="width:100%"></span></span></td></tr>
+      <tr><td>Glyph height</td><td>26</td><td><span class="track"><span class="bar" style="width:65%"></span></span></td></tr>
+      <tr><td>Three arrivals</td><td>19</td><td><span class="track"><span class="bar" style="width:47.5%"></span></span></td></tr>
+      <tr><td>Data age, contrast</td><td>11</td><td><span class="track"><span class="bar" style="width:27.5%"></span></span></td></tr>
+      <tr><td>Render time</td><td>9</td><td><span class="track"><span class="bar" style="width:22.5%"></span></span></td></tr>
+      <tr><td>Model judge</td><td>4</td><td><span class="track"><span class="bar" style="width:10%"></span></span></td></tr>
+    </table></div>
+    <p class="small">A person looks at the last four and picks one. When a bad layout gets through, the fix is a new check, and all forty run again.</p>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> Candidates drift toward whatever the checks reward: forty-millimetre numerals with everything else unreadable. The model judge is a stand-in for a rider and has never waited in the rain. And the old question returns in a new place. Whoever writes the checks is the designer, and holds the authority.</p>
+</section>
+
+<!-- 2024 -->
+<section class="method" id="capture">
+  <div class="head"><div class="year">2024</div><div><h2>Machine-kept rationale</h2><p class="by">Language models applied to the capture problem that sank IBIS</p></div></div>
+  <p class="claim"><b>What it believes.</b> Nobody would keep the argument map because keeping it was a job. Let a model listen to the meeting, file each remark as an issue, position or argument, link it to the line where it was said, and point out what is missing.</p>
+  <div class="specimen">
+    <h3 style="margin-top:0">Transcript, site meeting</h3>
+    <div class="scroll"><table>
+      <tr><td>1</td><td><b>Planner</b></td><td>So are we agreed it goes outside the clinic?</td></tr>
+      <tr><td>2</td><td><b>Clinic manager</b></td><td>A third of your riders are our patients. Half of them use sticks.</td></tr>
+      <tr><td>3</td><td><b>Engineer</b></td><td>It's 2.1 metres there. With a shelter a wheelchair can't get past.</td></tr>
+      <tr><td>4</td><td><b>Shop owner</b></td><td>The corner's safer anyway.</td></tr>
+      <tr><td>5</td><td><b>Clinic manager</b></td><td>We could lose the planter. I'd have to ask the board.</td></tr>
+    </table></div>
+    <h3>What the model files</h3>
+    <details open>
+      <summary><span class="tag t-i">Issue</span>Where should the stop go? <span style="font-weight:500">line 1</span></summary>
+      <details open>
+        <summary><span class="tag t-p">Position</span>Outside the clinic <span style="font-weight:500">line 1</span></summary>
+        <div class="leaf"><span class="tag t-f">For</span>A third of riders are patients, many with limited mobility. Line 2.</div>
+        <div class="leaf"><span class="tag t-a">Against</span>Pavement is 2.1 m; a shelter blocks wheelchairs. Line 3.</div>
+        <div class="leaf"><span class="tag t-i">Issue</span>Can the planter be removed? Raised at line 5. Open; depends on the clinic board.</div>
+      </details>
+      <details open>
+        <summary><span class="tag t-p">Position</span>At the corner <span style="font-weight:500">line 4</span></summary>
+        <div class="leaf"><span class="tag t-n">Flag</span>"Safer" was asserted with no reason given. Safer from traffic, or after dark? Ask.</div>
+      </details>
+      <div class="leaf"><span class="tag t-n">Flag</span>Line 1 was phrased as settled. Three of four speakers then raised objections. Not recorded as a decision.</div>
+      <div class="leaf"><span class="tag t-n">Flag</span>Overlaps with an issue filed on 12 March, "Pavement width on Mill Street". Merge?</div>
+    </details>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> The model files what was said. The person who sat silent through the meeting, and the objection made afterwards in the car park, are not in the map. A map that cost nobody any effort is also a map nobody feels they own, and its errors are plausible enough to go unread.</p>
+</section>
+
+<!-- 2025 -->
+<section class="method" id="malleable">
+  <div class="head"><div class="year">2025</div><div><h2>Malleable software</h2><p class="by">Ink &amp; Switch and others; end-user programming with a model as the builder</p></div></div>
+  <p class="claim"><b>What it believes.</b> The people who live with a tool know what is wrong with it and have never been able to change it. Keep a fixed core that must not break. Let everything else be reshaped by its users, in plain words, with a model doing the construction.</p>
+  <div class="specimen">
+    <div class="disp" id="disp" aria-live="polite"></div>
+    <p class="small">Requests from the street. Tap to apply or remove.</p>
+    <div class="btns" id="reqs">
+      <button data-k="big" aria-pressed="false">Rider: "I can't read it from the seat. Bigger."</button>
+      <button data-k="hours" aria-pressed="false">Receptionist: "Show when the clinic closes."</button>
+      <button data-k="last" aria-pressed="false">Shop owner: "Say when the last bus is."</button>
+    </div>
+    <div class="scroll" style="margin-top:.8rem"><table>
+      <tr><th>Fixed core</th><td>The arrival feed. The fall-back to the timetable when data is stale. Minimum numeral size.</td></tr>
+      <tr><th>Open to change</th><td>Layout, which lines appear, extra local information, wording.</td></tr>
+    </table></div>
+  </div>
+  <p class="breaks"><b>Where it breaks.</b> It reopens the oldest question on this page. A display on a public street has many users, and the method does not say which of them may change it, or who removes the shop owner's line when the shop closes. The line between core and open is also drawn by whoever built it.</p>
+</section>
+
+<footer>
+  <p>Follow one requirement down the page: the rider wants to see the bus. Methods that start from a list only have it if someone put it there. The ones that find it for themselves either watched riders, as the pattern, reflective practice, the Double Diamond and the opportunity tree do, or asked how control could fail, as STPA does.</p>
+  <p>The second thing to follow is who holds the pen: who wrote the specification, the ballot, the checks, the fixed core. Every method here has such a person, and few of them say so.</p>
+</footer>
+</div>
+
+<script>
+(function(){
+  // Morphological chart
+  var rows=[
+    ["Roof",["none","flat cantilever","pitched","barrel vault"],1],
+    ["Windbreak",["none","glass","perforated steel","hedge"],2],
+    ["Seat",["none","leaning rail","bench","single perches"],2],
+    ["Information",["printed timetable","e-ink panel","LED sign","QR code only"],1],
+    ["Lighting",["borrowed from the street","solar LED","mains"],1]
+  ];
+  var host=document.getElementById("morphRows"), out=document.getElementById("morphOut");
+  var total=rows.reduce(function(n,r){return n*r[1].length},1);
+  function renderMorph(){
+    host.innerHTML="";
+    rows.forEach(function(r,ri){
+      var d=document.createElement("div"); d.className="mrow";
+      var l=document.createElement("div"); l.className="ui"; l.textContent=r[0]; d.appendChild(l);
+      var o=document.createElement("div"); o.className="opts";
+      r[1].forEach(function(opt,oi){
+        var b=document.createElement("button"); b.type="button"; b.textContent=opt;
+        b.setAttribute("aria-pressed", String(r[2]===oi));
+        b.addEventListener("click",function(){rows[ri][2]=oi; renderMorph();});
+        o.appendChild(b);
+      });
+      d.appendChild(o); host.appendChild(d);
+    });
+    var s=rows.map(function(r){return r[0].toLowerCase()+": "+r[1][r[2]]}).join("; ");
+    out.textContent="This design is "+s+". It is one of "+total+" combinations on the chart.";
+  }
+  renderMorph();
+
+  // Alexander decomposition
+  var g=document.getElementById("graph"), sb=document.getElementById("splitBtn"), sn=document.getElementById("splitNote");
+  sb.addEventListener("click",function(){
+    var on=g.classList.toggle("split");
+    sb.setAttribute("aria-pressed",String(on));
+    sb.textContent=on?"Show the whole graph":"Decompose the graph";
+    sn.textContent=on?"Three subsystems: sightlines (1, 2, 6), body and pavement (3, 4, 5), equipment (7, 8, 9). Three interactions are cut.":"Nine requirements, twelve interactions.";
+  });
+
+  // Simon satisficing
+  var cands=[
+    ["Pole and sign",2,0,0],["Bench and pole",5,3,0],["Cantilever roof",14,3,1],
+    ["Three-wall glass box",22,4,3],["Timber lean-to",18,6,2],["Deep shelter with kiosk",48,8,3],
+    ["Green-roof pavilion",65,10,3],["Awning on the shopfront",9,2,1]
+  ];
+  var sC=document.getElementById("sCost"), sS=document.getElementById("sSeat"), sD=document.getElementById("sSide");
+  var tbl=document.getElementById("simonTable"), note=document.getElementById("simonNote");
+  function renderSimon(){
+    var c=+sC.value, s=+sS.value, d=+sD.value, pick=-1, i;
+    document.getElementById("oCost").textContent=c;
+    document.getElementById("oSeat").textContent=s;
+    document.getElementById("oSide").textContent=d;
+    for(i=0;i<cands.length;i++){ if(cands[i][1]<=c && cands[i][2]>=s && cands[i][3]>=d){pick=i;break;} }
+    var h="<tr><th>Generated in this order</th><th>Cost</th><th>Seats</th><th>Sides</th><th>Result</th></tr>";
+    cands.forEach(function(k,j){
+      var cls="", res;
+      if(pick>=0 && j>pick){cls="unseen"; res="never examined";}
+      else if(j===pick){cls="pick"; res="good enough, stop";}
+      else{
+        var f=[]; if(k[1]>c)f.push("cost"); if(k[2]<s)f.push("seats"); if(k[3]<d)f.push("sides");
+        res="fails on "+f.join(", ");
+      }
+      h+="<tr class='"+cls+"'><td>"+k[0]+"</td><td>"+k[1]+"</td><td>"+k[2]+"</td><td>"+k[3]+"</td><td>"+res+"</td></tr>";
+    });
+    tbl.innerHTML=h;
+    if(pick<0){ note.textContent="Nothing clears all three levels. Simon's advice: lower an aspiration and search again."; return; }
+    var later=0;
+    for(i=pick+1;i<cands.length;i++){ if(cands[i][1]<=cands[pick][1] && cands[i][2]>=cands[pick][2] && cands[i][3]>=d && (cands[i][1]<cands[pick][1]||cands[i][2]>cands[pick][2])) later++; }
+    note.textContent="Search stopped after "+(pick+1)+" of "+cands.length+" candidates."+(later?" A cheaper candidate with more seats was further down the list and was never examined.":"");
+  }
+  [sC,sS,sD].forEach(function(el){el.addEventListener("input",renderSimon);});
+  renderSimon();
+
+  // Inverse design toggle
+  var br=document.getElementById("bracket"), ob=document.getElementById("optBtn");
+  ob.addEventListener("click",function(){
+    var on=br.classList.toggle("opt");
+    ob.setAttribute("aria-pressed",String(on));
+    ob.textContent=on?"Show the starting box":"Run the optimiser";
+  });
+
+  // Set-based design
+  var sets=[["Roof",["cantilever","pitched","vault"]],["Frame",["steel","timber","aluminium"]],["Display",["e-ink","LED"]],["Seat",["bench","perches","leaning rail"]]];
+  var gates=[
+    ["Structures","vault","The vault needs footings wider than the pavement."],
+    ["Fabrication","aluminium","No workshop in the tender area welds aluminium."],
+    ["Power","LED","An LED sign outruns the solar panel in December."],
+    ["Access","leaning rail","A leaning rail fails riders who cannot stand for ten minutes."],
+    ["Maintenance","pitched","The pitched roof needs its gutter cleared twice a year."],
+    ["Prototype week","steel","Steel and timber bays were both built and both passed. Timber is quieter in wind. This is the first point at which a frame was chosen."]
+  ];
+  var gone=[], sr=document.getElementById("setRows"), sc=document.getElementById("setCount"), gl=document.getElementById("gateLog"), gb=document.getElementById("gateBtn");
+  function renderSets(){
+    sr.innerHTML=""; var n=1;
+    sets.forEach(function(s){
+      var d=document.createElement("div"); d.className="setrow";
+      var b=document.createElement("b"); b.textContent=s[0]; d.appendChild(b);
+      var live=0;
+      s[1].forEach(function(o){
+        var c=document.createElement("span"); c.className="chip"+(gone.indexOf(o)>=0?" out":""); c.textContent=o; d.appendChild(c);
+        if(gone.indexOf(o)<0) live++;
+      });
+      n*=live; sr.appendChild(d);
+    });
+    sc.textContent=n+(n===1?" design":" designs")+" still in the set."+(gone.length===gates.length?" The bench and the perches both survive, so the first bay gets both.":"");
+    gl.innerHTML="";
+    gates.slice(0,gone.length).forEach(function(g){
+      var li=document.createElement("li"); li.innerHTML="<b>"+g[0]+"</b> strikes out "+g[1]+". "+g[2]; gl.appendChild(li);
+    });
+    gb.disabled=gone.length===gates.length;
+    gb.style.opacity=gb.disabled?".4":"1";
+  }
+  gb.addEventListener("click",function(){ if(gone.length<gates.length){gone.push(gates[gone.length][1]); renderSets();} });
+  document.getElementById("gateReset").addEventListener("click",function(){gone=[]; renderSets();});
+  renderSets();
+
+  // Quadratic voting
+  var props=[["Stop outside the clinic",0],["Stop at the grocery corner",0],["Countdown display",0],["Light at the open edge",0]];
+  var qr=document.getElementById("qvRows"), qn=document.getElementById("qvNote"), BUDGET=25;
+  function spent(){return props.reduce(function(t,p){return t+p[1]*p[1]},0);}
+  function renderQV(){
+    qr.innerHTML=""; var left=BUDGET-spent();
+    props.forEach(function(p,i){
+      var row=document.createElement("div"); row.className="qrow";
+      var name=document.createElement("span"); name.textContent=p[0]; row.appendChild(name);
+      var ctl=document.createElement("span"); ctl.className="qctl";
+      var minus=document.createElement("button"); minus.type="button"; minus.textContent="\u2212"; minus.setAttribute("aria-label","One vote fewer for "+p[0]);
+      var out=document.createElement("output"); out.textContent=p[1]+(p[1]===1?" vote, ":" votes, ")+(p[1]*p[1])+" cr";
+      var plus=document.createElement("button"); plus.type="button"; plus.textContent="+"; plus.setAttribute("aria-label","One more vote for "+p[0]);
+      var nextCost=(p[1]+1)*(p[1]+1)-p[1]*p[1];
+      minus.disabled=p[1]===0; plus.disabled=nextCost>left;
+      minus.style.opacity=minus.disabled?".35":"1"; plus.style.opacity=plus.disabled?".35":"1";
+      minus.addEventListener("click",function(){ if(props[i][1]>0){props[i][1]--; renderQV();} });
+      plus.addEventListener("click",function(){ if(nextCost<=left){props[i][1]++; renderQV();} });
+      ctl.appendChild(minus); ctl.appendChild(out); ctl.appendChild(plus); row.appendChild(ctl); qr.appendChild(row);
+    });
+    var most=props.reduce(function(m,p){return Math.max(m,p[1])},0);
+    qn.textContent=left+" of "+BUDGET+" credits left."+(most>=2?" Your "+most+ordinal(most)+" vote on one item cost "+(2*most-1)+" credits; a first vote on another costs 1.":" Each extra vote on the same item costs more than the last: 1, 3, 5, 7, 9.");
+  }
+  function ordinal(n){return n===2?"nd":n===3?"rd":"th";}
+  renderQV();
+
+  // Malleable display
+  var dstate={big:false,hours:false,last:false}, disp=document.getElementById("disp");
+  function renderDisp(){
+    var rowsD=[["14 Clinic","3 min"],["22 Station","9 min"],["14 Clinic","17 min"]];
+    if(dstate.big) rowsD=rowsD.slice(0,2);
+    var h=rowsD.map(function(r){return "<div class='r'><span>"+r[0]+"</span><span>"+r[1]+"</span></div>"}).join("");
+    if(dstate.hours) h+="<div class='x'>Clinic open until 18:30 today</div>";
+    if(dstate.last) h+="<div class='x'>Last bus to Station 23:12</div>";
+    disp.innerHTML=h; disp.classList.toggle("big",dstate.big);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("#reqs button"),function(b){
+    b.addEventListener("click",function(){
+      var k=b.getAttribute("data-k"); dstate[k]=!dstate[k];
+      b.setAttribute("aria-pressed",String(dstate[k])); renderDisp();
+    });
+  });
+  renderDisp();
+})();
+</script>
+</body>
+</html>
