@@ -1,15 +1,29 @@
 {
   "synced": "2026-10-05",
   "latest": {
-    "title": "Hullform: Simulator and Tuner",
-    "slug": "hullform-tuner",
-    "artifact_id": "B4VhXJ7ctRVXygtVLChXMm",
-    "version": "1791075667-df3e",
-    "updated_utc": "2026-10-04T01:01:07Z"
+    "title": "Design Principles, and Where They Collide",
+    "slug": "design-principles",
+    "artifact_id": "ELrJpytiNjEDzyGnwJhaW2",
+    "version": "1791245192-ef26",
+    "updated_utc": "2026-10-06T00:06:32Z"
   },
   "how_to_check": "Ask Claude to list your artifacts. Anything whose id is not below, or whose version differs from the one recorded here, is new or changed. Versions start with a unix timestamp, so updated_utc is exact; the artifact list itself only shows the day.",
   "generation_note": "generation is null for artifacts made on claude.ai: the page carries no model, effort or cost. For Claude Code ones it comes from the local session transcripts under ~/.claude/projects.",
   "artifacts": [
+    {
+      "title": "Design Principles, and Where They Collide",
+      "slug": "design-principles",
+      "url": "https://claude.ai/artifact/ELrJpytiNjEDzyGnwJhaW2",
+      "artifact_id": "ELrJpytiNjEDzyGnwJhaW2",
+      "version": "1791245192-ef26",
+      "updated_utc": "2026-10-06T00:06:32Z",
+      "status": "pulled",
+      "page": "vibechecks/design-principles.html",
+      "notes": "vibechecks/design-principles-notes.html",
+      "source": "claude.ai",
+      "bytes": 297037,
+      "generation": null
+    },
     {
       "title": "Hullform: Simulator and Tuner",
       "slug": "hullform-tuner",
@@ -567,7 +581,7 @@
       "generation": null
     },
     {
-      "title": "goalc · graph",
+      "title": "goalc \u00b7 graph",
       "slug": "goalc-graph-2026-08-04",
       "url": "https://claude.ai/artifact/5XYwWeFBEynPEfrwgNSLna",
       "artifact_id": "5XYwWeFBEynPEfrwgNSLna",
@@ -582,7 +596,7 @@
       "note": "excluded by Conrad: Plan / Dizzy / goalc topic"
     },
     {
-      "title": "goalc · graph",
+      "title": "goalc \u00b7 graph",
       "slug": "goalc-graph-2026-07-25b",
       "url": "https://claude.ai/artifact/1wkdXxcqC8BwfQmhAXmCCN",
       "artifact_id": "1wkdXxcqC8BwfQmhAXmCCN",
@@ -597,7 +611,7 @@
       "note": "excluded by Conrad: Plan / Dizzy / goalc topic"
     },
     {
-      "title": "goalc · graph",
+      "title": "goalc \u00b7 graph",
       "slug": "goalc-graph-2026-07-25a",
       "url": "https://claude.ai/artifact/Np9vMTYRqqnbMMngoMmrHo",
       "artifact_id": "Np9vMTYRqqnbMMngoMmrHo",
