@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Branching chat demo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#EEF1F4; --surface:#FFFFFF; --ink:#18212B; --muted:#5D6B7A; --line:#D3DAE2;
+  --c0:#0B8A84; --c1:#C2347A; --c2:#B97A08; --c3:#4553C4; --c4:#5A8F1F;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#12171D; --surface:#1B222B; --ink:#E6EBF0; --muted:#93A1B0; --line:#2D3742;
+    --c0:#35C2BA; --c1:#F06BA8; --c2:#E5AE3C; --c3:#8C98F5; --c4:#9BCB56;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12171D; --surface:#1B222B; --ink:#E6EBF0; --muted:#93A1B0; --line:#2D3742;
+  --c0:#35C2BA; --c1:#F06BA8; --c2:#E5AE3C; --c3:#8C98F5; --c4:#9BCB56;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);
+  display:flex;flex-direction:column;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--c3);outline-offset:2px;border-radius:4px}
+
+/* top bar */
+.bar{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line)}
+.bar h1{font-size:16px;font-weight:600;margin:0;flex:1;letter-spacing:-.01em}
+.hint{font-size:12px;color:var(--muted);display:none}
+.hint kbd{font:500 11px var(--mono);border:1px solid var(--line);border-radius:4px;padding:1px 5px;background:var(--surface)}
+.seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:2px}
+.seg button{padding:5px 14px;border-radius:6px;font-size:14px;font-weight:500;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.seg .wide{display:none}
+
+/* panes */
+.panes{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr)}
+.pane{display:flex;flex-direction:column;min-height:0;min-width:0}
+.scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+[data-view="thread"] #treePane,[data-view="tree"] #threadPane{display:none}
+@media (max-width:859px){[data-view="split"] #treePane{display:none}}
+@media (min-width:860px){
+  .hint{display:block}.seg .wide{display:block}
+  [data-view="split"]{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}
+  [data-view="split"] #treePane{border-left:1px solid var(--line)}
+  [data-view="split"] .openbar{display:none}
+}
+
+/* thread */
+.thread{max-width:680px;margin:0 auto;padding:18px 16px 8px}
+.msg{position:relative;padding:0 0 18px 30px;transition:opacity .15s}
+.msg::before{content:"";position:absolute;left:9px;top:0;bottom:0;width:2px;background:var(--lane)}
+.msg:first-child::before{top:8px}
+.msg:last-child::before{bottom:auto;height:8px}
+.msg:first-child:last-child::before{display:none}
+.shape{position:absolute;left:4px;top:5px;width:12px;height:12px;background:var(--lane);border-radius:50%;
+  box-shadow:0 0 0 3px var(--bg)}
+.msg.assistant .shape{border-radius:2px}
+.msg.dim{opacity:.32}
+.meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:22px}
+.who{font-weight:600;font-size:14px}
+.id{font:12px var(--mono);color:var(--muted)}
+.switch{display:inline-flex;align-items:center;gap:2px;margin-left:auto;font:12px var(--mono);
+  color:var(--lane);border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.switch button{width:28px;height:24px;font-size:15px;line-height:1}
+.switch button:disabled{opacity:.3;cursor:default}
+.text{margin:4px 0 0;max-width:62ch;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.user .text{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;width:fit-content}
+.msg.focus .text{box-shadow:0 0 0 2px var(--lane)}
+.msg.assistant.focus .text{border-radius:6px;box-shadow:-10px 0 0 -8px var(--lane)}
+.acts{display:flex;gap:14px;margin-top:6px}
+.acts button{font-size:13px;color:var(--muted);text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.acts button:hover{color:var(--ink)}
+
+/* composer */
+.composer{border-top:1px solid var(--line);padding:10px 16px 12px}
+.composer-in{max-width:680px;margin:0 auto}
+.draft{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-bottom:8px}
+.draft b{font:500 12px var(--mono);color:var(--ink)}
+.draft button{margin-left:auto;text-decoration:underline;text-underline-offset:3px}
+.row{display:flex;gap:8px;align-items:flex-end}
+textarea{flex:1;min-width:0;resize:none;font:inherit;color:inherit;background:var(--surface);
+  border:1px solid var(--line);border-radius:10px;padding:9px 12px;max-height:120px}
+.send{background:var(--ink);color:var(--bg);font-weight:500;border-radius:10px;padding:9px 16px}
+.note{font-size:12px;color:var(--muted);margin:6px 0 0}
+
+/* tree */
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:12px 16px 4px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;background:var(--muted);border-radius:50%;display:inline-block}
+.legend i.sq{border-radius:2px}
+.legend i.hollow{background:none;border:2px solid var(--muted)}
+.graphwrap{overflow-x:auto;padding:4px 8px 12px}
+.graph{position:relative;min-width:300px}
+.graph svg{position:absolute;left:0;top:0;pointer-events:none}
+.trow{display:flex;align-items:center;gap:10px;width:100%;height:40px;text-align:left;border-radius:8px;padding-right:10px}
+.trow:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+.trow.sel{background:color-mix(in srgb,var(--ink) 10%,transparent)}
+.trow .id{flex:none}
+.trow .snip{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.trow.off .snip,.trow.off .id{opacity:.5}
+.tag{flex:none;font-size:11px;font-weight:500;border:1px solid var(--line);border-radius:999px;padding:0 8px;color:var(--muted);background:var(--surface)}
+details{margin:4px 16px 20px;font-size:13px}
+summary{cursor:pointer;color:var(--muted);padding:6px 0}
+pre{margin:6px 0 0;overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;
+  padding:10px 12px;font:12px/1.6 var(--mono)}
+.openbar{border-top:1px solid var(--line);padding:10px 16px 12px}
+.openbar button{width:100%;background:var(--ink);color:var(--bg);font-weight:500;border-radius:10px;padding:10px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1>Branching chat</h1>
+  <span class="hint">Press <kbd>T</kbd> to flip</span>
+  <div class="seg" role="group" aria-label="View">
+    <button data-v="thread">Thread</button>
+    <button data-v="tree">Tree</button>
+    <button data-v="split" class="wide">Split</button>
+  </div>
+</header>
+
+<main class="panes" id="panes" data-view="thread">
+  <section class="pane" id="threadPane" aria-label="Thread">
+    <div class="scroll" id="threadScroll"><div class="thread" id="thread"></div></div>
+    <div class="composer"><div class="composer-in">
+      <div class="draft" id="draft" hidden></div>
+      <div class="row">
+        <textarea id="input" rows="1" placeholder="Reply to this thread" aria-label="Message"></textarea>
+        <button class="send" id="send">Send</button>
+      </div>
+      <p class="note">No model is connected. Replies are canned so you can watch the tree grow.</p>
+    </div></div>
+  </section>
+
+  <section class="pane" id="treePane" aria-label="Tree">
+    <div class="scroll" id="treeScroll">
+      <div class="legend">
+        <span><i></i>You</span><span><i class="sq"></i>Assistant</span>
+        <span><i class="hollow"></i>Not on the current thread</span>
+      </div>
+      <div class="graphwrap"><div class="graph" id="graph"></div></div>
+      <details><summary id="flatSum">Flat node list</summary><pre id="flat"></pre></details>
+    </div>
+    <div class="openbar"><button id="open">Read this thread</button></div>
+  </section>
+</main>
+
+<script>
+/* ---------- data: a flat list, each node points at its parent ---------- */
+const nodes = [
+  {id:"n01",parentId:null, role:"user",     text:"I'm building a chat UI where you can edit an earlier message and keep both versions. How should I store that?"},
+  {id:"n02",parentId:"n01",role:"assistant",text:"Store every message as a node with a parent id. The conversation becomes a tree, and any one thread is the path from a root down to a leaf."},
+  {id:"n03",parentId:"n02",role:"user",     text:"How do I render a thread from that?"},
+  {id:"n04",parentId:"n03",role:"assistant",text:"Pick a leaf, walk the parent ids up to the root, then reverse the list. Wherever a node has siblings, show a switcher."},
+  {id:"n05",parentId:"n04",role:"user",     text:"And how does the app remember which branch I was on?"},
+  {id:"n06",parentId:"n05",role:"assistant",text:"Keep one pointer: the id of the active leaf. Switching branches only moves that pointer; no message is ever rewritten."},
+  {id:"n07",parentId:"n02",role:"user",     text:"What about showing the whole tree at once?"},
+  {id:"n08",parentId:"n07",role:"assistant",text:"Draw it like a commit graph: one row per message, one lane per branch, and a curve where a branch leaves its parent."},
+  {id:"n09",parentId:"n08",role:"user",     text:"Should rows run oldest first or newest first?"},
+  {id:"n10",parentId:"n09",role:"assistant",text:"Oldest first. People read a chat downward, so the graph should grow the same way the thread does."},
+  {id:"n11",parentId:"n07",role:"assistant",text:"An indented outline also works, but deep threads drift off the right edge. Lanes stay narrow however long the thread gets."},
+  {id:"n12",parentId:"n04",role:"user",     text:"What if two people branch from the same message at once?"},
+  {id:"n13",parentId:"n12",role:"assistant",text:"Nothing conflicts. Both writes add a new child under the same parent, and appends never collide."},
+  {id:"n14",parentId:null, role:"user",     text:"How do chat apps keep both versions when you edit your first message?"},
+  {id:"n15",parentId:"n14",role:"assistant",text:"The edit becomes a second root. You end up with a forest: several trees that share one conversation."}
+];
+
+/* ---------- state ---------- */
+const byId = new Map(nodes.map(n => [n.id, n]));
+const pref = new Map();            // parent id -> last chosen child id
+const chainColor = new Map();      // first node of a branch -> colour slot
+let seq = nodes.length, head = null, focusId = null, draft = null, view = "thread";
+
+const $ = id => document.getElementById(id);
+const key = id => id ?? "∅";
+const kids = id => nodes.filter(n => n.parentId === id);
+const pathTo = id => { const p = []; for (let n = byId.get(id); n; n = byId.get(n.parentId)) p.unshift(n); return p; };
+const descend = id => { for (let cur = id;;) { const k = kids(cur); if (!k.length) return cur;
+  cur = (k.find(c => c.id === pref.get(cur)) || k[0]).id; } };
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+function select(id, focus = true) {
+  pathTo(id).forEach(n => pref.set(key(n.parentId), n.id));
+  head = descend(id); focusId = focus ? id : null; draft = null; render();
+}
+function addNode(parentId, role, text) {
+  const n = {id: "n" + String(++seq).padStart(2, "0"), parentId, role, text};
+  nodes.push(n); byId.set(n.id, n); return n;
+}
+
+/* ---------- layout: depth-first rows, one lane per branch ---------- */
+function layout() {
+  const rows = [], chains = [];
+  const start = first => { const c = {start: first.parentId ? byId.get(first.parentId).row : rows.length, end: 0, first};
+    if (!chainColor.has(first.id)) chainColor.set(first.id, chainColor.size % 5);
+    c.color = chainColor.get(first.id); chains.push(c); return c; };
+  const walk = (n, chain) => { n.row = rows.length; n.chain = chain; chain.end = n.row; rows.push(n);
+    kids(n.id).forEach((k, i) => walk(k, i === 0 ? chain : start(k))); };
+  kids(null).forEach(r => walk(r, start(r)));
+  const laneEnd = [];
+  [...chains].sort((a, b) => a.start - b.start).forEach(c => {
+    let l = laneEnd.findIndex(e => e < c.start); if (l < 0) l = laneEnd.length;
+    laneEnd[l] = c.end; c.lane = l; });
+  return {rows, lanes: laneEnd.length};
+}
+
+/* ---------- tree view ---------- */
+const ROW = 40, LANE = 18, PAD = 16;
+function renderTree(L, onPath) {
+  const gw = PAD * 2 + (L.lanes - 1) * LANE;
+  const x = n => PAD + n.chain.lane * LANE, y = n => n.row * ROW + ROW / 2;
+  let back = "", front = "", dots = "";
+  L.rows.forEach(n => {
+    const col = `var(--c${n.chain.color})`, on = onPath.has(n.id), p = byId.get(n.parentId);
+    if (p) {
+      const d = p.chain === n.chain
+        ? `M${x(n)},${y(p)}V${y(n)}`
+        : `M${x(p)},${y(p)}H${x(n) - Math.sign(x(n) - x(p)) * 10}Q${x(n)},${y(p)} ${x(n)},${y(p) + 10}V${y(n)}`;
+      const s = `<path d="${d}" fill="none" style="stroke:${col}" stroke-width="${on ? 2.5 : 1.5}" opacity="${on ? 1 : .45}"/>`;
+      on ? front += s : back += s;
+    }
+    const fill = on ? col : "var(--bg)", common = `style="fill:${fill};stroke:${col}" stroke-width="2"`;
+    if (n.id === head) dots += `<circle cx="${x(n)}" cy="${y(n)}" r="10" fill="none" style="stroke:${col}" stroke-width="1.5" opacity=".5"/>`;
+    dots += n.role === "user"
+      ? `<circle cx="${x(n)}" cy="${y(n)}" r="5" ${common}/>`
+      : `<rect x="${x(n) - 5}" y="${y(n) - 5}" width="10" height="10" rx="2" ${common}/>`;
+  });
+  const g = $("graph"); g.textContent = "";
+  g.insertAdjacentHTML("beforeend", `<svg width="${gw}" height="${L.rows.length * ROW}" aria-hidden="true">${back}${front}${dots}</svg>`);
+  L.rows.forEach(n => {
+    const b = el("button", "trow " + (onPath.has(n.id) ? "on" : "off") + (n.id === focusId ? " sel" : ""));
+    b.style.paddingLeft = gw + 4 + "px"; b.dataset.id = n.id;
+    b.setAttribute("aria-label", `${n.role === "user" ? "You" : "Assistant"}, ${n.id}: ${n.text}`);
+    b.append(el("span", "id", n.id), el("span", "snip", n.text));
+    if (n.id === head) b.append(el("span", "tag", "current"));
+    b.onclick = () => select(n.id);
+    g.append(b);
+  });
+  $("flatSum").textContent = `Flat node list (${nodes.length} nodes)`;
+  $("flat").textContent = nodes.map(n => JSON.stringify({id: n.id, parentId: n.parentId, role: n.role,
+    text: n.text.length > 38 ? n.text.slice(0, 38) + "…" : n.text})).join("\n");
+}
+
+/* ---------- thread view ---------- */
+function renderThread(onPath) {
+  const path = pathTo(head), box = $("thread"); box.textContent = "";
+  const cut = draft ? path.findIndex(n => n.id === draft.dimFrom) : -1;
+  path.forEach((n, i) => {
+    const m = el("article", `msg ${n.role}` + (n.id === focusId ? " focus" : "") + (cut >= 0 && i >= cut ? " dim" : ""));
+    m.dataset.id = n.id; m.style.setProperty("--lane", `var(--c${n.chain.color})`);
+    const meta = el("div", "meta");
+    meta.append(el("span", "who", n.role === "user" ? "You" : "Assistant"), el("span", "id", n.id));
+    const sibs = kids(n.parentId);
+    if (sibs.length > 1) {
+      const at = sibs.indexOf(n), sw = el("span", "switch");
+      const prev = el("button", "", "‹"), next = el("button", "", "›");
+      prev.setAttribute("aria-label", "Previous branch"); next.setAttribute("aria-label", "Next branch");
+      prev.disabled = at === 0; next.disabled = at === sibs.length - 1;
+      prev.onclick = () => select(sibs[at - 1].id); next.onclick = () => select(sibs[at + 1].id);
+      sw.append(prev, el("span", "", `${at + 1} of ${sibs.length}`), next); meta.append(sw);
+    }
+    const acts = el("div", "acts");
+    if (n.role === "user") {
+      const e = el("button", "", "Edit as new branch");
+      e.onclick = () => { draft = {parentId: n.parentId, dimFrom: n.id, label: n.parentId ? `New branch beside ${n.id}` : "New tree beside " + n.id};
+        $("input").value = n.text; render(); $("input").focus(); };
+      acts.append(e);
+    } else {
+      if (n.id !== head) {
+        const b = el("button", "", "Branch from here");
+        b.onclick = () => { draft = {parentId: n.id, dimFrom: path[i + 1].id, label: `New branch under ${n.id}`}; render(); $("input").focus(); };
+        acts.append(b);
+      }
+      const r = el("button", "", "Retry");
+      r.onclick = () => { const a = addNode(n.parentId, "assistant",
+        `Second attempt at this answer, stored as a sibling of ${n.id}. Both replies share the parent ${n.parentId}.`); select(a.id); };
+      acts.append(r);
+    }
+    m.append(el("span", "shape"), meta, el("p", "text", n.text), acts);
+    box.append(m);
+  });
+  const d = $("draft"); d.hidden = !draft; d.textContent = "";
+  if (draft) { const c = el("button", "", "Cancel"); c.onclick = () => { draft = null; $("input").value = ""; render(); };
+    d.append(el("b", "", draft.label), c); }
+  $("input").placeholder = draft ? "Write the first message of the branch" : "Reply to this thread";
+}
+
+function send() {
+  const t = $("input").value.trim(); if (!t) return;
+  const parent = draft ? draft.parentId : head;
+  const u = addNode(parent, "user", t);
+  const where = parent ? `under ${parent}` : "as a new root";
+  const a = addNode(u.id, "assistant", `Added ${u.id} ${where}, and this reply as its child. Open the tree to see where it landed.`);
+  $("input").value = ""; select(a.id, false);
+}
+
+/* ---------- render + wiring ---------- */
+function render() {
+  const L = layout(), onPath = new Set(pathTo(head).map(n => n.id));
+  renderTree(L, onPath); renderThread(onPath);
+  $("panes").dataset.view = view;
+  document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.v === view));
+  requestAnimationFrame(() => {
+    const m = focusId && $("thread").querySelector(`[data-id="${focusId}"]`);
+    if (m) m.scrollIntoView({block: "center"}); else if (!draft) $("threadScroll").scrollTop = 1e6;
+    const r = $("graph").querySelector(`[data-id="${focusId || head}"]`);
+    if (r) r.scrollIntoView({block: "nearest"});
+  });
+}
+function setView(v) { view = v; render(); }
+
+document.querySelectorAll(".seg button").forEach(b => b.onclick = () => setView(b.dataset.v));
+$("open").onclick = () => setView("thread");
+$("send").onclick = send;
+$("input").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } });
+document.addEventListener("keydown", e => {
+  if (e.target.matches("textarea,input") || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key.toLowerCase() === "t") setView(view === "tree" ? "thread" : "tree");
+});
+
+view = matchMedia("(min-width:860px)").matches ? "split" : "thread";
+select("n06", false);
+</script>
+</body>
+</html>

@@ -1,15 +1,29 @@
 {
-  "synced": "2026-10-06",
+  "synced": "2026-10-09",
   "latest": {
-    "title": "Dizzy execution domain, channel study",
-    "slug": "dizzy-channel-study-2",
-    "artifact_id": "HbRGe3RUpvr1KGB5zwztEE",
-    "version": "1791330184-727b",
-    "updated_utc": "2026-10-06T23:43:04Z"
+    "title": "Branching chat demo",
+    "slug": "branching-chat-demo",
+    "artifact_id": "Lg6tkLKGFnXbxHGYbp8NrN",
+    "version": "1791421149-ff85",
+    "updated_utc": "2026-10-08T00:59:09Z"
   },
   "how_to_check": "Ask Claude to list your artifacts. Anything whose id is not below, or whose version differs from the one recorded here, is new or changed. Versions start with a unix timestamp, so updated_utc is exact; the artifact list itself only shows the day.",
   "generation_note": "generation is null for artifacts made on claude.ai: the page carries no model, effort or cost. For Claude Code ones it comes from the local session transcripts under ~/.claude/projects.",
   "artifacts": [
+    {
+      "title": "Branching chat demo",
+      "slug": "branching-chat-demo",
+      "url": "https://claude.ai/artifact/Lg6tkLKGFnXbxHGYbp8NrN",
+      "artifact_id": "Lg6tkLKGFnXbxHGYbp8NrN",
+      "version": "1791421149-ff85",
+      "updated_utc": "2026-10-08T00:59:09Z",
+      "status": "pulled",
+      "page": "vibechecks/branching-chat-demo.html",
+      "notes": "vibechecks/branching-chat-demo-notes.html",
+      "source": "claude.ai",
+      "bytes": 19111,
+      "generation": null
+    },
     {
       "title": "Dizzy execution domain, channel study",
       "slug": "dizzy-channel-study-2",
