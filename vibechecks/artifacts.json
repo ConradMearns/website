@@ -1,15 +1,43 @@
 {
-  "synced": "2026-10-09",
+  "synced": "2026-10-15",
   "latest": {
-    "title": "Branching chat demo",
-    "slug": "branching-chat-demo",
-    "artifact_id": "Lg6tkLKGFnXbxHGYbp8NrN",
-    "version": "1791421149-ff85",
-    "updated_utc": "2026-10-08T00:59:09Z"
+    "title": "Endless Star Battle",
+    "slug": "endless-star-battle",
+    "artifact_id": "S3eYAuwvQprh6V3dezc8Ti",
+    "version": "1792073030-a138",
+    "updated_utc": "2026-10-15T14:03:50Z"
   },
   "how_to_check": "Ask Claude to list your artifacts. Anything whose id is not below, or whose version differs from the one recorded here, is new or changed. Versions start with a unix timestamp, so updated_utc is exact; the artifact list itself only shows the day.",
   "generation_note": "generation is null for artifacts made on claude.ai: the page carries no model, effort or cost. For Claude Code ones it comes from the local session transcripts under ~/.claude/projects.",
   "artifacts": [
+    {
+      "title": "Endless Star Battle",
+      "slug": "endless-star-battle",
+      "url": "https://claude.ai/artifact/S3eYAuwvQprh6V3dezc8Ti",
+      "artifact_id": "S3eYAuwvQprh6V3dezc8Ti",
+      "version": "1792073030-a138",
+      "updated_utc": "2026-10-15T14:03:50Z",
+      "status": "pulled",
+      "page": "vibechecks/endless-star-battle.html",
+      "notes": "vibechecks/endless-star-battle-notes.html",
+      "source": "claude.ai",
+      "bytes": 42978,
+      "generation": null
+    },
+    {
+      "title": "Endless Tupo",
+      "slug": "endless-tupo",
+      "url": "https://claude.ai/artifact/XbHKBhrDTXVxkXPGgCJhGR",
+      "artifact_id": "XbHKBhrDTXVxkXPGgCJhGR",
+      "version": "1792037747-31d1",
+      "updated_utc": "2026-10-15T04:15:47Z",
+      "status": "pulled",
+      "page": "vibechecks/endless-tupo.html",
+      "notes": "vibechecks/endless-tupo-notes.html",
+      "source": "claude.ai",
+      "bytes": 44400,
+      "generation": null
+    },
     {
       "title": "Branching chat demo",
       "slug": "branching-chat-demo",
