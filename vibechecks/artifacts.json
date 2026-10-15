@@ -25,18 +25,19 @@
       "generation": null
     },
     {
-      "title": "Endless Tupo",
-      "slug": "endless-tupo",
+      "title": "Endless Graeco-Latin Squares",
+      "slug": "graeco-latin-squares",
       "url": "https://claude.ai/artifact/XbHKBhrDTXVxkXPGgCJhGR",
       "artifact_id": "XbHKBhrDTXVxkXPGgCJhGR",
       "version": "1792037747-31d1",
       "updated_utc": "2026-10-15T04:15:47Z",
       "status": "pulled",
-      "page": "vibechecks/endless-tupo.html",
-      "notes": "vibechecks/endless-tupo-notes.html",
+      "page": "vibechecks/graeco-latin-squares.html",
+      "notes": "vibechecks/graeco-latin-squares-notes.html",
       "source": "claude.ai",
       "bytes": 44400,
-      "generation": null
+      "generation": null,
+      "note": "artifact is titled \"Endless Tupo\" on claude.ai; renamed here. Unofficial endless version of Tupo (playtupo.com) by Josh Collinsworth"
     },
     {
       "title": "Branching chat demo",
