@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Housewright, annotated — Conrad Mearns</title>
+    <script src="../js/theme.js"></script>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/notes.css">
+</head>
+<body>
+
+    <header>
+        <a href="../index.html">conrads.website</a> /
+        <a href="index.html">vibechecks</a>
+        <span class="here" aria-current="page">/ housewright</span>
+        <button type="button" data-theme-toggle></button>
+    </header>
+
+    <div class="stage">
+        <main class="notes">
+            <h1>Housewright</h1>
+            <section data-view="housewright.html#brief" data-label="A-01 · Brief">
+                <p>A procedural house generator that works like an architect's sheet set. It starts from a list of needs and ends with a voxel house, one drawing at a time, and each sheet shows the algorithm behind that step. Scroll down to step through the sheets. Drag the model to orbit it, or press Play through on the page to watch the whole run.</p>
+                <p>The first sheet is the brief: which rooms the house needs, how generous each one is, and how freely the house may spread. There are presets for a smith, a farmstead and a cottage, and three towns with their own building style. Every later sheet is derived from this list.</p>
+                <p><small><b>Look for</b> the Massing setting on the brief. Changing it is the quickest way to compare a tight block with a sprawling house.</small></p>
+                <p class="who">Last updated 2026-10-16 02:55 UTC · made on claude.ai</p>
+                <p><small>Model, effort and cost weren't recorded for this one: it was made on claude.ai, which doesn't keep them with the page. <a href="lost-instruments-notes.html">Lost Instruments</a> uses this generator as its running example.</small></p>
+            </section>
+
+            <section data-view="housewright.html#program" data-label="A-02 · Program">
+                <h2>Rooms become numbers</h2>
+                <p>Each room in the brief becomes a spec the solver can score: a floor area in blocks and a set of needs. Nothing has a position yet.</p>
+                <p>It's a lookup table. Room type and size give the area, and the room type gives the needs: a smithy wants its own outside door and a chimney, a cellar wants no windows.</p>
+                <p class="who">Sheet 2 of 11</p>
+            </section>
+
+            <section data-view="housewright.html#adjacency" data-label="A-03 · Adjacency">
+                <h2>Who needs to touch whom</h2>
+                <p>A bubble diagram, the way an architect would sketch one. Ball size is floor area. Each room gets a door to its preferred parent: the cellar opens off the kitchen, the tool store off the smithy. Pairs that should stay apart get a repelling edge.</p>
+                <p><small><b>Look for</b> the springs settling. They are only there to make the graph readable; the edges are what later sheets try to honour.</small></p>
+                <p class="who">Sheet 3 of 11</p>
+            </section>
+
+            <section data-view="housewright.html#massing" data-label="A-04 · Massing">
+                <h2>Shape first, rooms second</h2>
+                <p>Rooms are grouped by what they are for, and each group gets a volume. Public rooms make the main block. A large work group can become its own wing, storage can drop into a lean-to, and sleeping rooms can move up into the roof.</p>
+                <p>Where the volumes go comes from a slot grammar. Each town lists the slots it likes, such as a work wing behind the main block or a lean-to on a gable end, and a slot is used only if it doesn't collide with one already taken. That is why Kessel Hill houses close into a U around a yard and Ashmere houses come out as T-plans.</p>
+                <p class="who">Sheet 4 of 11</p>
+            </section>
+
+            <section data-view="housewright.html#plan" data-label="A-05 · Plan">
+                <h2>Cut each volume into rooms</h2>
+                <p>Each volume gets a slicing tree: every branch cuts its rectangle in two, in proportion to the area of the rooms beneath it. All the trees are scored together, so a door across a wing joint counts like any other.</p>
+                <p>The search is simulated annealing. Each step changes one tree (swap two rooms, flip a cut, nudge a cut, move a room) and keeps the change if the cost drops. Early on it also accepts some worse layouts to escape dead ends. It does several runs and replays the best one. When there is a loft, it is solved second, inside the part of the roof with standing headroom.</p>
+                <p><small><b>Look for</b> the Compromises line. When a rule can't be met, the sheet says so, and the next sheet routes around it.</small></p>
+                <p class="who">Sheet 5 of 11</p>
+            </section>
+
+            <section data-view="housewright.html#circulation" data-label="A-06 · Circulation">
+                <h2>Doors, a ladder, then a walk</h2>
+                <p>Doors go in the middle of each shared wall the graph asks for, and the ladder goes where the loft landing overlaps the hall. Then a flood fill starts at the outside doors and spreads room by room. Any room it misses gets a door to a neighbour it can reach.</p>
+                <p><small><b>Look for</b> the flood lighting up the plan. It is a cheap version of the final check: a cell that never lights up is a place nobody could ever stand.</small></p>
+                <p class="who">Sheet 6 of 11</p>
+            </section>
+
+            <section data-view="housewright.html#walls" data-label="A-07 · Walls">
+                <h2>Extrude the plan</h2>
+                <p>Every ground-floor room outline becomes wall on a foundation course. A cell is wall if it lies on a room boundary, and outside wall if any neighbour lies beyond the footprint. The town style then dresses the outside cells: timber posts at corners, junctions and regular spacing, or dressed corner stones. Doorways are cut out with a lintel above.</p>
+                <p class="who">Sheet 7 of 11</p>
+            </section>
+
+            <section data-view="housewright.html#roof" data-label="A-08 · Roof &amp; loft">
+                <h2>The part that says “house”</h2>
+                <p>Each volume gets its own roof as a height field: the eave height plus the pitch times the distance to the nearest eave. The final roof is the maximum of all of them. A wing's field reaches into the main block up to its ridge, so where a lower wing meets the main roof you get a valley without any special case.</p>
+                <p>The loft is the part of the main roof with at least two blocks of headroom. Knee walls close it off, and sleeping rooms away from a gable get a dormer.</p>
+                <p class="who">Sheet 8 of 11</p>
+            </section>
+
+            <section data-view="housewright.html#details" data-label="A-09 · Details">
+                <h2>Chimneys, windows, contents</h2>
+                <p>Hearth rooms get a chimney stack, on a gable end where possible, carried two blocks past the roof. Rooms that need light get windows along their outside walls. Furniture lines the walls and never blocks the path between doors.</p>
+                <p>Each of these is scored placement: candidate cells are ranked (gable end over back wall over interior, centred over off-centre, away from doors) and the best one wins. The page notes that this is the layer a learned detailer, such as a neural cellular automaton or wave function collapse, could replace.</p>
+                <p class="who">Sheet 9 of 11</p>
+            </section>
+
+            <section data-view="housewright.html#check" data-label="A-10 · Check">
+                <h2>Read the house back</h2>
+                <p>This sheet ignores the plan entirely. It looks only at the finished blocks: it flood-fills each floor to find enclosed spaces, treats door blocks and the ladder as connections, rebuilds the room graph and compares it with the brief. It also floods outside air through the model in 3D to show that every room is sealed.</p>
+                <p>So the check is a round trip: plan, then voxels, then a plan recovered from the voxels. It checks the rules the brief implies: doors match the graph, every room can be reached, the cellar has no windows or outside door, and every hearth vents above the roof.</p>
+                <p><small><b>Look for</b> green floor, a recovered room, and red, a space that matches nothing, can't be reached or lets the weather in. Lost Instruments uses this sheet as its example of a <a href="lost-instruments-notes.html">round-trip oracle</a>.</small></p>
+                <p class="who">Sheet 10 of 11</p>
+            </section>
+
+            <section data-view="housewright.html#town" data-label="A-11 · Town">
+                <h2>A town of them</h2>
+                <p>Six more briefs drawn at random, each run through the same pipeline in the same style. The rooms and massing differ, so no two houses match, but they clearly belong together.</p>
+                <p>The style is a set of parameters: wall height, roof type and pitch, framing, window spacing, porch, palette, preferred wing slots and whether lofts are allowed. Riverford is timber frame under steep thatch, Kessel Hill is fieldstone under low slate hip roofs, and Ashmere is dark log with red tile and covered porches. The page calls this the slot a learned style vector would plug into.</p>
+                <p class="who">Sheet 11 of 11</p>
+            </section>
+        </main>
+
+        <div class="frame">
+            <div class="screen"><iframe src="housewright.html#brief" title="Housewright, live" data-width="1200"></iframe></div>
+            <p><span id="label">A-01 · Brief</span> <a id="open" href="housewright.html">Open full page →</a></p>
+        </div>
+    </div>
+
+    <script src="../js/notes.js"></script>
+</body>
+</html>

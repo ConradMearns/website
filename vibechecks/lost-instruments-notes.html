@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lost Instruments, annotated — Conrad Mearns</title>
+    <script src="../js/theme.js"></script>
+    <link rel="stylesheet" href="../css/theme.css">
+    <link rel="stylesheet" href="../css/notes.css">
+</head>
+<body>
+
+    <header>
+        <a href="../index.html">conrads.website</a> /
+        <a href="index.html">vibechecks</a>
+        <span class="here" aria-current="page">/ lost instruments</span>
+        <button type="button" data-theme-toggle></button>
+    </header>
+
+    <div class="stage">
+        <main class="notes">
+            <h1>Lost Instruments</h1>
+            <section data-view="lost-instruments.html#top" data-label="Introduction">
+                <p>A research review of the instruments software engineering built for knowing when code is ready for production: dependency matrices, slices, mutation scores, oracles, queueing laws, failure taxonomies. Most were too expensive to run by hand and fell out of everyday use. The review's argument is that language models make the expensive part cheap.</p>
+                <p>It sorts readiness into four properties: <b>Known</b> (an independent oracle says what correct means), <b>Bounded</b> (it degrades in a chosen way), <b>Changeable</b> (an edit's reach is small and visible) and <b>Recoverable</b> (you find out quickly when it's wrong, and can undo it). Its claim is that model-written code does well on the first, for the happy path, and poorly on the other three, because those properties live between files rather than inside them.</p>
+                <p>Each entry says what the instrument catches, why it fell out of use and what a model changes. The figures are small simulations with a Replay button. Numbers marked Housewright come from real runs of the <a href="housewright-notes.html">Housewright</a> house generator, which the review uses as a running example.</p>
+                <p class="who">Last updated 2026-10-16 15:03 UTC · made on claude.ai</p>
+                <p><small>Model, effort and cost weren't recorded for this one: it was made on claude.ai, which doesn't keep them with the page.</small></p>
+            </section>
+
+            <section data-view="lost-instruments.html#structure" data-label="1 · Structure and reach">
+                <h2>1 · Structure and reach</h2>
+                <p>Every edit has a reach: the code that might need to change with it, or break because of it. This part covers the instruments that measure relationships between functions rather than one function at a time: design structure matrices and propagation cost, connascence, program slicing, and scattering and tangling.</p>
+                <p><small><b>Look for</b> Fig. 1, the dependency matrix. In Housewright every pipeline stage reads and writes one shared state object, so the transitive closure fills a block across the middle. Switch to typed stage outputs and the same pipeline becomes a triangle. The Housewright figures: 31 units, propagation cost about 20%, and a seven-node cycle through a 40-field state object.</small></p>
+                <p class="who">Changeable</p>
+            </section>
+
+            <section data-view="lost-instruments.html#history" data-label="2 · History as evidence">
+                <h2>2 · History as evidence</h2>
+                <p>Static structure shows what could change together; version history shows what does. Change coupling, hotspots and SZZ-style defect prediction need no understanding of the code, and in several studies they predict defects better than code metrics do.</p>
+                <p><small><b>Look for</b> the heaviest link in Fig. 5: two files that keep changing together with no import between them.</small></p>
+                <p class="who">Changeable · Recoverable</p>
+            </section>
+
+            <section data-view="lost-instruments.html#strength" data-label="3 · Test strength">
+                <h2>3 · Test strength</h2>
+                <p>Coverage says which lines the tests ran, not whether they would notice those lines being wrong. Mutation testing does. The second entry turns it on every constant: a scan nudged each number in Housewright up and down and rebuilt six houses per variant, 1,755 mutants in about six minutes.</p>
+                <p><small><b>Look for</b> Fig. 8, which sorts the real mutants. 172 broke a check, 64 crashed, and 551 changed the house without any check noticing. Those are the numbers nobody has made a decision about.</small></p>
+                <p class="who">Known</p>
+            </section>
+
+            <section data-view="lost-instruments.html#oracles" data-label="4 · Oracles">
+                <h2>4 · Oracles</h2>
+                <p>An oracle decides whether an output is correct. Mutation testing measures how sharp an oracle is but can't supply one. This part covers the oracle problem, metamorphic and property-based testing, round-trip oracles, why specifications fall short, and a loop that turns unpinned mutants into questions for a person, one per concept.</p>
+                <p><small><b>Look for</b> Fig. 11, Housewright's own check sheet: plan, build, read back, compare. On the second pass the builder drops a door, and the flood fill can't reach the store.</small></p>
+                <p class="who">Known</p>
+            </section>
+
+            <section data-view="lost-instruments.html#bounded" data-label="5 · Bounded under load">
+                <h2>5 · Bounded under load</h2>
+                <p>A bounded system can say in advance how it will degrade, and that way was chosen. For pipelines and event-driven systems, much of this can be calculated from measurements instead of found by load testing: operational laws, tail latency, throughput collapse, metastable failures, and the levers for each degradation mode.</p>
+                <p><small><b>Look for</b> the arrival-rate slider on Fig. 13. Below a utilisation of 1 the queue fluctuates; at 1 or above it grows without bound. Fig. 16 shows retries keeping a system overloaded after the spike has ended, unless they have a budget.</small></p>
+                <p class="who">Bounded</p>
+            </section>
+
+            <section data-view="lost-instruments.html#failure" data-label="6 · How software fails">
+                <h2>6 · How software fails</h2>
+                <p>Failure taxonomies turn incident history into checklists, and they work best as prompts: for each unit an edit touches, ask what happens on error, retry, overload, bad data and rollback. Covers Bohrbugs and Heisenbugs, error-handling paths, fault injection and hazard analysis.</p>
+                <p><small><b>Look for</b> Fig. 18: the same detected error with two handlers. Logging and carrying on passes bad state forward until something downstream fails.</small></p>
+                <p class="who">Bounded · Recoverable</p>
+            </section>
+
+            <section data-view="lost-instruments.html#events" data-label="7 · Specifying event systems">
+                <h2>7 · Specifying event-sourced systems</h2>
+                <p>A specification is an ontology of data, a language of changes to it, and rules for how those changes may happen over time. An event-sourced framework like Dizzy already supplies the first two as models and events. This part writes out the third: a behavioural contract for each kind of element, from model invariants to policy liveness.</p>
+                <p>One consequence: the frame problem becomes checkable, because "what must not change" reduces to "which events may this procedure emit".</p>
+                <p><small><b>Look for</b> Fig. 20. A miner notices that Paid always came before Shipped, asks whether that's a rule, and once it's confirmed, flags the next history that breaks it.</small></p>
+                <p class="who">Known</p>
+            </section>
+
+            <section data-view="lost-instruments.html#sketch" data-label="8 · Code meant to be deleted">
+                <h2>8 · Code meant to be deleted</h2>
+                <p>Some code exists to test an idea and should be digested and deleted before the next attempt. The practice is old (Brooks's "plan to throw one away", XP spikes, tracer bullets); measuring it is not. The review proposes four measures: a lifecycle tag, leakage (a sketch's fan-in should stay zero), digestion yield (what survives the deletion) and an expiry date.</p>
+                <p class="who">Changeable</p>
+            </section>
+
+            <section data-view="lost-instruments.html#gates" data-label="9 · Five gates">
+                <h2>9 · Five gates for model-written changes</h2>
+                <p>The instruments combined into a review loop: impact set, independent oracle, test strength, structural delta and failure prompts. Each is cheap to run and checks something the diff alone can't show.</p>
+                <p>The closing point: review mostly produces understanding, not found defects, and with generated code understanding is what goes missing. So review effort is better spent on the oracle and the impact set than on reading the diff line by line.</p>
+                <p class="who">All four</p>
+            </section>
+
+            <section data-view="lost-instruments.html#refs" data-label="References">
+                <h2>References</h2>
+                <p>Sixty-nine sources, from McCabe 1976 to 2025 papers. The page says each one was checked against a publisher, library or author page, and each link opens that page.</p>
+            </section>
+        </main>
+
+        <div class="frame">
+            <div class="screen"><iframe src="lost-instruments.html#top" title="Lost Instruments, live" data-width="1100"></iframe></div>
+            <p><span id="label">Introduction</span> <a id="open" href="lost-instruments.html">Open full page →</a></p>
+        </div>
+    </div>
+
+    <script src="../js/notes.js"></script>
+</body>
+</html>

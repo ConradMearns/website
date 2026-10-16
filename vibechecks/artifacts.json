@@ -1,15 +1,44 @@
 {
-  "synced": "2026-10-15",
+  "synced": "2026-10-16",
   "latest": {
-    "title": "Endless Star Battle",
-    "slug": "endless-star-battle",
-    "artifact_id": "S3eYAuwvQprh6V3dezc8Ti",
-    "version": "1792073030-a138",
-    "updated_utc": "2026-10-15T14:03:50Z"
+    "title": "Lost Instruments",
+    "slug": "lost-instruments",
+    "artifact_id": "Ja1aTCdCne5Q88KdcRoFEn",
+    "version": "1792163020-4909",
+    "updated_utc": "2026-10-16T15:03:40Z"
   },
   "how_to_check": "Ask Claude to list your artifacts. Anything whose id is not below, or whose version differs from the one recorded here, is new or changed. Versions start with a unix timestamp, so updated_utc is exact; the artifact list itself only shows the day.",
   "generation_note": "generation is null for artifacts made on claude.ai: the page carries no model, effort or cost. For Claude Code ones it comes from the local session transcripts under ~/.claude/projects.",
   "artifacts": [
+    {
+      "title": "Lost Instruments",
+      "slug": "lost-instruments",
+      "url": "https://claude.ai/artifact/Ja1aTCdCne5Q88KdcRoFEn",
+      "artifact_id": "Ja1aTCdCne5Q88KdcRoFEn",
+      "version": "1792163020-4909",
+      "updated_utc": "2026-10-16T15:03:40Z",
+      "status": "pulled",
+      "page": "vibechecks/lost-instruments.html",
+      "notes": "vibechecks/lost-instruments-notes.html",
+      "source": "claude.ai",
+      "bytes": 155153,
+      "generation": null,
+      "note": "uses Housewright as its running specimen; walkthrough notes link the two"
+    },
+    {
+      "title": "Housewright",
+      "slug": "housewright",
+      "url": "https://claude.ai/artifact/GHZqcgquha5Y91eGctzYFw",
+      "artifact_id": "GHZqcgquha5Y91eGctzYFw",
+      "version": "1792119304-e82c",
+      "updated_utc": "2026-10-16T02:55:04Z",
+      "status": "pulled",
+      "page": "vibechecks/housewright.html",
+      "notes": "vibechecks/housewright-notes.html",
+      "source": "claude.ai",
+      "bytes": 122611,
+      "generation": null
+    },
     {
       "title": "Endless Star Battle",
       "slug": "endless-star-battle",

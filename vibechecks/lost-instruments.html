@@ -1,0 +1,1570 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Lost Instruments</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap">
+<style>
+/* Layout: an instrument catalogue. A sticky contents rail on the left; a reading column on the right where each method is an entry with a live figure in a hairline instrument frame. */
+:root{
+  --paper:#EDF0F4; --panel:#F8F9FB; --ink:#141B26; --ink-2:#56627A; --rule:#C8D0DC;
+  --accent:#2C43C4; --accent-soft:#DCE1F8; --pass:#1E7A4A; --warn:#A2620B; --fail:#B5322A;
+  --f-display:"Bricolage Grotesque","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --f-body:"Newsreader","Iowan Old Style","Palatino Linotype",Georgia,serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#0E131B; --panel:#141B26; --ink:#E3E8F0; --ink-2:#9AA6B9; --rule:#28324A;
+  --accent:#93A2FF; --accent-soft:#222B55; --pass:#5EC089; --warn:#E3A24B; --fail:#F27D71; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --paper:#0E131B; --panel:#141B26; --ink:#E3E8F0; --ink-2:#9AA6B9; --rule:#28324A;
+  --accent:#93A2FF; --accent-soft:#222B55; --pass:#5EC089; --warn:#E3A24B; --fail:#F27D71; color-scheme:dark }
+
+html{scroll-behavior:smooth;scroll-padding-top:24px}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:18px;line-height:1.6;margin:0;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+button{font:inherit;color:inherit}
+
+.page{max-width:1180px;margin:0 auto;padding-block:40px 80px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:200px minmax(0,1fr);gap:56px}
+.rail{position:sticky;top:24px;align-self:start;max-height:calc(100vh - 48px);overflow:auto;font-family:var(--f-mono);font-size:12.5px;line-height:1.45;padding-top:6px}
+.rail .rk{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);margin:0 0 10px}
+.rail ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.rail a{display:flex;gap:8px;padding:4px 6px;border-radius:3px;color:var(--ink-2);text-decoration:none}
+.rail a:hover{color:var(--ink);background:var(--accent-soft)}
+.rail a.on{color:var(--ink);background:var(--panel);box-shadow:inset 0 0 0 1px var(--rule)}
+.rail .n{flex:none;width:18px;color:var(--accent)}
+main{min-width:0;max-width:740px}
+
+/* hero */
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);margin:0}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(44px,8vw,76px);line-height:.95;letter-spacing:-.025em;margin:10px 0 18px;font-variation-settings:"opsz" 96}
+.dek{font-size:21px;line-height:1.5;margin:0;max-width:62ch}
+.props{margin:32px 0 8px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:2px solid var(--ink);border-bottom:1px solid var(--rule)}
+.prop{padding:14px 14px 16px 0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.prop + .prop{padding-left:14px;border-left:1px solid var(--rule)}
+.prop .k{font-family:var(--f-display);font-weight:700;font-size:21px;line-height:1.1}
+.prop .k b{font-family:var(--f-mono);font-weight:500;font-size:11px;color:var(--paper);background:var(--ink);border-radius:2px;padding:1px 5px;margin-right:8px;vertical-align:3px}
+.prop p{margin:0;font-size:15.5px;line-height:1.45;color:var(--ink-2)}
+.prop .go{font-family:var(--f-mono);font-size:11.5px;color:var(--ink-2)}
+.prop .go a{color:var(--accent);text-decoration:none}
+.note{font-size:16px;color:var(--ink-2);margin:12px 0 0;max-width:62ch}
+.howto{margin-top:28px;font-size:16px;color:var(--ink-2);max-width:64ch}
+
+/* sections */
+section.part{margin-top:84px}
+.part-head{display:flex;flex-direction:column;gap:8px;padding-top:18px;border-top:2px solid var(--ink)}
+.part-head .tags{display:flex;gap:6px;align-items:center;font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.tag{font-family:var(--f-mono);font-weight:500;font-size:11px;letter-spacing:0;color:var(--paper);background:var(--ink);border-radius:2px;padding:1px 6px;text-transform:none}
+h2{font-family:var(--f-display);font-weight:800;font-size:clamp(30px,4.6vw,40px);line-height:1.05;letter-spacing:-.015em;margin:0;text-wrap:balance}
+h2 .num{color:var(--accent);margin-right:12px}
+.lead{font-size:19.5px;margin:6px 0 0;max-width:62ch}
+article.entry{margin-top:52px}
+h3{font-family:var(--f-display);font-weight:700;font-size:25px;line-height:1.15;margin:0;letter-spacing:-.005em;text-wrap:balance}
+h3 .num{font-family:var(--f-mono);font-weight:500;font-size:13px;color:var(--ink-2);margin-right:10px;vertical-align:4px}
+.catches{font-family:var(--f-mono);font-size:12.5px;color:var(--ink-2);margin:8px 0 14px;line-height:1.5}
+.catches b{font-weight:500;color:var(--ink);background:var(--accent-soft);padding:1px 5px;border-radius:2px;margin-right:6px}
+p{margin:0 0 14px;max-width:66ch}
+.entry p:last-child{margin-bottom:0}
+em{font-style:italic}
+code{font-family:var(--f-mono);font-size:.82em;background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:0 4px}
+a.cite{font-family:var(--f-mono);font-size:.72em;color:var(--accent);text-decoration:none;white-space:nowrap;padding:0 1px;border-bottom:1px dotted currentColor}
+a.cite:hover{border-bottom-style:solid}
+
+/* figures */
+figure.fig{margin:22px 0 18px;border:1px solid var(--rule);background:var(--panel);border-radius:4px;overflow:hidden}
+.stage{position:relative;width:100%}
+.stage canvas{display:block;width:100%;height:100%}
+.fig-ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;border-top:1px solid var(--rule);font-family:var(--f-mono);font-size:12px;color:var(--ink-2)}
+.fig-ctl label{display:flex;align-items:center;gap:10px;flex:1;min-width:220px}
+.fig-ctl input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:5px 10px;font-family:var(--f-mono);font-size:12px;cursor:pointer;color:var(--ink-2)}
+.seg button + button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+figcaption{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:9px 12px 10px;border-top:1px solid var(--rule);font-size:15px;line-height:1.45;color:var(--ink-2)}
+figcaption .fn{font-family:var(--f-mono);font-size:11.5px;color:var(--ink);margin-right:6px;white-space:nowrap}
+.replay{flex:none;border:1px solid var(--rule);background:var(--paper);border-radius:3px;padding:3px 9px;font-family:var(--f-mono);font-size:11.5px;cursor:pointer;color:var(--ink)}
+.replay:hover{border-color:var(--ink-2)}
+
+.tn{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;margin:16px 0 0;border:1px solid var(--rule);border-radius:4px;font-size:15.5px;line-height:1.45}
+.tn > div{padding:10px 12px;min-width:0}
+.tn > div + div{border-left:1px solid var(--rule)}
+.tn .k{display:block;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);margin-bottom:3px}
+.tn .now .k{color:var(--accent)}
+.case{margin:18px 0 0;padding:12px 14px;background:var(--accent-soft);border-radius:4px;font-size:16px;line-height:1.5}
+.case .k{display:block;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+.case p{margin:0}
+
+.tbl{overflow-x:auto;margin:18px 0;border:1px solid var(--rule);border-radius:4px}
+table{border-collapse:collapse;width:100%;font-size:15.5px;line-height:1.4}
+th{font-family:var(--f-mono);font-weight:500;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);text-align:left;padding:8px 10px;border-bottom:1px solid var(--ink);background:var(--panel)}
+td{padding:8px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:600;white-space:nowrap}
+ul.plain,ol.steps{margin:0 0 14px;padding-left:22px;max-width:64ch}
+ul.plain li,ol.steps li{margin-bottom:6px}
+ol.steps li::marker{font-family:var(--f-mono);font-size:.8em;color:var(--accent)}
+
+/* references */
+.refs{margin-top:84px}
+.refs ol{list-style:none;padding:0;margin:20px 0 0;display:flex;flex-direction:column;gap:0;font-size:15.5px;line-height:1.45}
+.refs li{display:grid;grid-template-columns:132px minmax(0,1fr);gap:14px;padding:9px 0;border-bottom:1px solid var(--rule)}
+.refs li:target{background:var(--accent-soft)}
+.refs .rk{font-family:var(--f-mono);font-size:12px;color:var(--ink-2);padding-top:2px}
+.refs .rt{min-width:0;overflow-wrap:anywhere}
+.refs .rt a{font-family:var(--f-mono);font-size:12px;word-break:break-all}
+.refs .rn{display:block;font-family:var(--f-mono);font-size:11.5px;color:var(--ink-2);margin-top:2px}
+.colophon{margin-top:48px;font-size:14.5px;color:var(--ink-2);max-width:64ch}
+
+.mobile-toc{display:none}
+@media (max-width:980px){
+  .page{grid-template-columns:minmax(0,1fr);gap:0;padding-block:24px 64px}
+  .rail{display:none}
+  main{max-width:none}
+  .mobile-toc{display:block;margin:22px 0 0;border:1px solid var(--rule);border-radius:4px;background:var(--panel);font-family:var(--f-mono);font-size:13px}
+  .mobile-toc summary{padding:10px 12px;cursor:pointer}
+  .mobile-toc ol{list-style:none;margin:0;padding:0 12px 12px;columns:2;column-gap:16px}
+  .mobile-toc li{break-inside:avoid;padding:3px 0}
+  .mobile-toc a{text-decoration:none}
+}
+@media (max-width:640px){
+  body{font-size:17px}
+  .dek{font-size:18.5px}
+  .props{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .prop:nth-child(3){padding-left:0;border-left:0}
+  .prop:nth-child(n+3){border-top:1px solid var(--rule)}
+  .lead{font-size:18px}
+  h3{font-size:22px}
+  .tn{grid-template-columns:minmax(0,1fr)}
+  .tn > div + div{border-left:0;border-top:1px solid var(--rule)}
+  .refs li{grid-template-columns:minmax(0,1fr);gap:2px}
+  figcaption{font-size:14px}
+  .mobile-toc ol{columns:1}
+}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+</style>
+
+<div class="page">
+<nav class="rail" aria-label="Contents">
+  <p class="rk">Contents</p>
+  <ol id="railList">
+    <li><a href="#top"><span class="n">·</span>Introduction</a></li>
+    <li><a href="#structure"><span class="n">1</span>Structure and reach</a></li>
+    <li><a href="#history"><span class="n">2</span>History as evidence</a></li>
+    <li><a href="#strength"><span class="n">3</span>Test strength</a></li>
+    <li><a href="#oracles"><span class="n">4</span>Oracles</a></li>
+    <li><a href="#bounded"><span class="n">5</span>Bounded under load</a></li>
+    <li><a href="#failure"><span class="n">6</span>How software fails</a></li>
+    <li><a href="#events"><span class="n">7</span>Specifying event systems</a></li>
+    <li><a href="#sketch"><span class="n">8</span>Code meant to be deleted</a></li>
+    <li><a href="#gates"><span class="n">9</span>Five gates</a></li>
+    <li><a href="#refs"><span class="n">↳</span>References</a></li>
+  </ol>
+</nav>
+
+<main id="top">
+<header>
+  <p class="eyebrow">A research review · October 2026</p>
+  <h1>Lost Instruments</h1>
+  <p class="dek">Software engineering research built a set of instruments for knowing when code is ready for production: dependency matrices, slices, mutation scores, oracles, queueing laws, failure taxonomies. Most were too expensive to run by hand and fell out of everyday use. Language models make the expensive part cheap. This review collects the instruments, shows each one working, and notes what changes when a model does the tedious translation.</p>
+
+  <div class="props" role="list">
+    <div class="prop" role="listitem"><span class="k"><b>K</b>Known</span><p>An independent oracle says what correct means.</p><span class="go"><a href="#strength">§3</a> · <a href="#oracles">§4</a> · <a href="#events">§7</a></span></div>
+    <div class="prop" role="listitem"><span class="k"><b>B</b>Bounded</span><p>It degrades in a chosen way under load, bad input and partial failure.</p><span class="go"><a href="#bounded">§5</a> · <a href="#failure">§6</a></span></div>
+    <div class="prop" role="listitem"><span class="k"><b>C</b>Changeable</span><p>An edit's reach is small and visible before it is made.</p><span class="go"><a href="#structure">§1</a> · <a href="#history">§2</a> · <a href="#sketch">§8</a></span></div>
+    <div class="prop" role="listitem"><span class="k"><b>R</b>Recoverable</span><p>When it is wrong, you find out quickly and can undo it.</p><span class="go"><a href="#history">§2</a> · <a href="#failure">§6</a></span></div>
+  </div>
+  <p class="note">Production-ready software has all four. Language models write code that does well on the first for the happy path and poorly on the other three, because those properties live between files rather than inside them.</p>
+
+  <details class="mobile-toc"><summary>Contents</summary><ol>
+    <li><a href="#structure">1 Structure and reach</a></li><li><a href="#history">2 History as evidence</a></li><li><a href="#strength">3 Test strength</a></li><li><a href="#oracles">4 Oracles</a></li><li><a href="#bounded">5 Bounded under load</a></li><li><a href="#failure">6 How software fails</a></li><li><a href="#events">7 Specifying event systems</a></li><li><a href="#sketch">8 Code meant to be deleted</a></li><li><a href="#gates">9 Five gates</a></li><li><a href="#refs">References</a></li>
+  </ol></details>
+
+  <p class="howto">Each entry says what the instrument catches, why it fell out of use, and what a model changes. The figures are small simulations written for this page; <em>Replay</em> restarts one. Numbers marked <em>Housewright</em> come from runs of a 796-line procedural house generator with a voxel round-trip verifier, used here as a running specimen.</p>
+</header>
+
+<!-- ============ 1 ============ -->
+<section class="part" id="structure">
+  <div class="part-head">
+    <span class="tags"><span class="tag">C</span>Changeable</span>
+    <h2><span class="num">1</span>Structure and reach</h2>
+    <p class="lead">Every edit has a reach: the code that might need to change with it, or might break because of it. Cyclomatic complexity <a class="cite" href="#ref-mccabe1976">McCabe 1976</a> measures one function at a time. The instruments in this section measure the relationships between functions, which is where reach lives.</p>
+  </div>
+
+  <article class="entry" id="dsm">
+    <h3><span class="num">1.1</span>Design structure matrices and propagation cost</h3>
+    <p class="catches"><b>Catches</b>hidden cycles, and modules that a change anywhere can reach</p>
+    <p>A design structure matrix lists modules on both axes and marks a cell when the row depends on the column. Baldwin and Clark used it to describe modularity as an economic property: a well-modularised design lets parts change independently, and the matrix shows where that holds <a class="cite" href="#ref-baldwin2000">Baldwin & Clark 2000</a>. MacCormack, Rusnak and Baldwin applied it to source code and defined <em>propagation cost</em>, the share of filled cells after taking the transitive closure <a class="cite" href="#ref-maccormack2006">MacCormack et al. 2006</a>. It answers a plain question. If one module changes, what fraction of the system could be affected, on average? In their data, a deliberate redesign of Mozilla cut its propagation cost from 17.35% to 2.78%.</p>
+    <p>Sorting the matrix by strongly connected components exposes the <em>core</em>, a cluster in which every member can reach every other <a class="cite" href="#ref-baldwin2014">Baldwin et al. 2014</a>. The figure shows the pattern found in Housewright. Every pipeline stage reads and writes one shared state object, so the closure fills a block across the middle of the system, and the static view loses the order in which the stages actually run. Switch to typed stage outputs and the same pipeline becomes a triangle.</p>
+    <figure class="fig" data-fig="dsm" data-ar="0.56" data-ar-narrow="1.22">
+      <div class="stage"><canvas aria-label="Animated dependency matrix filling with direct and transitive dependencies"></canvas></div>
+      <div class="fig-ctl"><span>Stages share</span><span class="seg" role="group" aria-label="Pipeline structure"><button type="button" data-mode="shared" aria-pressed="true">one state object</button><button type="button" data-mode="typed" aria-pressed="false">typed outputs</button></span></div>
+      <figcaption><span><span class="fn">Fig. 1</span>Direct dependencies appear first, then the transitive closure. The outlined block is the core. With typed outputs, a shared types module becomes a stable interface that everything depends on and that depends on nothing.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+    <div class="tn"><div><span class="k">Then</span>Matrix extraction per language, clustering, and an analyst to interpret the core.</div><div class="now"><span class="k">Now</span>A parser builds the matrix. A model names the decision each core module hides and proposes where to cut.</div></div>
+    <div class="case"><span class="k">In Housewright</span><p>31 units and 43 direct dependencies; propagation cost about 20%. One seven-node cycle runs through the shared state object, which carries 40 fields. 22 of those fields are written by the generator and read only by the interface, so they form an interface with no contract. These are rough figures from a regex-level scan, not a full parse.</p></div>
+  </article>
+
+  <article class="entry" id="connascence">
+    <h3><span class="num">1.2</span>Information hiding and connascence</h3>
+    <p class="catches"><b>Catches</b>dependencies that a compiler cannot see</p>
+    <p>Parnas argued that a system should be split by the design decisions most likely to change, each module hiding one of them, rather than by the steps of processing <a class="cite" href="#ref-parnas1972">Parnas 1972</a>. Stevens, Myers and Constantine named coupling and cohesion <a class="cite" href="#ref-stevens1974">Stevens et al. 1974</a>. Page-Jones gave a vocabulary for <em>how strong</em> a dependency is <a class="cite" href="#ref-pagejones1992">Page-Jones 1992</a>. Two pieces of code are connascent when changing one requires changing the other. The weak kinds, name and type, are caught by compilers. The strong kinds, such as meaning, algorithm, timing and value, are found by tests, by load, or by users.</p>
+    <p>The working rule is to keep strong connascence inside a module and let only weak kinds cross a boundary. It is easy to state and hard to measure, because spotting connascence of meaning or algorithm requires knowing what the code is for. Hyrum's law adds the other side: with enough users, every observable behaviour becomes something somebody depends on <a class="cite" href="#ref-hyrum">Wright, Hyrum's Law</a>.</p>
+    <figure class="fig" data-fig="connascence" data-ar="0.6" data-ar-narrow="1.45">
+      <div class="stage"><canvas aria-label="Animated ladder of connascence kinds from weak to strong"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 2</span>An edit on the left must be matched on the right. Stronger kinds are found later, by more expensive means. Examples marked ◆ are from Housewright.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+    <div class="tn"><div><span class="k">Then</span>Expert review. No tool could label connascence of meaning or algorithm.</div><div class="now"><span class="k">Now</span>A model can classify each cross-module dependency by kind and flag strong kinds that cross a boundary.</div></div>
+  </article>
+
+  <article class="entry" id="slice">
+    <h3><span class="num">1.3</span>Program slicing and change impact analysis</h3>
+    <p class="catches"><b>Catches</b>exactly which lines an edit can affect, and which tests reach them</p>
+    <p>Weiser defined a slice as the part of a program that can affect the value of a variable at a given point <a class="cite" href="#ref-weiser1984">Weiser 1984</a>. A backward slice answers "what could have produced this value?" A forward slice answers "what could this line change?", which is the core of change impact analysis <a class="cite" href="#ref-bohner1996">Bohner & Arnold 1996</a>. Chianti applied the idea to Java edits, reporting which tests a change affects and which changes affect a failing test <a class="cite" href="#ref-ren2004">Ren et al. 2004</a>. Safe regression test selection uses the same reasoning to rerun only the tests whose execution touches changed code <a class="cite" href="#ref-rothermel1997">Rothermel & Harrold 1997</a> <a class="cite" href="#ref-gligoric2015">Gligoric et al. 2015</a>.</p>
+    <p>For a model making an edit, the forward slice is the context it should read and the set of tests it should run. Agents today mostly find context with text search, which misses dependencies that pass through shared state and returns many irrelevant matches.</p>
+    <figure class="fig" data-fig="slice" data-ar="0.46" data-ar-narrow="0.86">
+      <div class="stage"><canvas aria-label="Animated program slice highlighting dependent lines"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 3</span>The backward slice of <code>label</code> at line 9 follows data and control dependencies upward. Then the forward slice of an edit to line 2 shows everything that edit can reach.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+    <div class="tn"><div><span class="k">Then</span>A precise slicer per language, slow on large programs and hard to read.</div><div class="now"><span class="k">Now</span>Approximate slices are cheap. A model reads the slice instead of the repository, and the slice bounds what must be retested.</div></div>
+  </article>
+
+  <article class="entry" id="scatter">
+    <h3><span class="num">1.4</span>Scattering and tangling</h3>
+    <p class="catches"><b>Catches</b>features that touch every stage</p>
+    <p>Aspect-oriented research named two symptoms. A concern is <em>scattered</em> when its code is spread over many modules, and a module is <em>tangled</em> when it mixes many concerns. Eaddy and colleagues found moderate to strong correlations between how scattered a concern was and how many defects it had <a class="cite" href="#ref-eaddy2008">Eaddy et al. 2008</a>. Scattering also predicts the cost of the next feature: when a concept is spread across seven units, the next change to it is a seven-unit change.</p>
+    <figure class="fig" data-fig="scatter" data-ar="0.5" data-ar-narrow="0.95">
+      <div class="stage"><canvas aria-label="Grid of concepts against units in the Housewright generator"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 4</span>Which units of Housewright's generator mention each concept. The loft reaches 9 units and the ladder 7; the "light" need is split across cost, build and verify with nothing tying the three together.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+    <div class="tn"><div><span class="k">Then</span>Concern mapping by hand, one concern at a time.</div><div class="now"><span class="k">Now</span>A model can map named concepts to code locations and track their spread from commit to commit.</div></div>
+  </article>
+</section>
+
+<!-- ============ 2 ============ -->
+<section class="part" id="history">
+  <div class="part-head">
+    <span class="tags"><span class="tag">C</span><span class="tag">R</span>Changeable · Recoverable</span>
+    <h2><span class="num">2</span>History as evidence</h2>
+    <p class="lead">Static structure shows what could change together. Version history shows what does. These measures need no understanding of the code at all, and in several studies they predict defects better than code metrics do.</p>
+  </div>
+
+  <article class="entry" id="cochange">
+    <h3><span class="num">2.1</span>Change coupling and hotspots</h3>
+    <p class="catches"><b>Catches</b>coupling that no import statement shows</p>
+    <p>Files that keep changing in the same commits are logically coupled, whether or not either one references the other <a class="cite" href="#ref-gall1998">Gall et al. 1998</a>. Zimmermann and colleagues mined these patterns to suggest "programmers who changed these files also changed…" at edit time <a class="cite" href="#ref-zimmermann2005">Zimmermann et al. 2005</a>. Tornhill's hotspot analysis ranks files by churn weighted by complexity, which points review at the few files where most defects land <a class="cite" href="#ref-tornhill2015">Tornhill 2015</a>.</p>
+    <figure class="fig" data-fig="cochange" data-ar="0.6" data-ar-narrow="1.15">
+      <div class="stage"><canvas aria-label="Files lighting up as commits touch them, with co-change links thickening"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 5</span>Each commit lights the files it touches; node size is churn. Dashed lines are imports. Solid links thicken as pairs change together, and the heaviest one joins two files with no import between them.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+    <div class="tn"><div><span class="k">Then</span>Mining scripts, and a repository old enough to have patterns.</div><div class="now"><span class="k">Now</span>Cheap to compute. The output is a list of files an agent must open before it edits a given one.</div></div>
+  </article>
+
+  <article class="entry" id="szz">
+    <h3><span class="num">2.2</span>Defect prediction from process</h3>
+    <p class="catches"><b>Catches</b>risky commits before they merge</p>
+    <p>Moser, Pedrycz and Succi compared change metrics (revisions, authors, churn, age) with static code attributes and found that on Eclipse data the change metrics predicted defects better <a class="cite" href="#ref-moser2008">Moser et al. 2008</a>. Nagappan, Murphy and Basili found that organisational measures, such as how many engineers and teams touched a binary, predicted failure-proneness in Windows Vista better than code metrics <a class="cite" href="#ref-nagappan2008">Nagappan et al. 2008</a>. Just-in-time prediction scores each commit as it lands <a class="cite" href="#ref-kamei2013">Kamei et al. 2013</a>.</p>
+    <p>The training labels come from SZZ. Start at a commit that fixed a bug, blame the lines it changed, and mark the commits that last touched those lines as fix-inducing <a class="cite" href="#ref-sliwerski2005">Śliwerski et al. 2005</a>. The labels are noisy, because not every blamed line caused the bug.</p>
+    <figure class="fig" data-fig="szz" data-ar="0.5" data-ar-narrow="1.1">
+      <div class="stage"><canvas aria-label="A bug fix traced back through blame to the commits that introduced the lines"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 6</span>SZZ traces a fix back to the commits that introduced the lines it repaired. Features of those commits become training data for a per-commit risk model.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+    <div class="tn"><div><span class="k">Then</span>Linking issues to commits, noisy labels, models retrained per project.</div><div class="now"><span class="k">Now</span>A model can read the fix and the blamed change and say whether the link is real, which cleans the labels.</div></div>
+  </article>
+</section>
+
+<!-- ============ 3 ============ -->
+<section class="part" id="strength">
+  <div class="part-head">
+    <span class="tags"><span class="tag">K</span>Known</span>
+    <h2><span class="num">3</span>Test strength</h2>
+    <p class="lead">Coverage says which lines the tests ran. It says nothing about whether the tests would notice if those lines were wrong.</p>
+  </div>
+
+  <article class="entry" id="mutation">
+    <h3><span class="num">3.1</span>Mutation testing</h3>
+    <p class="catches"><b>Catches</b>tests that run code and assert nothing</p>
+    <p>Mutation testing plants small faults in the program, such as changing <code>&gt;</code> to <code>&gt;=</code> or a constant to its neighbour, and reruns the tests. A mutant is <em>killed</em> if some test fails and <em>survives</em> otherwise. The founding paper is by DeMillo, Lipton and Sayward, who argued that programmers write nearly correct code and that tests which catch simple faults also catch most complex faults built from them <a class="cite" href="#ref-demillo1978">DeMillo et al. 1978</a>. The field is surveyed in <a class="cite" href="#ref-jia2011">Jia & Harman 2011</a> and <a class="cite" href="#ref-papadakis2019">Papadakis et al. 2019</a>.</p>
+    <p>Inozemtseva and Holmes found that once suite size is controlled for, coverage is only weakly to moderately correlated with a suite's ability to find faults <a class="cite" href="#ref-inozemtseva2014">Inozemtseva & Holmes 2014</a>. Just and colleagues found that mutant detection correlates with real fault detection <a class="cite" href="#ref-just2014">Just et al. 2014</a>.</p>
+    <figure class="fig" data-fig="mutation" data-ar="0.42" data-ar-narrow="1.12">
+      <div class="stage"><canvas aria-label="Two test suites with full coverage, one of which kills every mutant"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 7</span>Both suites reach 100% line coverage. Three mutants are applied one at a time. Only the suite with real assertions notices.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+    <p>The cost was always compute and noise: thousands of mutants, some equivalent to the original program. Google made it practical by mutating only changed lines and showing surviving mutants as code review comments, with heuristics that suppress unproductive ones <a class="cite" href="#ref-petrovic2018">Petrović & Ivanković 2018</a>. Meta has described using surviving mutants as prompts for language models to write tests that kill them <a class="cite" href="#ref-foster2025">Foster et al. 2025</a>, following earlier work on improving tests with models <a class="cite" href="#ref-alshahwan2024">Alshahwan et al. 2024</a>.</p>
+    <div class="tn"><div><span class="k">Then</span>Compute for every mutant, and people to judge which survivors are equivalent.</div><div class="now"><span class="k">Now</span>Mutating only the diff is cheap. A model writes the killing test, and a small model filters trivial mutants.</div></div>
+  </article>
+
+  <article class="entry" id="scan">
+    <h3><span class="num">3.2</span>A scan of every constant</h3>
+    <p class="catches"><b>Catches</b>numbers nobody has made a decision about</p>
+    <p>Applied to Housewright, a literal scan nudged every number in the generator up and down and rebuilt six varied houses per variant: 1,755 mutants in about six minutes on two cores. The useful result is the sorting.</p>
+    <figure class="fig" data-fig="scan" data-ar="0.5" data-ar-narrow="0.95">
+      <div class="stage"><canvas aria-label="1,755 mutants falling into four outcome bins"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 8</span>Every mutant from the Housewright scan, sorted by outcome. Real counts.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+    <ul class="plain">
+      <li><b>Pinned</b> (172) broke a check: chimneys, seals, doorways.</li>
+      <li><b>Crashed</b> (64) were caught by the runtime for free.</li>
+      <li><b>Unpinned</b> (551) changed the house, such as its footprint, windows or dormers, and no check had an opinion.</li>
+      <li><b>Inert</b> (968) changed nothing observable, for three different reasons. Some landed in a channel no check reads (render scales, animation order). Some sat in code the six houses never reached (a width floor for U-shaped plans). Some are robust by design.</li>
+    </ul>
+    <p>The door's second block came up inert. Nothing checked that a door is tall enough to walk through.</p>
+  </article>
+</section>
+
+<!-- ============ 4 ============ -->
+<section class="part" id="oracles">
+  <div class="part-head">
+    <span class="tags"><span class="tag">K</span>Known</span>
+    <h2><span class="num">4</span>Oracles</h2>
+    <p class="lead">An oracle decides whether an output is correct. Mutation testing measures how sharp an oracle is. It cannot supply one.</p>
+  </div>
+
+  <article class="entry" id="oracle-problem">
+    <h3><span class="num">4.1</span>The oracle problem</h3>
+    <p class="catches"><b>Catches</b>the gap between running code and knowing it is right</p>
+    <p>Barr and colleagues surveyed the field and sorted oracles into <em>specified</em> (contracts, models, assertions), <em>derived</em> (from other versions, other implementations, or relations between runs) and <em>implicit</em> (crashes, hangs, leaks), with humans as the fallback when none of these exist <a class="cite" href="#ref-barr2015">Barr et al. 2015</a>. Each kind catches a different slice of faults, and each is partial. Jahangirova and colleagues used mutation to find faults that an oracle misses and then improved the oracle itself <a class="cite" href="#ref-jahangirova2016">Jahangirova et al. 2016</a>.</p>
+    <figure class="fig" data-fig="oracles" data-ar="0.5" data-ar-narrow="0.95">
+      <div class="stage"><canvas aria-label="Stream of outputs passing four oracle gates that each catch some faults"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 9</span>Outputs flow right through four kinds of oracle. Each catches the faults it can see and drops them into its tray. A few faults escape all four.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+    <div class="tn"><div><span class="k">Then</span>Writing oracles was the expensive part of testing.</div><div class="now"><span class="k">Now</span>A model can propose oracles of every kind. It should not be the only judge, since it shares blind spots with the model that wrote the code.</div></div>
+  </article>
+
+  <article class="entry" id="metamorphic">
+    <h3><span class="num">4.2</span>Metamorphic and property-based testing</h3>
+    <p class="catches"><b>Catches</b>wrong answers when the right answer cannot be computed</p>
+    <p>When the correct output is unknown, a relation between outputs may still be known. Rotate the input and a count should not change; add a filter and the results should be a subset. Chen, Cheung and Yiu called these metamorphic relations <a class="cite" href="#ref-chen1998">Chen et al. 1998</a> <a class="cite" href="#ref-segura2016">Segura et al. 2016</a>. Property-based testing generates many inputs and checks properties instead of examples <a class="cite" href="#ref-claessen2000">Claessen & Hughes 2000</a>. Hughes's guide lists the property styles that work in practice: invariants, postconditions, metamorphic properties, inductive properties and model-based properties <a class="cite" href="#ref-hughes2020">Hughes 2020</a>.</p>
+    <p>Two neighbours belong here. Differential testing runs several implementations on the same input and flags disagreement <a class="cite" href="#ref-mckeeman1998">McKeeman 1998</a>. Daikon watches executions and reports likely invariants, which a person can promote to checks <a class="cite" href="#ref-ernst2001">Ernst et al. 2001</a>.</p>
+    <figure class="fig" data-fig="metamorphic" data-ar="0.52" data-ar-narrow="1.05">
+      <div class="stage"><canvas aria-label="Points rotated around a circle; a correct counter agrees, a buggy one does not"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 10</span>The program counts points inside the circle. Rotating the input must not change the count. The buggy version tests a square instead, and the relation catches it without anyone knowing the true count.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+    <div class="tn"><div><span class="k">Then</span>Inventing good relations took domain insight.</div><div class="now"><span class="k">Now</span>A model proposes candidate relations from the domain, the test harness checks them, and a person approves the ones that should hold.</div></div>
+  </article>
+
+  <article class="entry" id="roundtrip">
+    <h3><span class="num">4.3</span>Round-trip oracles</h3>
+    <p class="catches"><b>Catches</b>drift between a plan and what was built</p>
+    <p>If an output can be read back into the input's terms, the reading is an oracle. Housewright plans rooms, builds voxels, then ignores the plan, flood-fills the voxels to recover rooms and doors, and compares the recovered graph with the brief. A missing door shows up as a missing edge. Contracts in the style of design by contract do the same job at function boundaries <a class="cite" href="#ref-meyer1992">Meyer 1992</a>.</p>
+    <figure class="fig" data-fig="roundtrip" data-ar="0.42" data-ar-narrow="1.6">
+      <div class="stage"><canvas aria-label="Plan to voxels to recovered plan, first correct then with a missing door"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 11</span>Plan, build, read back, compare. On the second pass the builder drops a door, and the flood fill cannot reach the store.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+  </article>
+
+  <article class="entry" id="specs">
+    <h3><span class="num">4.4</span>Why specifications fall short</h3>
+    <p>Naur argued that a program is a theory held by the people who build it, and that code and documentation are partial traces of that theory <a class="cite" href="#ref-naur1985">Naur 1985</a>. A written specification is a snapshot of the theory taken before most of it existed. It is silent about most cases, and silence cannot distinguish "any value is fine" from "nobody thought about it". It rarely says what to give up when two goals conflict. It cannot list everything that must not change. Users recognise correct behaviour more readily than they can describe it. And a specification drifts from the code, because nothing forces the two together.</p>
+    <p>Mining helps where specifications are silent. Ammons and colleagues mined protocol rules from execution traces <a class="cite" href="#ref-ammons2002">Ammons et al. 2002</a>. Mined rules are hypotheses, though. A person still has to say yes before one becomes part of the specification.</p>
+    <p>Doors in Vintage Story make the point concrete. The minimum door is one block wide and two high, but wider doors and double doors exist in every material. The right specification is not a number. It is "an agent of size A can pass through", plus a set of door variants, each with its legal sizes. A magic number in code usually marks a concept missing from the model.</p>
+  </article>
+
+  <article class="entry" id="qloop">
+    <h3><span class="num">4.5</span>A loop that generates questions</h3>
+    <p class="catches"><b>Catches</b>unmade decisions, in the order that matters</p>
+    <p>The pieces combine into a loop. A deterministic scan perturbs the code and records which observable behaviour moved. A small model triages each site: already pinned, arbitrary by design (a hash constant), not exercised (needs new inputs), not observed (needs a new oracle), a tolerance (needs a range), or an unstated rule (needs an invariant). Related sites cluster into one concept. Each cluster becomes one question in domain language, with the behaviour diff as evidence and the check its answer would create. Answers go into a ledger with who decided, when and why, including explicit "don't care" answers, and the scan reruns.</p>
+    <figure class="fig" data-fig="qloop" data-ar="0.44" data-ar-narrow="1.1">
+      <div class="stage"><canvas aria-label="Mutation sites flowing through triage, clustering, questions and a ledger"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 12</span>Sites flow through triage. Only tolerances and unstated rules reach a person, one question per concept. The starting share (10% pinned) is Housewright's; the rise after it is illustrative.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+    <p>Two numbers track progress: the share of mutants that are pinned or explicitly marked don't-care, and the number of open questions. The ledger has the shape of an assurance case, with claims, arguments and evidence, as in the Goal Structuring Notation <a class="cite" href="#ref-kelly2004">Kelly & Weaver 2004</a>. Oracle improvement through mutation <a class="cite" href="#ref-jahangirova2016">Jahangirova et al. 2016</a> and specification mining <a class="cite" href="#ref-ammons2002">Ammons et al. 2002</a> are the closest prior work. Using a small model for triage and phrasing, and recording "don't care" as a decision, are the new parts.</p>
+  </article>
+</section>
+
+<!-- ============ 5 ============ -->
+<section class="part" id="bounded">
+  <div class="part-head">
+    <span class="tags"><span class="tag">B</span>Bounded</span>
+    <h2><span class="num">5</span>Bounded under load</h2>
+    <p class="lead">A bounded system can say in advance how it will degrade, and that way was chosen. For pipelines and event-driven systems, much of this can be calculated from measurements instead of discovered by load testing.</p>
+  </div>
+
+  <article class="entry" id="laws">
+    <h3><span class="num">5.1</span>Operational laws</h3>
+    <p class="catches"><b>Catches</b>the arrival rate at which a pipeline stops keeping up</p>
+    <p>Denning and Buzen showed that the core laws of queueing networks hold for measured quantities, without assuming any probability distribution <a class="cite" href="#ref-denning1978">Denning & Buzen 1978</a>. The utilisation of a station is arrivals × visits × service time ÷ workers. The system's maximum throughput is set by the station where that product is largest. Little's law ties the number in the system to arrival rate × time in system <a class="cite" href="#ref-little1961">Little 1961</a>. After a burst of B items, the backlog drains in B ÷ (capacity − arrival rate).</p>
+    <p>An event-sourced feature file is already a queueing network. Each handler, projection and policy is a station, fan-outs set the visit ratios, and per-element telemetry supplies the service times. The bottleneck and the drain time follow directly.</p>
+    <figure class="fig" data-fig="queue" data-ar="0.56" data-ar-narrow="1.15">
+      <div class="stage"><canvas aria-label="Live single-server queue simulation"></canvas></div>
+      <div class="fig-ctl"><label for="q-lambda">Arrival rate λ <input id="q-lambda" type="range" min="0.3" max="1.3" step="0.05" value="0.8"><span id="q-lambda-out" class="mono">0.80</span></label></div>
+      <figcaption><span><span class="fn">Fig. 13</span>One worker with service rate μ = 1 and random arrivals. Below ρ = 1 the queue fluctuates around ρ/(1−ρ). At ρ ≥ 1 the backlog grows without bound.</span><button class="replay" type="button">Reset</button></figcaption>
+    </figure>
+  </article>
+
+  <article class="entry" id="tail">
+    <h3><span class="num">5.2</span>Variability and the tail</h3>
+    <p class="catches"><b>Catches</b>slow requests that averages hide</p>
+    <p>Averages are not enough. Kingman's approximation, after <a class="cite" href="#ref-kingman1961">Kingman 1961</a>, says time spent waiting in the queue grows with ρ/(1−ρ) multiplied by the average squared variability of arrivals and service. A step whose cost grows as n³ turns uneven input sizes into extreme service-time variability. Fan-out makes it worse: a request that waits for the slowest of N parallel tasks inherits the tail of all of them. Dean and Barroso's example is a server that is slow one time in a hundred; a request that touches 100 such servers is slow 63% of the time <a class="cite" href="#ref-dean2013">Dean & Barroso 2013</a>. With exponential task times, the expected slowest of N tasks is the harmonic number H<sub>N</sub> times the mean, about 7.5 times for N = 1,000.</p>
+    <figure class="fig" data-fig="fanout" data-ar="0.56" data-ar-narrow="1.1">
+      <div class="stage"><canvas aria-label="Histogram of request times for fan-out to N tasks"></canvas></div>
+      <div class="fig-ctl"><span>Tasks per request</span><span class="seg" role="group" aria-label="Fan-out"><button type="button" data-n="1" aria-pressed="false">1</button><button type="button" data-n="10" aria-pressed="false">10</button><button type="button" data-n="100" aria-pressed="true">100</button><button type="button" data-n="1000" aria-pressed="false">1000</button></span></div>
+      <figcaption><span><span class="fn">Fig. 14</span>Each request waits for the slowest of N tasks with mean time 1. The histogram collects request times; the dashed line is H<sub>N</sub>.</span><button class="replay" type="button">Reset</button></figcaption>
+    </figure>
+  </article>
+
+  <article class="entry" id="usl">
+    <h3><span class="num">5.3</span>Throughput collapse</h3>
+    <p class="catches"><b>Catches</b>adding workers that makes the system slower</p>
+    <p>Gunther's Universal Scalability Law models throughput with N workers using a contention term σ, for queueing on a shared resource, and a coherency term κ, for the cost of keeping workers consistent with each other <a class="cite" href="#ref-gunther2007">Gunther 2007</a>. With any κ above zero, throughput peaks at N* = √((1−σ)/κ) and then falls. Two measurements at different N are enough to fit both terms.</p>
+    <figure class="fig" data-fig="usl" data-ar="0.5" data-ar-narrow="0.9">
+      <div class="stage"><canvas aria-label="Throughput curves for linear, contention-limited and coherency-limited scaling"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 15</span>Relative throughput against workers for three settings. Contention flattens the curve; coherency bends it back down.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+  </article>
+
+  <article class="entry" id="metastable">
+    <h3><span class="num">5.4</span>Metastable failures</h3>
+    <p class="catches"><b>Catches</b>outages that outlive their trigger</p>
+    <p>Bronson and colleagues described metastable failures: a trigger pushes a system into a bad state that persists after the trigger is removed, held there by a sustaining feedback loop such as retries <a class="cite" href="#ref-bronson2021">Bronson et al. 2021</a>. Huang and colleagues found the pattern across many production incidents <a class="cite" href="#ref-huang2022">Huang et al. 2022</a>. The fix is to bound the feedback with retry budgets, jittered backoff, load shedding, and deadlines that drop work nobody is waiting for.</p>
+    <figure class="fig" data-fig="metastable" data-ar="0.5" data-ar-narrow="1.05">
+      <div class="stage"><canvas aria-label="Load and goodput over time with and without a retry budget"></canvas></div>
+      <div class="fig-ctl"><span>Retries</span><span class="seg" role="group" aria-label="Retry policy"><button type="button" data-budget="0" aria-pressed="true">unbounded</button><button type="button" data-budget="1" aria-pressed="false">budget of 10%</button></span></div>
+      <figcaption><span><span class="fn">Fig. 16</span>A five-unit spike in offered load against capacity 1. Timed-out requests are retried. Without a budget the retries keep the system overloaded after the spike ends; with one, the queue drains.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+  </article>
+
+  <article class="entry" id="modes">
+    <h3><span class="num">5.5</span>Degradation modes and their levers</h3>
+    <p>Each way of degrading has a known lever. Choosing among them in advance is what makes behaviour bounded.</p>
+    <div class="tbl"><table>
+      <thead><tr><th>Mode</th><th>Symptom</th><th>Lever</th></tr></thead>
+      <tbody>
+        <tr><td>Latency growth</td><td>Waits rise steeply as ρ nears 1</td><td>Keep each station's ρ below about 0.7 at target load; add workers at the bottleneck</td></tr>
+        <tr><td>Unbounded backlog</td><td>Queue grows linearly with time</td><td>Bounded queues with an explicit overflow policy: reject, shed or defer</td></tr>
+        <tr><td>Head-of-line blocking</td><td>One slow item stalls the rest</td><td>Bulkheads; separate pools by input size</td></tr>
+        <tr><td>Amplification</td><td>Fan-out and retries multiply load</td><td>Retry budgets, deduplication, capped fan-out</td></tr>
+        <tr><td>Throughput collapse</td><td>More workers, less output</td><td>Reduce coherency traffic; partition state</td></tr>
+        <tr><td>Metastability</td><td>Stays broken after the trigger</td><td>Budgets, jittered backoff, shedding, propagated deadlines</td></tr>
+        <tr><td>Poison input</td><td>One message crashes a consumer forever</td><td>Idempotent handlers; dead-letter queues</td></tr>
+        <tr><td>Slow recovery</td><td>Rebuild takes hours</td><td>Snapshots; replay throughput tracked as a number</td></tr>
+      </tbody>
+    </table></div>
+    <p>In an event-sourced system, projection rebuild time is events ÷ replay throughput. It is a recoverability bound that grows with the log until a snapshot resets it.</p>
+    <div class="tn"><div><span class="k">Then</span>Capacity models built by specialists, for one deployment, and rarely updated.</div><div class="now"><span class="k">Now</span>The inputs, a dependency graph and per-element service times, already exist in a feature file and its telemetry, so bounds can be recomputed on every change.</div></div>
+  </article>
+</section>
+
+<!-- ============ 6 ============ -->
+<section class="part" id="failure">
+  <div class="part-head">
+    <span class="tags"><span class="tag">R</span><span class="tag">B</span>Recoverable · Bounded</span>
+    <h2><span class="num">6</span>How software fails</h2>
+    <p class="lead">Failure taxonomies turn incident history into checklists. They work best as prompts: for each unit an edit touches, ask what happens on error, retry, overload, bad data and rollback.</p>
+  </div>
+
+  <article class="entry" id="heisen">
+    <h3><span class="num">6.1</span>Bohrbugs, Heisenbugs and defect classes</h3>
+    <p class="catches"><b>Catches</b>which failures will reproduce, and which process step let them through</p>
+    <p>Gray's study of Tandem systems popularised the split between faults that reproduce reliably, Bohrbugs, and faults that vanish when you look for them, Heisenbugs. In the error logs he examined, nearly all software faults were of the second kind, which is why restarts and process pairs worked so well <a class="cite" href="#ref-gray1985">Gray 1985</a>. IBM's Orthogonal Defect Classification labels each defect by type and by the activity that should have caught it, so that the distribution of defects points at the weak step in the process <a class="cite" href="#ref-chillarege1992">Chillarege et al. 1992</a>. Gunawi and colleagues classified over 3,000 issues in cloud systems <a class="cite" href="#ref-gunawi2014">Gunawi et al. 2014</a>.</p>
+    <figure class="fig" data-fig="heisen" data-ar="0.38" data-ar-narrow="0.85">
+      <div class="stage"><canvas aria-label="Twelve runs of the same input for a deterministic and a timing-dependent bug"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 17</span>The same input, run twelve times. The Bohrbug fails every run. The Heisenbug fails only when thread B's write lands between thread A's read and write.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+    <div class="tn"><div><span class="k">Then</span>Trained people classifying every defect by hand.</div><div class="now"><span class="k">Now</span>A model can classify every bug-fix commit, so the process signal becomes continuous.</div></div>
+  </article>
+
+  <article class="entry" id="errpath">
+    <h3><span class="num">6.2</span>Error handling is where systems break</h3>
+    <p class="catches"><b>Catches</b>handlers that swallow detected errors</p>
+    <p>Yuan and colleagues studied production failures in distributed data-intensive systems. In 92% of the catastrophic failures they examined, the cause was incorrect handling of a non-fatal error the software had already signalled. In 58%, the fault could have been found by simple testing of the error-handling code <a class="cite" href="#ref-yuan2014">Yuan et al. 2014</a>. Handlers that only log, or are empty, were a common culprit.</p>
+    <figure class="fig" data-fig="errpath" data-ar="0.42" data-ar-narrow="1.0">
+      <div class="stage"><canvas aria-label="A request hitting an error, handled two different ways"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 18</span>The same detected error, two handlers. Logging and continuing carries bad state forward until something downstream fails. Aborting returns a clean error and the system stays healthy.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+    <div class="tn"><div><span class="k">Then</span>Error paths were tested last, if at all.</div><div class="now"><span class="k">Now</span>Error handlers are easy to enumerate. A model can write a fault-injecting test for each one.</div></div>
+  </article>
+
+  <article class="entry" id="ldfi">
+    <h3><span class="num">6.3</span>Fault injection</h3>
+    <p class="catches"><b>Catches</b>failures that only appear when specific parts fail together</p>
+    <p>Chaos engineering runs controlled experiments that inject failures into production-like systems and watch a steady-state metric <a class="cite" href="#ref-basiri2016">Basiri et al. 2016</a>. Lineage-driven fault injection is more targeted. It records which messages supported a successful outcome, injects faults that remove that support, and repeats until it finds a failure or shows the outcome survives every fault combination within the budget <a class="cite" href="#ref-alvaro2015">Alvaro et al. 2015</a>. FoundationDB runs the whole database inside a deterministic simulator with injected faults, so any failure it finds replays exactly <a class="cite" href="#ref-zhou2021">Zhou et al. 2021</a>.</p>
+    <figure class="fig" data-fig="ldfi" data-ar="0.52" data-ar-narrow="1.05">
+      <div class="stage"><canvas aria-label="Lineage-driven fault injection finding a lost acknowledged write in three runs"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 19</span>Each run highlights the messages that made the write succeed; the next run removes them. On the third run the coordinator still acknowledges a write that no replica stored.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+  </article>
+
+  <article class="entry" id="hazard">
+    <h3><span class="num">6.4</span>Hazard analysis</h3>
+    <p>Failure mode and effects analysis lists, for each component, how it can fail, what each failure does, and how it would be detected <a class="cite" href="#ref-iec60812">IEC 60812</a>. STPA treats safety as a control problem and asks how each control action could be unsafe: not given when needed, given when it should not be, given too early or too late, or stopped too soon <a class="cite" href="#ref-leveson2011">Leveson 2011</a>. Both fell out of use in ordinary software because an expert had to draft them component by component. A model can draft them for review, and reviewing a draft costs far less than writing one.</p>
+  </article>
+</section>
+
+<!-- ============ 7 ============ -->
+<section class="part" id="events">
+  <div class="part-head">
+    <span class="tags"><span class="tag">K</span>Known</span>
+    <h2><span class="num">7</span>Specifying event-sourced systems</h2>
+    <p class="lead">A specification is an ontology of data, a language of changes to that data, and rules for how those changes may happen over time. An event-sourced framework such as Dizzy already supplies the first two as models and events. The third is a behavioural contract for each kind of element.</p>
+  </div>
+
+  <article class="entry" id="contracts">
+    <div class="tbl"><table>
+      <thead><tr><th>Element</th><th>What its specification says</th><th>Natural form</th></tr></thead>
+      <tbody>
+        <tr><td>Model</td><td>What is always true of the data</td><td>Invariants, checked on every projection</td></tr>
+        <tr><td>Projection</td><td>That it is a pure fold over events</td><td>Determinism; replay equals rebuild</td></tr>
+        <tr><td>Procedure</td><td>When it may run, and what it may change</td><td>Pre- and postconditions; the set of event types it may emit</td></tr>
+        <tr><td>Policy</td><td>How the system reacts over time</td><td>Temporal properties: after X, eventually Y; never Y after Z</td></tr>
+        <tr><td>Query</td><td>How fresh and how consistent</td><td>Staleness bounds; read-your-writes</td></tr>
+        <tr><td>Feature</td><td>Worked examples</td><td>Given these events, when this command, then these events</td></tr>
+      </tbody>
+    </table></div>
+    <p>Two consequences follow. The frame problem becomes checkable: since all change goes through events, "what must not change" reduces to "which events may this procedure emit". And policies are where liveness lives, which is what TLA+ and Quint are built to model <a class="cite" href="#ref-lamport2002">Lamport 2002</a> <a class="cite" href="#ref-quint">Quint</a> and what Amazon found worth the effort on real systems <a class="cite" href="#ref-newcombe2015">Newcombe et al. 2015</a>. Event Modeling describes a system as Given/When/Then slices of exactly this kind <a class="cite" href="#ref-dymitruk2019">Dymitruk 2019</a>. Stateful property-based testing fires random command sequences at the system and checks invariants after each step <a class="cite" href="#ref-maciver2019">MacIver et al. 2019</a>.</p>
+    <p>The event log also generates questions. Process mining recovers the real flow of work from event logs <a class="cite" href="#ref-vanderaalst2016">van der Aalst 2016</a>. A pattern that held in every trace, such as payment always preceding shipping, is a candidate rule. Ask once; a yes becomes a runtime monitor.</p>
+    <figure class="fig" data-fig="eventmine" data-ar="0.56" data-ar-narrow="1.15">
+      <div class="stage"><canvas aria-label="Event traces mined for an ordering rule that becomes a monitor"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 20</span>Five order histories. The miner notices that Paid always came before Shipped and asks whether that is a rule. Once confirmed, it becomes a monitor, which flags the next history that breaks it.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+  </article>
+</section>
+
+<!-- ============ 8 ============ -->
+<section class="part" id="sketch">
+  <div class="part-head">
+    <span class="tags"><span class="tag">C</span>Changeable</span>
+    <h2><span class="num">8</span>Code meant to be deleted</h2>
+    <p class="lead">Some code exists to tell a story or test an idea, and should be digested and deleted before the next approach is tried. The practice is old. Measuring it is not.</p>
+  </div>
+
+  <article class="entry" id="survival">
+    <p>Brooks advised planning to throw one away, because you will anyway <a class="cite" href="#ref-brooks1975">Brooks 1975</a>. Extreme Programming calls a throwaway experiment a spike solution, which you expect to discard <a class="cite" href="#ref-wells_spike">Wells</a> <a class="cite" href="#ref-cunningham_spike">Cunningham</a>. The Pragmatic Programmer separates prototypes, which are discarded, from tracer bullets, which are kept and grown <a class="cite" href="#ref-hunt1999">Hunt & Thomas 1999</a>. Bernhardsson's survival curves show code in real projects decaying with a measurable half-life, from about six years in Linux to months in fast-moving front-end frameworks <a class="cite" href="#ref-bernhardsson2016">Bernhardsson 2016</a>. Four measures would make sketches manageable:</p>
+    <ul class="plain">
+      <li><b>Lifecycle tag.</b> Sketch, probe, tracer or production, each with its own gate. A sketch passes when it answers its question.</li>
+      <li><b>Leakage.</b> A sketch is safe while nothing depends on it. Its fan-in should be zero, which a dependency matrix checks on every commit.</li>
+      <li><b>Digestion yield.</b> What survives the deletion: a decision record, property tests, benchmark numbers, a sharper question.</li>
+      <li><b>Expiry.</b> A delete-by date. Overdue sketches become review items.</li>
+    </ul>
+    <figure class="fig" data-fig="survival" data-ar="0.52" data-ar-narrow="1.0">
+      <div class="stage"><canvas aria-label="Stacked code survival by cohort, with a sketch deleted and its findings kept"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 21</span>Lines of code by the quarter they were written. Production cohorts decay slowly. The sketch cohort is deleted on purpose, and what it taught survives as small artifacts below the chart.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+  </article>
+</section>
+
+<!-- ============ 9 ============ -->
+<section class="part" id="gates">
+  <div class="part-head">
+    <span class="tags"><span class="tag">K</span><span class="tag">B</span><span class="tag">C</span><span class="tag">R</span>All four</span>
+    <h2><span class="num">9</span>Five gates for model-written changes</h2>
+    <p class="lead">A review loop assembled from the instruments above. Each gate is cheap to run and checks something the diff alone cannot show.</p>
+  </div>
+
+  <article class="entry" id="five">
+    <ol class="steps">
+      <li><b>Impact set.</b> The slice and the change coupling decide what the agent reads and which tests must rerun.</li>
+      <li><b>Independent oracle.</b> Properties, contracts or a round trip that do not share the generator's assumptions.</li>
+      <li><b>Test strength.</b> The mutation score of new tests on changed lines.</li>
+      <li><b>Structural delta.</b> The change in propagation cost, and any new strong connascence across a boundary.</li>
+      <li><b>Failure prompts.</b> For each touched unit: error, retry, overload, bad data, rollback.</li>
+    </ol>
+    <figure class="fig" data-fig="gates" data-ar="0.32" data-ar-narrow="0.78">
+      <div class="stage"><canvas aria-label="Changes passing through five review gates"></canvas></div>
+      <figcaption><span><span class="fn">Fig. 22</span>Changes pass through the five gates in order. Some are sent back with a specific reason; the rest merge.</span><button class="replay" type="button">Replay</button></figcaption>
+    </figure>
+    <p>Bacchelli and Bird found that developers expect code review to find defects, but that review mostly produces code improvements and better understanding of the code <a class="cite" href="#ref-bacchelli2013">Bacchelli & Bird 2013</a>. With generated code, the understanding is what goes missing. Review effort is better spent on the oracle, the impact set and the answers in the decision ledger than on reading the diff line by line.</p>
+  </article>
+</section>
+
+<section class="refs" id="refs">
+  <div class="part-head"><h2>References</h2></div>
+  <ol>
+<li id="ref-alshahwan2024"><span class="rk">Alshahwan et al. 2024</span><span class="rt">Alshahwan, N., Chheda, J., Finogenova, A., Gokkaya, B., Harman, M., Harper, I., Marginean, A., et al. <i>Automated Unit Test Improvement using Large Language Models at Meta</i>. FSE 2024 Companion, 185–196.<br><a href="https://doi.org/10.1145/3663529.3663839" target="_blank" rel="noopener">doi.org/10.1145/3663529.3663839</a></span></li>
+<li id="ref-alvaro2015"><span class="rk">Alvaro et al. 2015</span><span class="rt">Alvaro, P., Rosen, J., Hellerstein, J. M. <i>Lineage-driven Fault Injection</i>. SIGMOD 2015, 331–346.<br><a href="https://doi.org/10.1145/2723372.2723711" target="_blank" rel="noopener">doi.org/10.1145/2723372.2723711</a></span></li>
+<li id="ref-ammons2002"><span class="rk">Ammons et al. 2002</span><span class="rt">Ammons, G., Bodík, R., Larus, J. R. <i>Mining Specifications</i>. POPL 2002, 4–16.<br><a href="https://doi.org/10.1145/503272.503275" target="_blank" rel="noopener">doi.org/10.1145/503272.503275</a></span></li>
+<li id="ref-bacchelli2013"><span class="rk">Bacchelli &amp; Bird 2013</span><span class="rt">Bacchelli, A., Bird, C. <i>Expectations, Outcomes, and Challenges of Modern Code Review</i>. ICSE 2013, 712–721.<br><a href="https://doi.org/10.1109/ICSE.2013.6606617" target="_blank" rel="noopener">doi.org/10.1109/ICSE.2013.6606617</a><span class="rn">Defects were the top stated motivation, yet only 14% of coded review comments concerned defects; code improvements were the largest group (29%).</span></span></li>
+<li id="ref-baldwin2000"><span class="rk">Baldwin &amp; Clark 2000</span><span class="rt">Baldwin, C. Y., Clark, K. B. <i>Design Rules, Volume 1: The Power of Modularity</i>. MIT Press, 2000.<br><a href="https://ideas.repec.org/b/mtp/titles/0262024667.html" target="_blank" rel="noopener">ideas.repec.org/b/mtp/titles/0262024667.html</a></span></li>
+<li id="ref-baldwin2014"><span class="rk">Baldwin et al. 2014</span><span class="rt">Baldwin, C., MacCormack, A., Rusnak, J. <i>Hidden Structure: Using Network Methods to Map System Architecture</i>. Research Policy 43(8), 1381–1397, 2014.<br><a href="https://doi.org/10.1016/j.respol.2014.05.004" target="_blank" rel="noopener">doi.org/10.1016/j.respol.2014.05.004</a><span class="rn">67% of the 1,286 releases studied had a core-periphery structure.</span></span></li>
+<li id="ref-barr2015"><span class="rk">Barr et al. 2015</span><span class="rt">Barr, E. T., Harman, M., McMinn, P., Shahbaz, M., Yoo, S. <i>The Oracle Problem in Software Testing: A Survey</i>. IEEE TSE 41(5), 507–525, 2015.<br><a href="https://doi.org/10.1109/TSE.2014.2372785" target="_blank" rel="noopener">doi.org/10.1109/TSE.2014.2372785</a></span></li>
+<li id="ref-basiri2016"><span class="rk">Basiri et al. 2016</span><span class="rt">Basiri, A., Behnam, N., de Rooij, R., Hochstein, L., Kosewski, L., Reynolds, J., Rosenthal, C. <i>Chaos Engineering</i>. IEEE Software 33(3), 35–41, 2016.<br><a href="https://doi.org/10.1109/MS.2016.60" target="_blank" rel="noopener">doi.org/10.1109/MS.2016.60</a></span></li>
+<li id="ref-bernhardsson2016"><span class="rk">Bernhardsson 2016</span><span class="rt">Bernhardsson, E. <i>The half-life of code &amp; the ship of Theseus</i>. Blog post, 5 December 2016.<br><a href="https://erikbern.com/2016/12/05/the-half-life-of-code" target="_blank" rel="noopener">erikbern.com/2016/12/05/the-half-life-of-code</a><span class="rn">Fitted half-lives range from 6.6 years (Linux) to 0.32 years (Angular).</span></span></li>
+<li id="ref-bohner1996"><span class="rk">Bohner &amp; Arnold 1996</span><span class="rt">Bohner, S. A., Arnold, R. S. (eds.). <i>Software Change Impact Analysis</i>. IEEE Computer Society Press, 1996.<br><a href="https://gov.wiley.com/WileyCDA/WileyTitle/productCd-0818673842.html" target="_blank" rel="noopener">gov.wiley.com/WileyCDA/WileyTitle/productCd-0818673842.html</a></span></li>
+<li id="ref-bronson2021"><span class="rk">Bronson et al. 2021</span><span class="rt">Bronson, N., Aghayev, A., Charapko, A., Zhu, T. <i>Metastable Failures in Distributed Systems</i>. HotOS 2021, 221–227.<br><a href="https://doi.org/10.1145/3458336.3465286" target="_blank" rel="noopener">doi.org/10.1145/3458336.3465286</a></span></li>
+<li id="ref-brooks1975"><span class="rk">Brooks 1975</span><span class="rt">Brooks, F. P. Jr. <i>The Mythical Man-Month: Essays on Software Engineering</i>, ch. 11, “Plan to Throw One Away”. Addison-Wesley, 1975 (anniversary edition 1995).<span class="rn">No free official copy; ISBN 0-201-83595-9 (1995 edition).</span></span></li>
+<li id="ref-chen1998"><span class="rk">Chen et al. 1998</span><span class="rt">Chen, T. Y., Cheung, S. C., Yiu, S. M. <i>Metamorphic Testing: A New Approach for Generating Next Test Cases</i>. Technical Report HKUST-CS98-01, HKUST, 1998. Reposted as arXiv:2002.12543.<br><a href="https://arxiv.org/abs/2002.12543" target="_blank" rel="noopener">arxiv.org/abs/2002.12543</a></span></li>
+<li id="ref-chillarege1992"><span class="rk">Chillarege et al. 1992</span><span class="rt">Chillarege, R., Bhandari, I. S., Chaar, J. K., Halliday, M. J., Moebus, D. S., Ray, B. K., Wong, M.-Y. <i>Orthogonal Defect Classification: A Concept for In-Process Measurements</i>. IEEE TSE 18(11), 943–956, 1992.<br><a href="https://doi.org/10.1109/32.177364" target="_blank" rel="noopener">doi.org/10.1109/32.177364</a></span></li>
+<li id="ref-claessen2000"><span class="rk">Claessen &amp; Hughes 2000</span><span class="rt">Claessen, K., Hughes, J. <i>QuickCheck: A Lightweight Tool for Random Testing of Haskell Programs</i>. ICFP 2000, 268–279.<br><a href="https://doi.org/10.1145/357766.351266" target="_blank" rel="noopener">doi.org/10.1145/357766.351266</a></span></li>
+<li id="ref-cunningham_spike"><span class="rk">Cunningham, Spike Solution</span><span class="rt">Cunningham, W. <i>Spike Solution</i>. C2 wiki, Extreme Programming pages.<br><a href="https://c2.com/xp/SpikeSolution.html" target="_blank" rel="noopener">c2.com/xp/SpikeSolution.html</a></span></li>
+<li id="ref-dean2013"><span class="rk">Dean &amp; Barroso 2013</span><span class="rt">Dean, J., Barroso, L. A. <i>The Tail at Scale</i>. Communications of the ACM 56(2), 74–80, 2013.<br><a href="https://doi.org/10.1145/2408776.2408794" target="_blank" rel="noopener">doi.org/10.1145/2408776.2408794</a></span></li>
+<li id="ref-demillo1978"><span class="rk">DeMillo et al. 1978</span><span class="rt">DeMillo, R. A., Lipton, R. J., Sayward, F. G. <i>Hints on Test Data Selection: Help for the Practicing Programmer</i>. IEEE Computer 11(4), 34–41, 1978.<br><a href="https://doi.org/10.1109/C-M.1978.218136" target="_blank" rel="noopener">doi.org/10.1109/C-M.1978.218136</a><span class="rn">Introduced the competent programmer hypothesis and the coupling effect. The idea traces to a 1971 student paper by Lipton.</span></span></li>
+<li id="ref-denning1978"><span class="rk">Denning &amp; Buzen 1978</span><span class="rt">Denning, P. J., Buzen, J. P. <i>The Operational Analysis of Queueing Network Models</i>. ACM Computing Surveys 10(3), 225–261, 1978.<br><a href="https://doi.org/10.1145/356733.356735" target="_blank" rel="noopener">doi.org/10.1145/356733.356735</a></span></li>
+<li id="ref-dymitruk2019"><span class="rk">Dymitruk 2019</span><span class="rt">Dymitruk, A. <i>Event Modeling: What is it?</i> eventmodeling.org, 23 June 2019.<br><a href="https://eventmodeling.org/posts/what-is-event-modeling/" target="_blank" rel="noopener">eventmodeling.org/posts/what-is-event-modeling/</a></span></li>
+<li id="ref-eaddy2008"><span class="rk">Eaddy et al. 2008</span><span class="rt">Eaddy, M., Zimmermann, T., Sherwood, K. D., Garg, V., Murphy, G. C., Nagappan, N., Aho, A. V. <i>Do Crosscutting Concerns Cause Defects?</i> IEEE TSE 34(4), 497–515, 2008.<br><a href="https://doi.org/10.1109/TSE.2008.36" target="_blank" rel="noopener">doi.org/10.1109/TSE.2008.36</a></span></li>
+<li id="ref-ernst2001"><span class="rk">Ernst et al. 2001</span><span class="rt">Ernst, M. D., Cockrell, J., Griswold, W. G., Notkin, D. <i>Dynamically Discovering Likely Program Invariants to Support Program Evolution</i>. IEEE TSE 27(2), 99–123, 2001.<br><a href="https://doi.org/10.1109/32.908957" target="_blank" rel="noopener">doi.org/10.1109/32.908957</a></span></li>
+<li id="ref-foster2025"><span class="rk">Foster et al. 2025</span><span class="rt">Foster, C., Gulati, A., Harman, M., et al. <i>Mutation-Guided LLM-based Test Generation at Meta</i>. FSE 2025 Companion, 180–191. arXiv:2501.12862.<br><a href="https://doi.org/10.1145/3696630.3728544" target="_blank" rel="noopener">doi.org/10.1145/3696630.3728544</a></span></li>
+<li id="ref-gall1998"><span class="rk">Gall et al. 1998</span><span class="rt">Gall, H., Hajek, K., Jazayeri, M. <i>Detection of Logical Coupling Based on Product Release History</i>. ICSM 1998, 190–198.<br><a href="https://doi.org/10.1109/ICSM.1998.738508" target="_blank" rel="noopener">doi.org/10.1109/ICSM.1998.738508</a></span></li>
+<li id="ref-gligoric2015"><span class="rk">Gligoric et al. 2015</span><span class="rt">Gligoric, M., Eloussi, L., Marinov, D. <i>Practical Regression Test Selection with Dynamic File Dependencies</i>. ISSTA 2015, 211–222.<br><a href="https://doi.org/10.1145/2771783.2771784" target="_blank" rel="noopener">doi.org/10.1145/2771783.2771784</a></span></li>
+<li id="ref-gray1985"><span class="rk">Gray 1985</span><span class="rt">Gray, J. <i>Why Do Computers Stop and What Can Be Done About It?</i> Tandem Technical Report 85.7, 1985.<br><a href="https://www.cs.columbia.edu/~junfeng/08fa-e6998/sched/readings/why-do-computers-stop.pdf" target="_blank" rel="noopener">www.cs.columbia.edu/~junfeng/08fa-e6998/sched/readings/why-do-computers-stop.pdf</a><span class="rn">Course-hosted copy. In one subsystem's error logs, 1 of 132 software faults was a Bohrbug.</span></span></li>
+<li id="ref-gunawi2014"><span class="rk">Gunawi et al. 2014</span><span class="rt">Gunawi, H. S., Hao, M., Leesatapornwongsa, T., Patana-anake, T., Do, T., Adityatama, J., Eliazar, K. J., Laksono, A., Lukman, J. F., Martin, V., Satria, A. D. <i>What Bugs Live in the Cloud? A Study of 3000+ Issues in Cloud Systems</i>. SoCC 2014, 1–14.<br><a href="https://doi.org/10.1145/2670979.2670986" target="_blank" rel="noopener">doi.org/10.1145/2670979.2670986</a></span></li>
+<li id="ref-gunther2007"><span class="rk">Gunther 2007</span><span class="rt">Gunther, N. J. <i>Guerrilla Capacity Planning</i>. Springer, 2007.<br><a href="https://doi.org/10.1007/978-3-540-31010-5" target="_blank" rel="noopener">doi.org/10.1007/978-3-540-31010-5</a></span></li>
+<li id="ref-huang2022"><span class="rk">Huang et al. 2022</span><span class="rt">Huang, L., Magnusson, M., Muralikrishna, A. B., Estyak, S., Isaacs, R., Aghayev, A., Zhu, T., Charapko, A. <i>Metastable Failures in the Wild</i>. OSDI 2022, 73–90.<br><a href="https://www.usenix.org/conference/osdi22/presentation/huang-lexiang" target="_blank" rel="noopener">www.usenix.org/conference/osdi22/presentation/huang-lexiang</a></span></li>
+<li id="ref-hughes2020"><span class="rk">Hughes 2020</span><span class="rt">Hughes, J. <i>How to Specify It! A Guide to Writing Properties of Pure Functions</i>. Trends in Functional Programming (TFP 2019), LNCS 12053, 58–83. Springer, 2020.<br><a href="https://doi.org/10.1007/978-3-030-47147-7_4" target="_blank" rel="noopener">doi.org/10.1007/978-3-030-47147-7_4</a></span></li>
+<li id="ref-hunt1999"><span class="rk">Hunt &amp; Thomas 1999</span><span class="rt">Hunt, A., Thomas, D. <i>The Pragmatic Programmer: From Journeyman to Master</i>, ch. 2, “Tracer Bullets” and “Prototypes and Post-it Notes”. Addison-Wesley, 1999.<br><a href="https://www.oreilly.com/library/view/the-pragmatic-programmer/020161622X" target="_blank" rel="noopener">www.oreilly.com/library/view/the-pragmatic-programmer/020161622X</a></span></li>
+<li id="ref-iec60812"><span class="rk">IEC 60812</span><span class="rt">IEC 60812:2018. <i>Failure modes and effects analysis (FMEA and FMECA)</i>, edition 3.0. International Electrotechnical Commission.<br><a href="https://webstore.iec.ch/publication/26359" target="_blank" rel="noopener">webstore.iec.ch/publication/26359</a></span></li>
+<li id="ref-inozemtseva2014"><span class="rk">Inozemtseva &amp; Holmes 2014</span><span class="rt">Inozemtseva, L., Holmes, R. <i>Coverage Is Not Strongly Correlated with Test Suite Effectiveness</i>. ICSE 2014.<br><a href="https://doi.org/10.1145/2568225.2568271" target="_blank" rel="noopener">doi.org/10.1145/2568225.2568271</a></span></li>
+<li id="ref-jahangirova2016"><span class="rk">Jahangirova et al. 2016</span><span class="rt">Jahangirova, G., Clark, D., Harman, M., Tonella, P. <i>Test Oracle Assessment and Improvement</i>. ISSTA 2016, 247–258.<br><a href="https://doi.org/10.1145/2931037.2931062" target="_blank" rel="noopener">doi.org/10.1145/2931037.2931062</a></span></li>
+<li id="ref-jia2011"><span class="rk">Jia &amp; Harman 2011</span><span class="rt">Jia, Y., Harman, M. <i>An Analysis and Survey of the Development of Mutation Testing</i>. IEEE TSE 37(5), 649–678, 2011.<br><a href="https://doi.org/10.1109/TSE.2010.62" target="_blank" rel="noopener">doi.org/10.1109/TSE.2010.62</a></span></li>
+<li id="ref-just2014"><span class="rk">Just et al. 2014</span><span class="rt">Just, R., Jalali, D., Inozemtseva, L., Ernst, M. D., Holmes, R., Fraser, G. <i>Are Mutants a Valid Substitute for Real Faults in Software Testing?</i> FSE 2014, 654–665.<br><a href="https://doi.org/10.1145/2635868.2635929" target="_blank" rel="noopener">doi.org/10.1145/2635868.2635929</a><span class="rn">73% of 357 real faults were coupled to mutants from common operators.</span></span></li>
+<li id="ref-kamei2013"><span class="rk">Kamei et al. 2013</span><span class="rt">Kamei, Y., Shihab, E., Adams, B., Hassan, A. E., Mockus, A., Sinha, A., Ubayashi, N. <i>A Large-Scale Empirical Study of Just-in-Time Quality Assurance</i>. IEEE TSE 39(6), 757–773, 2013.<br><a href="https://doi.org/10.1109/TSE.2012.70" target="_blank" rel="noopener">doi.org/10.1109/TSE.2012.70</a></span></li>
+<li id="ref-kelly2004"><span class="rk">Kelly &amp; Weaver 2004</span><span class="rt">Kelly, T., Weaver, R. <i>The Goal Structuring Notation: A Safety Argument Notation</i>. DSN 2004 Workshop on Assurance Cases.<br><a href="https://www.semanticscholar.org/paper/4983e7610482057785cdf5312b48caf28b1f69ca" target="_blank" rel="noopener">www.semanticscholar.org/paper/4983e7610482057785cdf5312b48caf28b1f69ca</a></span></li>
+<li id="ref-kingman1961"><span class="rk">Kingman 1961</span><span class="rt">Kingman, J. F. C. <i>The single server queue in heavy traffic</i>. Mathematical Proceedings of the Cambridge Philosophical Society 57(4), 902–904, 1961.<br><a href="https://doi.org/10.1017/S0305004100036094" target="_blank" rel="noopener">doi.org/10.1017/S0305004100036094</a></span></li>
+<li id="ref-lamport2002"><span class="rk">Lamport 2002</span><span class="rt">Lamport, L. <i>Specifying Systems: The TLA+ Language and Tools for Hardware and Software Engineers</i>. Addison-Wesley, 2002.<br><a href="https://www.microsoft.com/en-us/research/publication/specifying-systems-the-tla-language-and-tools-for-hardware-and-software-engineers/" target="_blank" rel="noopener">www.microsoft.com/en-us/research/publication/specifying-systems-the-tla-language-and-tools-for-hardware-and-software-engineers/</a></span></li>
+<li id="ref-leveson2011"><span class="rk">Leveson 2011</span><span class="rt">Leveson, N. G. <i>Engineering a Safer World: Systems Thinking Applied to Safety</i>. MIT Press, 2011. Open access.<br><a href="https://direct.mit.edu/books/book/2908" target="_blank" rel="noopener">direct.mit.edu/books/book/2908</a></span></li>
+<li id="ref-little1961"><span class="rk">Little 1961</span><span class="rt">Little, J. D. C. <i>A Proof for the Queuing Formula: L = λW</i>. Operations Research 9(3), 383–387, 1961.<br><a href="https://doi.org/10.1287/opre.9.3.383" target="_blank" rel="noopener">doi.org/10.1287/opre.9.3.383</a></span></li>
+<li id="ref-maccormack2006"><span class="rk">MacCormack et al. 2006</span><span class="rt">MacCormack, A., Rusnak, J., Baldwin, C. Y. <i>Exploring the Structure of Complex Software Designs: An Empirical Study of Open Source and Proprietary Code</i>. Management Science 52(7), 1015–1030, 2006.<br><a href="https://doi.org/10.1287/mnsc.1060.0552" target="_blank" rel="noopener">doi.org/10.1287/mnsc.1060.0552</a></span></li>
+<li id="ref-maciver2019"><span class="rk">MacIver et al. 2019</span><span class="rt">MacIver, D. R., Hatfield-Dodds, Z., et al. <i>Hypothesis: A new approach to property-based testing</i>. Journal of Open Source Software 4(43), 1891, 2019. Stateful testing: hypothesis.readthedocs.io/en/latest/stateful.html.<br><a href="https://doi.org/10.21105/joss.01891" target="_blank" rel="noopener">doi.org/10.21105/joss.01891</a></span></li>
+<li id="ref-mccabe1976"><span class="rk">McCabe 1976</span><span class="rt">McCabe, T. J. <i>A Complexity Measure</i>. IEEE TSE SE-2(4), 308–320, 1976.<br><a href="https://doi.org/10.1109/TSE.1976.233837" target="_blank" rel="noopener">doi.org/10.1109/TSE.1976.233837</a></span></li>
+<li id="ref-mckeeman1998"><span class="rk">McKeeman 1998</span><span class="rt">McKeeman, W. M. <i>Differential Testing for Software</i>. Digital Technical Journal 10(1), 100–107, 1998.<span class="rn">No stable online copy found.</span></span></li>
+<li id="ref-meyer1992"><span class="rk">Meyer 1992</span><span class="rt">Meyer, B. <i>Applying “Design by Contract”</i>. IEEE Computer 25(10), 40–51, 1992.<br><a href="https://doi.org/10.1109/2.161279" target="_blank" rel="noopener">doi.org/10.1109/2.161279</a></span></li>
+<li id="ref-moser2008"><span class="rk">Moser et al. 2008</span><span class="rt">Moser, R., Pedrycz, W., Succi, G. <i>A Comparative Analysis of the Efficiency of Change Metrics and Static Code Attributes for Defect Prediction</i>. ICSE 2008, 181–190.<br><a href="https://doi.org/10.1145/1368088.1368114" target="_blank" rel="noopener">doi.org/10.1145/1368088.1368114</a></span></li>
+<li id="ref-nagappan2008"><span class="rk">Nagappan et al. 2008</span><span class="rt">Nagappan, N., Murphy, B., Basili, V. <i>The Influence of Organizational Structure on Software Quality: An Empirical Case Study</i>. ICSE 2008, 521–530.<br><a href="https://doi.org/10.1145/1368088.1368160" target="_blank" rel="noopener">doi.org/10.1145/1368088.1368160</a><span class="rn">Organisational metrics: 86.2% precision, 84.0% recall, ahead of churn, complexity, coverage and dependency models.</span></span></li>
+<li id="ref-naur1985"><span class="rk">Naur 1985</span><span class="rt">Naur, P. <i>Programming as Theory Building</i>. Microprocessing and Microprogramming 15(5), 253–261, 1985.<br><a href="https://pages.cs.wisc.edu/~remzi/Naur.pdf" target="_blank" rel="noopener">pages.cs.wisc.edu/~remzi/Naur.pdf</a><span class="rn">University-hosted copy.</span></span></li>
+<li id="ref-newcombe2015"><span class="rk">Newcombe et al. 2015</span><span class="rt">Newcombe, C., Rath, T., Zhang, F., Munteanu, B., Brooker, M., Deardeuff, M. <i>How Amazon Web Services Uses Formal Methods</i>. Communications of the ACM 58(4), 66–73, 2015.<br><a href="https://doi.org/10.1145/2699417" target="_blank" rel="noopener">doi.org/10.1145/2699417</a></span></li>
+<li id="ref-pagejones1992"><span class="rk">Page-Jones 1992</span><span class="rt">Page-Jones, M. <i>Comparing Techniques by Means of Encapsulation and Connascence</i>. Communications of the ACM 35(9), 147–151, 1992.<br><a href="https://doi.org/10.1145/130994.131004" target="_blank" rel="noopener">doi.org/10.1145/130994.131004</a></span></li>
+<li id="ref-papadakis2019"><span class="rk">Papadakis et al. 2019</span><span class="rt">Papadakis, M., Kintis, M., Zhang, J., Jia, Y., Le Traon, Y., Harman, M. <i>Mutation Testing Advances: An Analysis and Survey</i>. Advances in Computers 112, 275–378, 2019.<br><a href="https://doi.org/10.1016/bs.adcom.2018.03.015" target="_blank" rel="noopener">doi.org/10.1016/bs.adcom.2018.03.015</a></span></li>
+<li id="ref-parnas1972"><span class="rk">Parnas 1972</span><span class="rt">Parnas, D. L. <i>On the Criteria To Be Used in Decomposing Systems into Modules</i>. Communications of the ACM 15(12), 1053–1058, 1972.<br><a href="https://doi.org/10.1145/361598.361623" target="_blank" rel="noopener">doi.org/10.1145/361598.361623</a></span></li>
+<li id="ref-petrovic2018"><span class="rk">Petrović &amp; Ivanković 2018</span><span class="rt">Petrović, G., Ivanković, M. <i>State of Mutation Testing at Google</i>. ICSE-SEIP 2018. See also Petrović, Ivanković, Fraser, Just, <i>Practical Mutation Testing at Scale: A View from Google</i>, IEEE TSE (online 2021).<br><a href="https://doi.org/10.1145/3183519.3183521" target="_blank" rel="noopener">doi.org/10.1145/3183519.3183521</a></span></li>
+<li id="ref-quint"><span class="rk">Quint</span><span class="rt"><i>Quint</i>, a specification language based on the temporal logic of actions.<br><a href="https://quint.sh" target="_blank" rel="noopener">quint.sh</a></span></li>
+<li id="ref-ren2004"><span class="rk">Ren et al. 2004</span><span class="rt">Ren, X., Shah, F., Tip, F., Ryder, B. G., Chesley, O. <i>Chianti: A Tool for Change Impact Analysis of Java Programs</i>. OOPSLA 2004, 432–448.<br><a href="https://doi.org/10.1145/1028976.1029012" target="_blank" rel="noopener">doi.org/10.1145/1028976.1029012</a></span></li>
+<li id="ref-rothermel1997"><span class="rk">Rothermel &amp; Harrold 1997</span><span class="rt">Rothermel, G., Harrold, M. J. <i>A Safe, Efficient Regression Test Selection Technique</i>. ACM TOSEM 6(2), 173–210, 1997.<br><a href="https://doi.org/10.1145/248233.248262" target="_blank" rel="noopener">doi.org/10.1145/248233.248262</a></span></li>
+<li id="ref-segura2016"><span class="rk">Segura et al. 2016</span><span class="rt">Segura, S., Fraser, G., Sánchez, A. B., Ruiz-Cortés, A. <i>A Survey on Metamorphic Testing</i>. IEEE TSE 42(9), 805–824, 2016.<br><a href="https://doi.org/10.1109/TSE.2016.2532875" target="_blank" rel="noopener">doi.org/10.1109/TSE.2016.2532875</a></span></li>
+<li id="ref-sliwerski2005"><span class="rk">Śliwerski et al. 2005</span><span class="rt">Śliwerski, J., Zimmermann, T., Zeller, A. <i>When Do Changes Induce Fixes?</i> MSR 2005, 1–5.<br><a href="https://doi.org/10.1145/1083142.1083147" target="_blank" rel="noopener">doi.org/10.1145/1083142.1083147</a></span></li>
+<li id="ref-stevens1974"><span class="rk">Stevens et al. 1974</span><span class="rt">Stevens, W. P., Myers, G. J., Constantine, L. L. <i>Structured Design</i>. IBM Systems Journal 13(2), 115–139, 1974.<br><a href="https://doi.org/10.1147/sj.132.0115" target="_blank" rel="noopener">doi.org/10.1147/sj.132.0115</a></span></li>
+<li id="ref-tornhill2015"><span class="rk">Tornhill 2015</span><span class="rt">Tornhill, A. <i>Your Code as a Crime Scene</i>. Pragmatic Bookshelf, 2015 (2nd edition 2024).<br><a href="https://www.oreilly.com/library/view/your-code-as/9781680500813/" target="_blank" rel="noopener">www.oreilly.com/library/view/your-code-as/9781680500813/</a></span></li>
+<li id="ref-vanderaalst2016"><span class="rk">van der Aalst 2016</span><span class="rt">van der Aalst, W. M. P. <i>Process Mining: Data Science in Action</i>, 2nd edition. Springer, 2016.<br><a href="https://doi.org/10.1007/978-3-662-49851-4" target="_blank" rel="noopener">doi.org/10.1007/978-3-662-49851-4</a></span></li>
+<li id="ref-weiser1984"><span class="rk">Weiser 1984</span><span class="rt">Weiser, M. <i>Program Slicing</i>. IEEE TSE SE-10(4), 352–357, 1984. First presented at ICSE 1981.<br><a href="https://doi.org/10.1109/TSE.1984.5010248" target="_blank" rel="noopener">doi.org/10.1109/TSE.1984.5010248</a></span></li>
+<li id="ref-wells_spike"><span class="rk">Wells, Spike Solution</span><span class="rt">Wells, D. <i>Create a Spike Solution</i>. extremeprogramming.org.<br><a href="http://www.extremeprogramming.org/rules/spike.html" target="_blank" rel="noopener">www.extremeprogramming.org/rules/spike.html</a></span></li>
+<li id="ref-hyrum"><span class="rk">Wright, Hyrum&#x27;s Law</span><span class="rt">Wright, H. <i>Hyrum's Law</i>: “With a sufficient number of users of an API, it does not matter what you promise in the contract: all observable behaviors of your system will be depended on by somebody.”<br><a href="https://www.hyrumslaw.com/" target="_blank" rel="noopener">www.hyrumslaw.com/</a></span></li>
+<li id="ref-yuan2014"><span class="rk">Yuan et al. 2014</span><span class="rt">Yuan, D., Luo, Y., Zhuang, X., Rodrigues, G. R., Zhao, X., Zhang, Y., Jain, P. U., Stumm, M. <i>Simple Testing Can Prevent Most Critical Failures: An Analysis of Production Failures in Distributed Data-Intensive Systems</i>. OSDI 2014, 249–265.<br><a href="https://www.usenix.org/conference/osdi14/technical-sessions/presentation/yuan" target="_blank" rel="noopener">www.usenix.org/conference/osdi14/technical-sessions/presentation/yuan</a></span></li>
+<li id="ref-zhou2021"><span class="rk">Zhou et al. 2021</span><span class="rt">Zhou, J., Xu, M., Shraer, A., Namasivayam, B., Miller, A., Tschannen, E., Atherton, S., Beamon, A. J., Sears, R., Leach, J., Rosenthal, D., et al. <i>FoundationDB: A Distributed Unbundled Transactional Key Value Store</i>. SIGMOD 2021.<br><a href="https://doi.org/10.1145/3448016.3457559" target="_blank" rel="noopener">doi.org/10.1145/3448016.3457559</a></span></li>
+<li id="ref-zimmermann2005"><span class="rk">Zimmermann et al. 2005</span><span class="rt">Zimmermann, T., Zeller, A., Weißgerber, P., Diehl, S. <i>Mining Version Histories to Guide Software Changes</i>. IEEE TSE 31(6), 429–445, 2005.<br><a href="https://doi.org/10.1109/TSE.2005.72" target="_blank" rel="noopener">doi.org/10.1109/TSE.2005.72</a></span></li>
+</ol>
+  <p class="colophon">Figures are simulations written for this page. Numbers labelled Housewright come from runs of that generator in October 2026. Each reference was checked against a publisher, library or author page; the link opens that page.</p>
+</section>
+</main>
+</div>
+<script>
+(function(){
+"use strict";
+/* ---------- shared helpers ---------- */
+const R={};
+const reg=(n,d)=>{R[n]=d;};
+const TAU=Math.PI*2;
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const c01=v=>clamp(v,0,1);
+const ease=t=>{t=c01(t);return t*t*(3-2*t);};
+const lerp=(a,b,t)=>a+(b-a)*t;
+const MONO='"JetBrains Mono", ui-monospace, Menlo, monospace';
+const SERIF='"Newsreader", Georgia, serif';
+const f=(px,w)=>`${w||400} ${px}px ${MONO}`;
+function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+let C={};
+function readTheme(){
+  const s=getComputedStyle(document.documentElement);
+  for(const k of ['paper','panel','ink','ink-2','rule','accent','accent-soft','pass','warn','fail']) C[k.replace(/-(\w)/g,(m,a)=>a.toUpperCase())]=s.getPropertyValue('--'+k).trim()||'#888';
+}
+function rgba(hex,a){
+  hex=hex.replace('#','');if(hex.length===3)hex=hex.split('').map(c=>c+c).join('');
+  const n=parseInt(hex,16);return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;
+}
+function text(ctx,s,x,y,o){
+  o=o||{};ctx.font=o.font||f(o.size||12,o.weight);ctx.fillStyle=o.color||C.ink;
+  ctx.textAlign=o.align||'left';ctx.textBaseline=o.base||'alphabetic';ctx.fillText(s,x,y);
+}
+function rrect(ctx,x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function box(ctx,x,y,w,h,o){o=o||{};rrect(ctx,x,y,w,h,o.r==null?3:o.r);if(o.fill){ctx.fillStyle=o.fill;ctx.fill();}if(o.stroke){ctx.strokeStyle=o.stroke;ctx.lineWidth=o.lw||1;ctx.stroke();}}
+function line(ctx,x1,y1,x2,y2,col,lw,dash){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle=col;ctx.lineWidth=lw||1;ctx.setLineDash(dash||[]);ctx.stroke();ctx.setLineDash([]);}
+function dot(ctx,x,y,r,col){ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fillStyle=col;ctx.fill();}
+function ring(ctx,x,y,r,col,lw){ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.strokeStyle=col;ctx.lineWidth=lw||1.5;ctx.stroke();}
+function arrow(ctx,x1,y1,x2,y2,col,lw){line(ctx,x1,y1,x2,y2,col,lw);const a=Math.atan2(y2-y1,x2-x1),s=6;ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(x2-s*Math.cos(a-0.45),y2-s*Math.sin(a-0.45));ctx.lineTo(x2-s*Math.cos(a+0.45),y2-s*Math.sin(a+0.45));ctx.closePath();ctx.fillStyle=col;ctx.fill();}
+function cross(ctx,x,y,s,col,lw){line(ctx,x-s,y-s,x+s,y+s,col,lw||2);line(ctx,x-s,y+s,x+s,y-s,col,lw||2);}
+function check(ctx,x,y,s,col,lw){ctx.beginPath();ctx.moveTo(x-s,y);ctx.lineTo(x-s*0.3,y+s*0.7);ctx.lineTo(x+s,y-s*0.7);ctx.strokeStyle=col;ctx.lineWidth=lw||2;ctx.stroke();}
+function seg(el,attr,cb){const bs=[...el.querySelectorAll('['+attr+']')];bs.forEach(b=>b.addEventListener('click',()=>{bs.forEach(x=>x.setAttribute('aria-pressed',String(x===b)));cb(b.getAttribute(attr));}));}
+
+/* ---------- 1. DSM ---------- */
+(function(){
+  const NS=['data','brief','program','state','massing','layout','doors','voxels','verify','ui'];
+  const NT=['data','brief','program','types','massing','layout','doors','voxels','verify','ui'];
+  const DS=[[1,0],[2,0],[2,1],[4,2],[4,3],[5,3],[6,3],[7,3],[8,3],[9,3],[9,8],[3,4],[3,5],[3,6],[3,7],[3,8]];
+  const DT=[[1,0],[2,0],[2,1],[4,2],[4,3],[5,4],[5,3],[6,5],[6,3],[7,6],[7,5],[7,4],[7,3],[8,7],[8,4],[8,3],[9,8],[9,7]];
+  function analyse(D){
+    const n=10, M=[...Array(n)].map(()=>Array(n).fill(0));
+    D.forEach(([i,j])=>M[i][j]=1);
+    const added=[];
+    for(let k=0;k<n;k++)for(let i=0;i<n;i++)for(let j=0;j<n;j++) if(i!==j&&!M[i][j]&&M[i][k]&&M[k][j]){M[i][j]=2;added.push([i,j,k]);}
+    const core=[];for(let i=0;i<n;i++)for(let j=0;j<n;j++) if(i!==j&&M[i][j]&&M[j][i]){if(!core.includes(i))core.push(i);}
+    return {added,core:core.sort((a,b)=>a-b),total:D.length+added.length+n};
+  }
+  const A={shared:analyse(DS),typed:analyse(DT)};
+  reg('dsm',{duration:5.6,still:6,
+    init(F,s,el){s.mode='shared';seg(el,'data-mode',m=>{s.mode=m;F.replay();});},
+    draw(ctx,W,H,t,s){
+      const shared=s.mode==='shared', names=shared?NS:NT, D=shared?DS:DT, an=A[s.mode], n=10;
+      const narrow=W<560, fs=narrow?10.5:11.5;
+      const labW=narrow?62:78, top=narrow?22:26;
+      const m=narrow?Math.min(W-labW-24,H*0.62):Math.min(H-top-30,W*0.52);
+      const cs=m/n, x0=labW+12, y0=top+8;
+      // grid
+      for(let i=0;i<n;i++){
+        text(ctx,names[i],x0-8,y0+cs*i+cs/2,{size:fs,align:'right',base:'middle',color:(i===3)?C.ink:C.ink2,weight:i===3?600:400});
+        text(ctx,String(i+1),x0+cs*i+cs/2,y0-7,{size:fs-1,align:'center',color:C.ink2});
+      }
+      for(let i=0;i<n;i++)for(let j=0;j<n;j++){
+        ctx.fillStyle=i===j?rgba(C.ink2,0.18):rgba(C.rule,0.35);ctx.fillRect(x0+j*cs+1,y0+i*cs+1,cs-2,cs-2);
+      }
+      let filled=n;
+      D.forEach(([i,j],k)=>{const ta=k*(1.5/D.length);const a=c01((t-ta)/0.25);if(a<=0)return;filled++;
+        ctx.fillStyle=rgba(C.accent,a);ctx.fillRect(x0+j*cs+1,y0+i*cs+1,cs-2,cs-2);});
+      an.added.forEach(([i,j,k])=>{const ta=1.8+k*0.26;const a=c01((t-ta)/0.3);if(a<=0)return;filled++;
+        ctx.fillStyle=rgba(C.accent,0.32*a);ctx.fillRect(x0+j*cs+1,y0+i*cs+1,cs-2,cs-2);});
+      // core outline
+      const ca=c01((t-4.6)/0.4);
+      if(ca>0&&an.core.length){const a=an.core[0],b=an.core[an.core.length-1];
+        ctx.globalAlpha=ca;ctx.strokeStyle=C.warn;ctx.lineWidth=2;ctx.setLineDash([5,3]);
+        ctx.strokeRect(x0+a*cs-1,y0+a*cs-1,(b-a+1)*cs+2,(b-a+1)*cs+2);ctx.setLineDash([]);ctx.globalAlpha=1;}
+      // stats
+      const pc=filled/(n*n);
+      const sx=narrow?x0-labW:x0+m+28, sy=narrow?y0+m+30:y0+10;
+      text(ctx,'propagation cost',sx,sy,{size:fs,color:C.ink2});
+      text(ctx,Math.round(pc*100)+'%',sx,sy+(narrow?30:40),{font:`800 ${narrow?30:40}px "Bricolage Grotesque", system-ui, sans-serif`,color:C.ink});
+      const lines=[
+        ['■',C.accent,`direct  ${D.length}`],
+        ['■',rgba(C.accent,0.32),`via others  ${an.added.length}`],
+      ];
+      if(an.core.length) lines.push(['▢',C.warn,`core: ${an.core.length} modules in a cycle`]);
+      else lines.push(['·',C.ink2,'no cycles: a triangle']);
+      lines.forEach((l,i)=>{const yy=sy+(narrow?52:66)+i*(fs+8);if(narrow&&false)return;
+        text(ctx,l[0],sx,yy,{size:fs+1,color:l[1]});text(ctx,l[2],sx+16,yy,{size:fs,color:C.ink2});});
+      if(!narrow){const yy=sy+66+lines.length*(fs+8)+10;
+        text(ctx,'row depends on column',sx,yy,{size:fs-1,color:C.ink2});}
+    }});
+})();
+
+/* ---------- 2. Connascence ---------- */
+(function(){
+  const ROWS=[
+    ['Name','rename a function','compiler',0],
+    ['Type','change a parameter type','compiler',0],
+    ['Position','swap two same-typed arguments','review',1],
+    ['Meaning','◆ need flags "quiet", "cool" nobody reads','review',1],
+    ['Algorithm','◆ dormer seal assumes 6-connected air','tests',2],
+    ['Execution','init must run before use','tests',2],
+    ['Timing','timeout shorter than retry interval','load',3],
+    ['Value','◆ 12 cost weights tuned together','tuning',3],
+    ['Identity','two refs must be the same object','runtime',3],
+  ];
+  reg('connascence',{duration:ROWS.length*0.45+1.4,still:99,
+    draw(ctx,W,H,t){
+      const narrow=W<560, n=ROWS.length, top=narrow?30:28, rh=(H-top-10)/n, fs=narrow?10.5:11.5;
+      text(ctx,'kind',8,top-12,{size:fs-1,color:C.ink2});
+      text(ctx,'usually found by',W-10,top-12,{size:fs-1,color:C.ink2,align:'right'});
+      if(!narrow)text(ctx,'example',W*0.43,top-12,{size:fs-1,color:C.ink2});
+      ROWS.forEach((r,i)=>{
+        const y=top+i*rh, cy=y+rh/2, ta=0.3+i*0.45, p=c01((t-ta)/0.6), done=t>ta+0.6;
+        const strength=(i+1)/n;
+        if(i===5){line(ctx,8,y-0.5,W-8,y-0.5,C.rule,1,[3,3]);}
+        const ry=narrow?cy-7:cy, ax=narrow?84:96, bx=narrow?W-78:W*0.36, bw=14;
+        text(ctx,r[0],8,ry,{size:fs+0.5,base:'middle',weight:600,color:C.ink});
+        if(narrow)text(ctx,r[1],8,cy+11,{size:fs-1.5,base:'middle',color:C.ink2});
+        else text(ctx,r[1],W*0.43,cy,{size:fs,base:'middle',color:C.ink2});
+        const cyy=ry;
+        const col=[C.pass,C.accent,C.warn,C.fail][r[3]];
+        // A & B
+        box(ctx,ax,cyy-bw/2,bw,bw,{fill:t>ta&&t<ta+0.25?C.ink:C.panel,stroke:C.ink2});
+        box(ctx,bx-bw,cyy-bw/2,bw,bw,{fill:done?rgba(col,0.85):C.panel,stroke:C.ink2});
+        line(ctx,ax+bw,cyy,bx-bw,cyy,rgba(C.ink2,0.5),0.8+strength*4.2);
+        if(p>0&&p<1){dot(ctx,lerp(ax+bw,bx-bw,ease(p)),cyy,3+strength*2,col);}
+        if(done) text(ctx,r[2],W-10,cyy,{size:fs,base:'middle',align:'right',color:col,weight:500});
+      });
+      const dy=top+5*rh;
+      text(ctx,'static ↑   dynamic ↓',narrow?W/2:W*0.43,dy-1,{size:9.5,color:C.ink2,align:narrow?'center':'left',base:'middle'});
+    }});
+})();
+
+/* ---------- 3. Slice ---------- */
+(function(){
+  const CODE=['total = 0','count = 0','for x in items:','    if x.ok:','        total += x.price','        count += 1','avg = total / count','label = f"{count} items"','log(label)','tax = avg * RATE','print(tax)'];
+  const BACK=[[9],[8],[6,2],[4],[3]];
+  const BEDGES=[[9,8],[8,6],[8,2],[6,2],[6,4],[4,3]];
+  const FWD=[[2],[6,7,8],[9,10],[11]];
+  reg('slice',{duration:9.2,loop:true,still:4.3,
+    draw(ctx,W,H,t){
+      const narrow=W<560, fs=narrow?11.5:13, lh=Math.min(narrow?20:22,(H-46)/CODE.length), x0=narrow?62:80, y0=36;
+      const phase=t<4.6?0:1, pt=phase?t-4.6:t;
+      const title=phase?'forward impact of an edit to line 2':'backward slice of label at line 9';
+      text(ctx,title,12,20,{size:fs-1,color:phase?C.warn:C.accent,weight:500});
+      const steps=phase?FWD:BACK, col=phase?C.warn:C.accent;
+      const lit=new Map();
+      steps.forEach((g,k)=>{const a=c01((pt-0.2-k*0.75)/0.35);g.forEach(l=>{if(a>0)lit.set(l,Math.max(lit.get(l)||0,a));});});
+      CODE.forEach((s,i)=>{
+        const ln=i+1, y=y0+i*lh, a=lit.get(ln)||0;
+        if(a>0){ctx.fillStyle=rgba(col,0.16*a);ctx.fillRect(x0-6,y,W-x0-4,lh-2);ctx.fillStyle=rgba(col,a);ctx.fillRect(x0-6,y,3,lh-2);}
+        const crit=(!phase&&ln===9)||(phase&&ln===2);
+        text(ctx,String(ln),x0-14,y+lh*0.7,{size:fs-2,align:'right',color:crit?col:C.ink2,weight:crit?700:400});
+        const dim=pt>1&&a===0;
+        text(ctx,s,x0+4,y+lh*0.7,{size:fs,color:dim?rgba(C.ink2,0.55):C.ink});
+      });
+      if(!phase){
+        BEDGES.forEach(([from,to],k)=>{
+          const step=BACK.findIndex(g=>g.includes(to));const a=c01((pt-0.2-step*0.75)/0.35);if(a<=0)return;
+          const ya=y0+(from-1)*lh+lh/2, yb=y0+(to-1)*lh+lh/2, gx=x0-30-(k%3)*7;
+          ctx.globalAlpha=a;ctx.beginPath();ctx.moveTo(x0-22,ya);ctx.bezierCurveTo(gx-10,ya,gx-10,yb,x0-22,yb);ctx.strokeStyle=C.accent;ctx.lineWidth=1.3;ctx.stroke();
+          dot(ctx,x0-22,yb,2.4,C.accent);ctx.globalAlpha=1;
+        });
+      }
+      const sum=phase?'reaches 7 of 11 lines':'6 of 11 lines can affect label';
+      if(pt>3)text(ctx,sum,narrow?12:W-12,narrow?H-8:20,{size:fs-2,align:narrow?'left':'right',color:C.ink2});
+    }});
+})();
+
+/* ---------- 4. Scattering ---------- */
+(function(){
+  const COLS=['tables','graph','massing','anneal','layout','doors','flood','voxels','verify'];
+  const ROWS=[
+    ['light',[0,4,7,8],5],['chimney',[0,7,8],5],['loft',[0,1,2,3,4,5,6,7,8],9],
+    ['landing',[2,4,5,7,8],5],['ladder',[0,2,4,5,6,7,8],7],['cellar',[0,2,7,8],8]];
+  reg('scatter',{duration:ROWS.length*0.55+1,still:99,
+    draw(ctx,W,H,t){
+      const narrow=W<560, fs=narrow?10:11.5, lw=narrow?58:76, rw=narrow?44:70, top=narrow?64:70;
+      const cw=(W-lw-rw-16)/COLS.length, rh=Math.min(34,(H-top-14)/ROWS.length);
+      COLS.forEach((c,j)=>{ctx.save();ctx.translate(lw+cw*j+cw/2+3,top-8);ctx.rotate(-Math.PI/4);text(ctx,c,0,0,{size:fs,color:C.ink2});ctx.restore();});
+      text(ctx,'units',W-10,top-8,{size:fs,color:C.ink2,align:'right'});
+      ROWS.forEach((r,i)=>{
+        const y=top+i*rh;
+        text(ctx,r[0],lw-8,y+rh/2,{size:fs+0.5,align:'right',base:'middle',weight:600});
+        COLS.forEach((c,j)=>{ctx.fillStyle=rgba(C.rule,0.4);ctx.fillRect(lw+j*cw+2,y+3,cw-4,rh-6);});
+        let shown=0;
+        r[1].forEach((j,k)=>{const a=c01((t-0.2-i*0.55-k*0.05)/0.2);if(a<=0)return;shown++;
+          ctx.fillStyle=rgba(r[2]>=7?C.warn:C.accent,a);ctx.fillRect(lw+j*cw+2,y+3,cw-4,rh-6);});
+        const a=c01((t-0.2-i*0.55-r[1].length*0.05)/0.2);
+        if(a>0){const bw=(rw-26)*r[2]/9;ctx.fillStyle=rgba(r[2]>=7?C.warn:C.ink2,0.5*a);ctx.fillRect(W-rw+2,y+rh/2-3,bw,6);
+          text(ctx,String(r[2]),W-10,y+rh/2,{size:fs+0.5,align:'right',base:'middle',weight:600,color:C.ink});}
+      });
+    }});
+})();
+
+/* ---------- 5. Change coupling ---------- */
+(function(){
+  const FILES=['api.py','models.py','views.py','utils.py','schema.sql','report.py','auth.py','tests.py'];
+  const IMPORTS=[[0,1],[0,2],[2,1],[5,1],[6,0],[7,0],[3,2]];
+  const r0=rng(7); const COMMITS=[];
+  const pat=[[0,2,7],[4,5],[0,1],[4,5,1],[6,0],[2,3],[4,5],[0,2],[1],[4,5],[7,0,2],[3],[4,5],[0,2,7],[6],[1,4,5],[2,7],[4,5],[0,1,2],[5,4],[3,2],[0,2,7],[4,5],[6,0,7],[1],[4,5],[0,2],[2,3],[4,5,0],[7]];
+  pat.forEach(p=>COMMITS.push(p));
+  reg('cochange',{duration:COMMITS.length*0.16+1.6,still:99,
+    draw(ctx,W,H,t){
+      const narrow=W<560, cx=narrow?W/2:W*0.42, cy=narrow?H*0.42:H/2+4, rad=Math.min(narrow?W*0.29:W*0.3,narrow?H*0.32:H*0.36), fs=narrow?10.5:11.5;
+      const P=FILES.map((_,i)=>{const a=-Math.PI/2+i*TAU/FILES.length;return [cx+Math.cos(a)*rad,cy+Math.sin(a)*rad];});
+      const nc=Math.min(COMMITS.length,Math.floor(t/0.16)+1);
+      const churn=Array(FILES.length).fill(0), pair={};
+      for(let k=0;k<nc;k++){const c=COMMITS[k];c.forEach(i=>churn[i]++);for(let a=0;a<c.length;a++)for(let b=a+1;b<c.length;b++){const key=Math.min(c[a],c[b])+'-'+Math.max(c[a],c[b]);pair[key]=(pair[key]||0)+1;}}
+      IMPORTS.forEach(([a,b])=>line(ctx,P[a][0],P[a][1],P[b][0],P[b][1],rgba(C.ink2,0.55),1,[3,4]));
+      let best=null,bv=0;for(const k in pair)if(pair[k]>bv){bv=pair[k];best=k;}
+      const done=nc>=COMMITS.length&&t>COMMITS.length*0.16+0.3;
+      for(const k in pair){const [a,b]=k.split('-').map(Number);const v=pair[k];if(v<2)continue;
+        const hl=done&&k===best;line(ctx,P[a][0],P[a][1],P[b][0],P[b][1],hl?C.warn:rgba(C.accent,0.65),Math.min(9,0.6+v*0.75));}
+      const cur=COMMITS[nc-1], fresh=(t%0.16)/0.16;
+      FILES.forEach((n,i)=>{const r=5+Math.sqrt(churn[i])*3.2;const lit=cur.includes(i)&&!done;
+        dot(ctx,P[i][0],P[i][1],r+(lit?3*(1-fresh):0),lit?C.accent:C.ink2);dot(ctx,P[i][0],P[i][1],r-2,C.panel);dot(ctx,P[i][0],P[i][1],Math.max(1,r-4),lit?C.accent:rgba(C.ink2,0.6));
+        const out=P[i][0]<cx-4?'right':P[i][0]>cx+4?'left':'center';
+        const dx=out==='right'?-(r+6):out==='left'?(r+6):0, dy=Math.abs(P[i][0]-cx)<4?(P[i][1]<cy?-(r+8):r+16):4;
+        text(ctx,n,P[i][0]+dx,P[i][1]+dy,{size:fs,align:out,color:C.ink});});
+      const lx=narrow?12:W*0.76, ly=narrow?H-62:H*0.3;
+      text(ctx,`commit ${nc} / ${COMMITS.length}`,lx,ly,{size:fs,color:C.ink2});
+      if(done){const [a,b]=best.split('-').map(Number);
+        text(ctx,`${FILES[a]} + ${FILES[b]}`,lx,ly+20,{size:fs,weight:600,color:C.warn});
+        text(ctx,`changed together ${bv}×`,lx,ly+36,{size:fs,color:C.ink2});
+        text(ctx,'no import between them',lx,ly+52,{size:fs,color:C.ink2});}
+    }});
+})();
+
+/* ---------- 6. SZZ ---------- */
+(function(){
+  const COMMITS=[['a1f','init'],['b42',''],['c7e','+412 lines'],['d09',''],['e5b','refactor'],['f13',''],['0c8',''],['fix','fix #212']];
+  const CODE=[['def charge(order):','a1f'],['    amt = order.total * rate','c7e'],['    if amt > limit:','a1f'],['        retry(amt)','e5b'],['    return post(amt)','a1f']];
+  const FIXED=[1,3];
+  reg('szz',{duration:6.2,still:99,
+    draw(ctx,W,H,t){
+      const narrow=W<560, fs=narrow?10.5:12;
+      const cx0=12, cy0=14, cw=narrow?W-24:W*0.56, lh=narrow?19:21;
+      box(ctx,cx0,cy0,cw,lh*CODE.length+30,{stroke:C.rule,fill:C.paper});
+      text(ctx,'billing.py · blame',cx0+10,cy0+16,{size:fs-1,color:C.ink2});
+      const fa=c01((t-1)/0.4);
+      CODE.forEach((r,i)=>{const y=cy0+24+i*lh; const fixed=FIXED.includes(i);
+        if(fixed&&fa>0){ctx.fillStyle=rgba(C.pass,0.15*fa);ctx.fillRect(cx0+1,y,cw-2,lh);}
+        text(ctx,r[1],cx0+10,y+lh*0.7,{size:fs-1.5,color:fixed&&t>2.2?C.fail:C.ink2});
+        text(ctx,r[0],cx0+50,y+lh*0.7,{size:fs,color:C.ink});});
+      // timeline
+      const ty=narrow?cy0+lh*CODE.length+30+60:H*0.72, tx0=24, tx1=W-30, n=COMMITS.length;
+      line(ctx,tx0,ty,tx1,ty,C.rule,2);
+      const X=i=>tx0+(tx1-tx0)*i/(n-1);
+      const ind=COMMITS.map((c,i)=>CODE.some((r,k)=>FIXED.includes(k)&&r[1]===c[0]));
+      COMMITS.forEach((c,i)=>{const a=c01((t-i*0.1)/0.3);if(a<=0)return;const fix=i===n-1;
+        const bad=ind[i]&&t>2.6;
+        dot(ctx,X(i),ty,fix?7:5.5,fix?C.pass:bad?C.fail:C.ink2);
+        if(bad)ring(ctx,X(i),ty,10,C.fail,1.5);
+        text(ctx,c[0],X(i),ty+20,{size:fs-1.5,align:'center',color:fix?C.pass:bad?C.fail:C.ink2,weight:fix||bad?600:400});
+        if(c[1]&&!narrow)text(ctx,c[1],X(i),ty+34,{size:fs-2.5,align:'center',color:C.ink2});});
+      // arcs from fix back to inducing commits
+      const ap=c01((t-1.8)/0.9);
+      if(ap>0) COMMITS.forEach((c,i)=>{if(!ind[i])return;const x1=X(n-1),x2=X(i);ctx.beginPath();
+        const steps=40;for(let s=0;s<=steps*ap;s++){const u=s/steps;const x=lerp(x1,x2,u);const y=ty-Math.sin(u*Math.PI)*(Math.abs(x1-x2)*0.28);s?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+        ctx.strokeStyle=C.fail;ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);});
+      if(t>1.1&&!narrow)text(ctx,'fix changes 2 lines',X(n-1),ty-16,{size:fs-1.5,align:'right',color:C.pass});
+      // features panel
+      const fp=c01((t-3.6)/0.6);
+      if(fp>0){ctx.globalAlpha=fp;
+        const px=narrow?12:cx0+cw+18, py=narrow?ty+48:cy0+4, pw=narrow?W-24:W-px-12;
+        text(ctx,'fix-inducing: c7e, e5b',px,py+12,{size:fs,weight:600,color:C.fail});
+        ['c7e: 412 lines, 9 files','e5b: new author to module','→ labels for a per-commit','  risk model (JIT)'].forEach((s,i)=>{if(narrow&&i>1)return;text(ctx,s,px,py+32+i*18,{size:fs-1,color:C.ink2});});
+        ctx.globalAlpha=1;}
+    }});
+})();
+
+/* ---------- 7. Coverage vs mutation ---------- */
+(function(){
+  const CODE=['def discount(total):','    if total > 100:','        return total * 0.9','    return total'];
+  const MUT=[[1,'>','>=','`>` → `>=`'],[2,'0.9','0.8','`0.9` → `0.8`'],[3,'return total','return 0','`return total` → `return 0`']];
+  const SA=['discount(150)','discount(50)'], SB=['assert discount(150) == 135','assert discount(50) == 50','assert discount(100) == 100'];
+  reg('mutation',{duration:8,still:99,
+    draw(ctx,W,H,t){
+      const narrow=W<560, fs=narrow?11:12.5, lh=narrow?18:20;
+      const cx=12, cy=12, cw=narrow?W-24:W*0.47;
+      box(ctx,cx,cy,cw,lh*4+30,{stroke:C.rule,fill:C.paper});
+      text(ctx,'pricing.py',cx+10,cy+16,{size:fs-1.5,color:C.ink2});
+      const active=MUT.findIndex((m,i)=>{const a=1.5+i*0.75, b=4.9+i*0.75;return (t>a&&t<a+0.6)||(t>b&&t<b+0.6);});
+      CODE.forEach((s,i)=>{let str=s,col=C.ink;
+        if(active>=0&&MUT[active][0]===i){str=s.replace(MUT[active][1],MUT[active][2]);col=C.warn;}
+        text(ctx,str,cx+12,cy+36+i*lh,{size:fs,color:col});
+        const cov=(t>0.3&&t<4.5)?c01((t-0.3)/0.9):c01((t-4.0)/0.6);
+        if(cov*4>i){text(ctx,'●',cx+cw-14,cy+36+i*lh,{size:8,color:C.pass});}});
+      // suites
+      const sx=narrow?12:cx+cw+16, sy=narrow?cy+lh*4+46:cy, sw=narrow?W-24:W-sx-12;
+      const suites=[['Suite A',SA,'runs, no assertions',0],['Suite B',SB,'asserts values',1]];
+      suites.forEach((S,k)=>{const y=sy+k*(narrow?60:76);
+        text(ctx,S[0],sx,y+14,{size:fs,weight:600});text(ctx,S[2],sx+(narrow?64:72),y+14,{size:fs-1.5,color:C.ink2});
+        const cov=k===0?c01((t-0.3)/0.9):c01((t-4.0)/0.6);
+        box(ctx,sx,y+22,sw,8,{fill:rgba(C.rule,0.6),r:2});box(ctx,sx,y+22,sw*cov,8,{fill:C.pass,r:2});
+        text(ctx,'line coverage '+Math.round(cov*100)+'%',sx,y+46,{size:fs-1.5,color:C.ink2});
+        const applied=MUT.filter((m,i)=>t>(k?4.9:1.5)+i*0.75+0.6).length, kills=k?applied:0;
+        text(ctx,'mutants killed '+kills+' / '+applied,sx+sw,y+46,{size:fs-1.5,align:'right',color:applied?(k?C.pass:C.fail):C.ink2,weight:600});
+      });
+      // mutant table
+      const ty=narrow?sy+130:Math.max(cy+lh*4+48,sy+160), rh=narrow?22:24;
+      text(ctx,'mutant',12,ty,{size:fs-1.5,color:C.ink2});text(ctx,'Suite A',W*0.62,ty,{size:fs-1.5,color:C.ink2,align:'center'});text(ctx,'Suite B',W*0.86,ty,{size:fs-1.5,color:C.ink2,align:'center'});
+      line(ctx,12,ty+6,W-12,ty+6,C.rule,1);
+      MUT.forEach((m,i)=>{const y=ty+8+i*rh+rh*0.65;
+        text(ctx,'M'+(i+1)+'  '+m[3].replace(/`/g,''),12,y,{size:fs-1,color:C.ink});
+        const ta=1.5+i*0.75+0.6, tb=4.9+i*0.75+0.6;
+        if(t>ta)text(ctx,'survived',W*0.62,y,{size:fs-1.5,align:'center',color:C.fail,weight:600});
+        if(t>tb)text(ctx,'killed',W*0.86,y,{size:fs-1.5,align:'center',color:C.pass,weight:600});});
+    }});
+})();
+
+/* ---------- 8. Literal scan ---------- */
+(function(){
+  const BINS=[['pinned',172,'pass'],['crashed',64,'accent'],['unpinned',551,'warn'],['inert',968,'ink2']];
+  const N=BINS.reduce((s,b)=>s+b[1],0);
+  const order=[];BINS.forEach((b,i)=>{for(let k=0;k<b[1];k++)order.push(i);});
+  const r=rng(42);for(let i=order.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+  const delays=order.map(()=>r());
+  reg('scan',{duration:4.6,still:99,
+    draw(ctx,W,H,t){
+      const narrow=W<560, fs=narrow?10.5:12, gap=narrow?10:18, bw=(W-24-gap*3)/4, bottom=H-(narrow?44:48), avail=bottom-24;
+      let d=6;for(;d>=2;d-=0.5){const cols=Math.floor(bw/d);if(Math.ceil(968/cols)*d<=avail)break;}
+      const cols=Math.floor(bw/d);
+      const cnt=[0,0,0,0];
+      const T=3.6;
+      order.forEach((b,i)=>{const ts=(i/N)*T*0.85+delays[i]*0.15*T;const p=c01((t-ts)/0.5);if(p<=0)return;
+        const k=cnt[b]++;const x=12+b*(bw+gap)+(k%cols)*d+d/2, yT=bottom-Math.floor(k/cols)*d-d/2, y=lerp(4,yT,ease(p));
+        ctx.fillStyle=b===3?rgba(C.ink2,0.45):C[BINS[b][2]];ctx.fillRect(x-d*0.4,y-d*0.4,d*0.8,d*0.8);});
+      BINS.forEach((b,i)=>{const x=12+i*(bw+gap);
+        line(ctx,x,bottom+3,x+bw,bottom+3,C.rule,1);
+        text(ctx,b[0],x,bottom+(narrow?19:21),{size:fs,weight:600,color:i===3?C.ink:C[b[2]]});
+        text(ctx,`${cnt[i]}  ${Math.round(cnt[i]/N*100)}%`,x,bottom+(narrow?35:39),{size:fs-1,color:C.ink2});});
+    }});
+})();
+
+/* ---------- 9. Oracle gates ---------- */
+(function(){
+  const GATES=[['Implicit','crashes, hangs'],['Contracts','properties'],['Relations','metamorphic'],['Humans','people, prod']];
+  const TYPES=[{k:'ok',p:0.5},{k:'crash',p:0.1},{k:'wrong',p:0.18},{k:'rel',p:0.12},{k:'ux',p:0.1}];
+  const gateX=(i,W)=>W<560?W*(0.13+i*0.19):W*(0.2+i*0.2);
+  const CATCH={crash:[1,0,0,0],wrong:[0,0.55,0.35,0.3],rel:[0,0.2,0.8,0.1],ux:[0,0,0.1,0.7]};
+  function shape(ctx,k,x,y,s){
+    if(k==='ok'){dot(ctx,x,y,s*0.55,rgba(C.ink2,0.7));return;}
+    if(k==='crash'){cross(ctx,x,y,s*0.8,C.fail,2);return;}
+    if(k==='wrong'){dot(ctx,x,y,s,C.fail);return;}
+    if(k==='rel'){ctx.beginPath();ctx.moveTo(x,y-s);ctx.lineTo(x+s,y);ctx.lineTo(x,y+s);ctx.lineTo(x-s,y);ctx.closePath();ctx.fillStyle=C.warn;ctx.fill();return;}
+    if(k==='ux'){ctx.beginPath();ctx.moveTo(x,y-s);ctx.lineTo(x+s,y+s*0.8);ctx.lineTo(x-s,y+s*0.8);ctx.closePath();ctx.fillStyle=C.accent;ctx.fill();}
+  }
+  reg('oracles',{continuous:true,
+    init(F,s){s.items=[];s.r=rng(3);s.acc=0;s.caught=[0,0,0,0];s.esc=0;s.faults=0;},
+    step(dt,s,W,H){
+      s.acc+=dt;while(s.acc>0.22){s.acc-=0.22;
+        let u=s.r(),k='ok';for(const ty of TYPES){if(u<ty.p){k=ty.k;break;}u-=ty.p;}
+        let g=-1;if(k!=='ok'){s.faults++;for(let i=0;i<4;i++){if(s.r()<CATCH[k][i]){g=i;break;}}}
+        s.items.push({x:-10,y:0.3+s.r()*0.4,k,g,fall:0});}
+      const sp=W/5.5;
+      s.items.forEach(it=>{
+        const gx=gateX(it.g,W);
+        if(it.g>=0&&it.x>=gx){it.fall+=dt*2.2;it.x=gx;if(it.fall>=1&&!it.counted){it.counted=1;s.caught[it.g]++;}}
+        else it.x+=sp*dt;
+        if(it.x>W*0.9&&it.k!=='ok'&&!it.counted&&it.g<0){it.counted=1;s.esc++;}
+      });
+      s.items=s.items.filter(it=>it.x<W+10&&it.fall<1.2);
+    },
+    draw(ctx,W,H,t,s){
+      const narrow=W<560, fs=narrow?10:11.5, top=narrow?36:46, bot=H-(narrow?52:46);
+      GATES.forEach((g,i)=>{const x=gateX(i,W);
+        line(ctx,x,top,x,bot,C.ink2,1.5,[4,3]);
+        text(ctx,g[0],x,top-(narrow?12:22),{size:fs,align:'center',color:C.ink,weight:600});
+        if(!narrow)text(ctx,g[1],x,top-8,{size:fs-1.5,align:'center',color:C.ink2});
+        box(ctx,x-22,bot+6,44,narrow?22:20,{fill:C.paper,stroke:C.rule});
+        text(ctx,String(s.caught[i]),x,bot+(narrow?21:20),{size:fs+0.5,align:'center',weight:600});});
+      s.items.forEach(it=>{const y=lerp(top,bot,it.y)+(it.fall>0?ease(it.fall)*(bot-lerp(top,bot,it.y)+12):0);shape(ctx,it.k,it.x,y,narrow?4.2:5);});
+      const ex=narrow?W-30:W*0.94;text(ctx,'escaped',ex,top-(narrow?12:22),{size:fs,align:'center',color:C.fail,weight:600});
+      box(ctx,ex-22,bot+6,44,narrow?22:20,{fill:C.paper,stroke:C.fail});
+      text(ctx,String(s.esc),ex,bot+(narrow?21:20),{size:fs+0.5,align:'center',weight:600,color:C.fail});
+      // legend
+      const ly=H-8;let lx=12;
+      [['crash','crash'],['wrong','wrong value'],['rel','broken relation'],['ux','slow or confusing']].forEach(([k,l])=>{if(narrow&&k==='rel')l='relation';if(narrow&&k==='ux')l='slow';shape(ctx,k,lx+5,ly-4,4);text(ctx,l,lx+14,ly,{size:fs-1,color:C.ink2});ctx.font=f(fs-1);lx+=ctx.measureText(l).width+(narrow?24:30);});
+    }});
+})();
+
+/* ---------- 10. Metamorphic ---------- */
+(function(){
+  const r=rng(11), PTS=[...Array(48)].map(()=>[r()*2-1,r()*2-1]);
+  const ROT=Math.PI/4, RAD=0.62;
+  const inC=(x,y)=>x*x+y*y<RAD*RAD, inS=(x,y)=>Math.abs(x)<RAD&&Math.abs(y)<RAD;
+  const rot=(p,a)=>[p[0]*Math.cos(a)-p[1]*Math.sin(a),p[0]*Math.sin(a)+p[1]*Math.cos(a)];
+  reg('metamorphic',{duration:8.4,loop:true,still:3.2,
+    draw(ctx,W,H,t){
+      const narrow=W<560, fs=narrow?11:12.5, phase=t<4.2?0:1, pt=phase?t-4.2:t;
+      const test=phase?inS:inC, title=phase?'buggy f: checks a square':'correct f: checks the circle';
+      text(ctx,title,12,20,{size:fs,weight:600,color:phase?C.fail:C.ink});
+      const s=narrow?Math.min(W*0.4,(H-90)/1):Math.min(W*0.3,H-90), y0=narrow?44:42;
+      const panels=[[narrow?W*0.27:W*0.24,'input x',0],[narrow?W*0.73:W*0.64,'rotated 45°',1]];
+      const a=ease((pt-0.6)/1.4)*ROT;
+      panels.forEach(([cx,label,k])=>{const cy=y0+s/2, sc=s/2/1.15;
+        box(ctx,cx-s/2,cy-s/2,s,s,{stroke:C.rule,fill:C.paper,r:2});
+        ctx.save();ctx.beginPath();ctx.rect(cx-s/2,cy-s/2,s,s);ctx.clip();
+        ring(ctx,cx,cy,RAD*sc,rgba(C.ink2,0.8),1);
+        if(phase){ctx.setLineDash([4,3]);ctx.strokeStyle=C.fail;ctx.lineWidth=1.2;ctx.strokeRect(cx-RAD*sc,cy-RAD*sc,2*RAD*sc,2*RAD*sc);ctx.setLineDash([]);}
+        let n=0;PTS.forEach(p=>{const q=k?rot(p,a):p;const inside=test(q[0],q[1]);if(inside)n++;dot(ctx,cx+q[0]*sc,cy+q[1]*sc,narrow?2.4:2.8,inside?C.accent:rgba(C.ink2,0.5));});
+        ctx.restore();
+        text(ctx,label,cx,cy+s/2+18,{size:fs-1,align:'center',color:C.ink2});
+        text(ctx,`f = ${n}`,cx,cy+s/2+36,{size:fs+1,align:'center',weight:700});
+      });
+      const mx=(panels[0][0]+panels[1][0])/2, my=y0+s/2;
+      arrow(ctx,mx-18,my,mx+18,my,C.ink2,1.4);
+      if(pt>2.3){const c0=PTS.filter(p=>test(p[0],p[1])).length, c1=PTS.map(p=>rot(p,ROT)).filter(q=>test(q[0],q[1])).length;
+        const ok=c0===c1;
+        text(ctx,ok?'relation holds: f(x) = f(rot x)':'relation broken: f(x) ≠ f(rot x)',narrow?W/2:W-12,narrow?H-10:20,{size:fs,align:narrow?'center':'right',weight:600,color:ok?C.pass:C.fail});}
+    }});
+})();
+
+/* ---------- 11. Round trip ---------- */
+(function(){
+  const GW=12,GH=8;
+  const ROOMS=[['Hall',0,0,6,8],['Kitchen',6,0,12,4],['Store',6,4,12,8]];
+  const DOORS=[[6,2,'v',0,1],[6,6,'v',0,2],[3,8,'h',0,-1]];
+  function roomAt(x,z){for(let i=0;i<ROOMS.length;i++){const r=ROOMS[i];if(x>=r[1]&&x<r[3]&&z>=r[2]&&z<r[4])return i;}return -1;}
+  // BFS over cells; walls block between rooms except at doors
+  function flood(broken){
+    const doors=DOORS.filter((d,i)=>!(broken&&i===1));
+    const dist={},q=[];const start=[3,7];dist[start]=0;q.push(start);
+    const pass=(x,z,nx,nz)=>{if(nx<0||nz<0||nx>=GW||nz>=GH)return false;const a=roomAt(x,z),b=roomAt(nx,nz);if(a===b)return true;
+      return doors.some(d=>d[2]==='v'?(Math.min(x,nx)===d[0]-1&&z===d[1]&&nz===d[1]):false);};
+    while(q.length){const [x,z]=q.shift();for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(dist[[nx,nz]]!=null)continue;if(!pass(x,z,nx,nz))continue;dist[[nx,nz]]=dist[[x,z]]+1;q.push([nx,nz]);}}
+    return dist;
+  }
+  const FL=[flood(false),flood(true)];
+  const COL=['#C7A15A','#CF7A40','#5D7E66'];
+  reg('roundtrip',{duration:9,loop:true,still:4.2,
+    draw(ctx,W,H,t){
+      const narrow=W<560, fs=narrow?11:12, phase=t<4.5?0:1, pt=phase?t-4.5:t;
+      const pw=narrow?Math.min(W-24,(H-40)/3*1.5):(W-24-40)/3, cell=Math.min(pw/GW,(narrow?(H-80)/3-20:H-90)/GH);
+      const gw=cell*GW, gh=cell*GH;
+      const pos=i=>narrow?[(W-gw)/2,46+i*(gh+36)]:[12+i*(pw+20)+(pw-gw)/2,46];
+      const titles=['1 plan','2 build','3 read back'];
+      text(ctx,phase?'second pass: the builder drops the Hall–Store door':'first pass: build matches plan',12,18,{size:fs,weight:600,color:phase?C.fail:C.ink});
+      for(let p=0;p<3;p++){const [x0,y0]=pos(p);
+        text(ctx,titles[p],x0,y0-6,{size:fs-1,color:C.ink2});
+        const a=c01((pt-p*1.2)/0.5); if(a<=0){box(ctx,x0,y0,gw,gh,{stroke:C.rule,r:1});continue;}
+        ctx.globalAlpha=a;
+        if(p===0){ROOMS.forEach((r,i)=>{ctx.fillStyle=rgba(COL[i],0.55);ctx.fillRect(x0+r[1]*cell,y0+r[2]*cell,(r[3]-r[1])*cell,(r[4]-r[2])*cell);
+            ctx.strokeStyle=C.ink;ctx.lineWidth=1.5;ctx.strokeRect(x0+r[1]*cell,y0+r[2]*cell,(r[3]-r[1])*cell,(r[4]-r[2])*cell);
+            text(ctx,r[0],x0+(r[1]+r[3])/2*cell,y0+(r[2]+r[4])/2*cell,{size:fs-1.5,align:'center',base:'middle'});});
+          DOORS.forEach(d=>{const dx=x0+d[0]*cell, dy=y0+d[1]*cell;ctx.fillStyle=C.paper;if(d[2]==='v')ctx.fillRect(dx-2,dy-cell*0.4,4,cell*0.8);else ctx.fillRect(dx-cell*0.4,dy-2,cell*0.8,4);});}
+        if(p===1){box(ctx,x0,y0,gw,gh,{fill:C.paper,r:0});
+          ctx.fillStyle=C.ink;
+          const wall=(x,y,w,h)=>ctx.fillRect(x0+x*cell,y0+y*cell,w*cell,h*cell);
+          // outer and inner walls as thick lines
+          ctx.strokeStyle=C.ink;ctx.lineWidth=Math.max(2,cell*0.28);ctx.strokeRect(x0,y0,gw,gh);
+          line(ctx,x0+6*cell,y0,x0+6*cell,y0+gh,C.ink,Math.max(2,cell*0.28));line(ctx,x0+6*cell,y0+4*cell,x0+gw,y0+4*cell,C.ink,Math.max(2,cell*0.28));
+          DOORS.forEach((d,i)=>{if(phase&&i===1)return;const dx=x0+d[0]*cell, dy=y0+d[1]*cell, w=Math.max(3,cell*0.32);ctx.fillStyle=C.paper;
+            if(d[2]==='v')ctx.fillRect(dx-w,dy-cell*0.45,w*2,cell*0.9);else ctx.fillRect(dx-cell*0.45,dy-w,cell*0.9,w*2);});
+          if(phase){const d=DOORS[1];cross(ctx,x0+d[0]*cell,y0+d[1]*cell,cell*0.35,C.fail,2);}}
+        if(p===2){box(ctx,x0,y0,gw,gh,{fill:C.paper,r:0});
+          const D=FL[phase], fp=c01((pt-2.4)/1.2)*22;
+          for(let x=0;x<GW;x++)for(let z=0;z<GH;z++){const dd=D[[x,z]];const ri=roomAt(x,z);
+            if(dd!=null&&dd<=fp){ctx.fillStyle=rgba(COL[ri],0.6);ctx.fillRect(x0+x*cell+0.5,y0+z*cell+0.5,cell-1,cell-1);}
+            else if(dd==null&&pt>3.7){ctx.fillStyle=rgba(C.fail,0.28);ctx.fillRect(x0+x*cell+0.5,y0+z*cell+0.5,cell-1,cell-1);}}
+          ctx.strokeStyle=C.ink;ctx.lineWidth=1;ctx.strokeRect(x0,y0,gw,gh);}
+        ctx.globalAlpha=1;
+        if(!narrow&&p<2){const [x1]=pos(p);arrow(ctx,x1+gw+4,y0+gh/2,x1+gw+16,y0+gh/2,C.ink2,1.3);}
+      }
+      if(pt>3.9){const [x0,y0]=pos(2);const ok=!phase;
+        text(ctx,ok?'recovered graph = plan  ✓':'Store unreachable: missing Hall–Store door',12,narrow?H-10:y0+gh+26,{size:fs-0.5,weight:600,color:ok?C.pass:C.fail});}
+    }});
+})();
+
+/* ---------- 12. Question loop ---------- */
+(function(){
+  const STAGES=['Scan','Triage','Cluster','Ask','Ledger'];
+  const CATS=[{k:'pinned',p:0.1,to:'ledger',col:'pass'},{k:'crash',p:0.04,to:'ledger',col:'pass'},{k:'arbitrary',p:0.12,to:'drop',col:'ink2'},{k:'unexercised',p:0.22,to:'inputs',col:'accent'},{k:'unobserved',p:0.2,to:'oracle',col:'accent'},{k:'question',p:0.32,to:'cluster',col:'warn'}];
+  const QS=['Doors: what must an agent of what size be able to pass through?','Footprint: what total area is acceptable for a given brief?','Ladder: must it reach the loft floor?','Cellar: must it sit beside the kitchen, or is that a preference?','Layout: what cost is too high to ship?'];
+  reg('qloop',{continuous:true,
+    init(F,s){s.r=rng(5);s.items=[];s.acc=0;s.pool=0;s.q=-1;s.qt=0;s.done=0;s.pinned=10;s.ans=0;s.side={inputs:0,oracle:0,drop:0};},
+    step(dt,s,W,H){
+      s.acc+=dt;while(s.acc>0.28){s.acc-=0.28;let u=s.r(),c=CATS[5];for(const k of CATS){if(u<k.p){c=k;break;}u-=k.p;}s.items.push({x:0,c,stage:0,y:s.r()});}
+      s.items.forEach(it=>{it.x+=dt*0.55;});
+      s.items=s.items.filter(it=>{
+        if(it.x>=1&&it.stage===0){it.stage=1;
+          if(it.c.to==='cluster'){s.pool++;return false;}
+          if(it.c.to==='ledger'){it.x=1;it.stage=2;return true;}
+          s.side[it.c.to]++;it.stage=3;it.x=1;return true;}
+        if(it.stage===2&&it.x>=2.6)return false;
+        if(it.stage===3&&it.x>=1.6)return false;
+        return true;});
+      if(s.q<0&&s.pool>=5){s.pool-=5;s.q=(s.done)%QS.length;s.qt=0;}
+      if(s.q>=0){s.qt+=dt;if(s.qt>2.6){s.q=-1;s.done++;s.ans++;s.pinned=Math.min(92,s.pinned+7+Math.round(s.r()*4));}}
+    },
+    draw(ctx,W,H,t,s){
+      const narrow=W<560, fs=narrow?10:11.5, top=narrow?26:28, laneY=top+30, sw=(W-24)/5;
+      STAGES.forEach((n,i)=>{const x=12+i*sw;box(ctx,x+4,top,sw-8,24,{fill:C.paper,stroke:C.rule});text(ctx,n,x+sw/2,top+16,{size:fs,align:'center',weight:600});
+        if(i<4)arrow(ctx,x+sw-4,top+12,x+sw+4,top+12,C.ink2,1);});
+      const X=v=>12+sw*0.5+v*sw;
+      const midY=laneY+40;
+      s.items.forEach(it=>{let x,y;
+        if(it.stage===0){x=X(it.x);y=midY+(it.y-0.5)*30;}
+        else if(it.stage===2){x=X(it.x);y=midY-26+(it.y-0.5)*10;}
+        else {x=X(1)+(it.x-1)*sw*0.3;y=midY+(it.x-1)*120+20;}
+        dot(ctx,x,y,narrow?3:3.6,it.c.col==='ink2'?rgba(C.ink2,0.6):C[it.c.col]);});
+      // cluster pool
+      const cx=X(2), cy=midY;
+      ring(ctx,cx,cy,16+Math.min(10,s.pool*1.5),rgba(C.warn,0.8),1.5);
+      text(ctx,String(s.pool),cx,cy+4,{size:fs,align:'center',weight:600,color:C.warn});
+      // side bins under triage
+      const by=H-(narrow?92:72), bx=12;
+      const bins=[['needs new inputs',s.side.inputs,C.accent],['needs a new oracle',s.side.oracle,C.accent],['arbitrary: ignored',s.side.drop,C.ink2]];
+      bins.forEach((b,i)=>{const yy=by+i*(narrow?16:17);text(ctx,b[0],bx,yy,{size:fs-1,color:C.ink2});text(ctx,String(b[1]),bx+(narrow?140:150),yy,{size:fs-1,weight:600,color:b[2]});});
+      // ask bubble
+      if(s.q>=0){const qx=X(3), qy=midY+44, bw=narrow?W*0.5:sw*1.7;const a=c01(s.qt/0.3)*(1-c01((s.qt-2.3)/0.3));
+        ctx.globalAlpha=a;box(ctx,Math.min(W-12-bw,qx-bw/2),qy-14,bw,narrow?56:46,{fill:C.paper,stroke:C.warn,lw:1.5,r:6});
+        ctx.font=f(fs-1);const words=QS[s.q].split(' ');let line='',ly=qy+2,lx=Math.min(W-12-bw,qx-bw/2)+8;
+        words.forEach(w=>{if(ctx.measureText(line+w).width>bw-16){text(ctx,line,lx,ly,{size:fs-1});line='';ly+=fs+3;}line+=w+' ';});text(ctx,line,lx,ly,{size:fs-1});
+        ctx.globalAlpha=1;}
+      // meter
+      const mx=X(4)-sw*0.38, mw=sw*0.76, my=midY+(narrow?36:30);
+      text(ctx,'pinned or',mx,my-18,{size:fs-1.5,color:C.ink2});text(ctx,"don't-care",mx,my-6,{size:fs-1.5,color:C.ink2});
+      box(ctx,mx,my,mw,8,{fill:rgba(C.rule,0.6),r:2});box(ctx,mx,my,mw*s.pinned/100,8,{fill:C.pass,r:2});
+      text(ctx,s.pinned+'%',mx,my+22,{size:fs+2,weight:700});
+      text(ctx,s.ans+' answered',mx,my+38,{size:fs-1.5,color:C.ink2});
+    }});
+})();
+
+/* ---------- 13. Queue (interactive) ---------- */
+(function(){
+  function expo(r,rate){return -Math.log(1-r())/rate;}
+  reg('queue',{continuous:true,
+    init(F,s,el){const inp=el.querySelector('#q-lambda'),out=el.querySelector('#q-lambda-out');
+      s.lambda=+inp.value;inp.addEventListener('input',()=>{s.lambda=+inp.value;out.textContent=s.lambda.toFixed(2);s.area=0;s.time=0;});
+      F.onReset=()=>{s.lambda=+inp.value;};},
+    reset(s){s.r=rng(9);s.clock=0;s.q=0;s.busy=false;s.na=0;s.nd=Infinity;s.hist=[];s.area=0;s.time=0;s.depart=[];s.arrive=[];s.na=expo(s.r,s.lambda||0.8);},
+    step(dt,s){
+      const speed=6, end=s.clock+dt*speed;
+      while(true){const next=Math.min(s.na,s.nd);if(next>end)break;
+        s.area+=s.q*(next-s.clock);s.time+=next-s.clock;s.clock=next;
+        if(s.na<=s.nd){s.q++;s.arrive.push(0);s.na=s.clock+expo(s.r,s.lambda);if(s.q===1)s.nd=s.clock+expo(s.r,1);}
+        else{s.q--;s.depart.push(0);s.nd=s.q>0?s.clock+expo(s.r,1):Infinity;}}
+      s.area+=s.q*(end-s.clock);s.time+=end-s.clock;s.clock=end;
+      s.hist.push(s.q);if(s.hist.length>360)s.hist.shift();
+      s.arrive=s.arrive.map(v=>v+dt*2).filter(v=>v<1);s.depart=s.depart.map(v=>v+dt*2).filter(v=>v<1);
+    },
+    draw(ctx,W,H,t,s){
+      const narrow=W<560, fs=narrow?10.5:12, rho=s.lambda;
+      // queue picture
+      const qy=narrow?40:44, sx=W-(narrow?80:120), qx0=narrow?20:150;
+      text(ctx,'arrivals',qx0-8,qy+4,{size:fs-1,align:narrow?'left':'right',color:C.ink2,base:'middle'});
+      box(ctx,sx,qy-16,36,32,{fill:s.q>0?rgba(C.accent,0.18):C.paper,stroke:C.ink2});
+      text(ctx,'worker, μ = 1',sx+18,qy+30,{size:fs-2,align:'center',color:C.ink2});
+      const maxShow=Math.floor((sx-qx0-12)/11);
+      const shown=Math.min(s.q>0?s.q-1:0,maxShow);
+      for(let i=0;i<shown;i++)dot(ctx,sx-12-i*11,qy,4,C.accent);
+      if(s.q-1>maxShow)text(ctx,'+'+(s.q-1-maxShow),qx0,qy-12,{size:fs-1,color:C.warn,weight:600});
+      if(s.q>0)dot(ctx,sx+18,qy,5,C.ink);
+      s.depart.forEach(v=>dot(ctx,sx+40+v*40,qy,4,rgba(C.pass,1-v)));
+      // chart
+      const cx=narrow?40:56, cy=narrow?84:92, cw=W-cx-(narrow?14:200), ch=H-cy-(narrow?96:34);
+      const theory=rho<1?rho/(1-rho):Infinity, obs=s.time>0?s.area/s.time:0;
+      const ymax=Math.max(8,Math.ceil(Math.max(...s.hist,isFinite(theory)?theory*1.6:0)/4)*4);
+      line(ctx,cx,cy+ch,cx+cw,cy+ch,C.rule,1);line(ctx,cx,cy,cx,cy+ch,C.rule,1);
+      for(let k=0;k<=4;k++){const v=ymax*k/4, y=cy+ch-ch*k/4;text(ctx,String(Math.round(v)),cx-6,y+3,{size:fs-2,align:'right',color:C.ink2});if(k)line(ctx,cx,y,cx+cw,y,rgba(C.rule,0.5),1);}
+      text(ctx,'queue length',cx,cy-8,{size:fs-1.5,color:C.ink2});
+      if(s.hist.length>1){ctx.beginPath();s.hist.forEach((v,i)=>{const x=cx+cw*i/359,y=cy+ch-ch*Math.min(v,ymax)/ymax;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+        ctx.lineTo(cx+cw*(s.hist.length-1)/359,cy+ch);ctx.lineTo(cx,cy+ch);ctx.closePath();ctx.fillStyle=rgba(C.accent,0.12);ctx.fill();
+        ctx.beginPath();s.hist.forEach((v,i)=>{const x=cx+cw*i/359,y=cy+ch-ch*Math.min(v,ymax)/ymax;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.strokeStyle=C.accent;ctx.lineWidth=1.5;ctx.stroke();}
+      if(isFinite(theory)&&theory<ymax){const y=cy+ch-ch*theory/ymax;line(ctx,cx,y,cx+cw,y,C.ink,1.2,[5,4]);}
+      // readouts
+      const rx=narrow?cx:cx+cw+22, ry=narrow?cy+ch+28:cy+6, rows=[
+        ['ρ = λ/μ',rho.toFixed(2),rho>=1?C.fail:rho>0.8?C.warn:C.ink],
+        ['theory L',isFinite(theory)?theory.toFixed(1):'unbounded',isFinite(theory)?C.ink:C.fail],
+        ['observed',obs.toFixed(1),C.accent]];
+      rows.forEach((r,i)=>{const x=narrow?rx+i*((W-rx-12)/3):rx, y=narrow?ry:ry+i*44;
+        text(ctx,r[0],x,y,{size:fs-1.5,color:C.ink2});text(ctx,r[1],x,y+(narrow?20:24),{font:`700 ${narrow?17:22}px "Bricolage Grotesque", system-ui, sans-serif`,color:r[2]});});
+      if(!narrow&&rho>=1)text(ctx,'backlog grows ≈ (λ−μ)·t',rx,ry+150,{size:fs-1,color:C.fail});
+    }});
+})();
+
+/* ---------- 14. Fan-out ---------- */
+(function(){
+  const HN={1:1,10:2.929,100:5.187,1000:7.485};
+  reg('fanout',{continuous:true,
+    init(F,s,el){s.n=100;seg(el,'data-n',v=>{s.n=+v;F.replay();});},
+    reset(s){s.r=rng(17);s.bins=new Array(48).fill(0);s.count=0;s.sum=0;s.acc=0;s.last=[];},
+    step(dt,s){s.acc+=dt;while(s.acc>0.09){s.acc-=0.09;let mx=0;const last=[];
+        for(let i=0;i<s.n;i++){const v=-Math.log(1-s.r());if(v>mx)mx=v;if(i<100)last.push(v);}
+        s.last=last;s.lastMax=mx;s.count++;s.sum+=mx;const b=Math.min(47,Math.floor(mx/0.25));s.bins[b]++;}},
+    draw(ctx,W,H,t,s){
+      const narrow=W<560, fs=narrow?10.5:12;
+      // strip of tasks
+      const sy=14, sh=narrow?58:64, sx=12, sw=W-24, n=s.last.length;
+      text(ctx,`one request: ${s.n} task${s.n>1?'s':''}${s.n>100?' (100 shown)':''}`,sx,sy+8,{size:fs-1,color:C.ink2});
+      const bw=sw/Math.max(n,1), xmax=12;
+      s.last.forEach((v,i)=>{const h=(sh-16)*Math.min(v,xmax)/xmax;const isMax=Math.abs(v-s.lastMax)<1e-9;
+        ctx.fillStyle=isMax?C.warn:rgba(C.accent,0.55);ctx.fillRect(sx+i*bw+(bw>3?0.5:0),sy+sh-h,Math.max(1,bw-(bw>3?1:0)),h);});
+      // histogram
+      const hx=narrow?32:44, hy=sy+sh+30, hw=W-hx-14, hh=H-hy-30;
+      const xm=12, maxb=Math.max(1,...s.bins);
+      line(ctx,hx,hy+hh,hx+hw,hy+hh,C.rule,1);
+      s.bins.forEach((c,i)=>{const x0=hx+hw*(i*0.25)/xm, w=hw*0.25/xm;const h=hh*c/maxb;ctx.fillStyle=rgba(C.ink2,0.45);ctx.fillRect(x0+0.5,hy+hh-h,w-1,h);});
+      for(let k=0;k<=12;k+=2){const x=hx+hw*k/xm;text(ctx,String(k),x,hy+hh+14,{size:fs-2,align:'center',color:C.ink2});}
+      text(ctx,'request time (task mean = 1)',hx+hw,hy+hh+28,{size:fs-2,align:'right',color:C.ink2});
+      const x1=hx+hw*1/xm;line(ctx,x1,hy,x1,hy+hh,C.ink,1.2);text(ctx,'mean task',x1+4,hy+10,{size:fs-2,color:C.ink});
+      const xh=hx+hw*HN[s.n]/xm;line(ctx,xh,hy-6,xh,hy+hh,C.warn,1.6,[5,3]);
+      text(ctx,`H${s.n} = ${HN[s.n].toFixed(2)}`,xh+5,hy+(s.n===1?26:4),{size:fs-1,color:C.warn,weight:600});
+      if(s.count)text(ctx,`observed mean ${(s.sum/s.count).toFixed(2)} · ${s.count} requests`,hx+hw,hy-10,{size:fs-1.5,align:'right',color:C.ink2});
+    }});
+})();
+
+/* ---------- 15. USL ---------- */
+(function(){
+  const CURVES=[['linear',0,0,'ink2'],['σ = 0.05',0.05,0,'accent'],['σ = 0.05, κ = 0.003',0.05,0.003,'fail']];
+  const X=(N,s,k)=>N/(1+s*(N-1)+k*N*(N-1));
+  reg('usl',{duration:3.4,still:99,
+    draw(ctx,W,H,t){
+      const narrow=W<560, fs=narrow?10.5:12, px=narrow?36:48, py=20, pw=W-px-(narrow?14:170), ph=H-py-(narrow?78:40), Nmax=64, Ymax=24;
+      line(ctx,px,py+ph,px+pw,py+ph,C.rule);line(ctx,px,py,px,py+ph,C.rule);
+      for(let y=0;y<=Ymax;y+=6){const yy=py+ph-ph*y/Ymax;text(ctx,String(y),px-6,yy+3,{size:fs-2,align:'right',color:C.ink2});if(y)line(ctx,px,yy,px+pw,yy,rgba(C.rule,0.5));}
+      for(let n=0;n<=64;n+=16){const xx=px+pw*n/Nmax;text(ctx,String(n||1),xx,py+ph+14,{size:fs-2,align:'center',color:C.ink2});}
+      text(ctx,'workers N',px+pw,py+ph+28,{size:fs-2,align:'right',color:C.ink2});
+      text(ctx,'throughput ×',px+4,py+8,{size:fs-2,color:C.ink2});
+      CURVES.forEach((c,i)=>{const p=c01((t-i*0.7)/1.4);if(p<=0)return;ctx.save();ctx.beginPath();ctx.rect(px,py,pw,ph);ctx.clip();
+        ctx.beginPath();for(let N=1;N<=1+(Nmax-1)*p;N+=0.5){const x=px+pw*N/Nmax,y=py+ph-ph*X(N,c[1],c[2])/Ymax;N===1?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+        ctx.strokeStyle=C[c[3]];ctx.lineWidth=2;ctx.stroke();ctx.restore();
+        if(p>=1){const lx=narrow?12:px+pw+12, ly=narrow?py+ph+42+i*14-14:py+30+i*40;
+          if(narrow){dot(ctx,lx+4,ly-4,3.5,C[c[3]]);text(ctx,c[0],lx+14,ly,{size:fs-1,color:C.ink});}
+          else{line(ctx,lx,ly-4,lx+16,ly-4,C[c[3]],2);text(ctx,c[0],lx+22,ly,{size:fs-1,color:C.ink});}}});
+      if(t>2.6){const s=0.05,k=0.003,Ns=Math.sqrt((1-s)/k), x=px+pw*Ns/Nmax, y=py+ph-ph*X(Ns,s,k)/Ymax;
+        dot(ctx,x,y,4.5,C.fail);text(ctx,`peak at N ≈ ${Math.round(Ns)}`,x+8,y-8,{size:fs-1,color:C.fail,weight:600});}
+    }});
+})();
+
+/* ---------- 16. Metastable ---------- */
+(function(){
+  function sim(budget){const dt=0.05,T=60,out=[];let q=0,R=0;
+    for(let tt=0;tt<=T;tt+=dt){const lam=(tt>=10&&tt<15)?1.4:0.7;const fr=c01((q-1)/3);
+      const load=lam+R;q=Math.max(0,q+(load-1)*dt);const good=(q>0?1:load)*(1-fr);
+      let Rt=fr*load;if(budget)Rt=Math.min(Rt,0.1*lam);R+=(Rt-R)*dt/1;R=Math.min(R,3);
+      out.push({t:tt,lam,load,good,q});}return out;}
+  const S=[sim(false),sim(true)];
+  reg('metastable',{duration:5.2,still:99,
+    init(F,s,el){s.b=0;seg(el,'data-budget',v=>{s.b=+v;F.replay();});},
+    draw(ctx,W,H,t,s){
+      const d=S[s.b], narrow=W<560, fs=narrow?10.5:12;
+      const px=narrow?34:44, py=22, pw=W-px-(narrow?12:150), ph=(H-py-(narrow?86:40))*0.72, qh=(H-py-(narrow?86:40))*0.2, qy=py+ph+18;
+      const Ymax=4, T=60, k=Math.floor(d.length*c01(t/4.6));
+      const X=tt=>px+pw*tt/T, Y=v=>py+ph-ph*Math.min(v,Ymax)/Ymax;
+      ctx.fillStyle=rgba(C.warn,0.12);ctx.fillRect(X(10),py,X(15)-X(10),ph+qh+18);
+      text(ctx,'trigger',X(12.5),py-6,{size:fs-2,align:'center',color:C.warn});
+      for(let v=0;v<=4;v++){const y=Y(v);line(ctx,px,y,px+pw,y,rgba(C.rule,v?0.5:1));text(ctx,String(v),px-6,y+3,{size:fs-2,align:'right',color:C.ink2});}
+      line(ctx,px,Y(1),px+pw,Y(1),C.ink,1.2,[2,3]);if(!narrow)text(ctx,'capacity',px+pw+6,Y(1)+3,{size:fs-1.5,color:C.ink});
+      const plot=(key,col,lw,dash)=>{ctx.beginPath();for(let i=0;i<k;i++){const p=d[i];const x=X(p.t),y=Y(p[key]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.setLineDash(dash||[]);ctx.stroke();ctx.setLineDash([]);};
+      plot('lam',C.ink2,1.4,[5,4]);plot('load',C.accent,2);plot('good',C.pass,2);
+      // queue strip
+      text(ctx,'queue',px-6,qy+qh/2+3,{size:fs-2,align:'right',color:C.ink2});
+      const qmax=20;ctx.beginPath();for(let i=0;i<k;i++){const p=d[i];const x=X(p.t),y=qy+qh-qh*Math.min(p.q,qmax)/qmax;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+      if(k>1){ctx.lineTo(X(d[k-1].t),qy+qh);ctx.lineTo(X(0),qy+qh);ctx.closePath();ctx.fillStyle=rgba(C.warn,0.3);ctx.fill();}
+      line(ctx,px,qy+qh,px+pw,qy+qh,C.rule);
+      for(let tt=0;tt<=60;tt+=10)text(ctx,String(tt),X(tt),qy+qh+13,{size:fs-2,align:'center',color:C.ink2});
+      // legend
+      const items=[['offered',C.ink2,[5,4]],['with retries',C.accent],['goodput',C.pass]];
+      items.forEach((it,i)=>{const lx=narrow?12+i*((W-24)/3):px+pw+10, ly=narrow?H-38:py+40+i*22;
+        line(ctx,lx,ly-4,lx+14,ly-4,it[1],2,it[2]);text(ctx,it[0],lx+18,ly,{size:fs-1.5,color:C.ink});});
+      if(t>4.7){const last=d[d.length-1];const ok=last.q<0.5;
+        const lines=ok?['recovered:','queue drains','after the spike']:['stuck:','overload outlives','the trigger'];
+        if(narrow)text(ctx,lines.join(' '),12,H-14,{size:fs-1,weight:600,color:ok?C.pass:C.fail});
+        else lines.forEach((l,i)=>text(ctx,l,px+pw+10,qy+4+i*16,{size:fs-1,weight:600,color:ok?C.pass:C.fail}));}
+    }});
+})();
+
+/* ---------- 17. Bohr vs Heisen ---------- */
+(function(){
+  const r=rng(23); const RUNS=[...Array(12)].map(()=>r());
+  const fails=RUNS.map(v=>v>0.36&&v<0.56);
+  reg('heisen',{duration:12*0.3+1.2,still:99,
+    draw(ctx,W,H,t){
+      const narrow=W<560, fs=narrow?10.5:12, lx=narrow?12:16, gx=narrow?12:130, gw=W-gx-(narrow?12:150), sw=gw/12;
+      const rows=[['Bohrbug',()=>true,narrow?44:40],['Heisenbug',i=>fails[i],narrow?(H*0.5+10):H*0.5]];
+      rows.forEach(([name,fn,y])=>{
+        text(ctx,name,lx,narrow?y-14:y+14,{size:fs+0.5,weight:600});
+        for(let i=0;i<12;i++){const a=c01((t-0.2-i*0.3)/0.2);const x=gx+i*sw;
+          box(ctx,x+2,y,sw-4,narrow?26:30,{stroke:C.rule,fill:a>0?(fn(i)?rgba(C.fail,0.85):rgba(C.pass,0.75)):C.paper,r:2});
+          if(name==='Heisenbug'&&a>0){const ty=y+(narrow?36:42), x0=x+4, x1=x+sw-4;
+            line(ctx,x0,ty,x1,ty,C.ink2,1);line(ctx,x0,ty+10,x1,ty+10,C.ink2,1);
+            const ar=lerp(x0,x1,0.3), aw=lerp(x0,x1,0.62), bw=lerp(x0,x1,RUNS[i]*0.9+0.05);
+            dot(ctx,ar,ty,2.2,C.ink);dot(ctx,aw,ty,2.2,C.ink);dot(ctx,bw,ty+10,2.4,fn(i)?C.fail:C.accent);}}
+        const n=Math.min(12,Math.max(0,Math.floor((t-0.2)/0.3)+1)), nf=[...Array(n)].filter((_,i)=>fn(i)).length;
+        if(!narrow)text(ctx,`${nf} / ${n} fail`,W-12,y+20,{size:fs,align:'right',weight:600,color:nf?C.fail:C.ink2});
+        else text(ctx,`${nf} / ${n} fail`,W-12,y-14,{size:fs,align:'right',weight:600,color:nf?C.fail:C.ink2});
+      });
+      const ky=H-12;
+      text(ctx,narrow?'A: read · write   B: write':'thread A: read, then write  ·  thread B: one write; a race when B lands between',lx,ky,{size:fs-1.5,color:C.ink2});
+    }});
+})();
+
+/* ---------- 18. Error path ---------- */
+(function(){
+  reg('errpath',{duration:6.4,still:99,
+    draw(ctx,W,H,t){
+      const narrow=W<560, fs=narrow?10.5:12;
+      const lanes=[['catch (IOException e) { log.warn(e); }','logs and continues',0],['catch (IOException e) { abort(txn); return err; }','aborts cleanly',1]];
+      const lh=(H-16)/2;
+      lanes.forEach(([code,label,k],li)=>{
+        const y0=8+li*lh, cy=y0+(narrow?64:56), xs=[W*0.12,W*0.45,W*0.8];
+        text(ctx,label,12,y0+14,{size:fs,weight:600,color:k?C.pass:C.fail});
+        if(!narrow)text(ctx,code,W-12,y0+14,{size:fs-2,align:'right',color:C.ink2});
+        else text(ctx,code,12,y0+30,{size:fs-2.5,color:C.ink2});
+        ['client','service','store'].forEach((n,i)=>{const crashed=!k&&i===2&&t>4.3;
+          box(ctx,xs[i]-30,cy-14,60,28,{fill:crashed?rgba(C.fail,0.85):C.paper,stroke:crashed?C.fail:C.ink2});
+          text(ctx,crashed?'down':n,xs[i],cy+4,{size:fs-1,align:'center',color:crashed?C.paper:C.ink,weight:crashed?700:400});});
+        line(ctx,xs[0]+30,cy,xs[1]-30,cy,C.rule,1.5);line(ctx,xs[1]+30,cy,xs[2]-30,cy,C.rule,1.5);
+        // token
+        let tx,col=C.accent;
+        if(t<1.4)tx=lerp(xs[0],xs[1],ease(t/1.4));
+        else if(t<2.4){tx=xs[1];}
+        else if(!k){tx=lerp(xs[1],xs[2],ease((t-2.4)/1.6));col=C.warn;}
+        else{tx=lerp(xs[1],xs[0],ease((t-2.4)/1.6));col=C.pass;}
+        if(t>1.4&&t<2.6){ // error bolt
+          ctx.beginPath();const bx=xs[1]+16,by=cy-40;ctx.moveTo(bx,by);ctx.lineTo(bx-6,by+10);ctx.lineTo(bx+2,by+10);ctx.lineTo(bx-4,by+22);ctx.strokeStyle=C.fail;ctx.lineWidth=2;ctx.stroke();
+          text(ctx,'disk full',bx+8,by+8,{size:fs-2,color:C.fail});}
+        if(!(t>4&&!k))dot(ctx,tx,cy-21,5.5,col);
+        if(t>4.4){text(ctx,k?'client gets an error · system healthy':'bad state written · failure surfaces later',xs[1],cy+(narrow?32:34),{size:fs-1,align:'center',color:k?C.pass:C.fail,weight:600});}
+      });
+    }});
+})();
+
+/* ---------- 19. LDFI ---------- */
+(function(){
+  const RUNS=[{drop:[],lineage:['ca'],ok:true,note:'write succeeds via replica A'},{drop:['ca'],lineage:['cb'],ok:true,note:'drop C→A: succeeds via B'},{drop:['ca','cb'],lineage:[],ok:false,note:'drop C→A and C→B: write acknowledged, no replica stored it'}];
+  reg('ldfi',{duration:7.6,still:99,
+    draw(ctx,W,H,t){
+      const narrow=W<560, fs=narrow?10.5:12;
+      const run=Math.min(2,Math.floor(t/2.4)), rt=t-run*2.4, R=RUNS[run];
+      text(ctx,`run ${run+1} of 3`,12,18,{size:fs,weight:600});
+      text(ctx,R.note,narrow?12:110,narrow?36:18,{size:fs-1,color:R.ok?C.ink2:C.fail,weight:R.ok?400:600});
+      if(run===2&&rt>1.8)text(ctx,'bug: the coordinator acks before any replica confirms',narrow?12:110,narrow?54:36,{size:fs-1,color:C.fail});
+      const y0=narrow?76:56, y1=H-(narrow?30:26);
+      const P={cl:[W*0.12,(y0+y1)/2],co:[W*0.42,(y0+y1)/2],a:[W*0.78,y0+14],b:[W*0.78,(y0+y1)/2],c:[W*0.78,y1-14]};
+      const E={cc:['cl','co'],ca:['co','a'],cb:['co','b'],ack:['co','cl']};
+      [['co','c']].forEach(([a,b])=>line(ctx,P[a][0],P[a][1],P[b][0],P[b][1],rgba(C.rule,0.8),1,[3,3]));
+      ['ca','cb'].forEach(e=>{const [a,b]=E[e];const dropped=R.drop.includes(e);const lin=R.lineage.includes(e)&&rt>1.2;
+        line(ctx,P[a][0]+26,P[a][1],P[b][0]-28,P[b][1],lin?C.accent:dropped?rgba(C.fail,0.5):C.ink2,lin?3:1.4);
+        if(dropped){const mx=(P[a][0]+P[b][0])/2,my=(P[a][1]+P[b][1])/2;cross(ctx,mx,my,6,C.fail,2.2);}
+        const p=c01((rt-0.5)/0.7);if(p>0&&p<1){const x=lerp(P[a][0]+26,P[b][0]-28,dropped?Math.min(p,0.5):p), y=lerp(P[a][1],P[b][1],dropped?Math.min(p,0.5):p);dot(ctx,x,y,4,C.accent);}});
+      line(ctx,P.cl[0]+30,P.cl[1]-6,P.co[0]-28,P.co[1]-6,C.ink2,1.4);
+      line(ctx,P.co[0]-28,P.co[1]+6,P.cl[0]+30,P.cl[1]+6,C.ink2,1.4);
+      const p0=c01(rt/0.5);if(p0<1)dot(ctx,lerp(P.cl[0]+30,P.co[0]-28,p0),P.cl[1]-6,4,C.accent);
+      const pa=c01((rt-1.2)/0.5);if(pa>0&&pa<1)dot(ctx,lerp(P.co[0]-28,P.cl[0]+30,pa),P.co[1]+6,4,R.ok?C.pass:C.fail);
+      if(rt>1.7)text(ctx,'ack',(P.cl[0]+P.co[0])/2,P.co[1]+22,{size:fs-1.5,align:'center',color:R.ok?C.pass:C.fail,weight:600});
+      const nodes=[['cl','client'],['co','coordinator'],['a','replica A'],['b','replica B'],['c','replica C']];
+      nodes.forEach(([k,n])=>{const stored=(k==='a'&&R.lineage.includes('ca')||k==='b'&&R.lineage.includes('cb'))&&rt>1.2;
+        const w=narrow?(k==='co'?72:58):(k==='co'?92:74);
+        box(ctx,P[k][0]-w/2,P[k][1]-13,w,26,{fill:stored?rgba(C.accent,0.2):C.paper,stroke:k==='c'?C.rule:C.ink2});
+        text(ctx,n,P[k][0],P[k][1]+4,{size:fs-1.5,align:'center',color:k==='c'?C.ink2:C.ink});});
+      if(!narrow)text(ctx,'replica C is not in the write path',P.c[0],P.c[1]+28,{size:fs-2,align:'center',color:C.ink2});
+    }});
+})();
+
+/* ---------- 20. Event mining ---------- */
+(function(){
+  const TR=[['P','$','S'],['P','$','S'],['P','$','C'],['P','$','S'],['P','$','S']];
+  const NEW=['P','S','$'];
+  const NAME={P:'Placed',$:'Paid',S:'Shipped',C:'Cancelled'};
+  reg('eventmine',{duration:8.6,still:99,
+    draw(ctx,W,H,t){
+      const narrow=W<560, fs=narrow?10.5:12, lx=narrow?12:16, x0=narrow?52:80, lanes=6, top=26, lh=(H-top-(narrow?70:56))/lanes, step=narrow?44:66;
+      text(ctx,'order history',lx,16,{size:fs-1.5,color:C.ink2});
+      const all=TR.concat([NEW]);
+      all.forEach((tr,i)=>{const y=top+i*lh+lh/2;const isNew=i===5;const appear=isNew?5.6:0.1+i*0.25;
+        if(t<appear)return;
+        text(ctx,isNew?'new':'#'+(101+i),lx,y+4,{size:fs-1.5,color:isNew?C.ink:C.ink2,weight:isNew?600:400});
+        line(ctx,x0,y,x0+step*2.6,y,C.rule,1);
+        tr.forEach((e,k)=>{const a=c01((t-appear-k*0.15)/0.2);if(a<=0)return;const x=x0+12+k*step;
+          const bad=isNew&&e==='S'&&t>6.4;
+          box(ctx,x-11,y-10,22,20,{fill:bad?C.fail:e==='C'?rgba(C.ink2,0.3):C.paper,stroke:bad?C.fail:C.ink2});
+          text(ctx,e,x,y+4,{size:fs,align:'center',weight:700,color:bad?C.paper:C.ink});});
+        if(!isNew&&t>2.2&&tr.indexOf('S')>0){const xa=x0+12+tr.indexOf('$')*step, xb=x0+12+tr.indexOf('S')*step;
+          ctx.beginPath();ctx.moveTo(xa,y-11);ctx.quadraticCurveTo((xa+xb)/2,y-lh*0.45,xb,y-11);ctx.strokeStyle=rgba(C.accent,c01((t-2.2)/0.4));ctx.lineWidth=1.6;ctx.stroke();}
+      });
+      const px=narrow?12:x0+step*2.6+30, pw=narrow?W-24:W-px-12, py=narrow?H-62:top+8;
+      if(t>2.8){const a=c01((t-2.8)/0.3);ctx.globalAlpha=a;
+        text(ctx,'Paid preceded Shipped in 4 of 4',px,py+10,{size:fs,weight:600,color:C.accent});
+        text(ctx,'Rule, or coincidence?',px,py+28,{size:fs,color:C.ink});ctx.globalAlpha=1;}
+      if(t>4.2){box(ctx,px,py+38,narrow?150:Math.min(pw,190),22,{fill:rgba(C.pass,0.15),stroke:C.pass});
+        text(ctx,'rule → monitor installed',px+8,py+53,{size:fs-1,color:C.pass,weight:600});}
+      if(t>6.4&&!narrow)text(ctx,'violation: Shipped before Paid',px,py+84,{size:fs,weight:600,color:C.fail});
+      if(t>6.4&&narrow)text(ctx,'violation',W-12,py+53,{size:fs,align:'right',weight:600,color:C.fail});
+      if(!narrow){const ky=H-12;let kx=lx;Object.entries(NAME).forEach(([k,v])=>{text(ctx,`${k} ${v}`,kx,ky,{size:fs-2,color:C.ink2});ctx.font=f(fs-2);kx+=ctx.measureText(`${k} ${v}`).width+16;});}
+    }});
+})();
+
+/* ---------- 21. Survival ---------- */
+(function(){
+  const Q=8, HL=30;
+  function series(){const out=[];for(let m=0;m<=24;m+=0.25){const col=[];for(let c=0;c<Q;c++){const born=c*3;let v=0;
+        if(m>=born){const size=c===2?2600:900+((c*37)%5)*120;v=size*Math.pow(0.5,(m-born)/HL);if(c===2&&m>=9)v*=Math.max(0.04,1-(m-9)/0.8);} col.push(v);}out.push({m,col});}return out;}
+  const D=series();
+  reg('survival',{duration:5.4,still:99,
+    draw(ctx,W,H,t){
+      const narrow=W<560, fs=narrow?10.5:12, px=narrow?40:52, py=18, pw=W-px-(narrow?14:24), ph=H-py-(narrow?96:84);
+      const ymax=Math.max(...D.map(d=>d.col.reduce((a,b)=>a+b,0)))*1.08;
+      const k=Math.floor((D.length-1)*c01(t/4.4))+1;
+      const X=m=>px+pw*m/24, Y=v=>py+ph-ph*v/ymax;
+      line(ctx,px,py+ph,px+pw,py+ph,C.rule);
+      for(let m=0;m<=24;m+=6)text(ctx,m+'mo',X(m),py+ph+14,{size:fs-2,align:'center',color:C.ink2});
+      text(ctx,'lines of code, by quarter written',px,py+4,{size:fs-2,color:C.ink2});
+      for(let c=Q-1;c>=0;c--){ctx.beginPath();for(let i=0;i<k;i++){const s=D[i].col.slice(0,c+1).reduce((a,b)=>a+b,0);const x=X(D[i].m),y=Y(s);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+        for(let i=k-1;i>=0;i--){const s=D[i].col.slice(0,c).reduce((a,b)=>a+b,0);ctx.lineTo(X(D[i].m),Y(s));}
+        ctx.closePath();ctx.fillStyle=c===2?rgba(C.warn,0.55):rgba(C.accent,0.12+0.07*(c%3));ctx.fill();}
+      if(D[k-1].m>7){const s=D[Math.min(k-1,28)];text(ctx,'sketch',X(6.4),Y(3300),{size:fs,weight:600,color:C.warn});}
+      if(D[k-1].m>10){text(ctx,'deleted on purpose',X(10.4),Y(2400),{size:fs-1,color:C.warn});}
+      // digested artifacts row
+      const ay=py+ph+(narrow?36:34);
+      text(ctx,'what the sketch left behind',px,ay,{size:fs-1.5,color:C.ink2});
+      const arts=['decision record','4 property tests','benchmark: 38 ms/house'];
+      if(D[k-1].m>=9.4){const span=Math.min(D[k-1].m,24);ctx.font=f(fs-2);arts.forEach((a,i)=>{const y=ay+14+i*(narrow?14:15);const tw=ctx.measureText(a).width;
+          dot(ctx,X(9.4),y-4,3.5,C.pass);text(ctx,a,X(9.4)+8,y,{size:fs-2,color:C.ink});if(X(9.4)+14+tw<X(span))line(ctx,X(9.4)+14+tw,y-4,X(span),y-4,rgba(C.pass,0.45),2);});}
+    }});
+})();
+
+/* ---------- 22. Gates ---------- */
+(function(){
+  const G=['Impact set','Oracle','Mutation','Structure','Failure'];
+  const CH=[
+    {id:'#41',stop:-1,notes:['reads 14 files, 37 tests','round trip ✓','kills 11 / 11','ΔPC +0.2%','5 prompts answered']},
+    {id:'#42',stop:2,notes:['reads 6 files, 12 tests','properties ✓','kills 4 / 9'],why:'5 mutants survive on changed lines'},
+    {id:'#43',stop:-1,notes:['reads 3 files, 8 tests','contract ✓','kills 6 / 6','ΔPC 0.0%','5 prompts answered']},
+    {id:'#44',stop:3,notes:['reads 22 files, 61 tests','round trip ✓','kills 14 / 15','ΔPC +4.1%'],why:'new cycle through shared state'},
+    {id:'#45',stop:4,notes:['reads 9 files, 20 tests','metamorphic ✓','kills 8 / 8','ΔPC +0.1%','retry path untested'],why:'no test for the retry path'}];
+  const PER=3.2;
+  reg('gates',{duration:CH.length*PER+0.6,loop:true,still:PER*0.98,
+    draw(ctx,W,H,t){
+      const narrow=W<560, fs=narrow?10:11.5, gx0=narrow?12:20, gw=(W-gx0*2)/5, top=narrow?20:22, gy=top+28;
+      G.forEach((g,i)=>{const x=gx0+i*gw;box(ctx,x+3,top,gw-6,22,{fill:C.paper,stroke:C.rule});
+        text(ctx,narrow?g.split(' ')[0]:g,x+gw/2,top+15,{size:fs,align:'center',weight:600});});
+      const idx=Math.min(CH.length-1,Math.floor(t/PER)), lt=t-idx*PER, c=CH[idx];
+      const maxStage=c.stop<0?5:c.stop+1, prog=Math.min(maxStage,lt/0.5);
+      const ty=gy+(narrow?30:30);
+      text(ctx,'change '+c.id,gx0,ty-2,{size:fs,weight:600});
+      for(let i=0;i<5;i++){const x=gx0+i*gw+gw/2;const reached=prog>i+0.4;const fail=i===c.stop&&reached;
+        ring(ctx,x,ty+24,9,fail?C.fail:reached?C.pass:C.rule,2);
+        if(reached&&!fail)check(ctx,x,ty+24,4.5,C.pass,2);if(fail)cross(ctx,x,ty+24,4,C.fail,2);
+        if(reached&&c.notes[i]){ctx.font=f(fs-1.5);const words=c.notes[i].split(' ');let ln='',ly=ty+50;words.forEach(w=>{if(ctx.measureText(ln+w).width>gw-8){text(ctx,ln,x,ly,{size:fs-1.5,align:'center',color:fail?C.fail:C.ink2});ln='';ly+=fs+2;}ln+=w+' ';});text(ctx,ln,x,ly,{size:fs-1.5,align:'center',color:fail?C.fail:C.ink2});}
+        if(i<4)line(ctx,x+11,ty+24,x+gw-11,ty+24,reached&&prog>i+1?C.pass:C.rule,1.5);}
+      const tokX=gx0+gw*Math.min(prog,maxStage-0.0001)+gw*0.0;
+      const done=prog>=maxStage-0.01&&lt>maxStage*0.5+0.3;
+      if(done){const ok=c.stop<0;text(ctx,ok?'merge':'sent back: '+c.why,narrow?gx0:W/2,H-14,{size:fs+0.5,align:narrow?'left':'center',weight:700,color:ok?C.pass:C.fail});}
+      // tally
+      const merged=CH.slice(0,idx+(done?1:0)).filter(x=>x.stop<0).length, back=CH.slice(0,idx+(done?1:0)).filter(x=>x.stop>=0).length;
+      text(ctx,`merged ${merged} · sent back ${back}`,W-gx0,ty-2,{size:fs-1,align:'right',color:C.ink2});
+    }});
+})();
+
+/* ---------- runtime ---------- */
+const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const FIGS=[];
+class Fig{
+  constructor(el){
+    this.el=el;this.name=el.dataset.fig;this.def=R[this.name];this.stage=el.querySelector('.stage');this.canvas=el.querySelector('canvas');
+    this.ctx=this.canvas.getContext('2d');this.s={};this.t=0;this.visible=false;this.started=false;
+    if(this.def.init)this.def.init(this,this.s,el);
+    if(this.def.reset)this.def.reset(this.s);
+    const rb=el.querySelector('.replay');if(rb)rb.addEventListener('click',()=>this.replay(true));
+    this.resize();
+    if(this.def.continuous){ if(reduce) this.warm(4); }
+    else this.t=this.def.still!=null?Math.min(this.def.still,this.def.duration):this.def.duration;
+    this.draw();
+  }
+  warm(sec){for(let i=0;i<sec*30;i++)this.def.step(1/30,this.s,this.W,this.H);}
+  replay(user){
+    if(this.def.reset)this.def.reset(this.s);
+    if(this.onReset)this.onReset();
+    this.t=0;this.started=true;this.playing=!reduce||user;
+    if(!this.playing){ if(this.def.continuous)this.warm(4); else this.t=this.def.still!=null?Math.min(this.def.still,this.def.duration):this.def.duration; }
+    this.draw();
+  }
+  resize(){
+    const w=this.stage.clientWidth||600;const ar=+(w<560?(this.el.dataset.arNarrow||this.el.dataset.ar):this.el.dataset.ar)||0.5;
+    const h=Math.round(w*ar);this.stage.style.height=h+'px';
+    const dpr=Math.min(2,window.devicePixelRatio||1);this.canvas.width=Math.round(w*dpr);this.canvas.height=Math.round(h*dpr);
+    this.W=w;this.H=h;this.dpr=dpr;
+  }
+  draw(){const c=this.ctx;c.setTransform(this.dpr,0,0,this.dpr,0,0);c.clearRect(0,0,this.W,this.H);
+    try{this.def.draw(c,this.W,this.H,this.t,this.s);}catch(e){console.error(this.name,e);}}
+  tick(dt){
+    if(!this.playing)return;
+    if(this.def.continuous){this.def.step(dt,this.s,this.W,this.H);this.t+=dt;this.draw();return;}
+    const d=this.def.duration;
+    if(this.t<d){this.t=Math.min(d,this.t+dt);this.draw();}
+    else if(this.def.loop){this.hold=(this.hold||0)+dt;if(this.hold>1.2){this.hold=0;this.t=0;}this.draw();}
+  }
+}
+function boot(){
+  readTheme();
+  document.querySelectorAll('figure.fig[data-fig]').forEach(el=>{if(R[el.dataset.fig])FIGS.push(new Fig(el));});
+  const io=new IntersectionObserver(es=>{es.forEach(e=>{const F=FIGS.find(x=>x.el===e.target);if(!F)return;F.visible=e.isIntersecting;
+    if(e.isIntersecting&&!F.started&&!reduce){F.replay(false);}});},{threshold:0.35});
+  FIGS.forEach(F=>io.observe(F.el));
+  let last=performance.now();
+  function loop(now){const dt=Math.min(0.05,(now-last)/1000);last=now;FIGS.forEach(F=>{if(F.visible)F.tick(dt);});requestAnimationFrame(loop);}
+  requestAnimationFrame(loop);
+  let rt;new ResizeObserver(()=>{clearTimeout(rt);rt=setTimeout(()=>FIGS.forEach(F=>{F.resize();F.draw();}),80);}).observe(document.querySelector('main'));
+  const retheme=()=>{readTheme();FIGS.forEach(F=>F.draw());};
+  const mq=window.matchMedia('(prefers-color-scheme: dark)');if(mq.addEventListener)mq.addEventListener('change',retheme);
+  new MutationObserver(retheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>FIGS.forEach(F=>F.draw()));
+  // contents highlight
+  const links=[...document.querySelectorAll('#railList a')];const secs=links.map(a=>document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  const so=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+e.target.id));}});},{rootMargin:'-20% 0px -70% 0px'});
+  secs.forEach(s=>so.observe(s));
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+})();
+
+</script>
+
+</body></html>
