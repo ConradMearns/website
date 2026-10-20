@@ -6,9 +6,9 @@
       "src": "https://raw.githubusercontent.com/PNNL/dizzy/main/docs/whitepaper.pdf",
       "pages": "1-2"
     },
-    "blueprint": {
+    "linkml-herd": {
       "type": "image",
-      "src": "https://raw.githubusercontent.com/ConradMearns/blueprint/main/docs/screenshot.png"
+      "src": "https://raw.githubusercontent.com/ConradMearns/linkml-herd/main/docs/herd.png"
     },
     "factorio": {
       "type": "image",
