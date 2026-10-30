@@ -1,0 +1,1715 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Thousandhold</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Alegreya+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed map table with a brass-and-ink instrument panel docked right (bottom sheet on phones) */
+:root{
+  --sea:#0d1823; --panel:#131a25; --panel2:#1a2331; --rule:#2a3446;
+  --text:#e9e0cb; --muted:#9a9488; --brass:#d4a94f; --brass-hi:#f2d58e; --teal:#3fe0d0; --blood:#d9776a;
+  --f-display:"IM Fell English SC", Georgia, "Times New Roman", serif;
+  --f-body:"Alegreya Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-data:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color-scheme: dark;
+}
+html{height:100%;box-sizing:border-box;background:var(--sea)}
+*,*::before,*::after{box-sizing:border-box}
+body{height:100%;margin:0;overflow:hidden;background:var(--sea);color:var(--text);font-family:var(--f-body);font-size:15px}
+#app{position:relative;height:100%;display:flex}
+#stage{position:relative;flex:1;min-width:0;overflow:hidden}
+#c{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#c:active{cursor:grabbing}
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.lab{position:absolute;left:0;top:0;white-space:nowrap;font-family:var(--f-display);font-size:13px;color:#f4ecd8;
+  text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.8);pointer-events:auto;cursor:pointer;transform-origin:0 0;will-change:transform;padding:2px 4px}
+.lab.cap{font-size:15px;color:var(--brass-hi)}
+.lab.cap::before{content:"\25C6\00A0";font-size:10px;vertical-align:1px}
+.lab.camp{font-size:11.5px;font-style:italic;color:#e6dcc4;opacity:.9}
+.lab.way::before{content:"\2302\00A0";font-style:normal}
+.lab.sel{outline:1px solid var(--brass);border-radius:3px;background:rgba(19,26,37,.6)}
+.klab{position:absolute;left:0;top:0;white-space:nowrap;font-family:var(--f-display);font-size:22px;letter-spacing:.28em;text-transform:uppercase;
+  color:rgba(255,246,222,.78);text-shadow:0 2px 6px rgba(0,0,0,.9);transform-origin:0 0;will-change:transform}
+.rlab{position:absolute;left:0;top:0;white-space:nowrap;font-family:var(--f-data);font-size:10px;color:#fff8e6;letter-spacing:.02em;
+  background:rgba(13,20,30,.62);border-radius:3px;padding:1px 4px;transform-origin:0 0;will-change:transform}
+#zoombar{position:absolute;top:12px;left:calc(12px + env(safe-area-inset-left,0px));display:flex;gap:4px;flex-wrap:wrap;max-width:calc(100% - 24px)}
+#zoombar button,.btn{font-family:var(--f-body);font-weight:500;font-size:13px;color:var(--text);background:rgba(19,26,37,.86);
+  border:1px solid var(--rule);border-radius:6px;padding:6px 10px;cursor:pointer;backdrop-filter:blur(6px)}
+#zoombar button:hover,.btn:hover{border-color:var(--brass);color:var(--brass-hi)}
+button:focus-visible,select:focus-visible{outline:2px solid var(--brass-hi);outline-offset:2px}
+#zoombar .tier{display:block;font-family:var(--f-data);font-size:10px;color:var(--muted);letter-spacing:.04em}
+#zoombar button.on{border-color:var(--brass);color:var(--brass-hi)}
+#director{position:absolute;left:calc(12px + env(safe-area-inset-left,0px));right:calc(12px + env(safe-area-inset-right,0px));bottom:12px;max-width:600px;margin:0 auto;
+  background:rgba(12,18,28,.88);border:1px solid var(--rule);border-radius:10px;padding:10px 14px 10px;display:flex;flex-direction:column;gap:4px;backdrop-filter:blur(6px);box-shadow:0 6px 24px rgba(0,0,0,.45)}
+#director .dhead{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+#dkind{font-family:var(--f-data);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal)}
+#dday{font-family:var(--f-data);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+#dtitle{font-family:var(--f-display);font-weight:400;font-size:20px;line-height:1.2;color:var(--brass-hi);text-wrap:balance}
+#dtext{margin:0;font-size:15px;line-height:1.4;color:var(--text);max-width:62ch}
+.dbar{height:2px;background:var(--panel2);border-radius:2px;overflow:hidden;margin-top:4px}
+.dbar i{display:block;height:100%;width:0;background:var(--brass)}
+.dctl{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.dctl button{font-family:var(--f-body);font-size:13px;color:var(--text);background:var(--panel2);border:1px solid var(--rule);border-radius:6px;padding:5px 10px;cursor:pointer}
+.dctl button:hover{border-color:var(--brass);color:var(--brass-hi)}
+.dctl button.on{background:var(--brass);color:#1b1408;border-color:var(--brass)}
+@media (max-width:760px){#dtitle{font-size:18px}#dtext{font-size:14px}#director{padding:9px 12px}}
+#loader{position:absolute;inset:0;display:grid;place-items:center;background:var(--sea);z-index:5;font-family:var(--f-display);font-size:22px;color:var(--brass-hi);letter-spacing:.08em}
+#loader small{display:block;font-family:var(--f-data);font-size:12px;color:var(--muted);letter-spacing:0;margin-top:8px;text-align:center}
+
+#panel{width:360px;flex:none;display:flex;flex-direction:column;background:var(--panel);border-left:1px solid var(--rule);min-height:0}
+.ph{padding-block:14px 12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:10px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand h1{margin:0;font-family:var(--f-display);font-weight:400;font-size:26px;letter-spacing:.03em;color:var(--brass-hi);flex:1}
+#clock{font-family:var(--f-data);font-size:13px;color:var(--text);font-variant-numeric:tabular-nums}
+#sun{width:14px;height:14px;border-radius:50%;flex:none;box-shadow:0 0 10px currentColor}
+#sheet{display:none}
+.speed{display:flex;gap:4px}
+.speed button{flex:1;font-family:var(--f-data);font-size:12px;color:var(--text);background:var(--panel2);border:1px solid var(--rule);border-radius:5px;padding:6px 0;cursor:pointer}
+.speed button.on{background:var(--brass);color:#1b1408;border-color:var(--brass)}
+.pb{overflow-y:auto;min-height:0;flex:1;padding-block:6px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:18px}
+.pb h2{margin:12px 0 8px;font-family:var(--f-display);font-weight:400;font-size:17px;color:var(--brass);letter-spacing:.04em;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.pb h2 small{font-family:var(--f-data);font-size:11px;color:var(--muted);letter-spacing:0}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;margin:0}
+.stats div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dotted var(--rule);padding:3px 0;min-width:0}
+.stats dt{color:var(--muted);font-size:13px}
+.stats dd{margin:0;font-family:var(--f-data);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stats dd.bad{color:var(--blood)}
+.hint{color:var(--muted);font-size:14px;line-height:1.45;margin:0}
+.who b{font-family:var(--f-display);font-weight:400;font-size:20px;color:var(--text);display:block}
+.who span{color:var(--muted);font-size:13.5px}
+.bars{display:grid;grid-template-columns:auto 1fr auto;gap:4px 8px;align-items:center;margin-top:10px;font-size:13px}
+.bar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--brass)}
+.bar.hp i{background:#7fc28a}
+.bar.warn i{background:var(--blood)}
+.mono{font-family:var(--f-data);font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.chip{font-family:var(--f-data);font-size:11px;padding:3px 6px;border-radius:4px;background:var(--panel2);border:1px solid var(--rule);color:var(--text);display:inline-flex;gap:5px;align-items:center}
+.chip .sw{width:8px;height:8px;border-radius:50%}
+.chip.off{opacity:.38;text-decoration:line-through}
+.chip.cool{border-style:dashed;color:var(--muted)}
+.chip.cur{border-color:var(--brass-hi);box-shadow:inset 0 0 0 1px var(--brass-hi)}
+.chip em{font-style:normal;color:var(--muted)}
+.plan{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:2px;counter-reset:st}
+.plan li{counter-increment:st;font-size:13.5px;display:grid;grid-template-columns:22px 1fr;gap:6px;padding:3px 6px;border-radius:4px;color:var(--muted)}
+.plan li::before{content:counter(st);font-family:var(--f-data);font-size:11px;color:var(--muted);padding-top:2px}
+.plan li.done{color:#6f6a60;text-decoration:line-through}
+.plan li.now{background:var(--panel2);color:var(--text);box-shadow:inset 2px 0 0 var(--brass-hi)}
+.plan li span em{font-style:normal;font-family:var(--f-data);font-size:11px;color:var(--teal)}
+.tablewrap{overflow-x:auto}
+table.stock{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+table.stock th{font-weight:500;color:var(--muted);text-align:left;font-size:12px;padding:3px 4px;border-bottom:1px solid var(--rule)}
+table.stock td{padding:3px 4px;border-bottom:1px dotted var(--rule);font-family:var(--f-data);font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.stock td:first-child{font-family:var(--f-body);font-size:13px}
+table.stock td.rm{font-family:var(--f-body);color:var(--muted);font-size:12px}
+.lvl{display:inline-block;width:40px;height:5px;background:var(--panel2);border-radius:3px;vertical-align:middle;margin-left:6px;overflow:hidden}
+.lvl i{display:block;height:100%}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+#log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+#log li{font-size:13.5px;line-height:1.35;display:grid;grid-template-columns:62px 1fr;gap:8px}
+#log li time{font-family:var(--f-data);font-size:11px;color:var(--muted);padding-top:2px}
+#log li.k-contact{color:var(--brass-hi)}
+#log li.k-disc{color:#bfeee8}
+#log li.k-death{color:var(--blood)}
+#log li.k-birth{color:#b9dcae}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;font-size:13px}
+.legend span{display:flex;gap:7px;align-items:center}
+.legend i{width:10px;height:10px;border-radius:50%;flex:none}
+.rooms{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:12.5px;margin-top:4px}
+.rooms span{display:flex;gap:6px;align-items:center;min-width:0}
+.rooms i{width:10px;height:10px;border-radius:2px;flex:none}
+select{font-family:var(--f-data);font-size:12px;background:var(--panel2);color:var(--text);border:1px solid var(--rule);border-radius:5px;padding:6px 8px}
+label.inline{font-size:13px;color:var(--muted);display:flex;gap:8px;align-items:center}
+.note{font-size:13px;color:var(--muted);line-height:1.45;margin:8px 0 0;max-width:62ch}
+
+@media (max-width:760px){
+  #app{display:block}
+  #stage{position:absolute;inset:0}
+  #panel{position:absolute;left:0;right:0;bottom:0;width:auto;max-height:60%;border-left:0;border-top:1px solid var(--rule);
+    border-radius:14px 14px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.5);padding-bottom:env(safe-area-inset-bottom,0px)}
+  #panel.collapsed .pb{display:none}
+  #sheet{display:block;align-self:center;width:44px;height:5px;border-radius:3px;background:var(--rule);border:0;padding:0;margin:-4px 0 0;cursor:pointer}
+  .brand h1{font-size:22px}
+  .ph{padding-block:10px 10px}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
+</style>
+
+<div id="app">
+  <div id="stage">
+    <canvas id="c" aria-label="Map of the continent with holds and dwarves"></canvas>
+    <div id="labels"></div>
+    <div id="zoombar" role="group" aria-label="Zoom level">
+      <button data-z="realm"><span class="tier">continent</span>Realms</button>
+      <button data-z="region"><span class="tier">kingdom</span>Region</button>
+      <button data-z="hold"><span class="tier">settlement</span>Hold</button>
+      <button data-z="street"><span class="tier">rooms</span>Street</button>
+    </div>
+    <div id="director" aria-live="polite">
+      <div class="dhead"><span id="dkind">Director</span><span id="dday"></span></div>
+      <b id="dtitle">Watching the realms</b>
+      <p id="dtext">The camera will find what is happening and follow it. Touch the map to take over; it hands back after a short pause.</p>
+      <div class="dbar"><i id="dprog"></i></div>
+      <div class="dctl"><button id="dskip">Next story</button><button id="dtoggle">Pause director</button><button id="dvoice">Narrate aloud</button></div>
+    </div>
+    <div id="loader">Raising the continent…<small>a wider continent, longer roads, and ten thousand beards</small></div>
+  </div>
+  <aside id="panel" class="collapsed">
+    <div class="ph">
+      <button id="sheet" aria-label="Show or hide details"></button>
+      <div class="brand"><h1>Thousandhold</h1><span id="clock">Day 1 · 06:30</span><i id="sun"></i></div>
+      <div class="speed" role="group" aria-label="Simulation speed">
+        <button data-s="0">❚❚</button><button data-s="1">1×</button><button data-s="4" class="on">4×</button><button data-s="16">16×</button><button data-s="64">64×</button>
+      </div>
+    </div>
+    <div class="pb">
+      <section><dl class="stats" id="stats"></dl></section>
+      <section id="insp">
+        <h2>Inspector</h2>
+        <p class="hint">Tap a dwarf to read its goal palette, its plan and what it believes. Tap a hold or its name to see its stockpile, workshops and the world it knows.</p>
+      </section>
+      <section>
+        <h2>Chronicle <small>newest first</small></h2>
+        <ol id="log"></ol>
+      </section>
+      <section>
+        <h2>Current goal</h2>
+        <div class="legend" id="legend"></div>
+      </section>
+      <section>
+        <h2>Rooms <small>visible at Street zoom</small></h2>
+        <div class="rooms" id="roomlegend"></div>
+      </section>
+      <section>
+        <h2>World</h2>
+        <div class="row">
+          <label class="inline" for="popsel">Dwarves
+            <select id="popsel"><option value="1000">1,000</option><option value="2500">2,500</option><option value="5000">5,000</option><option value="10000" selected>10,000</option><option value="16000">16,000</option></select>
+          </label>
+          <button class="btn" id="reseed">New continent</button>
+        </div>
+        <p class="note">Holds lie a day or more apart. Travellers sleep under a roof when a settlement is near, and otherwise camp rough, where bandits and wolves find some of them. Where rough camps pile up along a road (the orange campfire glow), a nearby hold sends dwarves to raise a waystation.</p>
+        <p class="note">Forests, soil, fish, stone and ore deplete and regrow at their own rates; the brown, pale and grey tints show what has been used up. Crowding, spent resources, idle trades and short food add up to pressure. Above 0.5, a hold that knows of good land from its explorers sends a founding party, and young settlements draw migrants until they grow from camp to village, hold and town.</p>
+        <p class="note">Every act still has a room, and long trips are planned against projected hunger, so parties pack bread and forage when it runs out.</p>
+      </section>
+    </div>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+const HEADLESS = (typeof document === 'undefined') || (typeof THREE === 'undefined');
+
+// ================= utilities =================
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function hash32(x){x|=0;x=Math.imul(x^(x>>>16),0x7feb352d);x=Math.imul(x^(x>>>15),0x846ca68b);return (x^(x>>>16))>>>0}
+function popc(v){v=v-((v>>>1)&0x55555555);v=(v&0x33333333)+((v>>>2)&0x33333333);return (Math.imul((v+(v>>>4))&0x0F0F0F0F,0x01010101)>>>24)}
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
+function makeNoise(seed){
+  return function(x,y){
+    const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+    const h=(a,b)=>hash32(Math.imul(a,374761393)^Math.imul(b,668265263)^Math.imul(seed,1442695041))/4294967296;
+    const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+    const a=h(xi,yi),b=h(xi+1,yi),c=h(xi,yi+1),d=h(xi+1,yi+1);
+    return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;
+  };
+}
+function fbm(n,x,y,o){let s=0,a=0.5,f=1,t=0;for(let i=0;i<o;i++){s+=a*n(x*f,y*f);t+=a;a*=0.5;f*=2.03}return s/t}
+let rng=Math.random; const rnd=()=>rng();
+function jit(i,k){return ((hash32(i*7919+k*104729)&1023)/1023)-0.5}
+
+// ================= vocabulary =================
+const GOODS=['grain','flour','bread','malt','ale','logs','planks','charcoal','stone','ore','ingots','tools','clay','pots','fish'];
+const GN=15;
+const BASEP=[2,3,5,3,5,2,3,4,2.5,3,9,16,1.5,4,2.2];
+const TGTPC=[0.8,0.3,1.4,0.2,0.7,0.9,0.4,0.15,0.4,0.15,0.08,0.15,0.2,0.25,0.4];
+const RIN=[[],[[0,2]],[[1,2],[5,0.5]],[[0,2]],[[3,2],[5,0.5]],[],[[5,2]],[[5,3]],[],[],[[9,2],[7,1]],[[10,1],[6,1]],[],[[12,2],[5,1]],[]];
+const ROUT=[6,3,4,3,5,4,3,2,3,3,1,1,3,3,5];
+const WORKT=[240,160,200,160,220,220,180,260,240,260,240,260,200,220,220];
+const SPOIL=[0.9997,0.9996,0.999,0.9997,0.9998,1,1,1,1,1,1,1,1,1,0.998];
+// natural resources on the coarse grid: which one feeds each raw good (-1 = crafted)
+const RESN=['forest','stone','ore','clay','soil','fish'];
+const NRES=6;
+const GOOD_RES=[4,-1,-1,-1,-1,0,-1,-1,1,2,-1,-1,3,-1,5];
+const RES_NORM=[140,600,450,250,100,240];
+// rooms
+const RT=[
+  {n:'Hearth',c:'#c98a4c'},{n:'Bedroom',c:'#6f6390'},{n:'Granary',c:'#d8c070'},{n:'Warehouse',c:'#8f8a7e'},{n:'Taproom',c:'#a85d3c'},
+  {n:'Kitchen',c:'#c27a40'},{n:'Field',c:'#c3ad55'},{n:'Lumberyard',c:'#6b5236'},{n:'Quarry pit',c:'#a9a59b'},{n:'Mine shaft',c:'#4f4b47'},
+  {n:'Clay pit',c:'#9a6a4e'},{n:'Mill',c:'#d6c9a0'},{n:'Oven',c:'#c8663a'},{n:'Malting floor',c:'#b9a36a'},{n:'Brewhouse',c:'#8a5a34'},
+  {n:'Saw bench',c:'#a07a4c'},{n:'Charcoal kiln',c:'#3e3a37'},{n:'Smelter',c:'#7a4a3a'},{n:'Forge',c:'#b0482c'},{n:'Pottery kiln',c:'#b8754e'},
+  {n:'Fishing dock',c:'#4f8fa8'},
+];
+const NRT=RT.length;
+const RM_GRAN=2;
+const STORE_RT=[2,2,2,2,3,3,3,3,3,3,3,3,3,3,2];
+const PROD_RT=[6,11,12,13,14,7,15,16,8,9,17,18,10,19,20];
+const BT=[
+  {n:'House',      w:3.0,h:1.5,d:2.4,roof:1.1,wall:'#b59b78',rooms:[[0,0,0,0.52,1],[1,0.52,0,1,1]]},
+  {n:'Storehouse', w:6.2,h:2.0,d:3.6,roof:1.5,wall:'#cdb88e',rooms:[[2,0,0,0.5,1],[3,0.5,0,1,1]]},
+  {n:'Tavern',     w:3.4,h:2.1,d:3.0,roof:1.3,wall:'#8c5c3a',rooms:[[4,0,0,1,0.62],[5,0,0.62,1,1]]},
+  {n:'Farm',       w:3.5,h:0.14,d:3.5,roof:0, wall:'#c3ad55',rooms:[[6,0,0,1,1]]},
+  {n:'Lumber camp',w:3.2,h:0.9,d:2.6,roof:0.7,wall:'#6b4f33',rooms:[[7,0,0,1,1]]},
+  {n:'Quarry',     w:3.5,h:0.3,d:3.5,roof:0, wall:'#a9a59b',rooms:[[8,0,0,1,1]]},
+  {n:'Mine',       w:2.6,h:1.0,d:2.6,roof:1.0,wall:'#4f4b47',rooms:[[9,0,0,1,1]]},
+  {n:'Bakery',     w:3.3,h:1.7,d:2.6,roof:1.0,wall:'#c9a272',rooms:[[11,0,0,0.5,1],[12,0.5,0,1,1]]},
+  {n:'Brewery',    w:3.3,h:1.8,d:2.6,roof:1.1,wall:'#9c6b45',rooms:[[13,0,0,0.5,1],[14,0.5,0,1,1]]},
+  {n:'Smithy',     w:3.3,h:1.6,d:2.6,roof:0.9,wall:'#5c5853',rooms:[[17,0,0,0.5,1],[18,0.5,0,1,1]]},
+  {n:'Plaza',      w:11.2,h:0.07,d:11.2,roof:0,wall:'#8f897e',rooms:[]},
+  {n:'Clay pit',   w:3.5,h:0.2,d:3.5,roof:0, wall:'#9a6a4e',rooms:[[10,0,0,1,1]]},
+  {n:'Carpentry',  w:3.0,h:1.6,d:2.4,roof:1.0,wall:'#a5825a',rooms:[[15,0,0,1,1]]},
+  {n:'Kilnworks',  w:3.3,h:1.5,d:2.6,roof:0.9,wall:'#6e625a',rooms:[[16,0,0,0.5,1],[19,0.5,0,1,1]]},
+  {n:'Fishing pier',w:3.2,h:0.25,d:2.2,roof:0,wall:'#7a6248',rooms:[[20,0,0,1,1]]},
+];
+const NBT=BT.length;
+const RT_BT=new Array(NRT).fill(-1);BT.forEach((b,t)=>b.rooms.forEach(r=>{if(RT_BT[r[0]]<0)RT_BT[r[0]]=t}));
+const GOOD_BT=PROD_RT.map(rt=>RT_BT[rt]);
+const OUTER_BT=new Set([3,4,5,6,11,14]);
+const KCOL=['#c8553d','#3f8ccc','#d8b44a','#68a86a','#9b6ac8','#d17fa8'];
+const TIERS=['Camp','Village','Hold','Town'];
+
+const V_EAT=0,V_REST=1,V_SOC=2,V_PROD=3,V_TRADE=4,V_EXPL=5,V_BUILD=6,V_PATROL=7,V_SETTLE=8;
+const VERBS=['Eat','Rest','Socialize','Produce','Trade','Explore','Build','Patrol','Settle'];
+const DIRS=['east','southeast','south','southwest','west','northwest','north','northeast'];
+const VCOL=['#f2a541','#6a7cc4','#e2678d','#a7d46f','#ffd84a','#3fe0d0','#e08a4c','#d6dae6','#ffffff','#8a8f99'];
+const IDLE_V=9;
+const ARCH=['Crafter','Merchant','Wayfinder','Builder','Warden'];
+const FAITHS=['the Forge','the Deep Mother','the Sky-Fathers','the Root'];
+const CLANS=['Ironbrow','Ashbeard','Coalfoot','Granitejaw','Ambermane','Flintback','Saltvein','Deepdelve','Copperknee','Slatehand'];
+const SYL1=['Ur','Dun','Kar','Bel','Thor','Gim','Mor','Ast','Kel','Bar','Zul','Ig','Rom','Vol','Esh','Tor','Ul','Nar','Dol','Grim','Hal','Sk','Bru','Fen','Ost','Ruk','Bal','Gor'];
+const SYL2=['ak','in','dur','im','grad','mar','ost','vel','dal','rok','um','az','ith','gar','ok','ul','en','or','ek','ir'];
+const SYL3=['hold','deep','fell','mere','gate','haven','barrow','crag','ford','delve','stead','mount','hall','spire','vault','reach','holm','wick','shore','haugh'];
+const WAYSUF=['rest','well','cross','stop','inn','hearth','camp'];
+const KSUF=['und','ar','ia','eth','oth','ain'];
+
+// ---- STRIPS state bits: 0..22 sensed, 23..30 goal flags ----
+const L_BED=1<<0,L_HEARTH=1<<1,L_STORE=1<<2,L_WORK=1<<3,L_TAP=1<<4,IN_TOWN=1<<5,AWAY=1<<6,
+  HAS_RAW=1<<7,HAS_MEAL=1<<8,HAS_INPUTS=1<<9,CARRY_OUT=1<<10,HAS_CARGO=1<<11,HAS_MAT=1<<12,HAS_NEWS=1<<13,READY=1<<14,
+  M_BREAD=1<<15,M_RAW=1<<16,M_INPUTS=1<<17,M_ALE=1<<18,M_CARGO=1<<19,M_MAT=1<<20,KNOWS_BUYER=1<<21,HAS_WORK=1<<22,
+  FED=1<<23,RESTED=1<<24,PRODUCED=1<<25,SOCIALED=1<<26,TRADED=1<<27,REPORTED=1<<28,BUILT=1<<29,PATROLLED=1<<30;
+const LOCS=L_BED|L_HEARTH|L_STORE|L_WORK|L_TAP;
+const BITNAMES=['in_bedroom','at_hearth','at_storehouse','at_workroom','in_taproom','in_town','away','has_raw_food','has_meal','has_inputs','carry_output',
+  'has_cargo','has_materials','has_news','provisioned','store_bread','store_raw+fuel','store_inputs','store_ale','store_cargo','store_materials','knows_buyer','has_workroom'];
+const GOALMASK=[FED,RESTED,SOCIALED,PRODUCED,TRADED|IN_TOWN,REPORTED,BUILT,PATROLLED,IN_TOWN|L_STORE];
+const ACTS=[
+  ['Go to bedroom',   IN_TOWN, L_BED, LOCS, 2],
+  ['Go to hearth',    IN_TOWN, L_HEARTH, LOCS, 2],
+  ['Go to storehouse',IN_TOWN, L_STORE, LOCS, 2],
+  ['Go to workroom',  IN_TOWN|HAS_WORK, L_WORK, LOCS, 2],
+  ['Go to taproom',   IN_TOWN, L_TAP, LOCS, 2],
+  ['Take bread',      L_STORE|M_BREAD, HAS_MEAL, 0, 1],
+  ['Take food & firewood', L_STORE|M_RAW, HAS_RAW, 0, 1],
+  ['Cook',            L_HEARTH|HAS_RAW, HAS_MEAL, HAS_RAW, 1],
+  ['Eat at hearth',   L_HEARTH|HAS_MEAL, FED, HAS_MEAL, 1],
+  ['Eat in taproom',  L_TAP|HAS_MEAL, FED, HAS_MEAL, 2],
+  ['Sleep',           L_BED, RESTED, 0, 1],
+  ['Take inputs',     L_STORE|M_INPUTS, HAS_INPUTS, 0, 1],
+  ['Work',            L_WORK|HAS_INPUTS, CARRY_OUT, HAS_INPUTS, 1],
+  ['Deliver',         L_STORE|CARRY_OUT, PRODUCED, CARRY_OUT, 1],
+  ['Drink',           L_TAP|M_ALE, SOCIALED, 0, 1],
+  ['Chat',            L_TAP, SOCIALED, 0, 3],
+  ['Load cargo',      L_STORE|M_CARGO|KNOWS_BUYER, HAS_CARGO, 0, 1],
+  ['Pack rations',    L_STORE|M_BREAD, READY, 0, 1],
+  ['Caravan',         HAS_CARGO|IN_TOWN|READY, TRADED|AWAY, HAS_CARGO|IN_TOWN|LOCS|READY, 6],
+  ['Explore',         IN_TOWN|READY, HAS_NEWS|AWAY, IN_TOWN|LOCS|READY, 6],
+  ['Return home',     AWAY, IN_TOWN|L_STORE, AWAY, 4],
+  ['Report',          L_STORE|HAS_NEWS, REPORTED, HAS_NEWS, 1],
+  ['Take planks & stone', L_STORE|M_MAT, HAS_MAT, 0, 1],
+  ['Construct',       HAS_MAT|IN_TOWN, BUILT, HAS_MAT|LOCS, 2],
+  ['Patrol',          IN_TOWN, PATROLLED, LOCS, 2],
+  ['Forage',          IN_TOWN, HAS_RAW, LOCS, 5],
+];
+const NACT=ACTS.length;
+const A_SLEEP=10,A_CARAVAN=18,A_RETURN=20;
+const SPD_TOWN=0.4, SPD_ROAD=0.45, SPD_EXPL=0.35;
+const DAY=2400, HUNGER_RATE=0.1, DAYWALK=SPD_ROAD*1300;
+const LC_STREET=0,LC_BED=1,LC_HEARTH=2,LC_STORE=3,LC_WORK=4,LC_TAP=5,LC_AWAY=6,LC_SITE=7;
+const MAXS=128,KW=4,MS=MAXS;
+const COLONY_GAP=380;
+
+// ================= world state =================
+let WORLD=4800, HALF=2400, RES=720, CS=3.8, RG=120, CELL=40, RG2=RG*RG;
+let HGT,BIO,MOI,resAmt,resMax,campHeat;
+let SEED=1, N=0, NCAP=0, S=0, K=0, T=0;
+let sx,sz,sK,sPop,sCult,sFaith,sKn,sStock,sPrice,sTgt,sBel,sBuyer,sYield,sLevel,sProg,sRad,sCap,sStore,sGran,sWare,sTap,sSiteX,sSiteZ,
+    sTrades,sDeaths,sBorn,sTier,sWay,sParent,sLaid,sHouses,sResCell,sPressure,sColonies,sLastFound,sFoodDays,sResFrac;
+let sName=[], sFree=[], sRooms=[], sReach=[], sSites=[], sPend=[], sSpec=[];
+let kName=[], kCap=[], kContact, kTrade;
+let edges=[], eset=new Map(), EIDX, NEXT, DIST, traffic;
+let MAXB=0,nB=0,bx,bz,bT,bS,bW,bH,bD,bRes,bRoom0,bNR,bOccNow;
+let MAXR=0,nR=0,rB,rT,rx,rz,rw,rd;
+let ax,az,atx,atz,aSpd,aMov,aSet,aHome,aWork,aArch,aPal,aMask,aId,aHun,aFat,aSoc,aHP,aGoal,aSlot,aPlanOff,aStep,aPh,aTm,aNext,aLoc,aRoom,aInv,
+    aCG,aCQ,aFoodQ,aRation,aKn,aDest,aCell,aNode,aPrev,aRoad,aCool,aCoolT,aExp,aObsT,aObsP,aSense,aCur,aCamp,aDead,aGen,aSiteX,aSiteZ,aSiteS;
+let AGENT_ARRAYS=[];
+let PAL, nPal=0, palKey=new Map();
+let POOL=new Uint8Array(1<<16), poolTop=0, planCache=new Map(), PLAN_SETTLE=0;
+let stat={};
+let LOG=[], deathNote=new Map();
+let logDirty=true;
+let hooks={building:null,settlement:null,roads:null,tier:null};
+
+function bitW(t){return t>>5}function bitM(t){return (1<<(t&31))>>>0}
+function kn(arr,o,t){return (arr[o*KW+(t>>5)]>>>(t&31))&1}
+function knSet(arr,o,t){arr[o*KW+(t>>5)]=(arr[o*KW+(t>>5)]|bitM(t))>>>0}
+function knCount(arr,o){let c=0;for(let w=0;w<KW;w++)c+=popc(arr[o*KW+w]);return c}
+function knCopy(dst,od,src,os){for(let w=0;w<KW;w++)dst[od*KW+w]=(dst[od*KW+w]|src[os*KW+w])>>>0}
+function knDiff(a,oa,b,ob){for(let w=0;w<KW;w++)if((a[oa*KW+w]&~b[ob*KW+w])>>>0)return true;return false}
+function sKnows(s,t){return kn(sKn,s,t)}
+function trust(id,cult){return 0.1+0.9*popc(id&cult)/Math.max(1,popc(cult))}
+function biomeAt(x,z){const gx=clamp(Math.floor((x+HALF)/WORLD*RES),0,RES-1),gy=clamp(Math.floor((z+HALF)/WORLD*RES),0,RES-1);return BIO[gy*RES+gx]}
+function cellOf(x,z){const gx=clamp(Math.floor((x+HALF)/CELL),0,RG-1),gz=clamp(Math.floor((z+HALF)/CELL),0,RG-1);return gz*RG+gx}
+function cellX(c){return (c%RG+0.5)*CELL-HALF}function cellZ(c){return (Math.floor(c/RG)+0.5)*CELL-HALF}
+let usedNames=new Set();
+function uniqueName(way){let n,k=0;do{n=SYL1[rnd()*SYL1.length|0]+(way?WAYSUF[rnd()*WAYSUF.length|0]:SYL3[rnd()*SYL3.length|0]);k++}while(usedNames.has(n)&&k<200);usedNames.add(n);return n}
+function dwarfName(i){const h=hash32(i*2654435761+SEED+(aGen?aGen[i]*7919:0));return SYL1[h%SYL1.length]+SYL2[(h>>>8)%SYL2.length]+' '+CLANS[(h>>>16)%CLANS.length]}
+function goalLabel(g){const v=g>>4,p=g&15;if(v===V_PROD||v===V_TRADE)return VERBS[v]+' · '+GOODS[p];if(v===V_EXPL)return 'Explore · '+DIRS[p];return VERBS[v]}
+function clockStr(t){const d=Math.floor((t+DAY*0.27)/DAY)+1,f=((t+DAY*0.27)%DAY)/DAY*24;const hh=Math.floor(f),mm=Math.floor((f-hh)*60);return {d, s:String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')}}
+let EVENTS=[],evSeq=0,kDeaths=new Int32Array(8),lastParty=[];
+// every chronicle line can carry a structured event for the director: {k:kind, score, s:settlement, a:agent, x, z}
+function log(text,kind,meta){const c=clockStr(T);LOG.unshift({t:'D'+c.d+' '+c.s,text,kind:kind||''});if(LOG.length>90)LOG.length=90;logDirty=true;
+  if(meta){meta.text=text;meta.seq=++evSeq;meta.t=T;EVENTS.push(meta);if(EVENTS.length>200)EVENTS.shift()}}
+function roomName(r){return r>=0?RT[rT[r]].n+' of '+BT[bT[rB[r]]].n.toLowerCase()+' #'+rB[r]:'—'}
+function storeRoomOf(s,g){return STORE_RT[g]===RM_GRAN?sGran[s]:sWare[s]}
+function hearthOf(i){return bRoom0[aHome[i]]}
+function bedOf(i){return bRoom0[aHome[i]]+1}
+function compass(dx,dz){const a=Math.atan2(dz,dx);return DIRS[((Math.round(a/(Math.PI/4))%8)+8)%8]}
+function daysText(d){const v=d/DAYWALK;return v<0.6?'half a day':v<1.25?'a day':v<1.75?'a day and a half':Math.round(v)+' days'}
+
+// ================= terrain & resources =================
+function genTerrain(seed){
+  const n1=makeNoise(seed),n2=makeNoise(seed+101),n3=makeNoise(seed+202),n4=makeNoise(seed+303);
+  HGT=new Float32Array(RES*RES);BIO=new Uint8Array(RES*RES);MOI=new Float32Array(RES*RES);
+  for(let y=0;y<RES;y++)for(let x=0;x<RES;x++){
+    const i=y*RES+x,u=x/RES,v=y/RES;
+    const wx=fbm(n3,u*3,v*3,2)-0.5,wy=fbm(n3,u*3+9,v*3+4,2)-0.5;
+    let h=fbm(n1,u*5+wx*0.9,v*5+wy*0.9,5);
+    const r=1-Math.abs(2*fbm(n4,u*3.2+wy,v*3.2+wx,3)-1);
+    h+=Math.pow(r,4)*0.24-0.04;
+    const dx=u-0.5,dy=v-0.5,d=Math.sqrt(dx*dx+dy*dy)*2;
+    h=h+0.2-0.6*d*d;
+    HGT[i]=h;MOI[i]=fbm(n2,u*6+3,v*6-2,3);
+    let b;
+    if(h<0.36)b=0;else if(h<0.42)b=1;else if(h<0.435)b=2;else if(h>0.74)b=7;else if(h>0.66)b=6;else if(h>0.58)b=5;else b=MOI[i]>0.52?4:3;
+    BIO[i]=b;
+  }
+}
+function initResources(){
+  resAmt=new Float32Array(NRES*RG2);resMax=new Float32Array(NRES*RG2);campHeat=new Float32Array(RG2);
+  const nOre=makeNoise(SEED+404);
+  for(let c=0;c<RG2;c++){
+    const x0=cellX(c)-CELL/2,z0=cellZ(c)-CELL/2;const f=new Float32Array(8);
+    for(let j=0;j<4;j++)for(let k=0;k<4;k++)f[biomeAt(x0+(j+0.5)*CELL/4,z0+(k+0.5)*CELL/4)]+=1/16;
+    const water=f[0]+f[1],plains=f[3],forest=f[4],hill=f[5],mount=f[6]+f[7],sand=f[2];
+    const vein=nOre(cellX(c)/300,cellZ(c)/300);
+    resMax[0*RG2+c]=forest*140+plains*12;
+    resMax[1*RG2+c]=hill*600+mount*500;
+    resMax[2*RG2+c]=(mount*450+hill*90)*(0.3+vein*1.4);
+    resMax[3*RG2+c]=(water>0.05&&water<0.95)?250*Math.min(1,2*Math.min(water,1-water)+sand):0;
+    resMax[4*RG2+c]=plains*100+forest*25+sand*8;
+    resMax[5*RG2+c]=water>0.3?240*water*(f[1]>0?1:0.6):0;
+  }
+  resAmt.set(resMax);
+}
+function regrow(){
+  const rates=[0.0024,0,0,0.0005,0.006,0.008];
+  for(let r=0;r<NRES;r++){const k=rates[r];if(!k)continue;const o=r*RG2;for(let c=0;c<RG2;c++){const m=resMax[o+c];if(m>0){const a=resAmt[o+c];if(a<m)resAmt[o+c]=a+(m-a)*k}}}
+}
+function reachOf(x,z,rad){const out=[];const c0=cellOf(x,z),cx=c0%RG,cz=Math.floor(c0/RG);const R=Math.ceil(rad);
+  for(let dz=-R;dz<=R;dz++)for(let dx=-R;dx<=R;dx++){if(dx*dx+dz*dz>rad*rad)continue;const gx=cx+dx,gz=cz+dz;if(gx<0||gz<0||gx>=RG||gz>=RG)continue;out.push(gz*RG+gx)}return out}
+function findRes(s,r){
+  const L=sReach[s];if(!L)return -1;const o=r*RG2,c0=cellOf(sx[s],sz[s]),cx=c0%RG,cz=Math.floor(c0/RG);let best=-1,bs=0;
+  for(const c of L){const a=resAmt[o+c];if(a<4)continue;const dx=c%RG-cx,dz=Math.floor(c/RG)-cz;const sc=a/(1+Math.sqrt(dx*dx+dz*dz)*0.7);if(sc>bs){bs=sc;best=c}}
+  return best;
+}
+function resFrac(cells,r){let a=0,m=0;const o=r*RG2;for(const c of cells){a+=resAmt[o+c];m+=resMax[o+c]}return m>1?a/m:-1}
+function resSum(cells,r,max){let a=0;const o=r*RG2;const src=max?resMax:resAmt;for(const c of cells)a+=src[o+c];return a/RES_NORM[r]}
+
+// ================= world generation =================
+function allocSettlements(){
+  const F=Float32Array;
+  sx=new F(MAXS);sz=new F(MAXS);sK=new Uint8Array(MAXS);sPop=new Int32Array(MAXS);sCult=new Uint16Array(MAXS);sFaith=new Uint8Array(MAXS);
+  sKn=new Uint32Array(MAXS*KW);sStock=new F(MAXS*GN);sPrice=new F(MAXS*GN);sTgt=new F(MAXS*GN);sBel=new F(MAXS*MAXS*GN);sBuyer=new Int16Array(MAXS*GN).fill(-1);
+  sYield=new F(MAXS*GN).fill(1);sLevel=new Uint8Array(MAXS);sProg=new F(MAXS);sRad=new F(MAXS);sCap=new Uint8Array(MAXS);sStore=new Int32Array(MAXS).fill(-1);
+  sGran=new Int32Array(MAXS).fill(-1);sWare=new Int32Array(MAXS).fill(-1);sTap=new Int32Array(MAXS).fill(-1);sSiteX=new F(MAXS);sSiteZ=new F(MAXS);
+  sTrades=new Int32Array(MAXS);sDeaths=new Int32Array(MAXS);sBorn=new Int32Array(MAXS);sTier=new Uint8Array(MAXS);sWay=new Uint8Array(MAXS);sParent=new Int16Array(MAXS).fill(-1);
+  sLaid=new Uint8Array(MAXS);sHouses=new Int32Array(MAXS);sResCell=new Int32Array(MAXS*NRES).fill(-1);sPressure=new F(MAXS);sColonies=new Int32Array(MAXS);
+  sLastFound=new Int32Array(MAXS).fill(-99999);sFoodDays=new F(MAXS);sResFrac=new F(MAXS*NRES).fill(-1);
+  sName=[];sFree=[];sRooms=[];sReach=[];sSites=[];sPend=[];sSpec=[];
+  for(let s=0;s<MAXS;s++){sFree.push([]);sReach.push(null);sSites.push([]);sPend.push(null);sSpec.push([0,5,2]);sName.push('');for(let t=0;t<NRT;t++)sRooms.push([])}
+}
+function genWorld(seed,nAgents){
+  SEED=seed;rng=mulberry32(seed*9301+49297);T=0;N=nAgents;NCAP=Math.round(nAgents*1.6);usedNames=new Set();
+  genTerrain(seed);initResources();allocSettlements();
+  let land=0;for(let i=0;i<BIO.length;i++)if(BIO[i]>=3&&BIO[i]<=5)land++;
+  const landArea=land*(WORLD/RES)**2;
+  const target=clamp(Math.round(N/320),8,34);
+  let dmin=0.85*Math.sqrt(landArea/target);
+  const pts=[];let tries=0;
+  while(pts.length<target&&tries<80000){
+    tries++;if(tries%8000===0)dmin*=0.9;
+    const gx=rnd()*RES|0,gy=rnd()*RES|0,b=BIO[gy*RES+gx];
+    if(b<3||b>5)continue; if(b===5&&rnd()<0.5)continue;
+    const x=(gx+0.5)/RES*WORLD-HALF,z=(gy+0.5)/RES*WORLD-HALF;
+    if(Math.abs(x)>HALF-150||Math.abs(z)>HALF-150)continue;
+    let ok=true;for(const p of pts){const dx=p[0]-x,dz=p[1]-z;if(dx*dx+dz*dz<dmin*dmin){ok=false;break}}
+    if(ok)pts.push([x,z]);
+  }
+  S=pts.length;
+  for(let s=0;s<S;s++){sx[s]=pts[s][0];sz[s]=pts[s][1];sName[s]=uniqueName(false);sLaid[s]=1;sReach[s]=reachOf(sx[s],sz[s],3.3)}
+  K=Math.min(S,clamp(Math.round(S/4),3,6));kCap=[];kName=[];
+  kCap.push(rnd()*S|0);
+  while(kCap.length<K){let best=-1,bd=-1;for(let s=0;s<S;s++){let md=1e12;for(const c of kCap){const dx=sx[s]-sx[c],dz=sz[s]-sz[c];md=Math.min(md,dx*dx+dz*dz)}if(md>bd){bd=md;best=s}}kCap.push(best)}
+  for(let k=0;k<K;k++){kName.push(SYL1[rnd()*SYL1.length|0]+SYL2[rnd()*SYL2.length|0]+KSUF[k%KSUF.length]);sCap[kCap[k]]=1}
+  const kFaith=[];for(let k=0;k<K;k++)kFaith.push(rnd()*4|0);
+  for(let s=0;s<S;s++){let bk=0,bd=1e12;for(let k=0;k<K;k++){const c=kCap[k],dx=sx[s]-sx[c],dz=sz[s]-sz[c],d=dx*dx+dz*dz;if(d<bd){bd=d;bk=k}}sK[s]=bk;
+    sFaith[s]=rnd()<0.78?kFaith[bk]:rnd()*4|0;sCult[s]=(1<<bk)|(1<<(6+sFaith[s]))|(1<<(14+(rnd()*2|0)))}
+  kContact=new Uint8Array(K*K);kTrade=new Uint8Array(K*K);kDeaths=new Int32Array(K);EVENTS=[];evSeq=0;for(let k=0;k<K;k++){kContact[k*K+k]=1;kTrade[k*K+k]=1}
+  // roads
+  edges=[];eset=new Map();traffic=new Float32Array(1024);
+  for(let s=0;s<S;s++){const o=[];for(let t=0;t<S;t++)if(t!==s){const dx=sx[s]-sx[t],dz=sz[s]-sz[t];o.push([dx*dx+dz*dz,t])}o.sort((a,b)=>a[0]-b[0]);
+    for(let j=0;j<Math.min(3,o.length);j++)if(Math.sqrt(o[j][0])<dmin*1.8||j===0)addEdge(s,o[j][1])}
+  {const inT=new Uint8Array(S);inT[0]=1;for(let c=1;c<S;c++){let ba=-1,bb=-1,bd=1e12;for(let a=0;a<S;a++)if(inT[a])for(let b=0;b<S;b++)if(!inT[b]){const dx=sx[a]-sx[b],dz=sz[a]-sz[b],d=dx*dx+dz*dz;if(d<bd){bd=d;ba=a;bb=b}}inT[bb]=1;addEdge(ba,bb)}}
+  EIDX=new Int32Array(MS*MS);DIST=new Float32Array(MS*MS);NEXT=new Int16Array(MS*MS);rebuildRoutes();
+  // population split
+  const w=[];let ws=0;for(let s=0;s<S;s++){const v=sCap[s]?2.0:0.6+rnd()*0.8;w.push(v);ws+=v}
+  let assigned=0;for(let s=0;s<S;s++){sPop[s]=Math.floor(N*w[s]/ws);assigned+=sPop[s]}
+  for(let k=0;assigned<N;k=(k+1)%K){sPop[kCap[k]]++;assigned++}
+  MAXB=Math.ceil(NCAP/3.2)+MAXS*60+400;MAXR=MAXB*2;
+  nB=0;bx=new Float32Array(MAXB);bz=new Float32Array(MAXB);bT=new Uint8Array(MAXB);bS=new Uint8Array(MAXB);bW=new Float32Array(MAXB);bH=new Float32Array(MAXB);bD=new Float32Array(MAXB);
+  bRes=new Uint16Array(MAXB);bRoom0=new Int32Array(MAXB).fill(-1);bNR=new Uint8Array(MAXB);bOccNow=new Uint16Array(MAXB);
+  nR=0;rB=new Int32Array(MAXR);rT=new Uint8Array(MAXR);rx=new Float32Array(MAXR);rz=new Float32Array(MAXR);rw=new Float32Array(MAXR);rd=new Float32Array(MAXR);
+  allocAgents(NCAP);
+  PAL=new Uint8Array(256*8).fill(255);nPal=0;palKey=new Map();
+  POOL=new Uint8Array(1<<16);poolTop=0;planCache=new Map();
+  PLAN_SETTLE=poolTop;POOL[poolTop++]=1;POOL[poolTop++]=A_RETURN;
+  stat={hits:0,miss:0,trades:0,disc:0,built:0,fails:0,goals:0,deaths:0,born:0,starveDeaths:0,eaten:0,colonies:0,waystations:0,mishaps:0,innStays:0,sites:0,failBy:new Int32Array(NACT)};
+  LOG=[];deathNote=new Map();
+  let ai=0;
+  for(let s=0;s<S;s++)ai=populate(s,ai);
+  N=ai;for(let i=ai;i<NCAP;i++)aDead[i]=2;
+  for(let s=0;s<S;s++)for(let t=0;t<S;t++)if(sK[t]===sK[s])knSet(sKn,s,t);
+  for(let i=0;i<N;i++)knCopy(aKn,i,sKn,aSet[i]);
+  for(let s=0;s<S;s++)updateTier(s,true);
+  econ();
+  for(let s=0;s<S;s++)for(let t=0;t<S;t++)if(sKnows(s,t))for(let g=0;g<GN;g++)sBel[(s*MS+t)*GN+g]=sPrice[t*GN+g];
+  econ();
+  log(K+' realms, '+S+' holds and '+N.toLocaleString()+' dwarves wake to the first morning. Neighbouring holds lie a day or more apart, and each realm knows only its own.');
+}
+function allocAgents(n){
+  const F=Float32Array,I32=Int32Array,U8=Uint8Array,I16=Int16Array,U16=Uint16Array,U32=Uint32Array,I8=Int8Array;
+  ax=new F(n);az=new F(n);atx=new F(n);atz=new F(n);aSpd=new F(n);aMov=new U8(n);aSet=new U8(n);aHome=new I32(n).fill(-1);aWork=new I32(n).fill(-1);aArch=new U8(n);
+  aPal=new U8(n);aMask=new U8(n);aId=new U16(n);aHun=new F(n);aFat=new F(n);aSoc=new F(n);aHP=new F(n);aGoal=new I16(n).fill(-1);aSlot=new U8(n);aPlanOff=new I32(n).fill(-1);aStep=new U8(n);
+  aPh=new U8(n);aTm=new I32(n);aNext=new I32(n);aLoc=new U8(n);aRoom=new I32(n).fill(-1);aInv=new U16(n);aCG=new U8(n);aCQ=new F(n);aFoodQ=new U8(n);aRation=new U8(n);
+  aKn=new U32(n*KW);aDest=new I16(n).fill(-1);aCell=new I32(n).fill(-1);aNode=new I16(n).fill(-1);aPrev=new I16(n);aRoad=new U8(n);aCool=new U8(n);aCoolT=new I32(n);aExp=new I32(n);
+  aObsT=new I16(n).fill(-1);aObsP=new F(n*GN);aSense=new U32(n);aCur=new I8(n).fill(-1);aCamp=new U8(n);aDead=new U8(n);aGen=new U8(n);
+  aSiteX=new F(n);aSiteZ=new F(n);aSiteS=new F(n);
+  AGENT_ARRAYS=[ax,az,atx,atz,aSpd,aMov,aSet,aHome,aWork,aArch,aPal,aMask,aId,aHun,aFat,aSoc,aHP,aGoal,aSlot,aPlanOff,aStep,aPh,aTm,aNext,aLoc,aRoom,aInv,aCG,aCQ,aFoodQ,aRation,
+    aKn,aDest,aCell,aNode,aPrev,aRoad,aCool,aCoolT,aExp,aObsT,aObsP,aSense,aCur,aCamp,aDead,aGen,aSiteX,aSiteZ,aSiteS];
+}
+function palette(goals){
+  const key=goals.join(',');let p=palKey.get(key);if(p!==undefined)return p;
+  if(nPal>=255)return nPal-1;
+  p=nPal++;for(let k=0;k<8;k++)PAL[p*8+k]=k<goals.length?goals[k]:255;palKey.set(key,p);return p;
+}
+const G=(v,p)=>(v<<4)|(p||0);
+function rolePalette(arch,g,s,dir){
+  let goals;const spec=sSpec[s];
+  if(arch===0){goals=[G(V_EAT),G(V_REST),G(V_SOC),G(V_PROD,g)];
+    const up=GOODS.findIndex((_,h)=>RIN[h].some(r=>r[0]===g));if(up>=0&&rnd()<0.2)goals.push(G(V_PROD,up));
+    if(rnd()<0.22)goals.push(G(V_TRADE,g));if(rnd()<0.12)goals.push(G(V_BUILD))}
+  else if(arch===1)goals=[G(V_EAT),G(V_REST),G(V_SOC),G(V_TRADE,spec[0]),G(V_TRADE,spec[1]),G(V_TRADE,spec[2]),G(V_PROD,spec[0])];
+  else if(arch===2)goals=[G(V_EAT),G(V_REST),G(V_SOC),G(V_EXPL,dir),G(V_EXPL,(dir+(rnd()<0.5?1:7))%8),G(V_TRADE,spec[0]),G(V_PROD,5)];
+  else if(arch===3)goals=[G(V_EAT),G(V_REST),G(V_SOC),G(V_BUILD),G(V_PROD,8),G(V_PROD,6)];
+  else goals=[G(V_EAT),G(V_REST),G(V_SOC),G(V_PATROL)];
+  let mask=(1<<goals.length)-1;if(goals.length>4&&rnd()<0.15)mask&=~(1<<(3+(rnd()*(goals.length-3)|0)));if(!(mask&0b11111000))mask|=8;
+  return[palette(goals),mask];
+}
+function addBuilding(s,type,x,z){
+  if(nB>=MAXB||nR+3>=MAXR)return -1;const b=nB++;const t=BT[type];
+  bx[b]=x;bz[b]=z;bT[b]=type;bS[b]=s;
+  const v=0.92+0.16*((hash32(b*31+7)&255)/255);
+  bW[b]=t.w*(type===0?v:1);bD[b]=t.d*(type===0?(2-v):1);bH[b]=t.h*(type===0?v:1);
+  bRoom0[b]=nR;bNR[b]=t.rooms.length;
+  for(const[rt,x0,z0,x1,z1]of t.rooms){const r=nR++;rB[r]=b;rT[r]=rt;
+    rx[r]=x+((x0+x1)/2-0.5)*bW[b];rz[r]=z+((z0+z1)/2-0.5)*bD[b];rw[r]=(x1-x0)*bW[b];rd[r]=(z1-z0)*bD[b];sRooms[s*NRT+rt].push(r)}
+  if(type===0)sHouses[s]++;
+  if(hooks.building)hooks.building(b);
+  return b;
+}
+// site resources (normalised) around a point
+function siteRes(x,z,rad){const L=reachOf(x,z,rad||3.3);const o={n:L.length};for(let r=0;r<NRES;r++)o[r]=resSum(L,r,false)/L.length;return o}
+function jobWeights(s){
+  const R=siteRes(sx[s],sz[s]);const fp=R[4],ff=R[0],fh=R[1],fm=R[2],fc=R[3],fw=R[5];
+  const wg=[0.6+3.5*fp,0.6,0.8,0.45,0.55,0.3+3*ff,0.4,0.25+0.3*fm,0.15+1.5*fh,2*fm,0.15+0.6*fm,0.15+0.4*fm,0.1+1.5*fc,0.25,3.2*fw];
+  if(fp<0.03)wg[0]=0;if(ff<0.02)wg[5]=0;if(fh<0.01)wg[8]=0;if(fm<0.01)wg[9]=0;if(fc<0.01)wg[12]=0;if(fw<0.02)wg[14]=0;
+  return wg;
+}
+function setSpec(s,wg){
+  const raw=[0,5,8,9,12,14].sort((a,b)=>wg[b]-wg[a]);const crafted=[2,6,11,13,4].sort((a,b)=>wg[b]-wg[a]);
+  sSpec[s]=[raw[0],raw[1],wg[9]>0.5?11:crafted[0]];
+}
+// lay out buildings in a spiral of cells around the hold centre
+function placeBuildings(s,inner,outer,reserve){
+  const total=inner.length+outer.length+reserve;
+  const R=Math.ceil(Math.sqrt(total/Math.PI)*1.4)+3;
+  const cells=[],shore=[];
+  for(let cy=-R;cy<=R;cy++)for(let cx=-R;cx<=R;cx++){const r=Math.sqrt(cx*cx+cy*cy);if(r<1.5||r>R)continue;
+    const x=sx[s]+cx*CS,z=sz[s]+cy*CS;if(biomeAt(x,z)<2)continue;
+    const c=[r+((hash32((s*977+cx)*131+cy)&1023)/1023)*1.8,x,z,r];cells.push(c);
+    if(biomeAt(x+CS,z)<2||biomeAt(x-CS,z)<2||biomeAt(x,z+CS)<2||biomeAt(x,z-CS)<2)shore.push(c)}
+  cells.sort((a,b)=>a[0]-b[0]);shore.sort((a,b)=>a[3]-b[3]);
+  if(sStore[s]<0){addBuilding(s,10,sx[s],sz[s]);const st=addBuilding(s,1,sx[s],sz[s]);sStore[s]=st;sGran[s]=bRoom0[st];sWare[s]=bRoom0[st]+1}
+  const taken=new Set();let maxr=2;const placed=[];
+  const put=(c,type)=>{taken.add(c);const b=addBuilding(s,type,c[1],c[2]);if(b<0)return;maxr=Math.max(maxr,c[3]);placed.push(b);
+    if(type===2&&sTap[s]<0)sTap[s]=bRoom0[b]};
+  const piers=outer.filter(t=>t===14).length;let pi=0;
+  for(const c of shore){if(pi>=piers)break;put(c,14);pi++}
+  let ci=0;const next=()=>{while(ci<cells.length&&taken.has(cells[ci]))ci++;return ci<cells.length?cells[ci++]:null};
+  for(const t of inner){const c=next();if(c)put(c,t)}
+  for(const t of outer){if(t===14)continue;const c=next();if(c)put(c,t)}
+  sFree[s]=[];for(;ci<cells.length;ci++)if(!taken.has(cells[ci]))sFree[s].push([cells[ci][1],cells[ci][2],cells[ci][3]]);
+  if(piers>pi)log(sName[s]+' has no shore for a pier.','');
+  sRad[s]=(maxr+1)*CS+3;setSite(s);
+  return placed;
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=rnd()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+function populate(s,ai){
+  const P=sPop[s];const wg=jobWeights(s);setSpec(s,wg);
+  const cap=sCap[s];
+  const nGd=Math.max(1,Math.round(P*0.04)),nEx=Math.max(1,Math.round(P*(cap?0.05:0.03))),nMe=Math.max(1,Math.round(P*0.06)),nBu=Math.max(1,Math.round(P*0.05));
+  const nPr=Math.max(1,P-nGd-nEx-nMe-nBu);
+  const wsum=wg.reduce((a,b)=>a+b,0);const pc=wg.map(v=>Math.floor(nPr*v/wsum));let rem=nPr-pc.reduce((a,b)=>a+b,0);
+  for(let g=0;rem>0;g=(g+1)%GN){if(wg[g]>0){pc[g]++;rem--}}
+  const perType=new Array(NBT).fill(0);for(let g=0;g<GN;g++)perType[GOOD_BT[g]]+=pc[g];
+  perType[GOOD_BT[8]]+=nBu*0.5;perType[GOOD_BT[6]]+=nBu*0.5;perType[GOOD_BT[5]]+=nEx;
+  const inner=[],outer=[];
+  for(let h=0;h<Math.ceil(P/5);h++)inner.push(0);
+  for(let t=3;t<NBT;t++){if(t===10)continue;const n=perType[t]>0?Math.max(1,Math.ceil(perType[t]/6)):0;for(let k=0;k<n;k++)(OUTER_BT.has(t)?outer:inner).push(t)}
+  shuffle(inner);shuffle(outer);
+  const taverns=Math.max(1,Math.round(P/140));for(let k=0;k<taverns;k++)inner.splice(k*7,0,2);
+  placeBuildings(s,inner,outer,30);
+  const specs=[];
+  for(let g=0;g<GN;g++)for(let k=0;k<pc[g];k++)specs.push([0,g]);
+  for(let k=0;k<nMe;k++)specs.push([1,0]);for(let k=0;k<nEx;k++)specs.push([2,0]);for(let k=0;k<nBu;k++)specs.push([3,0]);for(let k=0;k<nGd;k++)specs.push([4,0]);
+  shuffle(specs);
+  const outward=Math.atan2(sz[s]-sz[kCap[sK[s]]],sx[s]-sx[kCap[sK[s]]]);
+  for(let j=0;j<specs.length&&ai<NCAP;j++,ai++){
+    const[arch,g]=specs[j];let dir=cap?(rnd()*8|0):((Math.round(outward/(Math.PI/4))%8+8)%8);if(rnd()<0.35)dir=(dir+(rnd()<0.5?1:7))%8;
+    initAgent(ai,s,arch,g,dir);
+  }
+  const b=s*GN;const init=[0.9,0.25,1.4,0.2,0.6,0.9,0.4,0.15,0.4,0.15,0.08,0.1,0.2,0.2,0.3];
+  for(let g=0;g<GN;g++)sStock[b+g]=P*init[g];
+  return ai;
+}
+function assignHome(i,s){let best=-1,br=1e9;for(let b=0;b<nB;b++)if(bS[b]===s&&bT[b]===0&&bRes[b]<br){br=bRes[b];best=b}
+  if(best>=0){aHome[i]=best;bRes[best]++}return best}
+function assignWork(i,s){
+  aWork[i]=-1;const pal=aPal[i]*8;
+  for(let k=0;k<8;k++){const g=PAL[pal+k];if(g!==255&&(g>>4)===V_PROD){const L=sRooms[s*NRT+PROD_RT[g&15]];if(L.length){aWork[i]=rB[L[i%L.length]];return}}}
+}
+function initAgent(i,s,arch,g,dir){
+  const[p,m]=rolePalette(arch,g,s,dir);aPal[i]=p;aMask[i]=m;
+  const faith=rnd()<0.82?sFaith[s]:rnd()*4|0;const guild=[10,11,12,10,13][arch];
+  aId[i]=(1<<sK[s])|(1<<(6+faith))|(1<<guild)|(rnd()<0.5?1<<14:0)|(rnd()<0.5?1<<15:0);
+  aArch[i]=arch;aSet[i]=s;aDead[i]=0;
+  assignHome(i,s);assignWork(i,s);
+  const bed=aHome[i]>=0?bRoom0[aHome[i]]+1:sGran[s];
+  ax[i]=rx[bed]+jit(i,1)*rw[bed]*0.7;az[i]=rz[bed]+jit(i,2)*rd[bed]*0.7;atx[i]=ax[i];atz[i]=az[i];aMov[i]=0;
+  aLoc[i]=LC_BED;aRoom[i]=bed;aGoal[i]=-1;aPlanOff[i]=-1;aNext[i]=T+(rnd()*90|0);aCur[i]=-1;aHP[i]=100;aInv[i]=0;aRation[i]=0;aCamp[i]=0;aCQ[i]=0;aCool[i]=0;
+  aHun[i]=30+rnd()*90;aFat[i]=10+rnd()*40;aSoc[i]=30+rnd()*90;aExp[i]=T+(rnd()*600|0);aObsT[i]=-1;aNode[i]=-1;aDest[i]=-1;aSiteS[i]=0;
+  for(let w=0;w<KW;w++)aKn[i*KW+w]=sKn[s*KW+w];
+}
+function setSite(s){const f=sFree[s][0];if(f){sSiteX[s]=f[0];sSiteZ[s]=f[1]}else{sSiteX[s]=sx[s]+sRad[s];sSiteZ[s]=sz[s]}}
+function updateTier(s,quiet){
+  const P=sPop[s];let t=P<20?0:P<80?1:P<260?2:3;if(sWay[s]&&P<45)t=Math.min(t,0);
+  if(t>sTier[s]||quiet){const up=t>sTier[s];sTier[s]=t;if(up&&!quiet){log(sName[s]+' has grown into a '+TIERS[t].toLowerCase()+'.','k-birth',{k:'tier',score:t>=3?78:t===2?60:46,s});if(hooks.tier)hooks.tier(s)}
+    sReach[s]=reachOf(sx[s],sz[s],3.3+(t>=3?1:0))}
+}
+
+// ================= roads =================
+function addEdge(a,b){if(a===b)return -1;const key=a<b?a*MS+b:b*MS+a;if(eset.has(key))return eset.get(key);
+  const dx=sx[a]-sx[b],dz=sz[a]-sz[b];edges.push([Math.min(a,b),Math.max(a,b),Math.sqrt(dx*dx+dz*dz)]);eset.set(key,edges.length-1);return edges.length-1}
+function splitEdge(e,n){
+  const[a,b]=edges[e];eset.delete(a*MS+b);
+  const dx=sx[a]-sx[n],dz=sz[a]-sz[n];edges[e]=[Math.min(a,n),Math.max(a,n),Math.sqrt(dx*dx+dz*dz)];eset.set(Math.min(a,n)*MS+Math.max(a,n),e);
+  const e2=addEdge(n,b);if(e2>=0&&e2<traffic.length)traffic[e2]=traffic[e];
+}
+function rebuildRoutes(){
+  EIDX.fill(-1);DIST.fill(1e9);NEXT.fill(-1);
+  for(let s=0;s<S;s++){DIST[s*MS+s]=0;NEXT[s*MS+s]=s}
+  edges.forEach((e,i)=>{const[a,b,l]=e;EIDX[a*MS+b]=i;EIDX[b*MS+a]=i;DIST[a*MS+b]=l;DIST[b*MS+a]=l;NEXT[a*MS+b]=b;NEXT[b*MS+a]=a});
+  for(let k=0;k<S;k++)for(let i=0;i<S;i++){const ik=DIST[i*MS+k];if(ik>=1e9)continue;for(let j=0;j<S;j++){const d=ik+DIST[k*MS+j];if(d<DIST[i*MS+j]){DIST[i*MS+j]=d;NEXT[i*MS+j]=NEXT[i*MS+k]}}}
+  if(hooks.roads)hooks.roads();
+}
+
+// ================= economy =================
+function econ(){
+  for(let s=0;s<S;s++){if(!sLaid[s])continue;const P=Math.max(5,sPop[s]);const pots=sStock[s*GN+13]>=P*0.1;
+    for(let g=0;g<GN;g++){const k=s*GN+g;const tg=P*TGTPC[g]+(sTier[s]?8:3);sTgt[k]=tg;
+      if(SPOIL[g]<1)sStock[k]*=pots?1-(1-SPOIL[g])*0.4:SPOIL[g];
+      sPrice[k]=BASEP[g]*clamp((tg+5)/(sStock[k]+5),0.3,4)}
+    for(let r=0;r<NRES;r++)if(r!==4)sResCell[s*NRES+r]=findRes(s,r);
+  }
+  for(let s=0;s<S;s++)for(let g=0;g<GN;g++){const k=s*GN+g;if(!sLaid[s]||sStock[k]-sTgt[k]*1.3<4){sBuyer[k]=-1;continue}
+    let best=-1,bs=0;const pl=sPrice[k];
+    for(let t=0;t<S;t++){if(t===s||!sLaid[t]||!sKnows(s,t)||NEXT[s*MS+t]<0)continue;const bp=sBel[(s*MS+t)*GN+g];if(bp<pl*1.3)continue;const sc=(bp-pl)/(1+DIST[s*MS+t]/DAYWALK);if(sc>bs){bs=sc;best=t}}
+    sBuyer[k]=best}
+}
+function inputsOk(s,g){const r=RIN[g];for(let j=0;j<r.length;j++)if(sStock[s*GN+r[j][0]]<r[j][1])return false;return true}
+function resOk(s,g){const r=GOOD_RES[g];return r<0||r===4||sResCell[s*NRES+r]>=0}
+function workFor(i,s,g){
+  const rt=PROD_RT[g],w=aWork[i];
+  if(w>=0&&bS[w]===s&&bT[w]===RT_BT[rt]){for(let k=0;k<bNR[w];k++)if(rT[bRoom0[w]+k]===rt)return bRoom0[w]+k}
+  const L=sRooms[s*NRT+rt];return L&&L.length?L[i%L.length]:-1;
+}
+function mergeKnow(s,arr,o,via){
+  let c=0;
+  for(let w=0;w<KW;w++){const nw=(arr[o*KW+w]&~sKn[s*KW+w])>>>0;if(!nw)continue;sKn[s*KW+w]=(sKn[s*KW+w]|nw)>>>0;
+    for(let b=0;b<32;b++)if((nw>>>b)&1){const t=w*32+b;if(t>=S)continue;c++;
+      for(let g=0;g<GN;g++)sBel[(s*MS+t)*GN+g]=(sPrice[t*GN+g]||BASEP[g])*(0.8+rnd()*0.4);
+      const a=sK[s],bb=sK[t];if(!kContact[a*K+bb]){kContact[a*K+bb]=1;log('Word of '+kName[bb]+' reaches '+kName[a]+', at '+sName[s]+(via?' ('+via+')':'')+'.','k-contact',{k:'contact',score:82,s,other:bb})}}}
+  return c;
+}
+function mergeOne(s,t,via){const tmp=new Uint32Array(KW);tmp[t>>5]=bitM(t);return mergeKnow(s,tmp,0,via)}
+
+// ================= planner =================
+function tripTicks(i,gid){
+  const v=gid>>4,s=aSet[i];
+  if(v===V_TRADE){const d=sBuyer[s*GN+(gid&15)];return d>=0?DIST[s*MS+d]*2/SPD_ROAD+700:2000}
+  if(v===V_EXPL)return 2*700/SPD_EXPL+300;
+  return 0;
+}
+function sense(i,gid){
+  const s=aSet[i],l=aLoc[i],v=gid>>4,p=gid&15,b=s*GN,r=aRoom[i];
+  let st=aInv[i];
+  if(l===LC_BED&&r===bedOf(i))st|=L_BED;
+  else if(l===LC_HEARTH&&r===hearthOf(i))st|=L_HEARTH;
+  else if(l===LC_STORE)st|=L_STORE;
+  else if(l===LC_TAP)st|=L_TAP;
+  else if(l===LC_WORK&&v===V_PROD&&r===workFor(i,s,p))st|=L_WORK;
+  st|=(l===LC_AWAY)?AWAY:IN_TOWN;
+  const crowdQ=1+sPop[s]*0.015;
+  if(sStock[b+2]>=crowdQ)st|=M_BREAD;
+  if((sStock[b]>=crowdQ||sStock[b+1]>=crowdQ||sStock[b+14]>=crowdQ)&&sStock[b+5]>=0.15)st|=M_RAW;
+  if(sStock[b+4]>=1)st|=M_ALE;
+  if(sStock[b+6]>=3&&sStock[b+8]>=4)st|=M_MAT;
+  if(v===V_PROD){if(RIN[p].length===0)st|=HAS_INPUTS;else if(inputsOk(s,p))st|=M_INPUTS;if(workFor(i,s,p)>=0&&resOk(s,p))st|=HAS_WORK}
+  if(v===V_TRADE){if(sStock[b+p]-sTgt[b+p]*1.3>=4)st|=M_CARGO;if(sBuyer[b+p]>=0)st|=KNOWS_BUYER}
+  if(v===V_TRADE||v===V_EXPL){const proj=aHun[i]+tripTicks(i,gid)*HUNGER_RATE*0.75-aRation[i]*200;if(proj<190)st|=READY}
+  return st>>>0;
+}
+function search(start,goal){
+  const open=[{s:start,g:0,p:null,a:-1,d:0}];const seen=new Map();seen.set(start,0);let exp=0;
+  while(open.length&&exp<6000){
+    let bi=0;for(let j=1;j<open.length;j++)if(open[j].g<open[bi].g)bi=j;
+    const n=open[bi];open[bi]=open[open.length-1];open.pop();
+    if((n.s&goal)===goal){const out=[];let m=n;while(m.p){out.push(m.a);m=m.p}return out.reverse()}
+    exp++;if(n.d>=11)continue;
+    for(let a=0;a<NACT;a++){const A=ACTS[a];if((n.s&A[1])!==A[1])continue;
+      const ns=((n.s&~A[3])|A[2])>>>0,g=n.g+A[4];const old=seen.get(ns);if(old!==undefined&&old<=g)continue;seen.set(ns,g);open.push({s:ns,g,p:n,a,d:n.d+1})}
+  }
+  return null;
+}
+function getPlan(st,verb){
+  const key=st*16+verb;let off=planCache.get(key);
+  if(off!==undefined){stat.hits++;return off}
+  stat.miss++;const plan=search(st,GOALMASK[verb]);
+  if(!plan||plan.length===0){planCache.set(key,-1);return -1}
+  if(poolTop+plan.length+1>=POOL.length){const np=new Uint8Array(POOL.length*2);np.set(POOL);POOL=np}
+  off=poolTop;POOL[off]=plan.length;for(let j=0;j<plan.length;j++)POOL[off+1+j]=plan[j];poolTop+=plan.length+1;
+  planCache.set(key,off);return off;
+}
+
+// ================= decision =================
+let tod=0.27,isDay=true,evening=false,lateNight=false,daylight=1;
+function phaseOf(t){return{day:t>=0.25&&t<0.75,eve:t>=0.72&&t<0.88,late:t>=0.88||t<0.22}}
+function urgency(i,gid){
+  const v=gid>>4,p=gid&15,s=aSet[i],b=s*GN,h=aHun[i],f=aFat[i];
+  switch(v){
+    case V_EAT:return h+(h>170?90:0);
+    case V_REST:{let late=lateNight,eve=evening;if(aArch[i]===4&&(i&1)===0){const ph=phaseOf((tod+0.5)%1);late=ph.late;eve=ph.eve}
+      return (late?f+95:eve?f+15:f-60)+(f>200?90:0)}
+    case V_SOC:return(aSoc[i]<75&&!evening)?0:aSoc[i]*0.75+(evening?60:0);
+    case V_PROD:{if(!isDay)return 5;if(workFor(i,s,p)<0||!resOk(s,p))return 0;if(RIN[p].length&&!inputsOk(s,p))return 0;
+      const tg=sTgt[b+p],st=sStock[b+p];const need=clamp((tg-st)/tg,0,1);return st>tg*3?25:105+70*need-(st>tg*2?40:0)}
+    case V_TRADE:if(!isDay||tod>0.55||aLoc[i]===LC_AWAY||h>150||f>150||aHP[i]<60)return 0;return(sStock[b+p]-sTgt[b+p]*1.3>=4&&sBuyer[b+p]>=0)?150:0;
+    case V_EXPL:if(!isDay||tod>0.42||T<aExp[i]||aLoc[i]===LC_AWAY||h>150||f>150||aHP[i]<60)return 0;return 120+(hash32(i)&31);
+    case V_BUILD:if(!isDay)return 0;return(sStock[b+6]>=3&&sStock[b+8]>=4)?100:0;
+    case V_PATROL:{const on=(i&1)?isDay:(tod>=0.72||tod<0.25);return on?115:0}
+  }
+  return 0;
+}
+function bestSlot(i,skipMask){
+  const pal=aPal[i]*8,m=aMask[i];let best=-1,bu=-1e9;
+  for(let k=0;k<8;k++){if(!((m>>k)&1)||((aCool[i]|skipMask)>>k)&1)continue;const g=PAL[pal+k];if(g===255)continue;const u=urgency(i,g);if(u>bu){bu=u;best=k}}
+  return[best,bu];
+}
+function think(i){
+  if(T>aCoolT[i])aCool[i]=0;
+  let skip=0;
+  for(let tries=0;tries<3;tries++){
+    const[k,u]=bestSlot(i,skip);
+    if(k<0||u<15)break;
+    const gid=PAL[aPal[i]*8+k],st=sense(i,gid);const off=getPlan(st,gid>>4);
+    if(off<0){skip|=1<<k;aCool[i]|=1<<k;aCoolT[i]=T+300;continue}
+    aGoal[i]=gid;aSlot[i]=k;aPlanOff[i]=off;aStep[i]=0;aPh[i]=0;aSense[i]=st;return;
+  }
+  aGoal[i]=-1;aNext[i]=T+40+(rnd()*80|0);
+  if(aLoc[i]!==LC_AWAY&&aHome[i]>=0){const h=aHome[i];setTarget(i,bx[h]+jit(i,T)*8,bz[h]+jit(i,T+1)*8,SPD_TOWN*0.6);aLoc[i]=LC_STREET;aRoom[i]=-1}
+}
+function setTarget(i,x,z,spd){atx[i]=x;atz[i]=z;aSpd[i]=spd;aMov[i]=1}
+function walkRoom(i,r){setTarget(i,rx[r]+jit(i,1)*rw[r]*0.7,rz[r]+jit(i,2)*rd[r]*0.7,SPD_TOWN);aRoom[i]=-1}
+function cleanup(i){
+  const s=aSet[i],b=s*GN,inv=aInv[i],away=aLoc[i]===LC_AWAY;
+  if(!away){
+    if(inv&(CARRY_OUT|HAS_CARGO)){sStock[b+aCG[i]]+=aCQ[i];aCQ[i]=0}
+    if(inv&HAS_INPUTS){const g=aGoal[i]&15;for(const[r,q]of RIN[g])sStock[b+r]+=q}
+    if(inv&HAS_MAT){sStock[b+6]+=3;sStock[b+8]+=4}
+  }
+  aInv[i]=inv&(HAS_RAW|HAS_MEAL|HAS_NEWS|READY);
+}
+function done(i){aPlanOff[i]=-1;aNext[i]=T+2+(i&7);stat.goals++}
+function fail(i){if(aCur[i]>=0)stat.failBy[aCur[i]]++;cleanup(i);aCool[i]|=1<<aSlot[i];aCoolT[i]=T+((aGoal[i]>>4)===V_EAT?40:400);aPlanOff[i]=-1;aNext[i]=T+8;stat.fails++}
+function die(i,cause){
+  const s=aSet[i];
+  const where=aLoc[i]===LC_AWAY?(aNode[i]>=0?'on the road to '+sName[aNode[i]]:'in the wilds '+compass(ax[i]-sx[s],az[i]-sz[s])+' of '+sName[s]):'in '+sName[s];
+  deathNote.set(i,'Died of '+cause+' '+where+' on day '+clockStr(T).d+'.');
+  aInv[i]=0;aCQ[i]=0;aDead[i]=1;aPlanOff[i]=-1;aMov[i]=0;aRoom[i]=-1;aCamp[i]=0;if(aHome[i]>=0)bRes[aHome[i]]--;aHome[i]=-1;
+  sDeaths[s]++;stat.deaths++;if(cause==='hunger')stat.starveDeaths++;
+  const first=stat.deaths===1,firstK=kDeaths[sK[s]]===0;kDeaths[sK[s]]++;
+  log(dwarfName(i)+' of '+sName[s]+' died of '+cause+' '+where+'.','k-death',{k:'death',score:first?95:firstK?72:cause!=='hunger'?40:26,s,a:i,x:ax[i],z:az[i],first,firstK,cause});
+}
+
+// ================= action execution =================
+function goRoom(i,loc,r){
+  if(aPh[i]===0){if(aRoom[i]===r){aLoc[i]=loc;return 1}walkRoom(i,r);aLoc[i]=LC_STREET;aPh[i]=1;return 0}
+  if(aMov[i])return 0;aLoc[i]=loc;aRoom[i]=r;return 1;
+}
+function errand(i,r1,r2){
+  if(aPh[i]===0){aPh[i]=1;if(aRoom[i]!==r1){walkRoom(i,r1);return 0}}
+  if(aPh[i]===1){if(aMov[i])return 0;aRoom[i]=r1;aLoc[i]=LC_STORE;aPh[i]=2;if(r2>=0&&r2!==r1){walkRoom(i,r2);return 0}aPh[i]=3;return 1}
+  if(aPh[i]===2){if(aMov[i])return 0;aRoom[i]=r2;aPh[i]=3;return 1}
+  return 1;
+}
+function inputRooms(s,g){let gr=false,wh=false;for(const[r]of RIN[g]){if(STORE_RT[r]===RM_GRAN)gr=true;else wh=true}
+  return gr&&wh?[sGran[s],sWare[s]]:gr?[sGran[s],-1]:[sWare[s],-1]}
+function storehouseEntry(i){
+  const off=aPlanOff[i],nx=aStep[i]+1<POOL[off]?POOL[off+2+aStep[i]]:-1,s=aSet[i],g=aGoal[i]&15;
+  if(nx===5||nx===6||nx===17)return sGran[s];
+  if(nx===11)return inputRooms(s,g)[0];
+  if(nx===13)return storeRoomOf(s,aCG[i]);
+  if(nx===16)return storeRoomOf(s,g);
+  return sWare[s];
+}
+function headTo(i,n){
+  aPrev[i]=aNode[i];aNode[i]=n;
+  const dx=sx[n]-ax[i],dz=sz[n]-az[i],l=Math.sqrt(dx*dx+dz*dz)||1,side=1.2+jit(i,9)*0.8;
+  setTarget(i,sx[n]-dz/l*side,sz[n]+dx/l*side,SPD_ROAD);
+}
+function arriveNode(i){const p=aPrev[i],n=aNode[i];if(p>=0&&p!==n){const e=EIDX[p*MS+n];if(e>=0)traffic[e]+=1}}
+// a traveller reaching a hold mid-journey: sleep under a roof if it is late, and buy a loaf if the pack is empty
+function nodeStop(i,n){
+  if(!sLaid[n])return;const nb=n*GN;
+  if(aRation[i]<1&&sStock[nb+2]>sTgt[nb+2]*0.4+2){sStock[nb+2]-=1;aRation[i]++;if(aCQ[i]>1){aCQ[i]-=1;sStock[nb+aCG[i]]+=1}}
+  if(((lateNight||evening)&&aFat[i]>70)||aFat[i]>150){aCamp[i]=3;stat.innStays++;if(aCQ[i]>2&&sWay[n]){aCQ[i]-=0.5;sStock[nb+aCG[i]]+=0.5}}
+}
+function discover(i){
+  for(let t=0;t<S;t++){const dx=sx[t]-ax[i],dz=sz[t]-az[i];if(dx*dx+dz*dz<160*160)knSet(aKn,i,t)}
+  if(knDiff(aKn,i,sKn,aSet[i]))aInv[i]|=HAS_NEWS;
+}
+function siteScore(x,z){
+  const b=biomeAt(x,z);if(b<3||b>5)return 0;
+  for(let t=0;t<S;t++){const dx=sx[t]-x,dz=sz[t]-z;if(dx*dx+dz*dz<COLONY_GAP*COLONY_GAP)return 0}
+  const R=siteRes(x,z,3.3);
+  let sc=(1.3*R[4]+1.0*R[0]+1.3*R[5]+0.4*R[1]+0.6*R[2]+0.4*R[3])*10;
+  if(R[5]>0.06)sc+=2.5;
+  return sc;
+}
+function scout(i){
+  for(let k=0;k<3;k++){const x=ax[i]+(rnd()-0.5)*240,z=az[i]+(rnd()-0.5)*240;const sc=siteScore(x,z);if(sc>aSiteS[i]){aSiteS[i]=sc;aSiteX[i]=x;aSiteZ[i]=z}}
+  if(aSiteS[i]>5)aInv[i]|=HAS_NEWS;
+}
+function trade(i){
+  const d=aDest[i],h=aSet[i],g=aCG[i],q=aCQ[i],dk=d*GN;
+  sStock[dk+g]+=q;let value=q*sPrice[dk+g];
+  if(aRation[i]<2&&sStock[dk+2]>=3){const n=2-aRation[i];sStock[dk+2]-=n;aRation[i]=2;value-=n*sPrice[dk+2]}
+  let best=-1,bs=1.15;
+  for(let r=0;r<GN;r++){if(r===g)continue;const av=sStock[dk+r]-sTgt[dk+r];if(av<3)continue;const ratio=sPrice[h*GN+r]/sPrice[dk+r];if(ratio>bs){bs=ratio;best=r}}
+  if(best>=0&&value>0){const qq=Math.min(value/sPrice[dk+best],sStock[dk+best]-sTgt[dk+best],12);sStock[dk+best]-=qq;aCG[i]=best;aCQ[i]=qq}else aCQ[i]=0;
+  aObsT[i]=d;for(let r=0;r<GN;r++)aObsP[i*GN+r]=sPrice[dk+r];
+  for(let r=0;r<GN;r++)sBel[(d*MS+h)*GN+r]=sPrice[h*GN+r];
+  const who='a '+GOODS[g]+' trader from '+sName[h];
+  mergeOne(d,h,who);
+  const tr=trust(aId[i],sCult[d]);
+  if(rnd()<tr*0.4)mergeKnow(d,aKn,i,who);
+  if(rnd()<tr)knCopy(aKn,i,sKn,d);
+  stat.trades++;sTrades[h]++;
+  const a=sK[h],b=sK[d];if(!kTrade[a*K+b]){kTrade[a*K+b]=kTrade[b*K+a]=1;log('First caravan between realms: '+sName[h]+' ('+kName[a]+') sells '+GOODS[g]+' in '+sName[d]+' ('+kName[b]+').','k-contact',{k:'firsttrade',score:80,a:i,s:d})}
+}
+function checkGrow(s){
+  const need=8+sLevel[s]*4;if(sProg[s]<need)return;sProg[s]=0;sLevel[s]++;
+  const c=sFree[s].shift();if(!c)return;
+  const crowd=sPop[s]/Math.max(1,sHouses[s]*5);
+  let type=0,label='house';
+  if(crowd<1.05&&sLevel[s]%2===0){let bg=2,bp=0;for(const g of [1,2,4,6,10,11,13]){const r=sPrice[s*GN+g]/BASEP[g];if(r>bp){bp=r;bg=g}}type=GOOD_BT[bg];label=BT[type].n.toLowerCase()}
+  const b=addBuilding(s,type,c[0],c[1]);if(b<0)return;
+  sRad[s]=Math.max(sRad[s],(c[2]+1)*CS+3);
+  if(type===0){let mh=-1,mr=0;for(let j=0;j<nB;j++)if(bS[j]===s&&bT[j]===0&&j!==b&&bRes[j]>mr){mr=bRes[j];mh=j}
+    if(mh>=0&&mr>5){let moved=0;for(let i=0;i<NCAP&&moved<2;i++)if(aHome[i]===mh&&!aDead[i]&&aLoc[i]!==LC_BED&&aLoc[i]!==LC_HEARTH){aHome[i]=b;bRes[mh]--;bRes[b]++;moved++}}}
+  stat.built++;setSite(s);
+  if(sTier[s]>=1&&(sLevel[s]%3===0))log(sName[s]+' raises a new '+label+' (level '+sLevel[s]+').','',{k:'build',score:20,s});
+}
+function extractWork(i,g){
+  const s=aSet[i],b=s*GN,r=GOOD_RES[g];
+  if(r===4){
+    if(aPh[i]===0){aPh[i]=1;aTm[i]=T+WORKT[g];return 0}if(T<aTm[i])return 0;
+    const c=cellOf(ax[i],az[i]),o=4*RG2+c,soil=resAmt[o];resAmt[o]=Math.max(0,soil-0.15);
+    let q=ROUT[g]*clamp(soil/80,0.1,1.25);if(sStock[b+11]>=0.25){sStock[b+11]-=0.05;q*=1.4}
+    aCG[i]=g;aCQ[i]=q;aInv[i]|=CARRY_OUT;return 1;
+  }
+  if(aPh[i]===0){const c=sResCell[s*NRES+r];if(c<0)return -1;aCell[i]=c;aLoc[i]=LC_STREET;aRoom[i]=-1;
+    setTarget(i,cellX(c)+jit(i,5)*CELL*0.7,cellZ(c)+jit(i,6)*CELL*0.7,SPD_TOWN);aPh[i]=1;return 0}
+  if(aPh[i]===1){if(aMov[i])return 0;aPh[i]=2;aTm[i]=T+WORKT[g];aLoc[i]=LC_WORK;return 0}
+  if(T<aTm[i])return 0;
+  const o=r*RG2+aCell[i],amt=resAmt[o];let q=Math.min(amt,ROUT[g]*clamp(amt/30,0.3,1));
+  if(q<0.3)return -1;resAmt[o]=amt-q;
+  if(sStock[b+11]>=0.25){sStock[b+11]-=0.05;q*=1.4}
+  aCG[i]=g;aCQ[i]=q;aInv[i]|=CARRY_OUT;return 1;
+}
+
+function exec(i,a){
+  const s=aSet[i],b=s*GN;
+  switch(a){
+    case 0:return goRoom(i,LC_BED,bedOf(i));
+    case 1:return goRoom(i,LC_HEARTH,hearthOf(i));
+    case 2:{if(aPh[i]===0){if(aLoc[i]===LC_STORE)return 1;const r=storehouseEntry(i);aTm[i]=r;walkRoom(i,r);aLoc[i]=LC_STREET;aPh[i]=1;return 0}if(aMov[i])return 0;aLoc[i]=LC_STORE;aRoom[i]=aTm[i];return 1}
+    case 3:{const r=workFor(i,s,aGoal[i]&15);if(r<0)return -1;return goRoom(i,LC_WORK,r)}
+    case 4:if(sTap[s]<0)return -1;return goRoom(i,LC_TAP,sTap[s]);
+    case 5:if(!errand(i,sGran[s],-1))return 0;if(sStock[b+2]<1)return -1;sStock[b+2]-=1;aFoodQ[i]=220;aInv[i]|=HAS_MEAL;return 1;
+    case 6:if(!errand(i,sGran[s],sWare[s]))return 0;
+      if(sStock[b+5]<0.15)return -1;if(sStock[b+14]>=1){sStock[b+14]-=1;aFoodQ[i]=185}else if(sStock[b]>=1){sStock[b]-=1;aFoodQ[i]=170}else if(sStock[b+1]>=1){sStock[b+1]-=1;aFoodQ[i]=175}else return -1;
+      sStock[b+5]-=0.15;aInv[i]|=HAS_RAW;return 1;
+    case 7:if(aPh[i]===0){aPh[i]=1;aTm[i]=T+70;return 0}if(T<aTm[i])return 0;aInv[i]=(aInv[i]&~HAS_RAW)|HAS_MEAL;aFoodQ[i]=Math.min(230,aFoodQ[i]+15);return 1;
+    case 8:case 9:if(aPh[i]===0){aPh[i]=1;aTm[i]=T+(a===8?30:45);return 0}if(T<aTm[i])return 0;
+      aHun[i]=Math.max(0,aHun[i]-aFoodQ[i]);aInv[i]&=~HAS_MEAL;stat.eaten++;if(a===9)aSoc[i]=Math.max(0,aSoc[i]-50);return 1;
+    case 10:aPh[i]=1;aFat[i]=Math.max(0,aFat[i]-0.55);if((aFat[i]<8&&(isDay||aFat[i]<1&&!lateNight))||aHun[i]>215)return 1;return 0;
+    case 11:{const g=aGoal[i]&15,rr=inputRooms(s,g);if(!errand(i,rr[0],rr[1]))return 0;if(!inputsOk(s,g))return -1;for(const[r,q]of RIN[g])sStock[b+r]-=q;aInv[i]|=HAS_INPUTS;return 1}
+    case 12:{const g=aGoal[i]&15;
+      if(GOOD_RES[g]>=0){const r=extractWork(i,g);if(r===1)aInv[i]&=~HAS_INPUTS;return r}
+      if(aPh[i]===0){if(RIN[g].length&&!(aInv[i]&HAS_INPUTS))return -1;aPh[i]=1;aTm[i]=T+WORKT[g];return 0}
+      if(T<aTm[i])return 0;let q=ROUT[g]*sYield[b+g];if(g!==11&&sStock[b+11]>=0.25){sStock[b+11]-=0.05;q*=1.4}
+      aCG[i]=g;aCQ[i]=q;aInv[i]=(aInv[i]&~HAS_INPUTS)|CARRY_OUT;return 1}
+    case 13:if(!(aInv[i]&CARRY_OUT))return -1;if(!errand(i,storeRoomOf(s,aCG[i]),-1))return 0;
+      sStock[b+aCG[i]]+=aCQ[i];aCQ[i]=0;aInv[i]&=~CARRY_OUT;return 1;
+    case 14:case 15:{
+      if(aPh[i]===0){aPh[i]=1;aTm[i]=T+(a===14?70:100);return 0}if(T<aTm[i])return 0;
+      if(a===14&&sStock[b+4]>=1){sStock[b+4]-=1;aSoc[i]=Math.max(0,aSoc[i]-210)}else aSoc[i]=Math.max(0,aSoc[i]-120);
+      if(rnd()<trust(aId[i],sCult[s])*0.2)mergeKnow(s,aKn,i,'tavern talk');
+      knCopy(aKn,i,sKn,s);return 1}
+    case 16:{const g=aGoal[i]&15,k=b+g;if(!errand(i,storeRoomOf(s,g),-1))return 0;const d=sBuyer[k],sur=sStock[k]-sTgt[k]*1.3;if(d<0||sur<4)return -1;
+      const q=Math.min(12,sur);sStock[k]-=q;aCG[i]=g;aCQ[i]=q;aDest[i]=d;aInv[i]|=HAS_CARGO;return 1}
+    case 17:{if(!errand(i,sGran[s],-1))return 0;
+      const need=clamp(Math.ceil((aHun[i]+tripTicks(i,aGoal[i])*HUNGER_RATE*0.75-100)/200),1,5)-aRation[i];
+      const n=Math.min(Math.max(need,0),Math.floor(sStock[b+2]));if(need>0&&n<1)return -1;sStock[b+2]-=n;aRation[i]+=n;aInv[i]|=READY;return 1}
+    case 18:{
+      if(aPh[i]===0){const nx=NEXT[s*MS+aDest[i]];if(nx<0)return -1;aInv[i]&=~READY;aLoc[i]=LC_AWAY;aRoom[i]=-1;aNode[i]=s;aPrev[i]=s;aPh[i]=1;headTo(i,nx);return 0}
+      if(aMov[i])return 0;arriveNode(i);
+      if(aNode[i]===aDest[i]){trade(i);aInv[i]&=~HAS_CARGO;nodeStop(i,aNode[i]);return 1}
+      nodeStop(i,aNode[i]);headTo(i,NEXT[aNode[i]*MS+aDest[i]]);return 0}
+    case 19:{
+      if(aPh[i]===0){aInv[i]&=~READY;aLoc[i]=LC_AWAY;aRoom[i]=-1;aNode[i]=-1;aRoad[i]=0;aPh[i]=1;aSiteS[i]=0;
+        const base=(aGoal[i]&15)*Math.PI/4;let tx=ax[i],tz=az[i];
+        for(let t=0;t<10;t++){const ang=base+(rnd()-0.5)*0.9,dist=(380+rnd()*620)*(1-t*0.07);
+          tx=clamp(ax[i]+Math.cos(ang)*dist,-HALF+30,HALF-30);tz=clamp(az[i]+Math.sin(ang)*dist,-HALF+30,HALF-30);if(biomeAt(tx,tz)>=2)break}
+        setTarget(i,tx,tz,SPD_EXPL);return 0}
+      if(aPh[i]===1){if(((T+i)&7)===0)discover(i);if(((T+i)&63)===0)scout(i);if(aMov[i])return 0;discover(i);scout(i);aPh[i]=2;aTm[i]=T+60;return 0}
+      return T>=aTm[i]?1:0}
+    case 20:{
+      if(aPh[i]===0){aPh[i]=1;aLoc[i]=LC_AWAY;aRoom[i]=-1;
+        if(aNode[i]>=0&&aNode[i]!==s&&NEXT[aNode[i]*MS+s]>=0){aRoad[i]=1;headTo(i,NEXT[aNode[i]*MS+s])}
+        else{aRoad[i]=2;setTarget(i,sx[s]+jit(i,1)*6,sz[s]+jit(i,2)*6,aNode[i]>=0?SPD_ROAD:SPD_EXPL)}
+        return 0}
+      if(aMov[i])return 0;
+      if(aRoad[i]===1){arriveNode(i);if(aNode[i]!==s){nodeStop(i,aNode[i]);headTo(i,NEXT[aNode[i]*MS+s]);return 0}aRoad[i]=2}
+      if(aRoad[i]===2){if(!sLaid[s])layoutColony(s);aRoad[i]=0;const r=sWare[s];setTarget(i,rx[r]+jit(i,1)*rw[r]*0.7,rz[r]+jit(i,2)*rd[r]*0.7,SPD_TOWN);return 0}
+      aLoc[i]=LC_STORE;aRoom[i]=sWare[s];aNode[i]=-1;
+      if(aHome[i]<0||bS[aHome[i]]!==s){assignHome(i,s);assignWork(i,s)}
+      if(aCQ[i]>0&&!(aInv[i]&(CARRY_OUT|HAS_CARGO))){sStock[b+aCG[i]]+=aCQ[i];aCQ[i]=0}
+      if(aRation[i]>0){sStock[b+2]+=aRation[i];aRation[i]=0}
+      if(aObsT[i]>=0){const t=aObsT[i];for(let r=0;r<GN;r++)sBel[(s*MS+t)*GN+r]=aObsP[i*GN+r];aObsT[i]=-1}
+      if(aArch[i]!==2&&rnd()<trust(aId[i],sCult[s])*0.5)mergeKnow(s,aKn,i,'a returning caravan');
+      return 1}
+    case 21:{
+      if(aPh[i]===0){aPh[i]=1;aTm[i]=T+40;return 0}if(T<aTm[i])return 0;
+      if(knDiff(aKn,i,sKn,s)){const names=[];for(let t=0;t<S;t++)if(kn(aKn,i,t)&&!kn(sKn,s,t))names.push(sName[t]);
+        const c=mergeKnow(s,aKn,i,dwarfName(i));stat.disc+=c;
+        if(c)log(dwarfName(i)+' returns to '+sName[s]+' with word of '+names.slice(0,3).join(', ')+(names.length>3?' and '+(names.length-3)+' more':'')+'.','k-disc',{k:'discover',score:42,a:i,s})}
+      if(aSiteS[i]>5){addSite(s,aSiteX[i],aSiteZ[i],aSiteS[i],i);aSiteS[i]=0}
+      aInv[i]&=~HAS_NEWS;aExp[i]=T+DAY*1.5+(rnd()*DAY*1.5|0);return 1}
+    case 22:if(!errand(i,sWare[s],-1))return 0;if(sStock[b+6]<3||sStock[b+8]<4)return -1;sStock[b+6]-=3;sStock[b+8]-=4;aInv[i]|=HAS_MAT;return 1;
+    case 23:{
+      if(aPh[i]===0){aPh[i]=1;aLoc[i]=LC_STREET;aRoom[i]=-1;setTarget(i,sSiteX[s]+jit(i,3)*3,sSiteZ[s]+jit(i,4)*3,SPD_TOWN);return 0}
+      if(aPh[i]===1){if(aMov[i])return 0;aLoc[i]=LC_SITE;aPh[i]=2;aTm[i]=T+200;return 0}
+      if(T<aTm[i])return 0;aInv[i]&=~HAS_MAT;sProg[s]+=1;checkGrow(s);return 1}
+    case 24:{
+      if(aPh[i]===0){aLoc[i]=LC_STREET;aRoom[i]=-1;aPh[i]=1}else{if(aMov[i])return 0;if(aPh[i]>=4)return 1;aPh[i]++}
+      const ang=rnd()*Math.PI*2,r=sRad[s]*0.9;setTarget(i,sx[s]+Math.cos(ang)*r,sz[s]+Math.sin(ang)*r,SPD_TOWN*1.1);return 0}
+    case 25:{
+      if(aPh[i]===0){aLoc[i]=LC_STREET;aRoom[i]=-1;aPh[i]=1;const ang=rnd()*Math.PI*2,r=sRad[s]+20+rnd()*35;setTarget(i,sx[s]+Math.cos(ang)*r,sz[s]+Math.sin(ang)*r,SPD_TOWN);return 0}
+      if(aPh[i]===1){if(aMov[i])return 0;aPh[i]=2;aTm[i]=T+150;return 0}
+      if(T<aTm[i])return 0;aFoodQ[i]=110;aInv[i]|=HAS_RAW;return 1}
+  }
+  return -1;
+}
+
+// ================= colonies & waystations =================
+function addSite(s,x,z,score,i){
+  const L=sSites[s];for(const q of L){const dx=q.x-x,dz=q.z-z;if(dx*dx+dz*dz<COLONY_GAP*COLONY_GAP){if(score>q.score){q.x=x;q.z=z;q.score=score}return}}
+  const R=siteRes(x,z,3.3);L.push({x,z,score,coast:R[5]>0.06});L.sort((a,b)=>b.score-a.score);if(L.length>4)L.length=4;stat.sites++;
+  const dx=x-sx[s],dz=z-sz[s];
+  log(dwarfName(i)+' brings back word of good '+(R[5]>0.06?'coastal ':'')+'land '+daysText(Math.sqrt(dx*dx+dz*dz))+' '+compass(dx,dz)+' of '+sName[s]+'.','k-disc',{k:'site',score:54,a:i,s,x,z});
+}
+function siteValid(x,z){for(let t=0;t<S;t++){const dx=sx[t]-x,dz=sz[t]-z;if(dx*dx+dz*dz<COLONY_GAP*COLONY_GAP)return false}return true}
+function newSettlement(p,x,z,way){
+  if(S>=MAXS)return -1;const s=S++;
+  sx[s]=x;sz[s]=z;sK[s]=sK[p];sFaith[s]=sFaith[p];sCult[s]=(sCult[p]&~(3<<14))|(1<<(14+(rnd()*2|0)));
+  sName[s]=uniqueName(way);sTier[s]=0;sWay[s]=way?1:0;sParent[s]=p;sLaid[s]=0;sLevel[s]=0;sProg[s]=0;sPop[s]=0;sHouses[s]=0;
+  sStore[s]=-1;sGran[s]=-1;sWare[s]=-1;sTap[s]=-1;sRad[s]=20;sReach[s]=reachOf(x,z,3.3);sSites[s]=[];sFree[s]=[];
+  for(let g=0;g<GN;g++){sStock[s*GN+g]=0;sPrice[s*GN+g]=BASEP[g]}
+  for(let w=0;w<KW;w++)sKn[s*KW+w]=sKn[p*KW+w];knSet(sKn,s,s);mergeOne(p,s,'');
+  for(let t=0;t<S;t++)for(let g=0;g<GN;g++){sBel[(s*MS+t)*GN+g]=sBel[(p*MS+t)*GN+g];}
+  for(let g=0;g<GN;g++){sBel[(p*MS+s)*GN+g]=BASEP[g]*1.3;sBel[(s*MS+p)*GN+g]=sPrice[p*GN+g]}
+  setSpec(s,jobWeights(s));
+  return s;
+}
+function pickSettlers(p,roles){
+  const chosen=[];const want=roles.slice();const cand=[];
+  for(let i=0;i<NCAP;i++)if(!aDead[i]&&aSet[i]===p&&aLoc[i]!==LC_AWAY&&!aCamp[i]&&aGoal[i]>>4!==V_TRADE)cand.push(i);
+  shuffle(cand);const used=new Set();
+  for(const[arch,g]of want){let pick=-1;
+    for(const i of cand){if(used.has(i))continue;if(aArch[i]===arch||(arch===0&&aArch[i]===0)){pick=i;break}}
+    if(pick<0)for(const i of cand){if(!used.has(i)&&aArch[i]!==2){pick=i;break}}
+    if(pick<0)break;used.add(pick);chosen.push([pick,arch,g])}
+  return chosen;
+}
+function launchParty(p,s,roles,supplies){
+  const party=pickSettlers(p,roles);if(party.length<3)return 0;lastParty=party.map(q=>q[0]);
+  const pb=p*GN;let k=0;
+  const sup=[];for(const[g,q]of supplies){let left=Math.min(q,Math.max(0,sStock[pb+g]-2));sStock[pb+g]-=left;while(left>0){const c=Math.min(8,left);sup.push([g,c]);left-=c}}
+  for(const[i,arch,g]of party){
+    cleanup(i);aPlanOff[i]=-1;if(aHome[i]>=0)bRes[aHome[i]]--;aHome[i]=-1;aWork[i]=-1;
+    const[pal,m]=rolePalette(arch,g,s,rnd()*8|0);aPal[i]=pal;aMask[i]=m;aArch[i]=arch;
+    aSet[i]=s;aInv[i]=0;aCamp[i]=0;
+    const nb=Math.min(3,Math.floor(sStock[pb+2]));sStock[pb+2]-=nb;aRation[i]=nb;
+    if(k<sup.length){aCG[i]=sup[k][0];aCQ[i]=sup[k][1];k++}else aCQ[i]=0;
+    aGoal[i]=G(V_SETTLE,0);aSlot[i]=0;aPlanOff[i]=PLAN_SETTLE;aStep[i]=0;aPh[i]=0;aLoc[i]=LC_AWAY;aRoom[i]=-1;aNode[i]=p;aPrev[i]=p;
+    knCopy(aKn,i,sKn,s);
+  }
+  for(;k<sup.length;k++)sStock[pb+sup[k][0]]+=sup[k][1];
+  if(!sLaid[s]){sPend[s]={roles:party.map(q=>[q[1],q[2]]),n:party.length};sPop[s]=party.length}else sPop[s]+=party.length;
+  return party.length;
+}
+function colonyRoles(x,z,n,way){
+  const R=siteRes(x,z,3.3);const food=R[5]*1.3>R[4]?14:0;const roles=[];
+  const nf=Math.max(2,Math.round(n*0.4));for(let k=0;k<nf;k++)roles.push([0,food]);
+  if(food===0&&n>=8){roles.push([0,1]);roles.push([0,2])}
+  if(R[0]>0.08){roles.push([0,5]);if(n>=8)roles.push([0,5])}
+  if(R[1]>0.05&&n>=8)roles.push([0,8]);
+  if(R[2]>0.08&&n>=10)roles.push([0,9]);
+  roles.push([3,0]);if(!way){roles.push([3,0]);roles.push([1,0]);roles.push([2,0]);roles.push([4,0])}
+  while(roles.length<n)roles.push([0,R[0]>0.08&&roles.length%3===0?5:food]);
+  return roles.slice(0,Math.max(n,roles.length));
+}
+function foundColony(p,site){
+  const s=newSettlement(p,site.x,site.z,false);if(s<0)return false;
+  const n=clamp(Math.round(sPop[p]*0.06),8,18);
+  const roles=colonyRoles(site.x,site.z,n,false);
+  const got=launchParty(p,s,roles,[[6,14],[8,10],[5,10],[0,n*2],[11,2]]);
+  if(!got){S--;return false}
+  addEdge(p,s);
+  let bt=-1,bd=1e12;for(let t=0;t<S-1;t++){if(t===p)continue;const dx=sx[t]-sx[s],dz=sz[t]-sz[s],d=dx*dx+dz*dz;if(d<bd){bd=d;bt=t}}
+  if(bt>=0&&Math.sqrt(bd)<DAYWALK*1.3)addEdge(s,bt);
+  rebuildRoutes();if(hooks.settlement)hooks.settlement(s);
+  sColonies[p]++;sLastFound[p]=T;stat.colonies++;
+  const dx=site.x-sx[p],dz=site.z-sz[p];
+  log(got+' dwarves leave '+sName[p]+' to found '+sName[s]+(site.coast?' on the coast':'')+', '+daysText(Math.sqrt(dx*dx+dz*dz))+' '+compass(dx,dz)+'.','k-contact',{k:'colony',score:80,s,a:lastParty[0],p,coast:site.coast});
+  return true;
+}
+function foundWaystation(e,px,pz){
+  const[a,b]=edges[e];const p=sPop[a]>=sPop[b]?a:b;if(!sLaid[p]||sPop[p]<40)return false;
+  const s=newSettlement(p,px,pz,true);if(s<0)return false;
+  const roles=colonyRoles(px,pz,5,true);
+  const got=launchParty(p,s,roles,[[6,8],[8,6],[5,8],[0,10],[2,10]]);
+  if(!got){S--;return false}
+  splitEdge(e,s);rebuildRoutes();if(hooks.settlement)hooks.settlement(s);stat.waystations++;
+  log('Travellers on the road between '+sName[a]+' and '+sName[b]+' have camped there so often that '+sName[p]+' sends '+got+' dwarves to raise a waystation: '+sName[s]+'.','k-contact',{k:'waystation',score:72,s,a:lastParty[0]});
+  return true;
+}
+function layoutColony(s){
+  const pend=sPend[s]||{roles:[],n:4};
+  const inner=[2];const outer=[];
+  for(let h=0;h<Math.ceil(pend.n/4)+1;h++)inner.push(0);
+  const types=new Set();for(const[arch,g]of pend.roles){if(arch===0)types.add(GOOD_BT[g]);if(arch===3){types.add(GOOD_BT[8]);types.add(GOOD_BT[6])}if(arch===2)types.add(GOOD_BT[5])}
+  for(const t of types)(OUTER_BT.has(t)?outer:inner).push(t);
+  placeBuildings(s,inner,outer,24);
+  sLaid[s]=1;sPend[s]=null;
+  log('The first settlers reach '+sName[s]+' and pitch their tents.','k-birth',{k:'arrive',score:62,s});
+  if(hooks.settlement)hooks.settlement(s,true);
+}
+function pressureOf(s,prodCount){
+  const P=Math.max(1,sPop[s]);const b=s*GN;
+  const food=sStock[b+2]+sStock[b]+sStock[b+14]+sStock[b+1];sFoodDays[s]=food/(P*1.3+1);
+  let idle=0;for(let g=0;g<GN;g++){const c=prodCount[s*GN+g];if(!c)continue;if(!resOk(s,g)||!sRooms[s*NRT+PROD_RT[g]].length)idle+=c;else if(sStock[b+g]>sTgt[b+g]*2.5)idle+=c*0.6}
+  const soilF=resFrac(sReach[s],4);if(soilF>=0&&soilF<0.6)idle+=prodCount[s*GN]*(0.6-soilF);
+  for(let r=0;r<NRES;r++)sResFrac[s*NRES+r]=resFrac(sReach[s],r);
+  const crowd=P/Math.max(1,sHouses[s]*5);
+  return clamp(idle/P*3+Math.max(0,crowd-0.95)*4+(sFoodDays[s]<1.5?(1.5-sFoodDays[s]):0),0,4);
+}
+function freeSlot(){for(let k=0;k<NCAP;k++){const i=(nextFree+k)%NCAP;if(aDead[i]){nextFree=(i+1)%NCAP;return i}}return -1}
+let nextFree=0;
+function dawn(){
+  const c=clockStr(T);
+  // census
+  for(let s=0;s<S;s++)sPop[s]=0;
+  const prodCount=new Int32Array(MAXS*GN);let alive=0;
+  for(let i=0;i<NCAP;i++){if(aDead[i])continue;alive++;const s=aSet[i];sPop[s]++;if(aArch[i]===0){const g=PAL[aPal[i]*8+3];if(g!==255)prodCount[s*GN+(g&15)]++}}
+  for(let s=0;s<S;s++){if(sLaid[s])updateTier(s,false);sPressure[s]=sLaid[s]?pressureOf(s,prodCount):0}
+  // births
+  for(let s=0;s<S;s++){if(!sLaid[s]||sPop[s]<4)continue;const crowd=sPop[s]/Math.max(1,sHouses[s]*5);
+    if(sFoodDays[s]<2||crowd>1.3)continue;let n=Math.floor(sPop[s]*0.015+rnd());
+    for(;n>0;n--){const i=freeSlot();if(i<0)break;
+      let best=0,bp=-1;for(let g=0;g<GN;g++){if(!sRooms[s*NRT+PROD_RT[g]].length||!resOk(s,g))continue;const r=sPrice[s*GN+g]/BASEP[g];if(r>bp){bp=r;best=g}}
+      const roll=rnd();const arch=roll<0.05?3:roll<0.08?2:roll<0.12?4:roll<0.17?1:0;
+      deathNote.delete(i);aGen[i]=(aGen[i]+1)&255;initAgent(i,s,arch,best,rnd()*8|0);sBorn[s]++;stat.born++;sPop[s]++;N=Math.max(N,i+1)}}
+  // colonies
+  let founded=0;
+  const order=[];for(let s=0;s<S;s++)if(sLaid[s]&&!sWay[s])order.push(s);order.sort((a,b)=>sPressure[b]-sPressure[a]);
+  for(const p of order){if(founded>=2||S>=MAXS-2)break;
+    if(sPressure[p]<0.5||sPop[p]<60||T-sLastFound[p]<DAY*2)continue;
+    const pb=p*GN;if(sStock[pb+2]+sStock[pb]<40||sStock[pb+6]<6||sStock[pb+8]<4)continue;
+    const L=sSites[p].filter(q=>siteValid(q.x,q.z));sSites[p]=L;if(!L.length)continue;
+    let best=null,bs=-1e9;for(const q of L){const dx=q.x-sx[p],dz=q.z-sz[p],d=Math.sqrt(dx*dx+dz*dz);if(d>DAYWALK*3.5)continue;const sc=q.score-d/DAYWALK*1.5;if(sc>bs){bs=sc;best=q}}
+    if(best&&foundColony(p,best)){sSites[p]=L.filter(q=>q!==best);founded++}
+  }
+  // young settlements draw migrants from crowded or idle holds nearby
+  for(let s=0;s<S;s++){if(!sLaid[s]||sParent[s]<0||sPop[s]>=240)continue;const crowd=sPop[s]/Math.max(1,sHouses[s]*5);if(crowd>1.15||sFoodDays[s]<1.2)continue;
+    let src=-1,bp=0.25;for(let t=0;t<S;t++){if(t===s||!sLaid[t]||sWay[t]||sPop[t]<60||NEXT[t*MS+s]<0||DIST[t*MS+s]>DAYWALK*3)continue;if(!sKnows(t,s))continue;const pr=sPressure[t]+(t===sParent[s]?0.15:0);if(pr>bp){bp=pr;src=t}}
+    if(src<0)continue;
+    const n=sWay[s]?2:3+(rnd()*3|0);const R=siteRes(sx[s],sz[s]);const food=R[5]*1.3>R[4]?14:0;
+    const roles=[];for(let k=0;k<n;k++)roles.push(k===2?[3,0]:[0,k%2&&R[0]>0.08?5:food]);
+    const got=launchParty(src,s,roles,[[0,n*2]]);
+    if(got){sPend[s]=null;if(rnd()<0.25)log(got+' dwarves leave crowded '+sName[src]+' for '+sName[s]+'.','',{k:'migrate',score:32,s,a:lastParty[0]})}
+  }
+  // waystations where travellers keep sleeping rough
+  let bc=-1,bh=14;for(let k=0;k<RG2;k++)if(campHeat[k]>bh){bh=campHeat[k];bc=k}
+  if(bc>=0&&S<MAXS-1){const cx=cellX(bc),cz=cellZ(bc);
+    let clear=true;for(let t=0;t<S;t++){const dx=sx[t]-cx,dz=sz[t]-cz;if(dx*dx+dz*dz<200*200){clear=false;break}}
+    if(clear){
+      let be=-1,bd=90*90,px=0,pz=0;
+      for(let e=0;e<edges.length;e++){const[a,b]=edges[e];const ex=sx[b]-sx[a],ez=sz[b]-sz[a],l2=ex*ex+ez*ez;let t=((cx-sx[a])*ex+(cz-sz[a])*ez)/l2;t=clamp(t,0.15,0.85);
+        const qx=sx[a]+ex*t,qz=sz[a]+ez*t,d=(qx-cx)**2+(qz-cz)**2;if(d<bd&&biomeAt(qx,qz)>=2){bd=d;be=e;px=qx;pz=qz}}
+      if(be>=0&&foundWaystation(be,px,pz)){const c0=bc%RG,r0=Math.floor(bc/RG);for(let dz=-3;dz<=3;dz++)for(let dx=-3;dx<=3;dx++){const gx=c0+dx,gz=r0+dz;if(gx>=0&&gz>=0&&gx<RG&&gz<RG)campHeat[gz*RG+gx]=0}}
+    }}
+  for(let k=0;k<RG2;k++)campHeat[k]*=0.85;
+  let known=0,laid=0;for(let s=0;s<S;s++)if(sLaid[s]){laid++;known+=knCount(sKn,s)}
+  log('Dawn of day '+c.d+'. '+alive.toLocaleString()+' dwarves in '+laid+' settlements; '+stat.colonies+' colonies and '+stat.waystations+' waystations founded; '+stat.deaths+' dead.','');
+}
+
+// ================= tick =================
+function openCamp(i,onRoad){
+  aCamp[i]=1;
+  if(onRoad)campHeat[cellOf(ax[i],az[i])]+=1;
+  if(rnd()<(onRoad?0.035:0.02)){stat.mishaps++;
+    if(aCQ[i]>0.5){const lost=aCQ[i]*0.4;aCQ[i]-=lost;if(stat.mishaps%9===1)log('Bandits rob a camp of '+dwarfName(i)+' from '+sName[aSet[i]]+' of '+lost.toFixed(0)+' '+GOODS[aCG[i]]+'.','k-death',{k:'mishap',score:46,a:i})}
+    else{aHP[i]-=30;if(stat.mishaps%9===1)log('Wolves maul '+dwarfName(i)+' of '+sName[aSet[i]]+' while camping rough.','k-death',{k:'mishap',score:46,a:i})}}
+}
+function tick(){
+  T++;
+  tod=((T+DAY*0.27)%DAY)/DAY;
+  const ph=phaseOf(tod);isDay=ph.day;evening=ph.eve;lateNight=ph.late;
+  for(let i=0;i<NCAP;i++){
+    if(aDead[i])continue;
+    const off=aPlanOff[i];
+    const act=off>=0?POOL[off+1+aStep[i]]:-1;aCur[i]=act;
+    const asleep=act===A_SLEEP||aCamp[i]===1||aCamp[i]===3;
+    if(asleep){aHun[i]+=0.035}else{aHun[i]+=HUNGER_RATE;aFat[i]+=0.085}
+    aSoc[i]+=0.04;if(aHun[i]>255)aHun[i]=255;if(aFat[i]>255)aFat[i]=255;if(aSoc[i]>255)aSoc[i]=255;
+    if(aHun[i]>=250)aHP[i]-=0.045;else if(aHun[i]<170&&aFat[i]<200&&aHP[i]<100)aHP[i]+=0.02;
+    if(aHP[i]<=0){die(i,aHun[i]>=250?'hunger':'wounds');continue}
+    if(aCamp[i]){
+      if(aCamp[i]===1||aCamp[i]===3){aFat[i]=Math.max(0,aFat[i]-(aCamp[i]===3?0.5:0.4));if(aFat[i]<25&&!lateNight||aHun[i]>235&&aFat[i]<150)aCamp[i]=0}
+      else if(T>=aTm[i]){aCamp[i]=0;const bi=biomeAt(ax[i],az[i]);aHun[i]=Math.max(0,aHun[i]-(bi===4?90:bi===3?70:35))}
+      continue;
+    }
+    const away=aLoc[i]===LC_AWAY;
+    if(away){
+      if(aHun[i]>130&&aRation[i]>0){aRation[i]--;aHun[i]=Math.max(0,aHun[i]-200);stat.eaten++}
+      else if(aHun[i]>205&&aRation[i]===0){aCamp[i]=2;aTm[i]=T+160;continue}
+      if(aFat[i]>200||(lateNight&&aFat[i]>100)){
+        const onRoad=aNode[i]>=0&&(act===A_CARAVAN||(act===A_RETURN&&aRoad[i]===1));
+        let defer=false;if(onRoad&&aFat[i]<240){const dx=sx[aNode[i]]-ax[i],dz=sz[aNode[i]]-az[i];if(dx*dx+dz*dz<190*190)defer=true}
+        if(!defer){openCamp(i,onRoad);continue}
+      }
+    }else if(aFat[i]>=254){aCamp[i]=1;continue}
+    if(aMov[i]){const dx=atx[i]-ax[i],dz=atz[i]-az[i],d2=dx*dx+dz*dz,sp=aSpd[i]*(aHun[i]>230?0.6:1);
+      if(d2<=sp*sp){ax[i]=atx[i];az[i]=atz[i];aMov[i]=0}else{const k=sp/Math.sqrt(d2);ax[i]+=dx*k;az[i]+=dz*k}}
+    if(off>=0){
+      const r=exec(i,act);
+      if(r===1){aStep[i]++;aPh[i]=0;if(aStep[i]>=POOL[off])done(i)}
+      else if(r<0)fail(i);
+      else if(!away&&!(aInv[i]&HAS_CARGO)&&act!==A_SLEEP){
+        const v=aGoal[i]>>4;
+        if((((T+i)&15)===0&&((aHun[i]>205&&v!==V_EAT)||(aFat[i]>225&&v!==V_REST)))){cleanup(i);aPlanOff[i]=-1;think(i)}
+        else if(((T+i)&63)===0&&v!==V_SETTLE){const cur=urgency(i,aGoal[i]);const[k,u]=bestSlot(i,0);if(k>=0&&u>cur+70&&k!==aSlot[i]){cleanup(i);aPlanOff[i]=-1;think(i)}}
+      }
+    }else if(T>=aNext[i])think(i);
+  }
+  if(T%25===0)econ();
+  if(T%100===0)regrow();
+  if(T%DAY===0)dawn();
+}
+
+if(HEADLESS&&typeof module!=='undefined'){module.exports={genWorld,tick,get:()=>({N,NCAP,S,K,T,stat,sStock,sTgt,sPrice,sKn,aGoal,aLoc,aHun,aFat,aSoc,aHP,aDead,aCamp,aRation,aSet,planCache,LOG,sLevel,GN,aCur,sPop,nR,nB,sTier,sWay,sLaid,sPressure,sResFrac,sName,sSites,sFoodDays,campHeat,edges,resAmt,resMax,EVENTS})}}
+
+// ================= rendering =================
+if(!HEADLESS){
+const canvas=document.getElementById('c'),stage=document.getElementById('stage'),labelsEl=document.getElementById('labels');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+const scene=new THREE.Scene();
+const camera=new THREE.OrthographicCamera(-1,1,1,-1,-9000,9000);
+const ELEV=58*Math.PI/180,CAMD=4000,MAXVIEW=6600;
+let camT=new THREE.Vector3(0,0,0),viewH=5400;
+const amb=new THREE.AmbientLight(0xffffff,0.6);scene.add(amb);
+const sun=new THREE.DirectionalLight(0xffffff,0.8);scene.add(sun);scene.add(sun.target);
+let world=null,boxMesh,roofMesh,roomMesh,glowGeo,glowPts,agentGeo,agentPts,roadGroup=null,roadGeo,overlayMat,overlayTex,resTex,resCanvas,resMat,heatGeo,heatPts,selRing,setRing,knownLines,terrainTex;
+let posA,colA,sizeA,gPos,gAlpha,gSize,gCol,hAlpha;
+let selAgent=-1,selSet=-1,follow=false,speed=4,fadedWalls=false,ready=false,instDirty=false,overlayDirty=false;
+const settleLabels=[],kingdomLabels=[],roomLabels=[];
+const VC=VCOL.map(c=>new THREE.Color(c)),CAMPC=new THREE.Color('#4a5470');
+
+function hexRGB(h){const c=new THREE.Color(h);return[c.r*255,c.g*255,c.b*255]}
+const BIOCOL=['#1a3550','#2c5673','#b5a679','#7f9a55','#4b6c3b','#8c845f','#86817b','#dcdad3'].map(hexRGB);
+function paintTerrain(){
+  const c=document.createElement('canvas');c.width=c.height=RES;const ctx=c.getContext('2d');const img=ctx.createImageData(RES,RES);const D=img.data;
+  for(let y=0;y<RES;y++)for(let x=0;x<RES;x++){const i=y*RES+x,b=BIO[i],h=HGT[i];let col=BIOCOL[b];
+    let sh=1;if(b>=2&&x>0&&y>0&&x<RES-1&&y<RES-1){const gx=HGT[i+1]-HGT[i-1],gy=HGT[i+RES]-HGT[i-RES];sh=clamp(1-(gx+gy)*14,0.66,1.34)}
+    let r=col[0],g=col[1],bb=col[2];
+    if(b<=1){const dep=clamp((0.42-h)/0.2,0,1);r*=1-dep*0.35;g*=1-dep*0.3;bb*=1-dep*0.2}
+    if(b===4){const sp=(hash32(i*13)&255)/255;sh*=0.86+sp*0.2}
+    const n=0.96+((hash32(i)&255)/255)*0.08;
+    D[i*4]=clamp(r*sh*n,0,255);D[i*4+1]=clamp(g*sh*n,0,255);D[i*4+2]=clamp(bb*sh*n,0,255);D[i*4+3]=255}
+  ctx.putImageData(img,0,0);return c;
+}
+const overlayCanvas=document.createElement('canvas');overlayCanvas.width=overlayCanvas.height=256;
+function paintOverlay(){
+  const R2=256,ctx=overlayCanvas.getContext('2d');const img=ctx.createImageData(R2,R2);const D=img.data;
+  const kg=new Int8Array(R2*R2).fill(-1);
+  for(let y=0;y<R2;y++)for(let x=0;x<R2;x++){const wx=(x+0.5)/R2*WORLD-HALF,wz=(y+0.5)/R2*WORLD-HALF;if(biomeAt(wx,wz)<2)continue;
+    let bd=1e12,bk=-1;for(let s=0;s<S;s++){if(!sLaid[s])continue;const dx=sx[s]-wx,dz=sz[s]-wz,rr=220+sTier[s]*110,d=(dx*dx+dz*dz)/(rr*rr);if(d<bd){bd=d;bk=sK[s]}}if(bd<1)kg[y*R2+x]=bk}
+  const KC=KCOL.map(hexRGB);
+  for(let y=0;y<R2;y++)for(let x=0;x<R2;x++){const i=y*R2+x,k=kg[i];if(k<0)continue;
+    let edge=false;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=R2||yy>=R2)continue;if(kg[yy*R2+xx]!==k){edge=true;break}}
+    const col=KC[k];D[i*4]=col[0];D[i*4+1]=col[1];D[i*4+2]=col[2];D[i*4+3]=edge?210:64}
+  ctx.putImageData(img,0,0);if(overlayTex)overlayTex.needsUpdate=true;
+}
+function paintResources(){
+  const ctx=resCanvas.getContext('2d');const img=ctx.createImageData(RG,RG);const D=img.data;
+  for(let c=0;c<RG2;c++){let r=0,g=0,b=0,a=0;
+    const wm=resMax[c];if(wm>30){const d=1-resAmt[c]/wm;if(d>0.15){r=96;g=66;b=38;a=Math.min(200,d*230)}}
+    const sm=resMax[4*RG2+c];if(a===0&&sm>40){const d=1-resAmt[4*RG2+c]/sm;if(d>0.2){r=214;g=196;b=130;a=Math.min(170,d*200)}}
+    const fm=resMax[5*RG2+c];if(a===0&&fm>40){const d=1-resAmt[5*RG2+c]/fm;if(d>0.25){r=140;g=190;b=210;a=Math.min(140,d*170)}}
+    const om=resMax[2*RG2+c]+resMax[RG2+c];if(a===0&&om>80){const d=1-(resAmt[2*RG2+c]+resAmt[RG2+c])/om;if(d>0.1){r=60;g=58;b=62;a=Math.min(170,d*400)}}
+    D[c*4]=r;D[c*4+1]=g;D[c*4+2]=b;D[c*4+3]=a}
+  ctx.putImageData(img,0,0);resTex.needsUpdate=true;
+}
+const agentVS=`attribute vec3 acol;attribute float asize;uniform float uPx;uniform float uMin;varying vec3 vC;varying float vS;
+void main(){vC=acol;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);float s=asize*uPx*0.75;gl_PointSize=asize<0.01?0.0:clamp(s,uMin*asize,18.0);vS=gl_PointSize;}`;
+const agentFS=`uniform float uDay;varying vec3 vC;varying float vS;
+void main(){vec2 d=gl_PointCoord-0.5;float r=length(d);if(r>0.5)discard;float rim=vS>5.0?smoothstep(0.30,0.44,r):0.0;vec3 c=mix(vC,vC*0.22,rim);c*=mix(0.62,1.0,uDay);gl_FragColor=vec4(c,1.0);}`;
+const glowVS=`attribute float gsize;attribute float galpha;attribute vec3 gcol;uniform float uPx;uniform float uMinG;varying float vA;varying vec3 vC;
+void main(){vA=galpha;vC=gcol;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);gl_PointSize=galpha<0.01?0.0:clamp(gsize*uPx,uMinG,90.0);}`;
+const glowFS=`varying float vA;varying vec3 vC;void main(){float r=length(gl_PointCoord-0.5)*2.0;float a=vA*pow(max(0.0,1.0-r),2.0);gl_FragColor=vec4(vC*a,a);}`;
+
+function buildRoads(){
+  if(!world)return;
+  if(roadGroup){world.remove(roadGroup);roadGroup.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose()})}
+  roadGroup=new THREE.Group();
+  const rp=[],lp=[],lc=[];
+  for(const[a,b]of edges){const x1=sx[a],z1=sz[a],x2=sx[b],z2=sz[b],dx=x2-x1,dz=z2-z1,l=Math.sqrt(dx*dx+dz*dz)||1,px=-dz/l*1.6,pz=dx/l*1.6;
+    rp.push(x1+px,0.06,z1+pz,x2+px,0.06,z2+pz,x2-px,0.06,z2-pz,x1+px,0.06,z1+pz,x2-px,0.06,z2-pz,x1-px,0.06,z1-pz);
+    lp.push(x1,0.2,z1,x2,0.2,z2);lc.push(0.5,0.42,0.3,0.5,0.42,0.3)}
+  const rg=new THREE.BufferGeometry();rg.setAttribute('position',new THREE.Float32BufferAttribute(rp,3));rg.computeVertexNormals();
+  roadGroup.add(new THREE.Mesh(rg,new THREE.MeshLambertMaterial({color:0x8a7856,side:THREE.DoubleSide})));
+  roadGeo=new THREE.BufferGeometry();roadGeo.setAttribute('position',new THREE.Float32BufferAttribute(lp,3));roadGeo.setAttribute('color',new THREE.Float32BufferAttribute(lc,3));
+  roadGroup.add(new THREE.LineSegments(roadGeo,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:0.9})));
+  world.add(roadGroup);
+}
+function makeLabel(s){
+  const d=document.createElement('div');d.addEventListener('click',()=>{selectSettlement(s)});labelsEl.appendChild(d);settleLabels[s]=d;styleLabel(s);
+}
+function styleLabel(s){const d=settleLabels[s];if(!d)return;d.className='lab'+(sCap[s]?' cap':'')+(sWay[s]?' way':'')+(sTier[s]===0?' camp':'');
+  d.textContent=sName[s]+(sLaid[s]?'':' (settlers en route)')}
+function placeKingdomLabels(){
+  for(const kl of kingdomLabels)kl.el.remove();kingdomLabels.length=0;
+  for(let k=0;k<K;k++){let cx=0,cz=0,c=0;for(let s=0;s<S;s++)if(sK[s]===k&&sLaid[s]){cx+=sx[s]*(sPop[s]+20);cz+=sz[s]*(sPop[s]+20);c+=sPop[s]+20}
+    if(!c)continue;const d=document.createElement('div');d.className='klab';d.textContent=kName[k];labelsEl.appendChild(d);kingdomLabels.push({el:d,x:cx/c,z:cz/c+120})}
+}
+function buildScene(){
+  ready=false;
+  if(world){scene.remove(world);world.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material){if(o.material.map)o.material.map.dispose();o.material.dispose()}})}
+  world=new THREE.Group();scene.add(world);fadedWalls=false;roadGroup=null;
+  terrainTex=new THREE.CanvasTexture(paintTerrain());terrainTex.anisotropy=4;
+  const tg=new THREE.PlaneGeometry(WORLD,WORLD);tg.rotateX(-Math.PI/2);
+  world.add(new THREE.Mesh(tg,new THREE.MeshLambertMaterial({map:terrainTex})));
+  const seaG=new THREE.PlaneGeometry(WORLD*6,WORLD*6);seaG.rotateX(-Math.PI/2);seaG.translate(0,-0.5,0);
+  world.add(new THREE.Mesh(seaG,new THREE.MeshLambertMaterial({color:0x1a3550})));
+  resCanvas=document.createElement('canvas');resCanvas.width=resCanvas.height=RG;resTex=new THREE.CanvasTexture(resCanvas);
+  const rgp=new THREE.PlaneGeometry(WORLD,WORLD);rgp.rotateX(-Math.PI/2);rgp.translate(0,0.03,0);
+  resMat=new THREE.MeshBasicMaterial({map:resTex,transparent:true,depthWrite:false,opacity:0.85});world.add(new THREE.Mesh(rgp,resMat));paintResources();
+  overlayTex=new THREE.CanvasTexture(overlayCanvas);paintOverlay();
+  const og=new THREE.PlaneGeometry(WORLD,WORLD);og.rotateX(-Math.PI/2);og.translate(0,0.05,0);
+  overlayMat=new THREE.MeshBasicMaterial({map:overlayTex,transparent:true,depthWrite:false,opacity:0.8});world.add(new THREE.Mesh(og,overlayMat));
+  buildRoads();
+  const bg=new THREE.BoxGeometry(1,1,1);bg.translate(0,0.5,0);
+  const cg=new THREE.ConeGeometry(0.71,1,4,1);cg.rotateY(Math.PI/4);cg.translate(0,0.5,0);
+  boxMesh=new THREE.InstancedMesh(bg,new THREE.MeshLambertMaterial(),MAXB);roofMesh=new THREE.InstancedMesh(cg,new THREE.MeshLambertMaterial(),MAXB);
+  roomMesh=new THREE.InstancedMesh(bg,new THREE.MeshLambertMaterial(),MAXR);
+  const cz=new THREE.Color(0);for(let b=0;b<MAXB;b++){boxMesh.setColorAt(b,cz);roofMesh.setColorAt(b,cz)}for(let r=0;r<MAXR;r++)roomMesh.setColorAt(r,cz);
+  glowGeo=new THREE.BufferGeometry();gPos=new Float32Array(MAXB*3);gAlpha=new Float32Array(MAXB);gSize=new Float32Array(MAXB);gCol=new Float32Array(MAXB*3);
+  glowGeo.setAttribute('position',new THREE.BufferAttribute(gPos,3));glowGeo.setAttribute('galpha',new THREE.BufferAttribute(gAlpha,1).setUsage(THREE.DynamicDrawUsage));
+  glowGeo.setAttribute('gsize',new THREE.BufferAttribute(gSize,1));glowGeo.setAttribute('gcol',new THREE.BufferAttribute(gCol,3));
+  glowPts=new THREE.Points(glowGeo,new THREE.ShaderMaterial({uniforms:{uPx:{value:1},uMinG:{value:2.5}},vertexShader:glowVS,fragmentShader:glowFS,transparent:true,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}));
+  glowPts.frustumCulled=false;glowPts.renderOrder=5;
+  for(let b=0;b<nB;b++)setBuilding(b);for(let r=0;r<nR;r++)setRoom(r);
+  boxMesh.count=nB;roofMesh.count=nB;roomMesh.count=nR;glowGeo.setDrawRange(0,nB);
+  world.add(roomMesh);world.add(boxMesh);world.add(roofMesh);
+  // campfire heat: where travellers sleep rough
+  heatGeo=new THREE.BufferGeometry();const hp=new Float32Array(RG2*3),hs=new Float32Array(RG2).fill(34),hc=new Float32Array(RG2*3);hAlpha=new Float32Array(RG2);
+  for(let c=0;c<RG2;c++){hp[c*3]=cellX(c);hp[c*3+1]=0.4;hp[c*3+2]=cellZ(c);hc[c*3]=1;hc[c*3+1]=0.55;hc[c*3+2]=0.2}
+  heatGeo.setAttribute('position',new THREE.BufferAttribute(hp,3));heatGeo.setAttribute('gsize',new THREE.BufferAttribute(hs,1));heatGeo.setAttribute('gcol',new THREE.BufferAttribute(hc,3));
+  heatGeo.setAttribute('galpha',new THREE.BufferAttribute(hAlpha,1).setUsage(THREE.DynamicDrawUsage));
+  heatPts=new THREE.Points(heatGeo,new THREE.ShaderMaterial({uniforms:{uPx:{value:1},uMinG:{value:3}},vertexShader:glowVS,fragmentShader:glowFS,transparent:true,depthWrite:false,depthTest:false,blending:THREE.AdditiveBlending}));
+  heatPts.frustumCulled=false;heatPts.renderOrder=4;world.add(heatPts);
+  agentGeo=new THREE.BufferGeometry();posA=new Float32Array(NCAP*3);colA=new Float32Array(NCAP*3);sizeA=new Float32Array(NCAP);
+  agentGeo.setAttribute('position',new THREE.BufferAttribute(posA,3).setUsage(THREE.DynamicDrawUsage));
+  agentGeo.setAttribute('acol',new THREE.BufferAttribute(colA,3).setUsage(THREE.DynamicDrawUsage));
+  agentGeo.setAttribute('asize',new THREE.BufferAttribute(sizeA,1).setUsage(THREE.DynamicDrawUsage));
+  agentPts=new THREE.Points(agentGeo,new THREE.ShaderMaterial({uniforms:{uPx:{value:1},uMin:{value:1.6},uDay:{value:1}},vertexShader:agentVS,fragmentShader:agentFS}));
+  agentPts.frustumCulled=false;world.add(agentPts);world.add(glowPts);
+  const rgG=new THREE.RingGeometry(0.85,1.15,32);rgG.rotateX(-Math.PI/2);
+  selRing=new THREE.Mesh(rgG,new THREE.MeshBasicMaterial({color:0xf2d58e,depthTest:false,transparent:true}));selRing.renderOrder=9;selRing.visible=false;world.add(selRing);
+  setRing=new THREE.Mesh(new THREE.RingGeometry(0.97,1.0,96).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0xf2d58e,depthTest:false,transparent:true,opacity:0.8}));
+  setRing.renderOrder=9;setRing.visible=false;world.add(setRing);
+  knownLines=new THREE.LineSegments(new THREE.BufferGeometry(),new THREE.LineBasicMaterial({color:0xf2d58e,transparent:true,opacity:0.55,depthTest:false}));
+  knownLines.renderOrder=8;world.add(knownLines);
+  labelsEl.innerHTML='';settleLabels.length=0;kingdomLabels.length=0;roomLabels.length=0;
+  for(let j=0;j<44;j++){const d=document.createElement('div');d.className='rlab';d.style.display='none';labelsEl.appendChild(d);roomLabels.push(d)}
+  for(let s=0;s<S;s++)makeLabel(s);
+  placeKingdomLabels();
+  selAgent=-1;selSet=-1;follow=false;ready=true;
+}
+const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_p=new THREE.Vector3(),_s=new THREE.Vector3(),_c=new THREE.Color(),_k=new THREE.Color();
+const GLOWC=new THREE.Color('#ffb25a'),FORGEC=new THREE.Color('#ff6a2a');
+function setBuilding(b){
+  const t=BT[bT[b]],type=bT[b],s=bS[b];const tent=sTier[s]===0&&(type===0||type===2||type===1);
+  let w=bW[b],h=bH[b],d=bD[b],roof=t.roof;if(tent){w*=0.8;d*=0.8;h*=0.45;roof=t.roof*1.1}
+  _p.set(bx[b],type===10?0.01:0,bz[b]);_s.set(w,h,d);_m.compose(_p,_q,_s);boxMesh.setMatrixAt(b,_m);
+  _c.set(tent?'#cdbf9f':t.wall);const v=0.88+0.24*((hash32(b*101)&255)/255);_c.multiplyScalar(v);
+  if(type===3&&(hash32(b*7)&3)===0)_c.set('#86a24c');
+  boxMesh.setColorAt(b,_c);
+  if(roof){_p.y=h;_s.set(w,roof,d);_m.compose(_p,_q,_s);roofMesh.setMatrixAt(b,_m);
+    if(tent)_c.set('#e2d6b8');else if(type===0||type===1){_k.set(KCOL[sK[s]]);_c.set('#3b3b40').lerp(_k,0.62)}else if(type===2)_c.set('#7a2f2a');else _c.set('#474c58');
+    roofMesh.setColorAt(b,_c)}
+  else{_s.set(0,0,0);_m.compose(_p,_q,_s);roofMesh.setMatrixAt(b,_m)}
+  gPos[b*3]=bx[b];gPos[b*3+1]=h+0.4;gPos[b*3+2]=bz[b];
+  gSize[b]=type===1?14:type===2?10:type===9||type===13?8:type===0?6:5;
+  const gc=type===9||type===13?FORGEC:GLOWC;gCol[b*3]=gc.r;gCol[b*3+1]=gc.g;gCol[b*3+2]=gc.b;
+}
+function setRoom(r){
+  _p.set(rx[r],0.015,rz[r]);_s.set(Math.max(0.1,rw[r]-0.14),0.05,Math.max(0.1,rd[r]-0.14));_m.compose(_p,_q,_s);roomMesh.setMatrixAt(r,_m);
+  _c.set(RT[rT[r]].c);roomMesh.setColorAt(r,_c);
+}
+hooks.building=function(b){if(!ready)return;setBuilding(b);for(let k=0;k<bNR[b];k++)setRoom(bRoom0[b]+k);instDirty=true};
+hooks.tier=function(s){if(!ready)return;for(let b=0;b<nB;b++)if(bS[b]===s)setBuilding(b);instDirty=true;styleLabel(s);overlayDirty=true};
+hooks.roads=function(){if(ready)buildRoads()};
+hooks.settlement=function(s,laid){if(!ready)return;if(!settleLabels[s])makeLabel(s);else styleLabel(s);overlayDirty=true;if(laid)placeKingdomLabels()};
+function flushInstances(){
+  boxMesh.count=nB;roofMesh.count=nB;roomMesh.count=nR;glowGeo.setDrawRange(0,nB);
+  for(const m of [boxMesh,roofMesh,roomMesh]){m.instanceMatrix.needsUpdate=true;m.instanceColor.needsUpdate=true}
+  glowGeo.attributes.position.needsUpdate=true;glowGeo.attributes.gsize.needsUpdate=true;glowGeo.attributes.gcol.needsUpdate=true;instDirty=false;
+}
+
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);updateCam()}
+function updateCam(){const w=stage.clientWidth||1,h=stage.clientHeight||1,a=w/h;
+  viewH=clamp(viewH,8,MAXVIEW);camT.x=clamp(camT.x,-HALF,HALF);camT.z=clamp(camT.z,-HALF,HALF);
+  camera.left=-viewH*a/2;camera.right=viewH*a/2;camera.top=viewH/2;camera.bottom=-viewH/2;
+  camera.position.set(camT.x,Math.sin(ELEV)*CAMD,camT.z+Math.cos(ELEV)*CAMD);camera.lookAt(camT.x,0,camT.z);camera.updateProjectionMatrix()}
+const ray=new THREE.Raycaster(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0),_n=new THREE.Vector2();
+function ground(cx,cy){const r=canvas.getBoundingClientRect();_n.set((cx-r.left)/r.width*2-1,-((cy-r.top)/r.height)*2+1);ray.setFromCamera(_n,camera);const p=new THREE.Vector3();ray.ray.intersectPlane(plane,p);return p}
+function zoomAt(cx,cy,f){const a=ground(cx,cy);viewH=clamp(viewH*f,8,MAXVIEW);updateCam();const b=ground(cx,cy);camT.x+=a.x-b.x;camT.z+=a.z-b.z;updateCam()}
+function pan(x0,y0,x1,y1){const a=ground(x0,y0),b=ground(x1,y1);camT.x+=a.x-b.x;camT.z+=a.z-b.z;updateCam()}
+const ptrs=new Map();let down=null,pinchD=0,pinchC=null;
+canvas.addEventListener('pointerdown',e=>{dPause();canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===1)down={x:e.clientX,y:e.clientY,t:performance.now(),moved:false};else{if(down)down.moved=true;const[p,q]=[...ptrs.values()];pinchD=Math.hypot(p.x-q.x,p.y-q.y);pinchC={x:(p.x+q.x)/2,y:(p.y+q.y)/2}}});
+canvas.addEventListener('pointermove',e=>{const p=ptrs.get(e.pointerId);if(!p)return;const ox=p.x,oy=p.y;p.x=e.clientX;p.y=e.clientY;
+  if(ptrs.size===1){pan(ox,oy,p.x,p.y);if(down&&Math.hypot(p.x-down.x,p.y-down.y)>6){down.moved=true;follow=false}}
+  else if(ptrs.size===2){const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y),c={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+    if(pinchD>0)zoomAt(c.x,c.y,pinchD/d);if(pinchC)pan(pinchC.x,pinchC.y,c.x,c.y);pinchD=d;pinchC=c;follow=false}});
+const endPtr=e=>{if(!ptrs.has(e.pointerId))return;ptrs.delete(e.pointerId);if(ptrs.size<2){pinchD=0;pinchC=null}
+  if(ptrs.size===0&&down&&!down.moved&&performance.now()-down.t<600)tap(e.clientX,e.clientY);if(ptrs.size===0)down=null};
+canvas.addEventListener('pointerup',endPtr);canvas.addEventListener('pointercancel',endPtr);
+canvas.addEventListener('wheel',e=>{e.preventDefault();dPause();zoomAt(e.clientX,e.clientY,Math.exp(e.deltaY*0.0016));follow=false},{passive:false});
+function tap(cx,cy){
+  const p=ground(cx,cy),r=canvas.getBoundingClientRect(),pw=viewH/r.height;const rr=Math.max(14*pw,0.6);
+  let bi=-1,bd=rr*rr;for(let i=0;i<NCAP;i++){if(aDead[i])continue;const dx=ax[i]-p.x,dz=az[i]-p.z,d=dx*dx+dz*dz;if(d<bd){bd=d;bi=i}}
+  if(bi>=0&&viewH<1500){selectAgent(bi);return}
+  let bs=-1,sd=1e12;for(let s=0;s<S;s++){const dx=sx[s]-p.x,dz=sz[s]-p.z,d=Math.sqrt(dx*dx+dz*dz);if(d<sRad[s]+16*pw&&d<sd){sd=d;bs=s}}
+  if(bs>=0){selectSettlement(bs);return}
+  selAgent=-1;selSet=-1;follow=false;renderInspector();
+}
+function selectAgent(i){selAgent=i;selSet=-1;renderInspector();openSheet()}
+function selectSettlement(s){selSet=s;selAgent=-1;follow=false;renderInspector();openSheet()}
+let tween=null;
+const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function flyTo(x,z,h){if(reduced){camT.set(x,0,z);viewH=h;updateCam();return}tween={x0:camT.x,z0:camT.z,h0:viewH,x,z,h,t0:performance.now(),d:800}}
+function focusPoint(){if(selAgent>=0)return[ax[selAgent],az[selAgent]];if(selSet>=0)return[sx[selSet],sz[selSet]];
+  let bs=0;for(let s=1;s<S;s++)if(sPop[s]>sPop[bs])bs=s;return[sx[bs],sz[bs]]}
+document.querySelectorAll('#zoombar button').forEach(btn=>btn.addEventListener('click',()=>{dPause();const z=btn.dataset.z;const[x,zz]=focusPoint();
+  if(z==='realm')flyTo(0,120,5400);else if(z==='region')flyTo(x,zz,1300);else if(z==='hold'){const s=selSet>=0?selSet:selAgent>=0?aSet[selAgent]:-1;flyTo(x,zz,s>=0?Math.max(70,sRad[s]*2.6):120)}else flyTo(x,zz,22)}));
+
+const panel=document.getElementById('panel');
+function openSheet(){panel.classList.remove('collapsed')}
+document.getElementById('sheet').addEventListener('click',()=>panel.classList.toggle('collapsed'));
+document.querySelectorAll('.speed button').forEach(b=>b.addEventListener('click',()=>{speed=+b.dataset.s;document.querySelectorAll('.speed button').forEach(x=>x.classList.toggle('on',x===b))}));
+document.getElementById('legend').innerHTML=VERBS.map((v,j)=>`<span><i style="background:${VCOL[j]}"></i>${v==='Settle'?'Settling / migrating':v}</span>`).join('')+`<span><i style="background:${VCOL[IDLE_V]}"></i>Idle</span><span><i style="background:#4a5470"></i>Camping or collapsed</span>`;
+document.getElementById('roomlegend').innerHTML=RT.map(r=>`<span><i style="background:${r.c}"></i>${r.n}</span>`).join('');
+const inspEl=document.getElementById('insp'),statsEl=document.getElementById('stats'),logEl=document.getElementById('log');
+inspEl.addEventListener('click',e=>{const t=e.target.closest('[data-act]');if(!t)return;dPause();const a=t.dataset.act;
+  if(a==='follow'){follow=!follow;if(follow&&viewH>200)flyTo(ax[selAgent],az[selAgent],30);renderInspector()}
+  else if(a==='home'){selectSettlement(aSet[selAgent])}
+  else if(a==='goto'){flyTo(sx[selSet],sz[selSet],Math.max(70,sRad[selSet]*2.6))}
+  else if(a==='parent'){selectSettlement(+t.dataset.s);flyTo(sx[selSet],sz[selSet],Math.max(70,sRad[selSet]*2.6))}});
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function bindText(i,a,j){
+  const s=aSet[i],g=aGoal[i]&15;
+  switch(a){
+    case 0:return aHome[i]>=0?roomName(bedOf(i)):'';
+    case 1:return aHome[i]>=0?roomName(hearthOf(i)):'';
+    case 3:{const r=workFor(i,s,g);return r>=0?roomName(r):'none'}
+    case 4:return roomName(sTap[s]);
+    case 6:return 'granary → warehouse';
+    case 11:return RIN[g].map(([r,q])=>q+' '+GOODS[r]).join(' + ');
+    case 12:{const r=GOOD_RES[g];if(r>=0&&r!==4){const c=aStep[i]===j&&aPh[i]>0?aCell[i]:sResCell[s*NRES+r];if(c<0)return RESN[r]+' exhausted';
+      const dx=cellX(c)-sx[s],dz=cellZ(c)-sz[s];return RESN[r]+' '+Math.round(Math.sqrt(dx*dx+dz*dz))+' paces '+compass(dx,dz)}
+      return '→ '+(ROUT[g]*sYield[s*GN+g]).toFixed(1)+' '+GOODS[g]}
+    case 13:return GOODS[g]+' → '+RT[STORE_RT[g]].n.toLowerCase();
+    case 16:case 18:{const d=aDest[i]>=0&&aStep[i]>j-2?aDest[i]:sBuyer[s*GN+g];return d>=0?GOODS[g]+' → '+sName[d]+' ('+daysText(DIST[s*MS+d])+')':'no buyer'}
+    case 17:return aRation[i]>0?aRation[i]+' bread packed':'bread for the trip';
+    case 19:return 'heading '+DIRS[g]+' a day or more';
+    case 20:return sName[s];
+    case 23:return 'level '+sLevel[s]+' → '+(sLevel[s]+1);
+  }
+  return '';
+}
+function bar(v,max,cls){return `<div class="bar ${cls||''}"><i style="width:${clamp(v/max*100,0,100)}%"></i></div>`}
+function pct(v){return v<0?'—':Math.round(v*100)+'%'}
+function renderInspector(){
+  if(selAgent>=0&&aDead[selAgent]){const i=selAgent;
+    inspEl.innerHTML=`<h2>Inspector <small>dwarf #${i}</small></h2><div class="who"><b>${esc(dwarfName(i))}</b><span>${ARCH[aArch[i]]} of ${esc(sName[aSet[i]])}</span></div>
+      <p class="hint" style="margin-top:8px;color:var(--blood)">${esc(deathNote.get(i)||'Dead.')}</p>`;return}
+  if(selAgent>=0){const i=selAgent,s=aSet[i],pal=aPal[i];
+    const chips=[];for(let k=0;k<8;k++){const g=PAL[pal*8+k];if(g===255)continue;const on=(aMask[i]>>k)&1,cool=(aCool[i]>>k)&1&&T<=aCoolT[i],cur=aPlanOff[i]>=0&&aSlot[i]===k&&(aGoal[i]>>4)!==V_SETTLE;
+      chips.push(`<span class="chip${on?'':' off'}${cool?' cool':''}${cur?' cur':''}" title="goal byte 0x${g.toString(16).padStart(2,'0')}"><i class="sw" style="background:${VCOL[g>>4]}"></i>${goalLabel(g)}<em>${on?Math.round(urgency(i,g)):'—'}</em></span>`)}
+    let plan='';
+    if(aPlanOff[i]>=0){const off=aPlanOff[i],len=POOL[off];for(let j=0;j<len;j++){const a=POOL[off+1+j],bt=bindText(i,a,j);
+      plan+=`<li class="${j<aStep[i]?'done':j===aStep[i]?'now':''}"><span>${(aGoal[i]>>4)===V_SETTLE?'Journey to new home':ACTS[a][0]}${bt?' <em>'+esc(bt)+'</em>':''}</span></li>`}}
+    const sensed=[];for(let b=0;b<23;b++)if((aSense[i]>>>b)&1)sensed.push(`<span class="chip">${BITNAMES[b]}</span>`);
+    const id=aId[i];let k=0;while(k<6&&!((id>>k)&1))k++;let f=0;while(f<4&&!((id>>(6+f))&1))f++;
+    const knows=knCount(aKn,i);const tr=trust(id,sCult[s]);
+    let where;
+    if(aCamp[i]===1)where=aLoc[i]===LC_AWAY?'camped rough by the road':'collapsed from exhaustion';
+    else if(aCamp[i]===3)where='sleeping under a roof on the road';
+    else if(aCamp[i]===2)where='foraging in the wild';
+    else if((aGoal[i]>>4)===V_SETTLE)where='bound for '+sName[s]+(aNode[i]>=0?', next stop '+sName[aNode[i]]:'');
+    else if(aLoc[i]===LC_AWAY)where=aNode[i]>=0?'on the road to '+sName[aNode[i]]:'in the wilds';
+    else if(aRoom[i]>=0)where='in the '+roomName(aRoom[i]).toLowerCase();
+    else where=aLoc[i]===LC_SITE?'at the building site':aLoc[i]===LC_WORK?'working the '+(RESN[GOOD_RES[aGoal[i]&15]]||'land'):'walking the streets of '+sName[s];
+    const carry=(aCQ[i]>0.01)?aCQ[i].toFixed(1)+' '+GOODS[aCG[i]]:'nothing';
+    const meal=aInv[i]&HAS_MEAL?'a cooked meal':aInv[i]&HAS_RAW?'raw food':'';
+    inspEl.innerHTML=`<h2>Inspector <small>dwarf #${i}</small></h2>
+      <div class="who"><b>${esc(dwarfName(i))}</b><span>${ARCH[aArch[i]]} of ${esc(sName[s])}, ${esc(kName[sK[s]])} · ${esc(where)}</span></div>
+      <div class="bars"><span>Health</span>${bar(aHP[i],100,aHP[i]<50?'warn':'hp')}<span class="mono">${aHP[i]|0}</span>
+      <span>Hunger</span>${bar(aHun[i],255,aHun[i]>200?'warn':'')}<span class="mono">${aHun[i]|0}</span><span>Fatigue</span>${bar(aFat[i],255,aFat[i]>220?'warn':'')}<span class="mono">${aFat[i]|0}</span><span>Loneliness</span>${bar(aSoc[i],255)}<span class="mono">${aSoc[i]|0}</span></div>
+      <h2>Goal palette <small>#${pal} · mask ${aMask[i].toString(2).padStart(8,'0')}</small></h2><div class="chips">${chips.join('')}</div>
+      <h2>Plan <small>${(aGoal[i]>>4)===V_SETTLE?'assigned by the hold':aPlanOff[i]>=0?'cached skeleton @'+aPlanOff[i]:'idle'}</small></h2>${plan?'<ol class="plan">'+plan+'</ol>':'<p class="hint">Between tasks, ambling near home.</p>'}
+      <h2>Sensed state <small>0x${aSense[i].toString(16).padStart(6,'0')}</small></h2><div class="chips">${sensed.join('')||'<span class="hint">nothing yet</span>'}</div>
+      <h2>Beliefs & identity</h2>
+      <p class="hint" style="color:var(--text)">Knows ${knows} of ${S} settlements · carrying ${esc(carry)}${meal?' and '+meal:''}${aRation[i]?' · '+aRation[i]+' bread in the pack':''}<br>Realm ${esc(kName[k]||'?')} · keeps faith with ${FAITHS[f]||'none'} · ${ARCH[aArch[i]]} guild<br>
+      Identity bits <span class="mono">${id.toString(2).padStart(16,'0')}</span> · trust in home ${(tr*100)|0}%</p>
+      <div class="row"><button class="btn" data-act="follow">${follow?'Stop following':'Follow'}</button><button class="btn" data-act="home">Open ${esc(sName[s])}</button></div>`;
+  }else if(selSet>=0){const s=selSet,b=s*GN;
+    if(!sLaid[s]){inspEl.innerHTML=`<h2>Inspector <small>settlement #${s}</small></h2><div class="who"><b>${esc(sName[s])}</b><span>${sWay[s]?'Waystation':'Colony'} of ${esc(sName[sParent[s]]||'?')}</span></div>
+      <p class="hint" style="margin-top:8px">${sPop[s]} settlers are on the road. The first to arrive will lay out tents, a storehouse and the workrooms their trades need.</p>`;return}
+    let rows='';for(let g=0;g<GN;g++){const st=sStock[b+g],tg=sTgt[b+g],r=clamp(st/(tg*2),0,1);const col=st<tg*0.5?'#d9776a':st>tg*1.3?'#a7d46f':'#d4a94f';
+      rows+=`<tr><td>${GOODS[g]}</td><td class="rm">${RT[STORE_RT[g]].n}</td><td>${st.toFixed(0)}<span class="lvl"><i style="width:${r*100}%;background:${col}"></i></span></td><td>${sPrice[b+g].toFixed(1)}</td><td>${sBuyer[b+g]>=0?esc(sName[sBuyer[b+g]]):'—'}</td></tr>`}
+    const counts=[0,0,0,0,0];let away=0,alive=0,hungry=0;for(let i=0;i<NCAP;i++)if(aSet[i]===s&&!aDead[i]){alive++;counts[aArch[i]]++;if(aLoc[i]===LC_AWAY)away++;if(aHun[i]>200)hungry++}
+    const rc=new Array(NRT).fill(0);for(let r=0;r<nR;r++)if(bS[rB[r]]===s)rc[rT[r]]++;
+    const ws=[];for(let t=5;t<NRT;t++)if(rc[t])ws.push(rc[t]+' '+RT[t].n.toLowerCase()+(rc[t]>1?'s':''));
+    const known=knCount(sKn,s);const realms=new Set();for(let t=0;t<S;t++)if(sKnows(s,t))realms.add(sK[t]);
+    const kids=[];for(let t=0;t<S;t++)if(sParent[t]===s)kids.push(sName[t]);
+    const res=RESN.map((n,r)=>sResFrac[s*NRES+r]>=0?`<span class="chip">${n} ${pct(sResFrac[s*NRES+r])}</span>`:'').join('');
+    const sites=sSites[s].map(q=>{const dx=q.x-sx[s],dz=q.z-sz[s];return (q.coast?'coastal, ':'')+daysText(Math.sqrt(dx*dx+dz*dz))+' '+compass(dx,dz)}).join('; ');
+    const kind=sWay[s]?'Waystation':TIERS[sTier[s]];
+    inspEl.innerHTML=`<h2>Inspector <small>settlement #${s}</small></h2>
+      <div class="who"><b>${esc(sName[s])}</b><span>${kind} · ${sCap[s]?'seat of ':''}${esc(kName[sK[s]])} · ${alive} living · ${away} away</span></div>
+      ${sParent[s]>=0?`<p class="hint" style="margin-top:6px">Founded from <button class="btn" data-act="parent" data-s="${sParent[s]}" style="padding:2px 8px">${esc(sName[sParent[s]])}</button></p>`:''}
+      <p class="hint" style="margin-top:8px">${counts.map((c,j)=>c+' '+ARCH[j].toLowerCase()+'s').join(', ')}.<br>
+      ${hungry?'<span style="color:var(--blood)">'+hungry+' going hungry.</span> ':''}${sDeaths[s]} deaths, ${sBorn[s]} births.</p>
+      <h2>Pressure <small>${sPressure[s].toFixed(2)} · colonise above 0.5</small></h2>
+      <div class="chips">${res}</div>
+      <p class="hint" style="margin-top:6px">${sHouses[s]} houses for ${alive} · food for ${sFoodDays[s].toFixed(1)} days.${kids.length?' Colonies: '+esc(kids.join(', '))+'.':''}<br>${sites?'Known good land: '+esc(sites)+'.':'No good land reported yet.'}</p>
+      <h2>Workrooms</h2><p class="hint">${ws.join(', ')||'none yet'}.</p>
+      <h2>Stockpile</h2><div class="tablewrap"><table class="stock"><thead><tr><th>Good</th><th>Kept in</th><th>Stock</th><th>Price</th><th>Best buyer</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <h2>Known world <small>${known}/${S} settlements · ${realms.size}/${K} realms</small></h2>
+      <div class="row"><button class="btn" data-act="goto">Fly to ${esc(sName[s])}</button></div>`;
+  }else{
+    inspEl.innerHTML=`<h2>Inspector</h2><p class="hint">Tap a dwarf to read its goal palette, its plan and what it believes. Tap a settlement or its name to see its stockpile, resources, pressure and colonies.</p>`;
+  }
+}
+function renderStats(ms){
+  let away=0,trade=0,expl=0,settle=0,alive=0,starving=0,camp=0;
+  for(let i=0;i<NCAP;i++){if(aDead[i])continue;alive++;if(aHun[i]>=230)starving++;if(aCamp[i])camp++;if(aLoc[i]===LC_AWAY){away++;const v=aGoal[i]>>4;if(v===V_TRADE)trade++;else if(v===V_EXPL)expl++;else if(v===V_SETTLE)settle++}}
+  const tiers=[0,0,0,0];let ways=0;for(let s=0;s<S;s++)if(sLaid[s]){if(sWay[s])ways++;else tiers[sTier[s]]++}
+  let bytes=0;for(const a of AGENT_ARRAYS)bytes+=a.byteLength;
+  const hr=stat.hits+stat.miss?stat.hits/(stat.hits+stat.miss):0;
+  const rows=[['Living',alive.toLocaleString()],['Realms',K],['Towns · holds',tiers[3]+' · '+tiers[2]],['Villages · camps',tiers[1]+' · '+tiers[0]],['Waystations',ways],
+    ['Colonies founded',stat.colonies],['Caravans out',trade],['Explorers out',expl],['Settlers en route',settle],['Sleeping rough',camp],
+    ['Starving now',starving,starving>0],['Deaths · births',stat.deaths+' · '+stat.born,stat.deaths>0],['Bandits & wolves',stat.mishaps],['Sales',stat.trades.toLocaleString()],
+    ['Plan skeletons',planCache.size],['Cache hits',(hr*100).toFixed(1)+'%'],['Sim cost',ms.toFixed(2)+' ms/tick'],['Bytes/dwarf',Math.round(bytes/NCAP)]];
+  statsEl.innerHTML=rows.map(r=>`<div><dt>${r[0]}</dt><dd${r[2]?' class="bad"':''}>${r[1]}</dd></div>`).join('');
+}
+function renderLog(){logEl.innerHTML=LOG.slice(0,18).map(e=>`<li class="${e.kind}"><time>${e.t}</time><span>${esc(e.text)}</span></li>`).join('');logDirty=false}
+
+const clockEl=document.getElementById('clock'),sunEl=document.getElementById('sun');
+const NIGHTBG=new THREE.Color('#070d18'),DAYBG=new THREE.Color('#1a3550'),bgC=new THREE.Color();
+const nightAmb=new THREE.Color('#5a6fa8'),dayAmb=new THREE.Color('#ffffff'),duskSun=new THREE.Color('#ff9a52'),noonSun=new THREE.Color('#fff4dc'),moon=new THREE.Color('#8fa6d8');
+const _v=new THREE.Vector3();
+let last=performance.now(),acc=0,frame=0,simMs=0;
+function frameLoop(now){
+  requestAnimationFrame(frameLoop);
+  if(!ready)return;
+  const dt=Math.min(0.1,(now-last)/1000);last=now;frame++;
+  if(tween){const k=clamp((now-tween.t0)/tween.d,0,1),e=k<0.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    camT.x=tween.x0+(tween.x-tween.x0)*e;camT.z=tween.z0+(tween.z-tween.z0)*e;viewH=Math.exp(Math.log(tween.h0)+(Math.log(tween.h)-Math.log(tween.h0))*e);updateCam();if(k>=1)tween=null}
+  acc+=dt*speed*20;let n=Math.floor(acc);acc-=n;const t0=performance.now();let ran=0;
+  while(n-->0){tick();ran++;if(performance.now()-t0>13){acc=0;break}}
+  if(ran)simMs=simMs*0.9+((performance.now()-t0)/ran)*0.1;
+  if(instDirty)flushInstances();
+  if(overlayDirty&&frame%30===0){paintOverlay();overlayDirty=false}
+  const sunH=Math.sin((tod-0.25)*Math.PI*2);daylight=smooth(-0.18,0.3,sunH);
+  amb.color.copy(nightAmb).lerp(dayAmb,daylight);amb.intensity=0.32+0.36*daylight;
+  const low=1-smooth(0.05,0.5,Math.abs(sunH));
+  if(sunH>-0.1){sun.color.copy(noonSun).lerp(duskSun,low);sun.intensity=0.15+0.7*daylight}else{sun.color.copy(moon);sun.intensity=0.18}
+  const ang=(tod-0.25)*Math.PI*2;sun.position.set(camT.x+Math.cos(ang)*1000,Math.max(150,Math.abs(Math.sin(ang))*1000),camT.z+300);sun.target.position.set(camT.x,0,camT.z);
+  bgC.copy(NIGHTBG).lerp(DAYBG,daylight);scene.background=bgC;
+  if(follow&&selAgent>=0&&!tween&&!aDead[selAgent]){camT.x+=(ax[selAgent]-camT.x)*0.12;camT.z+=(az[selAgent]-camT.z)*0.12;updateCam()}
+  directorFrame(now);
+  const wallK=smooth(18,46,viewH);
+  if(wallK<0.995){if(!fadedWalls){for(const m of [boxMesh.material,roofMesh.material]){m.transparent=true;m.depthWrite=false;m.needsUpdate=true}fadedWalls=true}
+    boxMesh.material.opacity=0.1+0.9*wallK;roofMesh.material.opacity=0.06+0.94*wallK}
+  else if(fadedWalls){for(const m of [boxMesh.material,roofMesh.material]){m.transparent=false;m.depthWrite=true;m.opacity=1;m.needsUpdate=true}fadedWalls=false}
+  const ch=stage.clientHeight||1,pr=renderer.getPixelRatio(),pxu=ch/viewH*pr;
+  for(let i=0;i<NCAP;i++){const j=i*3;
+    if(aDead[i]){if(sizeA[i]!==0)sizeA[i]=0;continue}
+    posA[j]=ax[i];posA[j+1]=0.6;posA[j+2]=az[i];
+    const v=aGoal[i]<0?IDLE_V:aGoal[i]>>4;const c=aCamp[i]?CAMPC:VC[v];const dim=aCur[i]===A_SLEEP?0.5:1;colA[j]=c.r*dim;colA[j+1]=c.g*dim;colA[j+2]=c.b*dim;
+    sizeA[i]=aLoc[i]===LC_AWAY?2.6:1}
+  agentGeo.attributes.position.needsUpdate=true;agentGeo.attributes.acol.needsUpdate=true;agentGeo.attributes.asize.needsUpdate=true;
+  agentPts.material.uniforms.uPx.value=pxu;agentPts.material.uniforms.uMin.value=1.7*pr;agentPts.material.uniforms.uDay.value=daylight;
+  glowPts.material.uniforms.uPx.value=pxu;heatPts.material.uniforms.uPx.value=pxu;
+  if(frame%8===0){bOccNow.fill(0);for(let i=0;i<NCAP;i++){const r=aRoom[i];if(r>=0&&!aDead[i])bOccNow[rB[r]]++}const night=1-daylight;
+    for(let b=0;b<nB;b++){const o=bOccNow[b],t=bT[b];let a=0;
+      if(t===0)a=night*Math.min(1,o/2)*0.8;else if(t===2)a=(0.15+0.85*night)*Math.min(1,o/3);else if(t===1)a=night*0.5;
+      else if(t===9||t===13)a=Math.min(1,o)*(0.35+0.6*night);else if(t===7||t===8)a=Math.min(1,o)*(0.2+0.4*night);
+      gAlpha[b]=a}glowGeo.attributes.galpha.needsUpdate=true}
+  if(frame%30===0){const night=0.35+0.65*(1-daylight);for(let c=0;c<RG2;c++)hAlpha[c]=campHeat[c]>1?clamp(campHeat[c]/16,0,1)*night:0;heatGeo.attributes.galpha.needsUpdate=true}
+  if(frame%90===0)paintResources();
+  if(frame%20===0&&roadGeo){const col=roadGeo.attributes.color.array;let mx=1;for(let e=0;e<edges.length;e++){traffic[e]*=0.985;mx=Math.max(mx,traffic[e])}
+    for(let e=0;e<edges.length;e++){const k=Math.sqrt(traffic[e]/mx);const r=0.45+0.55*k,g=0.38+0.47*k,b=0.28+0.02*k;col[e*6]=col[e*6+3]=r;col[e*6+1]=col[e*6+4]=g;col[e*6+2]=col[e*6+5]=b}
+    roadGeo.attributes.color.needsUpdate=true}
+  overlayMat.opacity=0.85*smooth(500,2400,viewH);
+  resMat.opacity=0.9*(1-smooth(2600,4200,viewH))*smooth(30,90,viewH);
+  if(roadGroup)roadGroup.children[1].material.opacity=0.35+0.6*smooth(150,1200,viewH);
+  if(selAgent>=0&&!aDead[selAgent]){selRing.visible=true;selRing.position.set(ax[selAgent],0.7,az[selAgent]);const sc=Math.max(0.9,viewH/60);selRing.scale.set(sc,1,sc)}else selRing.visible=false;
+  if(selSet>=0){setRing.visible=true;setRing.position.set(sx[selSet],0.5,sz[selSet]);setRing.scale.set(sRad[selSet],1,sRad[selSet]);
+    if(frame%15===0||knownLines.userData.s!==selSet){const p=[];for(let t=0;t<S;t++)if(t!==selSet&&sKnows(selSet,t))p.push(sx[selSet],1,sz[selSet],sx[t],1,sz[t]);
+      knownLines.geometry.dispose();knownLines.geometry=new THREE.BufferGeometry();knownLines.geometry.setAttribute('position',new THREE.Float32BufferAttribute(p,3));knownLines.userData.s=selSet}
+    knownLines.visible=true}else if(D.ringS>=0&&D.ringS<S){setRing.visible=true;setRing.position.set(sx[D.ringS],0.5,sz[D.ringS]);setRing.scale.set(sRad[D.ringS],1,sRad[D.ringS]);knownLines.visible=false}
+  else{setRing.visible=false;knownLines.visible=false}
+  renderer.render(scene,camera);
+  const w=stage.clientWidth,hgt=stage.clientHeight;
+  const fade=viewH<70?0.3:1;
+  for(let s=0;s<S;s++){const el=settleLabels[s];if(!el)continue;
+    const minor=sTier[s]<=1||sWay[s];const vis=viewH<(minor?1800:3600)||sCap[s];if(!vis){el.style.display='none';continue}
+    _v.set(sx[s],0,sz[s]+sRad[s]*0.2).project(camera);const X=(_v.x+1)/2*w,Y=(1-_v.y)/2*hgt;
+    if(X<-120||X>w+40||Y<-30||Y>hgt+30){el.style.display='none';continue}
+    el.style.display='';el.style.opacity=fade;el.style.transform=`translate(${X.toFixed(1)}px,${(Y+8).toFixed(1)}px) translateX(-50%)`;el.classList.toggle('sel',s===selSet)}
+  const showK=viewH>1500;
+  for(const kl of kingdomLabels){if(!showK){kl.el.style.display='none';continue}_v.set(kl.x,0,kl.z).project(camera);
+    kl.el.style.display='';kl.el.style.opacity=smooth(1500,3000,viewH)*0.9;kl.el.style.transform=`translate(${((_v.x+1)/2*w).toFixed(1)}px,${((1-_v.y)/2*hgt).toFixed(1)}px) translate(-50%,-50%)`}
+  let used=0;
+  if(viewH<34){const hx=viewH*(w/hgt)/2+4,hz=viewH/Math.sin(ELEV)/2+4;
+    for(let r=0;r<nR&&used<roomLabels.length;r++){if(Math.abs(rx[r]-camT.x)>hx||Math.abs(rz[r]-camT.z)>hz)continue;
+      _v.set(rx[r],0.1,rz[r]).project(camera);const X=(_v.x+1)/2*w,Y=(1-_v.y)/2*hgt;if(X<0||X>w||Y<0||Y>hgt)continue;
+      const el=roomLabels[used++];if(el.textContent!==RT[rT[r]].n)el.textContent=RT[rT[r]].n;el.style.display='';el.style.opacity=smooth(34,22,viewH);
+      el.style.transform=`translate(${X.toFixed(1)}px,${Y.toFixed(1)}px) translate(-50%,-50%)`}}
+  for(let j=used;j<roomLabels.length;j++)if(roomLabels[j].style.display!=='none')roomLabels[j].style.display='none';
+  if(frame%10===0){const c=clockStr(T);clockEl.textContent='Day '+c.d+' · '+c.s;
+    const sc=new THREE.Color('#3a4a7a').lerp(new THREE.Color('#ffd27a'),daylight);sunEl.style.background=sc.getStyle();sunEl.style.color=sc.getStyle()}
+  if(frame%15===0)renderStats(simMs);
+  if(frame%12===0&&(selAgent>=0||selSet>=0))renderInspector();
+  if(logDirty&&frame%10===0)renderLog();
+  if(frame%10===0)document.querySelectorAll('#zoombar button').forEach(b=>{const z=b.dataset.z;const on=z==='realm'?viewH>2600:z==='region'?viewH>250&&viewH<=2600:z==='hold'?viewH>46&&viewH<=250:viewH<=46;b.classList.toggle('on',on)});
+}
+
+// ================= director: an automatic camera that tells stories =================
+const D={on:true,cur:null,start:0,until:0,queue:[],recent:[],paused:0,lastSeq:0,voice:false,patIdx:0,ambIdx:0,dayHist:[],lastDay:-1,ringS:-1};
+const dE={box:document.getElementById('director'),kind:document.getElementById('dkind'),day:document.getElementById('dday'),title:document.getElementById('dtitle'),
+  text:document.getElementById('dtext'),prog:document.getElementById('dprog'),skip:document.getElementById('dskip'),toggle:document.getElementById('dtoggle'),voice:document.getElementById('dvoice')};
+const canSpeak=typeof window.speechSynthesis!=='undefined'&&typeof window.SpeechSynthesisUtterance!=='undefined';
+if(!canSpeak)dE.voice.hidden=true;
+function speak(t){if(!D.voice||!canSpeak)return;try{window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.rate=1.02;window.speechSynthesis.speak(u)}catch(e){}}
+function dPause(){if(!D.on)return;D.paused=performance.now()+25000;D.cur=null;D.ringS=-1;try{if(canSpeak)window.speechSynthesis.cancel()}catch(e){}}
+dE.skip.addEventListener('click',()=>{if(!D.on){D.on=true;D.paused=0;dE.toggle.textContent='Pause director'}D.paused=0;D.until=0});
+dE.toggle.addEventListener('click',()=>{D.on=!D.on;D.paused=0;D.cur=null;D.ringS=-1;dE.toggle.textContent=D.on?'Pause director':'Resume director';
+  if(!D.on){follow=false;dE.kind.textContent='Director off';dE.title.textContent='You have the camera';dE.text.textContent='Pan and tap freely. Resume the director to go back to watching.';dE.prog.style.width='0';try{if(canSpeak)window.speechSynthesis.cancel()}catch(e){}}});
+dE.voice.addEventListener('click',()=>{D.voice=!D.voice;dE.voice.textContent=D.voice?'Stop narrating':'Narrate aloud';dE.voice.classList.toggle('on',D.voice);
+  if(D.voice&&D.cur)speak(D.cur.title+'. '+D.cur.text);else try{if(canSpeak)window.speechSynthesis.cancel()}catch(e){}});
+const realmOf=s=>s>=0&&s<S?kName[sK[s]]:'';
+function holdView(s){return Math.max(80,sRad[s]*3)}
+function agentAlive(a){return a!=null&&a>=0&&a<NCAP&&!aDead[a]}
+function shotFromEvent(e){
+  const s=e.s,realm=realmOf(s),name=s>=0&&s<S?sName[s]:'';
+  const agentOr=(h,fallback)=>agentAlive(e.a)?{type:'agent',a:e.a,h}:fallback;
+  switch(e.k){
+    case 'death':return{kind:'Death',title:e.first?'The first death in the world':e.firstK?'The first death in '+realm:'A death in '+realm,
+      text:e.text+(e.first?' Until now no dwarf on the continent had died.':'')+' '+name+' belongs to '+realm+'.',score:e.score,target:{type:'point',x:e.x,z:e.z,h:e.x?60:holdView(s)},dur:14};
+    case 'colony':return{kind:'Colony',title:'Settlers set out from '+sName[e.p],text:e.text+' The camera follows the first of them.',score:e.score,target:agentOr(70,{type:'settle',s,h:900}),dur:18};
+    case 'waystation':return{kind:'Waystation',title:'A waystation for '+realm,text:e.text,score:e.score,target:agentOr(70,{type:'settle',s,h:500}),dur:16};
+    case 'arrive':return{kind:'Colony',title:name+' is founded',text:e.text+' It is a colony of '+(sParent[s]>=0?sName[sParent[s]]:'?')+' in '+realm+'.',score:e.score,target:{type:'settle',s,h:holdView(s)},dur:14};
+    case 'tier':return{kind:'Growth',title:name+' becomes a '+TIERS[sTier[s]].toLowerCase(),text:e.text+' It now has '+sPop[s]+' dwarves.',score:e.score,target:{type:'settle',s,h:holdView(s)*1.2},dur:13};
+    case 'contact':return{kind:'Contact',title:realm+' hears of '+(kName[e.other]||'a new realm'),text:e.text,score:e.score,target:{type:'settle',s,h:1100},dur:13};
+    case 'firsttrade':return{kind:'Trade',title:'A first caravan between realms',text:e.text,score:e.score,target:agentOr(55,{type:'settle',s,h:holdView(s)}),dur:15};
+    case 'site':{const mx=(sx[s]+e.x)/2,mz=(sz[s]+e.z)/2,d=Math.hypot(e.x-sx[s],e.z-sz[s]);
+      return{kind:'Exploration',title:'Good land reported',text:e.text,score:e.score,target:{type:'point',x:mx,z:mz,h:Math.max(500,d*1.5)},dur:12,mark:{x:e.x,z:e.z}}}
+    case 'mishap':return{kind:'Danger',title:'Trouble on the road',text:e.text,score:e.score,target:agentOr(40,null),dur:12};
+    case 'discover':return{kind:'Exploration',title:'News from afar',text:e.text,score:e.score,target:agentOr(45,{type:'settle',s,h:holdView(s)}),dur:12};
+    case 'migrate':return{kind:'Migration',title:'Migrants on the move',text:e.text,score:e.score,target:agentOr(60,{type:'settle',s,h:holdView(s)}),dur:13};
+    case 'build':return{kind:'Growth',title:'Building in '+name,text:e.text,score:e.score,target:{type:'point',x:sSiteX[s],z:sSiteZ[s],h:34},dur:11};
+  }
+  return null;
+}
+function realmCensus(){const pop=new Array(K).fill(0),holds=new Array(K).fill(0);for(let s=0;s<S;s++)if(sLaid[s]){pop[sK[s]]+=sPop[s];holds[sK[s]]++}return{pop,holds}}
+function realmCentre(k){let x=0,z=0,w=0;for(let s=0;s<S;s++)if(sLaid[s]&&sK[s]===k){x+=sx[s]*(sPop[s]+10);z+=sz[s]*(sPop[s]+10);w+=sPop[s]+10}return w?[x/w,z/w]:[0,0]}
+function patternShot(){
+  const kinds=['growth','famine','road','wanderer','largest','knowledge'];
+  for(let tries=0;tries<kinds.length;tries++){const k=kinds[D.patIdx++%kinds.length];const sh=makePattern(k);if(sh)return sh}
+  return null;
+}
+function makePattern(k){
+  const c=clockStr(T);
+  if(k==='growth'){if(D.dayHist.length<2)return null;const now=realmCensus(),then=D.dayHist[Math.max(0,D.dayHist.length-3)];
+    let bk=-1,bg=-1e9,wk=-1,wg=1e9;for(let r=0;r<K;r++){const g=(now.pop[r]-then.pop[r])/Math.max(1,then.pop[r]);if(g>bg){bg=g;bk=r}if(g<wg){wg=g;wk=r}}
+    const days=Math.min(D.dayHist.length,3)-1||1;const[x,z]=realmCentre(bk);
+    return{kind:'Pattern',title:kName[bk]+' is growing fastest',text:kName[bk]+' has '+now.pop[bk].toLocaleString()+' dwarves in '+now.holds[bk]+' settlements, '+(bg>=0?'up ':'down ')+Math.abs(bg*100).toFixed(1)+'% over '+days+' day'+(days>1?'s':'')+'. '+(wk!==bk?kName[wk]+' is doing worst, at '+(wg*100).toFixed(1)+'%.':''),score:50,target:{type:'point',x,z,h:2300},dur:13}}
+  if(k==='famine'){const hun=new Int32Array(S);for(let i=0;i<NCAP;i++)if(!aDead[i]&&aHun[i]>200)hun[aSet[i]]++;
+    let bs=-1,bf=0.06;for(let s=0;s<S;s++){if(!sLaid[s]||sPop[s]<15)continue;const f=hun[s]/sPop[s];if(f>bf){bf=f;bs=s}}
+    if(bs<0)return null;const b=bs*GN;
+    return{kind:'Pattern',title:'Hunger in '+sName[bs],text:hun[bs]+' of '+sPop[bs]+' dwarves in '+sName[bs]+' are going hungry. Bread costs '+(sPrice[b+2]/BASEP[2]).toFixed(1)+'× its usual price and the granary holds food for '+sFoodDays[bs].toFixed(1)+' days.',score:56,target:{type:'settle',s:bs,h:holdView(bs)},dur:13}}
+  if(k==='road'){let be=-1,bt=0;for(let e=0;e<edges.length;e++)if(traffic[e]>bt){bt=traffic[e];be=e}if(be<0)return null;const[a,b,l]=edges[be];
+    return{kind:'Pattern',title:'The busiest road',text:'More caravans travel between '+sName[a]+' and '+sName[b]+' than on any other road, '+daysText(l)+' of walking with '+(sWay[a]||sWay[b]?'a waystation along the way.':'nowhere to sleep but the roadside.'),score:42,target:{type:'point',x:(sx[a]+sx[b])/2,z:(sz[a]+sz[b])/2,h:Math.max(400,l*1.3)},dur:12}}
+  if(k==='wanderer'){let bi=-1,bd=0;for(let i=0;i<NCAP;i++){if(aDead[i]||aLoc[i]!==LC_AWAY||(aGoal[i]>>4)!==V_EXPL)continue;const s=aSet[i],d=Math.hypot(ax[i]-sx[s],az[i]-sz[s]);if(d>bd){bd=d;bi=i}}
+    if(bi<0)return null;const s=aSet[bi];
+    return{kind:'Pattern',title:'The farthest wanderer',text:dwarfName(bi)+' of '+sName[s]+' is '+daysText(bd)+' '+compass(ax[bi]-sx[s],az[bi]-sz[s])+' of home, farther than any other explorer, with '+aRation[bi]+' bread left.',score:46,target:{type:'agent',a:bi,h:70},dur:15}}
+  if(k==='largest'){let bs=0;for(let s=1;s<S;s++)if(sPop[s]>sPop[bs])bs=s;
+    return{kind:'Pattern',title:sName[bs]+', the largest settlement',text:sName[bs]+' of '+realmOf(bs)+' is home to '+sPop[bs]+' dwarves in '+sHouses[bs]+' houses. Pressure is '+sPressure[bs].toFixed(2)+(sColonies[bs]?' and it has founded '+sColonies[bs]+' colon'+(sColonies[bs]>1?'ies':'y')+'.':'.'),score:38,target:{type:'settle',s:bs,h:holdView(bs)*1.3},dur:12}}
+  if(k==='knowledge'){let bs=0,bk=0;for(let s=0;s<S;s++){if(!sLaid[s])continue;const n=knCount(sKn,s);if(n>bk){bk=n;bs=s}}
+    const realms=new Set();for(let t=0;t<S;t++)if(sKnows(bs,t))realms.add(sK[t]);
+    return{kind:'Pattern',title:'The best-informed hold',text:sName[bs]+' knows of '+bk+' of '+S+' settlements across '+realms.size+' of '+K+' realms, more than anyone else.',score:34,target:{type:'settle',s:bs,h:1200},dur:11}}
+  return null;
+}
+function ambientShot(){
+  const kinds=['caravan','street','explorer','settler','camp'];
+  for(let tries=0;tries<kinds.length;tries++){const k=kinds[D.ambIdx++%kinds.length];
+    const pick=f=>{const c=[];for(let i=0;i<NCAP&&c.length<60;i+=1+(rnd()*7|0))if(!aDead[i]&&f(i))c.push(i);return c.length?c[rnd()*c.length|0]:-1};
+    if(k==='caravan'){const i=pick(i=>aLoc[i]===LC_AWAY&&(aGoal[i]>>4)===V_TRADE&&!aCamp[i]&&aNode[i]>=0);if(i<0)continue;
+      return{kind:'Wandering eye',title:'On the road with a caravan',text:dwarfName(i)+' of '+sName[aSet[i]]+(aCQ[i]>0.5?' carries '+aCQ[i].toFixed(0)+' '+GOODS[aCG[i]]:' walks with an empty pack')+', heading for '+sName[aNode[i]]+(aDest[i]>=0&&aDest[i]!==aNode[i]?' on the way to '+sName[aDest[i]]:'')+', with '+aRation[i]+' bread left.',score:24,target:{type:'agent',a:i,h:55},dur:15}}
+    if(k==='explorer'){const i=pick(i=>aLoc[i]===LC_AWAY&&(aGoal[i]>>4)===V_EXPL);if(i<0)continue;
+      return{kind:'Wandering eye',title:'Into the unknown',text:dwarfName(i)+' is exploring '+DIRS[aGoal[i]&15]+' of '+sName[aSet[i]]+' in search of good land.',score:24,target:{type:'agent',a:i,h:80},dur:14}}
+    if(k==='settler'){const i=pick(i=>(aGoal[i]>>4)===V_SETTLE&&aLoc[i]===LC_AWAY);if(i<0)continue;
+      return{kind:'Wandering eye',title:'Bound for a new home',text:dwarfName(i)+' is travelling to '+sName[aSet[i]]+(sLaid[aSet[i]]?', a young '+(sWay[aSet[i]]?'waystation':TIERS[sTier[aSet[i]]].toLowerCase()):', where no one has yet arrived')+'.',score:26,target:{type:'agent',a:i,h:60},dur:14}}
+    if(k==='camp'){if(isDay)continue;const i=pick(i=>aCamp[i]===1&&aLoc[i]===LC_AWAY);if(i<0)continue;
+      return{kind:'Wandering eye',title:'A night by the road',text:dwarfName(i)+' of '+sName[aSet[i]]+' sleeps rough far from any roof. Enough nights like this along one road and a waystation will rise here.',score:24,target:{type:'agent',a:i,h:45},dur:12}}
+    if(k==='street'){const c=[];for(let s=0;s<S;s++)if(sLaid[s]&&sTier[s]>=2)c.push(s);if(!c.length)continue;const s=c[rnd()*c.length|0];
+      let work=0,tap=0,bed=0;for(let i=0;i<NCAP;i++){if(aDead[i]||aSet[i]!==s)continue;if(aLoc[i]===LC_WORK)work++;else if(aLoc[i]===LC_TAP)tap++;else if(aCur[i]===A_SLEEP)bed++}
+      return{kind:'Wandering eye',title:'Inside '+sName[s],text:'The walls turn to glass. '+work+' dwarves are at work, '+tap+' in the taproom and '+bed+' asleep in their bedrooms.',score:22,target:{type:'point',x:sx[s]+jit(s,T)*sRad[s],z:sz[s]+jit(s,T+3)*sRad[s],h:24},dur:13}}
+  }
+  return{kind:'Overview',title:'The continent',text:'',score:10,target:{type:'overview'},dur:10};
+}
+function startShot(sh,now){
+  D.cur=sh;D.start=now;D.until=now+sh.dur*1000;D.recent.push(sh.kind+':'+sh.title);if(D.recent.length>6)D.recent.shift();D.ringS=-1;
+  const t=sh.target;follow=false;selSet=-1;
+  if(t.type==='agent'&&agentAlive(t.a)){selAgent=t.a;follow=true;flyTo(ax[t.a],az[t.a],t.h)}
+  else if(t.type==='settle'){selAgent=-1;D.ringS=t.s;flyTo(sx[t.s],sz[t.s],t.h)}
+  else if(t.type==='point'){selAgent=-1;flyTo(t.x,t.z,t.h)}
+  else{selAgent=-1;const cen=realmCensus();let pop=0,set=0;for(let s=0;s<S;s++)if(sLaid[s]){pop+=sPop[s];set++}
+    let settle=0;for(let i=0;i<NCAP;i++)if(!aDead[i]&&(aGoal[i]>>4)===V_SETTLE)settle++;
+    sh.text='Day '+clockStr(T).d+': '+pop.toLocaleString()+' dwarves in '+set+' settlements across '+K+' realms. '+(settle?settle+' settlers are on the move. ':'')+stat.colonies+' colonies and '+stat.waystations+' waystations have been founded.';
+    flyTo(0,120,5200)}
+  dE.kind.textContent=sh.kind;dE.title.textContent=sh.title;dE.text.textContent=sh.text;
+  speak(sh.title+'. '+sh.text);
+}
+function pickShot(now){
+  let best=-1,bs=-1e9;
+  D.queue=D.queue.filter(q=>now-q.born<90000);
+  for(let j=0;j<D.queue.length;j++){const q=D.queue[j];const rep=D.recent.filter(r=>r.startsWith(q.kind+':')).length;const eff=q.score-(now-q.born)/1000*0.6-rep*10;if(eff>bs){bs=eff;best=j}}
+  if(best>=0&&bs>=28){const q=D.queue.splice(best,1)[0];return q}
+  return (D.ambIdx+D.patIdx)%2===0?(patternShot()||ambientShot()):ambientShot();
+}
+function directorFrame(now){
+  // ingest structured events from the simulation
+  for(const e of EVENTS){if(e.seq<=D.lastSeq)continue;D.lastSeq=e.seq;const sh=shotFromEvent(e);if(sh&&sh.target){sh.born=now;D.queue.push(sh)}}
+  if(D.queue.length>40){D.queue.sort((a,b)=>b.score-a.score);D.queue.length=40}
+  const day=clockStr(T).d;if(day!==D.lastDay){D.lastDay=day;D.dayHist.push(realmCensus());if(D.dayHist.length>10)D.dayHist.shift();
+    if(day>1)D.queue.push({kind:'Overview',title:'Dawn of day '+day,text:'',score:36,target:{type:'overview'},dur:10,born:now})}
+  if(frame%15===0)dE.day.textContent='Day '+day+' · '+clockStr(T).s;
+  if(!D.on)return;
+  if(now<D.paused){dE.kind.textContent='Paused';dE.title.textContent='You have the camera';dE.text.textContent='The director resumes in '+Math.ceil((D.paused-now)/1000)+' seconds. Tap Next story to resume now.';dE.prog.style.width='0';return}
+  const top=D.queue.reduce((m,q)=>Math.max(m,q.score),0);
+  if(!D.cur||now>D.until||(top>D.cur.score+30&&now-D.start>5000))startShot(pickShot(now),now);
+  const t=D.cur.target;
+  if(t.type==='agent'&&!agentAlive(t.a)){follow=false}
+  if(!tween&&t.type!=='agent'){viewH*=0.99985;updateCam()}
+  dE.prog.style.width=(clamp((now-D.start)/(D.until-D.start),0,1)*100).toFixed(1)+'%';
+}
+function placeDirector(){const mob=window.innerWidth<=760;dE.box.style.bottom=mob?(panel.offsetHeight+10)+'px':''}
+setInterval(placeDirector,500);
+function start(n,seed){
+  document.getElementById('loader').hidden=false;ready=false;
+  setTimeout(()=>{genWorld(seed,n);D.lastSeq=0;D.queue=[];D.cur=null;D.dayHist=[];D.lastDay=-1;buildScene();camT.set(0,0,120);viewH=5400;resize();renderInspector();renderLog();document.getElementById('loader').hidden=true},40);
+}
+document.getElementById('reseed').addEventListener('click',()=>start(+document.getElementById('popsel').value,(Math.random()*1e9)|0));
+document.getElementById('popsel').addEventListener('change',()=>start(+document.getElementById('popsel').value,(Math.random()*1e9)|0));
+window.addEventListener('resize',resize);
+if(window.innerWidth>760)panel.classList.remove('collapsed');
+start(10000,(Math.random()*1e9)|0);
+requestAnimationFrame(frameLoop);
+}
+</script>
+
+</body></html>
