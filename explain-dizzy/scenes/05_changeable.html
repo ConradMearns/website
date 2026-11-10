@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scene 5: what it is designed for</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  /* Scene-local only. Colours, type and motion helpers come from theme.css.
+     No rest-frame element is animated: everything that moves is added after the rest-frame markup. */
+
+  /* ---- execute_transfer singled out: an outline 8px clear of the card (482,400 272x94) ---- */
+  #outline {
+    left: 470px; top: 388px; width: 296px; height: 118px;
+    border: 4px solid var(--ink); border-radius: 52px;
+  }
+  /* the stem from the outline down to the panel */
+  #stem { left: 616px; top: 504px; width: 4px; height: 34px; background: var(--ink); }
+
+  /* ---- language marks on the two function cards ---- */
+  .lang {
+    width: 64px; height: 36px;
+    font-family: var(--mono); font-size: 24px; line-height: 32px; text-align: center;
+    color: var(--ink); background: var(--flow);
+    border: 2px solid var(--ink-soft); border-radius: 18px;
+    transform-origin: center;
+  }
+  .lang.rs { color: var(--paper); background: var(--ink); border-color: var(--ink); }
+  #lang-proc-py, #lang-proc-rs { left: 676px;  top: 381px; }
+  #lang-pol-py                 { left: 1360px; top: 381px; }
+  #lang-proc-py {
+    animation: pop var(--quick) var(--ease) both, flip-out 0.15s ease-in forwards;
+    animation-delay: 0.8s, 3.85s;
+  }
+  #lang-proc-rs {
+    animation: flip-in 0.15s ease-out both, fade-out var(--quick) ease-in forwards;
+    animation-delay: 4.0s, 7.2s;
+  }
+  @keyframes flip-out { from { transform: scaleY(1); } to { transform: scaleY(0); } }
+  @keyframes flip-in  { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+  /* ---- the panel: a frame that grows out from under the card, then its content ---- */
+  #frame {
+    left: 140px; top: 536px; width: 1640px; height: 482px;
+    background: var(--flow); border: 2px solid var(--ink-soft); border-radius: 10px;
+    animation: frame-open 0.7s var(--ease-in-out) both, frame-close 0.6s var(--ease-in-out) forwards;
+    animation-delay: 1.0s, 6.65s;
+  }
+  @keyframes frame-open {
+    0%   { left: 472px; top: 508px; width: 296px; height: 6px; opacity: 0; }
+    12%  { opacity: 1; }
+    100% { left: 140px; top: 536px; width: 1640px; height: 482px; opacity: 1; }
+  }
+  @keyframes frame-close {
+    0%   { left: 140px; top: 536px; width: 1640px; height: 482px; opacity: 1; }
+    88%  { left: 472px; top: 508px; width: 296px; height: 6px; opacity: 1; }
+    100% { left: 472px; top: 508px; width: 296px; height: 6px; opacity: 0; }
+  }
+
+  #pc { left: 140px; top: 536px; width: 1640px; height: 482px; }
+  #pc > * { position: absolute; }
+
+  /* the pinned declaration: never moves, never changes */
+  #decl {
+    left: 2px; top: 2px; width: 1636px; height: 82px;
+    padding: 24px 0 0 26px;
+    background: var(--paper-deep);
+    border-bottom: 2px solid var(--rule);
+    border-radius: 8px 8px 0 0;
+    font-family: var(--sans); font-size: 24px; color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  #decl .kw { display: inline-block; margin-right: 10px; vertical-align: middle; }
+  #decl .grp { display: inline-block; margin-right: 40px; vertical-align: middle; }
+  .chip {
+    display: inline-block; vertical-align: middle;
+    padding: 3px 12px; margin-right: 8px;
+    font-family: var(--mono); font-size: 24px; line-height: 34px; color: var(--ink);
+    background: var(--c); border-radius: 5px;
+  }
+  .chip.query { color: #fff; }
+  /* the legend on the panel's top edge: what makes the declaration fixed */
+  #legend {
+    left: 22px; top: -20px; height: 40px;
+    padding: 5px 16px 0 12px;
+    background: var(--flow); border: 2px solid var(--ink); border-radius: 4px;
+    white-space: nowrap;
+  }
+  #legend svg { width: 26px; height: 26px; vertical-align: -5px; margin-right: 8px; }
+  #legend .label { color: var(--ink); font-size: 22px; }
+  #legend svg path { fill: var(--ink); }
+  #legend svg line { stroke: var(--ink); stroke-width: 2.4; stroke-linecap: round; }
+
+  /* the body: the only part that is replaced */
+  #body { left: 2px; top: 86px; width: 1636px; height: 394px; overflow: hidden; border-radius: 0 0 8px 8px; }
+  .impl { position: absolute; left: 0; top: 0; width: 1636px; height: 394px; padding: 14px 26px 0; }
+  .impl .file {
+    display: inline-block; height: 36px; padding: 1px 14px 0;
+    font-family: var(--mono); font-size: 22px; line-height: 32px; color: var(--ink);
+    border: 2px solid var(--rule); border-radius: 5px; background: var(--paper);
+  }
+  .impl pre {
+    margin-top: 12px;
+    font-family: var(--mono); font-size: 24px; line-height: 32px; color: var(--ink);
+  }
+  .impl .k { color: var(--ink-soft); }
+  /* the names the declaration gives, where the body uses them */
+  .u-q { box-shadow: inset 0 -4px 0 var(--query); }
+  .u-e { box-shadow: inset 0 -4px 0 var(--event); }
+
+  #py { animation: body-out 0.35s ease-in forwards; animation-delay: 3.8s; }
+  #rs { animation: body-in 0.45s var(--ease) both;  animation-delay: 4.05s; }
+  @keyframes body-out { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: -70px 0; } }
+  @keyframes body-in  { from { opacity: 0; translate: 70px 0; } to { opacity: 1; translate: 0 0; } }
+
+  /* ---- the caption, right of the query card, above the loop ---- */
+  #cap { left: 824px; top: 276px; font-family: var(--display); font-size: 42px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); white-space: nowrap; }
+</style>
+</head>
+<body data-duration="8200">
+<div class="stage">
+
+  <!-- REST FRAME: copied exactly from scenes/00_rest_frame.html -->
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <defs>
+      <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+      </marker>
+    </defs>
+    <path class="wire hop hop-1" marker-end="url(#ah)" />
+    <path class="wire hop hop-2" marker-end="url(#ah)" />
+    <path class="wire hop hop-3" marker-end="url(#ah)" />
+    <path class="wire hop hop-4" marker-end="url(#ah)" />
+    <path class="wire ask" marker-start="url(#ah)" marker-end="url(#ah)" d="M 618 362 L 618 394" />
+  </svg>
+
+  <div class="note query loop-q"><span class="kind">query</span>get_balance</div>
+  <div class="note command loop-1"><span class="kind">command</span>transfer_funds</div>
+  <div class="fn procedure loop-2"><span class="kind">procedure</span>execute_transfer</div>
+  <div class="note event loop-3"><span class="kind">event</span>transfer_rejected</div>
+  <div class="fn policy loop-4"><span class="kind">policy</span>notify_on_rejection</div>
+  <div class="note command loop-5"><span class="kind">command</span>send_notice</div>
+
+  <div class="line"></div>
+  <div class="label line-label above">the domain</div>
+  <div class="label line-label below">the infrastructure<br>between the parts</div>
+  <div class="line-name">DIZZY</div>
+
+  <div class="infra infra-queue-a">queue</div>
+  <div class="infra infra-log">event log</div>
+  <div class="infra infra-queue-b">queue</div>
+  <div class="infra infra-db">database</div>
+  <div class="infra infra-run">runtime: one process</div>
+  <!-- end of REST FRAME -->
+
+  <!-- ===== Beat 16: Changeable (0.3s to 7.6s; still rest frame from 7.6s) ===== -->
+  <div class="statement with-line in out" style="--at: 0.3s; --out: 7.2s">Changeable. <em>Rewrite one part; the rest stays.</em> <span class="tag aim">designed for</span></div>
+
+  <div id="stem" class="in fade out" style="--at: 1.2s; --out: 6.9s"></div>
+  <div id="outline" class="in fade out" style="--at: 0.55s; --out: 7.2s"></div>
+
+  <div id="lang-proc-py" class="lang">py</div>
+  <div id="lang-proc-rs" class="lang rs">rs</div>
+  <div id="lang-pol-py" class="lang in pop out" style="--at: 0.95s; --out: 7.2s">py</div>
+
+  <div id="frame"></div>
+
+  <div id="pc" class="in fade out" style="--at: 1.65s; --out: 6.25s">
+    <div id="decl"><span class="grp"><span class="kw">takes</span><span class="chip command">transfer_funds</span></span><span class="grp"><span class="kw">asks</span><span class="chip query">get_balance</span></span><span class="grp"><span class="kw">emits</span><span class="chip event">funds_debited</span><span class="chip event">funds_credited</span><span class="chip event">transfer_rejected</span></span></div>
+
+    <div id="legend"><svg viewBox="0 0 26 26"><path d="M 8 2 L 18 2 L 16.5 9 L 20.5 13.5 L 20.5 15.5 L 5.5 15.5 L 5.5 13.5 L 9.5 9 Z" /><line x1="13" y1="15.5" x2="13" y2="24" /></svg><span class="label">declared in the feat</span></div>
+
+    <div id="body">
+      <div id="py" class="impl"><span class="file">execute_transfer.py</span>
+<pre><span class="k">def</span> execute_transfer(context: execute_transfer_context, command: TransferFunds) -&gt; None:
+    balance = context.query.<span class="u-q">get_balance</span>(GetBalanceInput(account=command.payer))
+    <span class="k">if</span> balance.amount &lt; command.amount:
+        context.emit.<span class="u-e">transfer_rejected</span>(TransferRejected(payer=command.payer, amount=command.amount))
+    <span class="k">else</span>:
+        context.emit.<span class="u-e">funds_debited</span>(FundsDebited(payer=command.payer, amount=command.amount))
+        context.emit.<span class="u-e">funds_credited</span>(FundsCredited(payee=command.payee, amount=command.amount))</pre></div>
+
+      <div id="rs" class="impl"><span class="file">execute_transfer.rs</span>
+<pre><span class="k">pub fn</span> execute_transfer(context: &amp;execute_transfer_context, command: TransferFunds) -&gt; Result&lt;(), Error&gt; {
+    <span class="k">let</span> balance = (context.query.<span class="u-q">get_balance</span>)(GetBalanceInput { account: command.payer.clone() })?;
+    <span class="k">if</span> balance.amount &lt; command.amount {
+        (context.emit.<span class="u-e">transfer_rejected</span>)(TransferRejected { payer: command.payer, amount: command.amount });
+    } <span class="k">else</span> {
+        (context.emit.<span class="u-e">funds_debited</span>)(FundsDebited { payer: command.payer, amount: command.amount });
+        (context.emit.<span class="u-e">funds_credited</span>)(FundsCredited { payee: command.payee, amount: command.amount });
+    }
+    Ok(())
+}</pre></div>
+    </div>
+  </div>
+
+  <div id="cap" class="in out" style="--at: 4.1s; --out: 6.25s">90% Python. The critical step in Rust.</div>
+
+</div>
+<script src="../shared/stage.js"></script>
+</body>
+</html>

@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>1. The problem</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  /* Scene 1: the problem (storyboard v3). Lehman's three kinds of program, drawn the same way:
+     a box with lines inside. Beats 1 to 6, one continuous shot. Ends on the system box
+     (scenes/00_system_box.html).
+
+     The E-type box IS the reference .system, and its lines ARE the nine reference .tangle paths.
+     Every animation on .system, .tangle and its paths has fill `backwards` and is finished by 16.8s,
+     so nothing is applied to them at the end (fill `none` or a held value renders differently).
+     Animations of the same property are listed latest-ending first, so that the one currently
+     running (or the next one due) is the one that applies.
+
+     Row layout (beats 1 to 4): three 300px boxes, centres x = 400, 890, 1380, y = 600.
+     The E box is the 400px reference box at scale 0.75, moved 80px right and 20px up. */
+
+  /* ---------------- E: the system box ---------------- */
+  .system {
+    animation:
+      def5 0.4s  var(--ease-in-out) 16.35s backwards,
+      def4 0.45s var(--ease-in-out) 15.9s backwards,
+      def3 0.5s  var(--ease-in-out) 15.35s backwards,
+      def2 0.6s  var(--ease-in-out) 14.55s backwards,
+      def1 0.8s  var(--ease-in-out) 12.35s backwards,
+      e-move 0.9s var(--ease-in-out) 13.1s backwards,
+      e-dim 7s linear 3.5s backwards,
+      sys-in var(--move) var(--ease) 1.1s backwards;
+  }
+  .tangle {
+    transform-origin: 1300px 620px;
+    animation:
+      def5 0.4s  var(--ease-in-out) 16.35s backwards,
+      def4 0.45s var(--ease-in-out) 15.9s backwards,
+      def3 0.5s  var(--ease-in-out) 15.35s backwards,
+      def2 0.6s  var(--ease-in-out) 14.55s backwards,
+      def1 0.8s  var(--ease-in-out) 12.35s backwards,
+      e-move 0.9s var(--ease-in-out) 13.1s backwards;
+  }
+  /* in the row: three-quarter size, third in line; beat 5 brings it to the reference position */
+  @keyframes e-move { from { translate: 80px -20px; scale: 0.75; } to { translate: 0 0; scale: 1; } }
+  @keyframes sys-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+  /* dimmed while S (beat 2) and P (beat 3) are described */
+  @keyframes e-dim { 0% { opacity: 1; } 7.14% { opacity: 0.45; } 92.86% { opacity: 0.45; } 100% { opacity: 1; } }
+  /* each change squashes the box a little harder than the last */
+  @keyframes def1 { 0%, 100% { transform: scale(1, 1); } 30% { transform: scale(1.035, 0.965); } 65% { transform: scale(0.982, 1.018); } }
+  @keyframes def2 { 0%, 100% { transform: scale(1, 1); } 30% { transform: scale(1.05, 0.95); }   65% { transform: scale(0.975, 1.025); } }
+  @keyframes def3 { 0%, 100% { transform: scale(1, 1); } 30% { transform: scale(1.065, 0.935); } 65% { transform: scale(0.967, 1.033); } }
+  @keyframes def4 { 0%, 100% { transform: scale(1, 1); } 30% { transform: scale(1.08, 0.92); }   65% { transform: scale(0.96, 1.04); } }
+  @keyframes def5 { 0%, 100% { transform: scale(1, 1); } 30% { transform: scale(1.095, 0.905); } 65% { transform: scale(0.952, 1.048); } }
+
+  /* the nine reference paths, drawn one pass at a time (lengths measured, rounded up) */
+  .tangle path { animation: trace var(--d) var(--ease-in-out) var(--at) backwards; }
+  @keyframes trace {
+    from { stroke-dasharray: var(--len); stroke-dashoffset: var(--len); }
+    to   { stroke-dasharray: var(--len); stroke-dashoffset: 0; }
+  }
+  .tangle path:nth-child(1) { --len: 458; --at: 12.35s; --d: 0.8s; }
+  .tangle path:nth-child(2) { --len: 380; --at: 14.55s; --d: 0.55s; }
+  .tangle path:nth-child(3) { --len: 407; --at: 14.63s; --d: 0.55s; }
+  .tangle path:nth-child(4) { --len: 401; --at: 15.35s; --d: 0.45s; }
+  .tangle path:nth-child(5) { --len: 417; --at: 15.42s; --d: 0.45s; }
+  .tangle path:nth-child(6) { --len: 410; --at: 15.9s;  --d: 0.4s; }
+  .tangle path:nth-child(7) { --len: 418; --at: 15.96s; --d: 0.4s; }
+  .tangle path:nth-child(8) { --len: 354; --at: 16.35s; --d: 0.35s; }
+  .tangle path:nth-child(9) { --len: 326; --at: 16.4s;  --d: 0.35s; }
+
+  /* ---------------- the shared grammar: a box with lines inside ---------------- */
+  /* the same box as .system at three-quarter size: 3px border and 28px radius become 2.25 and 21 */
+  .kbox { width: 300px; height: 300px; border: 2.25px solid var(--ink); background: var(--flow); border-radius: 21px;
+          animation: sys-in var(--move) var(--ease) var(--at) both; }
+  .klines { width: 300px; height: 300px; overflow: visible; }
+  .khead { width: 300px; text-align: center; font-family: var(--sans); font-size: 34px; font-weight: 600; color: var(--ink);
+           animation: fade-in var(--move) var(--ease) var(--at) both; }
+  .kex { width: 360px; text-align: center; font-family: var(--sans); font-size: 30px; line-height: 1.15; color: var(--ink-soft);
+         animation: fade-in var(--move) var(--ease) var(--at) both; }
+  .kex code { font-family: var(--mono); color: var(--ink); }
+
+  /* a kind's group: full stage, so children keep stage coordinates; beat 5 shrinks it to the left */
+  .kind { left: 0; top: 0; width: 1920px; height: 1080px; }
+  .kind > * { position: absolute; }
+  #S { transform-origin: 400px 600px;
+       animation: s-dim 0.5s ease 6.7s both, back-s 0.9s var(--ease-in-out) 13.1s both, fade-out 0.4s ease-in 19.2s forwards; }
+  #P { transform-origin: 890px 600px;
+       animation: p-dim 7s linear 3.5s both, back-p 0.9s var(--ease-in-out) 13.1s both, fade-out 0.4s ease-in 19.2s forwards; }
+  @keyframes s-dim { to { opacity: 0.45; } }
+  @keyframes p-dim { 0% { opacity: 1; } 7.14% { opacity: 0.45; } 45.71% { opacity: 0.45; } 52.86% { opacity: 1; }
+                     92.86% { opacity: 1; } 100% { opacity: 0.45; } }
+  @keyframes back-s { to { translate: -90px 20px; scale: 0.75; } }
+  @keyframes back-p { to { translate: -150px 20px; scale: 0.75; } }
+
+  /* ---------------- S: sort ---------------- */
+  .bar { fill: none; stroke: var(--ink); stroke-width: 14; stroke-linecap: round;
+         stroke-dasharray: 1 2; stroke-dashoffset: 1;
+         animation: draw 0.4s var(--ease-in-out) var(--at) both, settle 0.8s var(--ease-in-out) 4.8s both; }
+  @keyframes settle { from { translate: 0 0; } to { translate: var(--dx) 0; } }
+  #spec { left: 215px; top: 830px; width: 330px; padding: 12px 20px 14px; text-align: center;
+          font-family: var(--sans); font-size: 30px; line-height: 1.25; color: var(--ink);
+          background: var(--flow); border: 2px solid var(--rule); border-radius: 8px;
+          animation: rise var(--move) var(--ease) 5.4s both; }
+  #check { left: 560px; top: 852px; width: 64px; height: 64px; overflow: visible; }
+  #check path { fill: none; stroke: var(--ok); stroke-width: 8; stroke-linecap: round; stroke-linejoin: round;
+                stroke-dasharray: 1 2; stroke-dashoffset: 1; animation: draw 0.5s var(--ease-in-out) 5.8s both; }
+
+  /* ---------------- P: a forecast ---------------- */
+  /* outside: the problem, a source line with its bounds. inside: scattered observations, and one curve fitted to them. */
+  .pout { fill: none; stroke: var(--ink-soft); stroke-width: 4; stroke-linecap: round;
+          stroke-dasharray: 1 2; stroke-dashoffset: 1;
+          animation: draw 0.7s var(--ease-in-out) 7.0s both, pout-1 0.7s var(--ease-in-out) 8.8s forwards, pout-2 0.7s var(--ease-in-out) 14.4s forwards; }
+  .pband { fill: var(--ink-soft); fill-opacity: 0.16; stroke: var(--ink-soft); stroke-width: 1.5; stroke-dasharray: 5 7; stroke-opacity: 0.7;
+           animation: fade-in 0.6s ease 7.2s both, pband-1 0.7s var(--ease-in-out) 8.8s forwards, pband-2 0.7s var(--ease-in-out) 14.4s forwards; }
+  .pdot { fill: var(--ink-soft);
+          animation: fade-in 0.25s ease var(--at) both, pdot-1 0.7s var(--ease-in-out) 8.9s forwards, pdot-2 0.7s var(--ease-in-out) 14.5s forwards; }
+  .pin  { fill: none; stroke: var(--ink); stroke-width: 6; stroke-linecap: round;
+          stroke-dasharray: 1 2; stroke-dashoffset: 1;
+          animation: draw 0.7s var(--ease-in-out) 7.95s both, pin-1 0.7s var(--ease-in-out) 9.15s forwards, pin-2 0.7s var(--ease-in-out) 14.75s forwards; }
+  @keyframes pout-1 { from { d: path("M 60 135 C 130 135, 150 70, 210 75 C 270 80, 280 125, 340 65"); }
+                      to   { d: path("M 60 95 C 120 55, 170 150, 220 130 C 270 110, 290 60, 340 90"); } }
+  @keyframes pout-2 { from { d: path("M 60 95 C 120 55, 170 150, 220 130 C 270 110, 290 60, 340 90"); }
+                      to   { d: path("M 60 102.5 C 120 67.5, 170 142.5, 220 125 C 270 107.5, 290 67.5, 340 82.5"); } }
+  @keyframes pband-1 { from { d: path("M 60 111 C 130 111, 150 46, 210 51 C 270 56, 280 101, 340 41 L 340 89 C 280 149, 270 104, 210 99 C 150 94, 130 159, 60 159 Z"); }
+                       to   { d: path("M 60 71 C 120 31, 170 126, 220 106 C 270 86, 290 36, 340 66 L 340 114 C 290 84, 270 134, 220 154 C 170 174, 120 79, 60 119 Z"); } }
+  @keyframes pband-2 { from { d: path("M 60 71 C 120 31, 170 126, 220 106 C 270 86, 290 36, 340 66 L 340 114 C 290 84, 270 134, 220 154 C 170 174, 120 79, 60 119 Z"); }
+                       to   { d: path("M 60 78.5 C 120 43.5, 170 118.5, 220 101 C 270 83.5, 290 43.5, 340 58.5 L 340 106.5 C 290 91.5, 270 131.5, 220 149 C 170 166.5, 120 91.5, 60 126.5 Z"); } }
+  @keyframes pdot-1 { to { translate: var(--ax) var(--ay); } }
+  @keyframes pdot-2 { from { translate: var(--ax) var(--ay); } to { translate: var(--bx) var(--by); } }
+  @keyframes pin-1  { from { d: path("M 60 270 C 130 270, 150 140, 210 150 C 270 160, 280 250, 340 130"); }
+                      to   { d: path("M 60 190 C 120 110, 170 300, 220 260 C 270 220, 290 120, 340 180"); } }
+  @keyframes pin-2  { from { d: path("M 60 190 C 120 110, 170 300, 220 260 C 270 220, 290 120, 340 180"); }
+                      to   { d: path("M 60 205 C 120 135, 170 285, 220 250 C 270 215, 290 135, 340 165"); } }
+  #problem { left: 548px; top: 290px; width: 180px; text-align: right; font-family: var(--sans); font-size: 30px; color: var(--ink-soft);
+             animation: fade-in var(--move) var(--ease) 7.2s both; }
+
+  /* ---------------- E: its labels (placed for the reference position, moved into the row) ---------------- */
+  #e-head { left: 1150px; top: 362px;
+            animation: e-dim 7s linear 3.5s both, fade-in var(--move) var(--ease) 1.1s backwards,
+                       fade-out 0.4s ease-in 19.2s forwards, e-head-move 0.9s var(--ease-in-out) 13.1s both; }
+  #e-ex { left: 1120px; top: 838px;
+          animation: fade-in var(--move) var(--ease) 10.2s both, fade-out 0.4s ease-in 19.2s forwards,
+                     e-ex-move 0.9s var(--ease-in-out) 13.1s both; }
+  @keyframes e-head-move { from { translate: 80px 30px; } to { translate: 0 0; } }
+  @keyframes e-ex-move   { from { translate: 80px -70px; } to { translate: 0 0; } }
+
+  /* ---------------- E: the ring of influences ----------------
+     Each item is its 72px icon, placed at its reference-position centre; in the row (beat 4) it sits
+     tighter, offset by --tx/--ty, and opens out with the box in beat 5. */
+  .ring { width: 72px; height: 72px;
+          animation: fade-in var(--move) var(--ease) var(--at) both, ring-open 0.9s var(--ease-in-out) 13.1s both,
+                     fade-out 0.4s ease-in 19.2s forwards; }
+  @keyframes ring-open { from { translate: var(--tx) var(--ty); } to { translate: 0 0; } }
+  .ring svg { position: absolute; left: 0; top: 0; width: 72px; height: 72px; overflow: visible;
+              animation: pulse var(--d1) var(--ease-in-out) var(--p1), pulse var(--d2, 0.4s) var(--ease-in-out) var(--p2, 99s); }
+  .ring svg * { fill: none; stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+  .ring svg .solid { fill: var(--paper); }
+  .ring .rl { position: absolute; width: 200px; font-family: var(--sans); font-size: 24px; line-height: 1.2; color: var(--ink); }
+  .rl.above { left: -64px; bottom: 82px; text-align: center; }
+  .rl.below { left: -64px; top: 82px; text-align: center; }
+  .rl.right { left: 86px; top: 7px; }
+  @keyframes pulse { 0%, 100% { scale: 1; } 45% { scale: 1.2; } }
+  .r-know   { left: 974px;  top: 339px; --tx: 152px; --ty: 113px;  --at: 10.3s;  --p1: 16.1s;  --d1: 0.35s; }
+  .r-needs  { left: 1554px; top: 339px; --tx: 8px;   --ty: 113px;  --at: 10.45s; --p1: 11.65s; --d1: 0.6s; --p2: 15.05s; --d2: 0.4s; }
+  .r-infra  { left: 1554px; top: 859px; --tx: 8px;   --ty: -183px; --at: 10.6s;  --p1: 15.65s; --d1: 0.35s; }
+  .r-expert { left: 974px;  top: 859px; --tx: 152px; --ty: -183px; --at: 10.75s; --p1: 14.15s; --d1: 0.45s; }
+  .r-needs .newline { opacity: 0; animation: fade-in 0.3s ease-out 11.85s both; }
+
+  /* the change arrows. --at: start drawing, --d: drawing time, --out: fade */
+  .ar { animation: fade-out var(--quick) ease-in var(--out) forwards; }
+  .ar-line { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 1 2; stroke-dashoffset: 1;
+             animation: draw var(--d) var(--ease-in-out) var(--at) both; }
+  .ar-head { fill: var(--accent); animation: fade-in 0.1s linear both; animation-delay: calc(var(--at) + var(--d) - 0.08s); }
+
+  /* ---------------- statements ---------------- */
+  .statement b { font-weight: 700; color: var(--ink); }
+
+  /* beat 6: everything dims except the question, then the box returns to full strength */
+  .veil { left: 0; top: 0; width: 1920px; height: 1080px; background: var(--paper); opacity: 0;
+          animation: veil 3.6s ease-in-out 16.6s both; }
+  @keyframes veil { 0% { opacity: 0; } 16% { opacity: 0.86; } 86% { opacity: 0.86; } 100% { opacity: 0; } }
+</style>
+</head>
+<body data-duration="20800">
+<div class="stage">
+
+  <!-- SYSTEM BOX: the last frame of scene 1 and the first frame of scene 2. Copy from here ... -->
+  <div class="system"></div>
+  <svg class="wires tangle" viewBox="0 0 1920 1080">
+    <path d="M 1150 480 C 1260 700, 1380 430, 1450 760" />
+    <path d="M 1140 620 C 1300 520, 1330 780, 1460 560" />
+    <path d="M 1180 770 C 1220 560, 1420 640, 1400 460" />
+    <path d="M 1230 450 C 1180 620, 1460 700, 1300 790" />
+    <path d="M 1145 700 C 1290 760, 1340 500, 1465 480" />
+    <path d="M 1330 445 C 1250 560, 1250 700, 1420 780" />
+    <path d="M 1160 540 C 1320 470, 1400 620, 1240 780" />
+    <path d="M 1460 660 C 1340 600, 1260 660, 1150 760" />
+    <path d="M 1270 470 C 1420 520, 1220 640, 1440 700" />
+  </svg>
+  <!-- ... to here -->
+
+  <!-- E: its labels -->
+  <div id="e-head" class="khead">E-type</div>
+  <div id="e-ex" class="kex">most business<br>software</div>
+
+  <!-- S: sort. Drawn once, checked, and then it never moves again. -->
+  <div id="S" class="kind">
+    <div class="khead" style="left: 250px; top: 392px; --at: 0.7s">S-type</div>
+    <div class="kbox" style="left: 250px; top: 450px; --at: 0.7s"></div>
+    <svg class="klines" style="left: 250px; top: 450px" viewBox="0 0 400 400">
+      <path class="bar" pathLength="1" style="--at: 3.9s;  --dx: 90px"  d="M 110 310 V 160" />
+      <path class="bar" pathLength="1" style="--at: 3.97s; --dx: -45px" d="M 155 310 V 250" />
+      <path class="bar" pathLength="1" style="--at: 4.04s; --dx: 90px"  d="M 200 310 V 90" />
+      <path class="bar" pathLength="1" style="--at: 4.11s; --dx: -90px" d="M 245 310 V 210" />
+      <path class="bar" pathLength="1" style="--at: 4.18s; --dx: -45px" d="M 290 310 V 125" />
+    </svg>
+    <div class="kex" style="left: 220px; top: 768px; --at: 3.7s"><code>sort</code></div>
+    <div id="spec">output is ordered;<br>same items</div>
+    <svg id="check" viewBox="0 0 64 64"><path pathLength="1" d="M 8 33 L 25 50 L 58 12" /></svg>
+  </div>
+
+  <!-- P: a forecast. The problem outside (a source line and its bounds); inside, scattered observations and one curve fitted to them. -->
+  <div id="P" class="kind">
+    <div id="problem">the problem</div>
+    <svg class="klines" style="left: 740px; top: 236px; height: 150px" viewBox="0 0 400 200">
+      <path class="pband" d="M 60 111 C 130 111, 150 46, 210 51 C 270 56, 280 101, 340 41 L 340 89 C 280 149, 270 104, 210 99 C 150 94, 130 159, 60 159 Z" />
+      <path class="pout" pathLength="1" d="M 60 135 C 130 135, 150 70, 210 75 C 270 80, 280 125, 340 65" />
+    </svg>
+    <div class="khead" style="left: 740px; top: 392px; --at: 0.9s">P-type</div>
+    <div class="kbox" style="left: 740px; top: 450px; --at: 0.9s"></div>
+    <svg class="klines" style="left: 740px; top: 450px" viewBox="0 0 400 400">
+      <circle class="pdot" r="8" cx="72" cy="250" style="--at: 7.70s; --ax: -2px; --ay: -91px; --bx: -2px; --by: -75px" />
+      <circle class="pdot" r="8" cx="94" cy="271" style="--at: 7.43s; --ax: -2px; --ay: -84px; --bx: -2px; --by: -68px" />
+      <circle class="pdot" r="8" cx="118" cy="210" style="--at: 7.64s; --ax: 1px; --ay: -48px; --bx: 1px; --by: -37px" />
+      <circle class="pdot" r="8" cx="135" cy="185" style="--at: 7.58s; --ax: 5px; --ay: 4px; --bx: 5px; --by: 8px" />
+      <circle class="pdot" r="8" cx="152" cy="159" style="--at: 7.58s; --ax: 9px; --ay: 57px; --bx: 9px; --by: 55px" />
+      <circle class="pdot" r="8" cx="171" cy="164" style="--at: 7.49s; --ax: 12px; --ay: 99px; --bx: 12px; --by: 91px" />
+      <circle class="pdot" r="8" cx="199" cy="154" style="--at: 7.40s; --ax: 12px; --ay: 115px; --bx: 12px; --by: 105px" />
+      <circle class="pdot" r="8" cx="223" cy="148" style="--at: 7.49s; --ax: 8px; --ay: 97px; --bx: 8px; --by: 89px" />
+      <circle class="pdot" r="8" cx="237" cy="183" style="--at: 7.52s; --ax: 6px; --ay: 64px; --bx: 6px; --by: 58px" />
+      <circle class="pdot" r="8" cx="259" cy="180" style="--at: 7.67s; --ax: 5px; --ay: 26px; --bx: 5px; --by: 24px" />
+      <circle class="pdot" r="8" cx="273" cy="205" style="--at: 7.46s; --ax: 5px; --ay: -6px; --bx: 5px; --by: -6px" />
+      <circle class="pdot" r="8" cx="286" cy="195" style="--at: 7.49s; --ax: 5px; --ay: -25px; --bx: 5px; --by: -24px" />
+      <circle class="pdot" r="8" cx="306" cy="184" style="--at: 7.43s; --ax: 4px; --ay: -20px; --bx: 4px; --by: -22px" />
+      <circle class="pdot" r="8" cx="329" cy="159" style="--at: 7.61s; --ax: 2px; --ay: 17px; --bx: 2px; --by: 8px" />
+      <path class="pin" pathLength="1" d="M 60 270 C 130 270, 150 140, 210 150 C 270 160, 280 250, 340 130" />
+    </svg>
+    <div class="kex" style="left: 710px; top: 768px; --at: 6.9s">a forecast</div>
+  </div>
+
+  <!-- E: the ring of influences -->
+  <div class="ring r-needs">
+    <div class="rl right">user needs</div>
+    <svg viewBox="0 0 80 80">
+      <circle cx="26" cy="36" r="10" /><path d="M 6 76 C 6 54, 46 54, 46 76" />
+      <path d="M 48 6 H 72 Q 77 6 77 11 V 29 Q 77 34 72 34 H 62 L 55 41 V 34 H 48 Q 43 34 43 29 V 11 Q 43 6 48 6 Z" />
+      <path d="M 50 15 H 70" /><path class="newline" d="M 50 24 H 64" />
+    </svg>
+  </div>
+  <div class="ring r-know">
+    <div class="rl above">stakeholder<br>knowledge</div>
+    <svg viewBox="0 0 80 80">
+      <circle cx="54" cy="24" r="9" /><path d="M 38 56 C 38 42, 70 42, 70 56" />
+      <circle class="solid" cx="30" cy="32" r="11" /><path class="solid" d="M 10 72 C 10 50, 50 50, 50 72 Z" />
+    </svg>
+  </div>
+  <div class="ring r-infra">
+    <div class="rl right">infrastructure<br>requirements</div>
+    <svg viewBox="0 0 80 80">
+      <rect x="10" y="8" width="60" height="18" rx="3" /><rect x="10" y="31" width="60" height="18" rx="3" /><rect x="10" y="54" width="60" height="18" rx="3" />
+      <path d="M 20 17 H 22 M 20 40 H 22 M 20 63 H 22" /><path d="M 48 17 H 60 M 48 40 H 60 M 48 63 H 60" />
+    </svg>
+  </div>
+  <div class="ring r-expert">
+    <div class="rl below">domain<br>experts</div>
+    <svg viewBox="0 0 80 80">
+      <path d="M 40 6 L 68 17 L 40 28 L 12 17 Z" /><path d="M 64 19 V 31" />
+      <circle cx="40" cy="38" r="10" /><path d="M 18 78 C 18 56, 62 56, 62 78" />
+    </svg>
+  </div>
+
+  <!-- beats 4 and 5: out from the box to an influence, and back with a new line; each pass quicker -->
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <!-- beat 4, in the row: user needs -->
+    <g class="ar" style="--at: 11.2s; --d: 0.5s; --out: 12.9s">
+      <path class="ar-line" pathLength="1" d="M 1488 447 C 1496 398, 1556 392, 1590 438" /><path class="ar-head" d="M 1595 444 L 1573 433 L 1591 420 Z" />
+    </g>
+    <g class="ar" style="--at: 11.9s; --d: 0.5s; --out: 12.9s">
+      <path class="ar-line" pathLength="1" d="M 1598 532 C 1600 576, 1574 600, 1542 602" /><path class="ar-head" d="M 1534 602 L 1555 590 L 1557 612 Z" />
+    </g>
+    <!-- beat 5, at the reference position: domain experts -->
+    <g class="ar" style="--at: 13.9s; --d: 0.35s; --out: 15.0s">
+      <path class="ar-line" pathLength="1" d="M 1096 770 C 1060 772, 1040 800, 1034 844" /><path class="ar-head" d="M 1033 852 L 1025 829 L 1047 832 Z" />
+    </g>
+    <g class="ar" style="--at: 14.25s; --d: 0.35s; --out: 15.0s">
+      <path class="ar-line" pathLength="1" d="M 1054 905 C 1090 905, 1116 880, 1120 832" /><path class="ar-head" d="M 1121 824 L 1130 847 L 1108 845 Z" />
+    </g>
+    <!-- user needs again -->
+    <g class="ar" style="--at: 14.85s; --d: 0.3s; --out: 15.7s">
+      <path class="ar-line" pathLength="1" d="M 1440 416 C 1450 380, 1500 372, 1540 374" /><path class="ar-head" d="M 1548 374 L 1525 384 L 1527 362 Z" />
+    </g>
+    <g class="ar" style="--at: 15.1s; --d: 0.3s; --out: 15.7s">
+      <path class="ar-line" pathLength="1" d="M 1590 422 C 1592 455, 1565 485, 1512 490" /><path class="ar-head" d="M 1504 491 L 1525 478 L 1527 500 Z" />
+    </g>
+    <!-- infrastructure requirements -->
+    <g class="ar" style="--at: 15.45s; --d: 0.25s; --out: 16.2s">
+      <path class="ar-line" pathLength="1" d="M 1504 760 C 1550 760, 1580 800, 1586 846" /><path class="ar-head" d="M 1587 854 L 1573 834 L 1595 831 Z" />
+    </g>
+    <g class="ar" style="--at: 15.68s; --d: 0.25s; --out: 16.2s">
+      <path class="ar-line" pathLength="1" d="M 1546 900 C 1510 900, 1482 880, 1474 832" /><path class="ar-head" d="M 1473 824 L 1487 844 L 1465 848 Z" />
+    </g>
+    <!-- stakeholder knowledge -->
+    <g class="ar" style="--at: 15.95s; --d: 0.2s; --out: 16.7s">
+      <path class="ar-line" pathLength="1" d="M 1096 500 C 1060 492, 1040 465, 1033 424" /><path class="ar-head" d="M 1032 416 L 1046 436 L 1025 440 Z" />
+    </g>
+    <g class="ar" style="--at: 16.15s; --d: 0.2s; --out: 16.7s">
+      <path class="ar-line" pathLength="1" d="M 1054 368 C 1100 368, 1138 388, 1149 410" /><path class="ar-head" d="M 1153 417 L 1133 402 L 1153 393 Z" />
+    </g>
+  </svg>
+
+  <!-- statements: each replaces the last -->
+  <div class="statement in out" style="--at: 0.3s; --out: 3.3s">In 1980, Lehman described three kinds of program.</div>
+  <div class="statement in out" style="--at: 3.5s; --out: 6.5s"><b>S-type.</b> <em>Specified once, then finished.</em></div>
+  <div class="statement in out" style="--at: 6.7s; --out: 9.8s"><b>P-type.</b> <em>Fitted to a problem;<br>it changes when the problem does.</em></div>
+  <div class="statement in out" style="--at: 10.0s; --out: 13.1s"><b>E-type.</b> <em>Part of the world it serves; each changes the other.</em></div>
+  <div class="statement in out" style="--at: 13.3s; --out: 16.4s">Every change costs more than the last.</div>
+
+  <div class="veil"></div>
+  <div class="statement in out" style="--at: 16.7s; --out: 19.7s">So how do you assure something<br>that never stops changing?</div>
+
+</div>
+<script src="../shared/stage.js"></script>
+</body>
+</html>

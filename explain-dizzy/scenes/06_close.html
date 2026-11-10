@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scene 6: the system and the close</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  /* Scene 6 timing (seconds from the start of the scene)
+     0.0 - 0.5   the rest frame, still (pixel-identical to scenes/00_rest_frame.html)
+     0.5         hand-over to the moving copy (see below); the line labels fade
+     0.5 - 2.5   beat 17, the camera pulls back: the loop (in .zoom) shrinks to one feature at
+                 (420, 426); the system map (.map) comes in around it with the same motion, cut
+                 off at the line; the line moves down to y 700; the infrastructure re-lays out
+                 into wide rows (runtime, database, event log, then the queues merge)
+     2.4 - 6.2   statement 17
+     2.5 - 3.1   the system's hops appear; the new infrastructure boxes take over from the old
+     6.6 - 11.6  beat 18, statement 18; nothing above the line moves
+     6.9         what each box runs on today appears
+     7.4 / 8.3 / 9.2 / 10.1   swaps: queue, database, runtime, event log
+     11.6 - 12.1 the system and the infrastructure clear; 12.0 - 13.0 the line returns to y 620
+     12.9 - 15.3 beat 19: the five arrive, left to right
+     16.4        the five clear
+     16.8 / 17.3 beat 20: DIZZY, then the closing statement; held to the end (21.2) */
+
+  /* ---- the hand-over ----
+     The rest-frame markup stays exactly as in the reference and is never animated, except that at
+     0.5s it is hidden (visibility, which Chromium does not composite) and an identical copy, drawn
+     after it, takes its place: the loop in .zoom, and the line and infrastructure (class "c").
+     Any layer with a transform or opacity animation drawn beneath the rest frame makes Chromium
+     render the rest frame's text without subpixel antialiasing, and the first frame would not
+     match the reference; drawn after it, it does not. */
+  @keyframes shown   { from, to { visibility: visible; } }
+  @keyframes hidden  { from, to { visibility: hidden; } }
+  .stage > svg.wires, .stage > .note, .stage > .fn, .stage > .line:not(.c), .stage > .line-label:not(.c),
+  .stage > .line-name:not(.c), .stage > .infra:not(.c) { animation: hidden 0.01s linear 0.5s forwards; }
+  .c, .zoom { visibility: hidden; }
+
+  /* ---- beat 17: the loop shrinks to one feature ---- */
+  .zoom {
+    left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0;
+    animation: shown 0.01s linear 0.5s forwards, zoom-out 2s var(--ease-in-out) 0.5s forwards,
+               fade-out 0.5s ease-in 11.6s forwards;
+  }
+  .zoom > * { position: absolute; }
+  @keyframes zoom-out {
+    from { transform: translate(0px, 0px) scale(1); }
+    to   { transform: translate(385px, 326px) scale(0.25); }
+  }
+  /* the card names fade as they become too small to read; the cards stay */
+  .zoom > .note, .zoom > .fn { animation: ink-out 1s linear 1.1s forwards; }
+  @keyframes ink-out { to { color: transparent; } }
+  @keyframes name-out { to { color: transparent; background-color: transparent; } }
+  /* the four hops deepen as the loop shrinks, so that on screen they keep dipping into the
+     infrastructure (queue hops into the queue row, event hops into the event log row) */
+  .zoom .hop-1 { animation: deepen1 2s linear 0.5s forwards; }
+  .zoom .hop-2 { animation: deepen2 2s linear 0.5s forwards; }
+  .zoom .hop-3 { animation: deepen3 2s linear 0.5s forwards; }
+  .zoom .hop-4 { animation: deepen4 2s linear 0.5s forwards; }
+  @keyframes deepen1 {
+    0% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 742 L 462 742 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 3; }
+    5% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 742.67 L 462 742.67 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 3; }
+    10% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 744.9 L 462 744.9 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 3.01; }
+    15% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 749.22 L 462 749.22 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 3.02; }
+    20% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 756.46 L 462 756.46 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 3.04; }
+    25% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 768.11 L 462 768.11 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 3.07; }
+    30% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 786.63 L 462 786.63 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 3.12; }
+    35% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 815.42 L 462 815.42 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 3.2; }
+    40% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 860.1 L 462 860.1 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 3.33; }
+    45% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 929.73 L 462 929.73 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 3.53; }
+    50% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 1025.69 L 462 1025.69 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 3.82; }
+    55% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 1135.99 L 462 1135.99 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 4.16; }
+    60% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 1248.65 L 462 1248.65 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 4.5; }
+    65% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 1356.61 L 462 1356.61 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 4.83; }
+    70% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 1455.34 L 462 1455.34 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 5.14; }
+    75% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 1543.33 L 462 1543.33 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 5.4; }
+    80% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 1623.55 L 462 1623.55 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 5.62; }
+    85% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 1702.78 L 462 1702.78 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 5.79; }
+    90% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 1758.55 L 462 1758.55 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 5.91; }
+    95% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 1787.33 L 462 1787.33 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 5.98; }
+    100% { d: path("M 412 447 L 420 447 Q 432 447 432 459 L 432 1796 L 462 1796 L 462 459 Q 462 447 474 447 L 475 447"); stroke-width: 6; }
+  }
+  @keyframes deepen2 {
+    0% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 742 L 804 742 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 3; }
+    5% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 742.67 L 804 742.67 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 3; }
+    10% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 744.9 L 804 744.9 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 3.01; }
+    15% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 749.22 L 804 749.22 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 3.02; }
+    20% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 756.46 L 804 756.46 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 3.04; }
+    25% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 768.11 L 804 768.11 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 3.07; }
+    30% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 786.63 L 804 786.63 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 3.12; }
+    35% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 815.42 L 804 815.42 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 3.2; }
+    40% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 860.1 L 804 860.1 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 3.33; }
+    45% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 929.73 L 804 929.73 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 3.53; }
+    50% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 1025.69 L 804 1025.69 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 3.82; }
+    55% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 1135.99 L 804 1135.99 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 4.16; }
+    60% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 1248.65 L 804 1248.65 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 4.5; }
+    65% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 1356.61 L 804 1356.61 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 4.83; }
+    70% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 1455.34 L 804 1455.34 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 5.14; }
+    75% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 1553.46 L 804 1553.46 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 5.4; }
+    80% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 1685.54 L 804 1685.54 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 5.62; }
+    85% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 1908.49 L 804 1908.49 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 5.79; }
+    90% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 2068.16 L 804 2068.16 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 5.91; }
+    95% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 2137.16 L 804 2137.16 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 5.98; }
+    100% { d: path("M 754 447 L 762 447 Q 774 447 774 459 L 774 2156 L 804 2156 L 804 459 Q 804 447 816 447 L 817 447"); stroke-width: 6; }
+  }
+  @keyframes deepen3 {
+    0% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 742 L 1146 742 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 3; }
+    5% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 742.67 L 1146 742.67 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 3; }
+    10% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 744.9 L 1146 744.9 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 3.01; }
+    15% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 749.22 L 1146 749.22 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 3.02; }
+    20% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 756.46 L 1146 756.46 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 3.04; }
+    25% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 768.11 L 1146 768.11 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 3.07; }
+    30% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 786.63 L 1146 786.63 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 3.12; }
+    35% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 815.42 L 1146 815.42 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 3.2; }
+    40% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 860.1 L 1146 860.1 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 3.33; }
+    45% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 929.73 L 1146 929.73 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 3.53; }
+    50% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 1025.69 L 1146 1025.69 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 3.82; }
+    55% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 1135.99 L 1146 1135.99 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 4.16; }
+    60% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 1248.65 L 1146 1248.65 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 4.5; }
+    65% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 1356.61 L 1146 1356.61 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 4.83; }
+    70% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 1455.34 L 1146 1455.34 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 5.14; }
+    75% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 1553.46 L 1146 1553.46 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 5.4; }
+    80% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 1685.54 L 1146 1685.54 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 5.62; }
+    85% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 1908.49 L 1146 1908.49 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 5.79; }
+    90% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 2068.16 L 1146 2068.16 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 5.91; }
+    95% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 2137.16 L 1146 2137.16 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 5.98; }
+    100% { d: path("M 1096 447 L 1104 447 Q 1116 447 1116 459 L 1116 2156 L 1146 2156 L 1146 459 Q 1146 447 1158 447 L 1159 447"); stroke-width: 6; }
+  }
+  @keyframes deepen4 {
+    0% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 742 L 1488 742 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 3; }
+    5% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 742.67 L 1488 742.67 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 3; }
+    10% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 744.9 L 1488 744.9 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 3.01; }
+    15% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 749.22 L 1488 749.22 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 3.02; }
+    20% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 756.46 L 1488 756.46 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 3.04; }
+    25% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 768.11 L 1488 768.11 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 3.07; }
+    30% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 786.63 L 1488 786.63 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 3.12; }
+    35% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 815.42 L 1488 815.42 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 3.2; }
+    40% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 860.1 L 1488 860.1 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 3.33; }
+    45% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 929.73 L 1488 929.73 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 3.53; }
+    50% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 1025.69 L 1488 1025.69 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 3.82; }
+    55% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 1135.99 L 1488 1135.99 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 4.16; }
+    60% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 1248.65 L 1488 1248.65 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 4.5; }
+    65% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 1356.61 L 1488 1356.61 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 4.83; }
+    70% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 1455.34 L 1488 1455.34 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 5.14; }
+    75% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 1543.33 L 1488 1543.33 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 5.4; }
+    80% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 1623.55 L 1488 1623.55 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 5.62; }
+    85% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 1702.78 L 1488 1702.78 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 5.79; }
+    90% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 1758.55 L 1488 1758.55 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 5.91; }
+    95% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 1787.33 L 1488 1787.33 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 5.98; }
+    100% { d: path("M 1438 447 L 1446 447 Q 1458 447 1458 459 L 1458 1796 L 1488 1796 L 1488 459 Q 1488 447 1500 447 L 1501 447"); stroke-width: 6; }
+  }
+
+  /* the line moves down to give the system room, and comes back for the close */
+  .stage > .line.c {
+    animation: shown 0.01s linear 0.5s forwards, line-down 2s var(--ease-in-out) 0.5s forwards, line-up 1s var(--ease-in-out) 12.0s forwards;
+  }
+  @keyframes line-down { from { top: 620px; } to { top: 700px; } }
+  @keyframes line-up   { from { top: 700px; } to { top: 620px; } }
+  .stage > .line-name.c {
+    animation: shown 0.01s linear 0.5s forwards, name-down 2s var(--ease-in-out) 0.5s forwards, name-out 0.4s ease-in 11.6s forwards;
+  }
+  @keyframes name-down { from { top: 594px; } to { top: 674px; } }
+  .stage > .line-label.c { animation: shown 0.01s linear 0.5s forwards, ink-out 0.4s ease-in 0.5s forwards; }
+
+  /* the rest frame's infrastructure re-lays out into wide rows, one move at a time so no two boxes
+     cross: runtime, then database, then event log, then the two queues merge into one row */
+  .stage > .infra-run.c     { animation: shown 0.01s linear 0.5s forwards, run-move 2s var(--ease-in-out) 0.5s forwards, ink-out 0.4s linear 2.1s forwards, hidden 0.01s linear 2.9s forwards; }
+  .stage > .infra-db.c      { animation: shown 0.01s linear 0.5s forwards, db-move 2s var(--ease-in-out) 0.5s forwards, ink-out 0.4s linear 2.1s forwards, hidden 0.01s linear 2.9s forwards; }
+  .stage > .infra-log.c     { animation: shown 0.01s linear 0.5s forwards, log-move 2s var(--ease-in-out) 0.5s forwards, ink-out 0.4s linear 2.1s forwards, hidden 0.01s linear 2.9s forwards; }
+  .stage > .infra-queue-a.c { animation: shown 0.01s linear 0.5s forwards, qa-move 2s var(--ease-in-out) 0.5s forwards, ink-out 0.4s linear 2.1s forwards, hidden 0.01s linear 2.9s forwards; }
+  .stage > .infra-queue-b.c { animation: shown 0.01s linear 0.5s forwards, qb-move 2s var(--ease-in-out) 0.5s forwards, ink-out 0.4s linear 2.1s forwards, hidden 0.01s linear 2.9s forwards; }
+  @keyframes run-move {
+    0%        { left: 140px; top: 958px; width: 1640px; height: 58px; padding-top: 13px; }
+    30%       { left: 740px; top: 958px; width: 1040px; height: 58px; padding-top: 13px; }
+    50%, 100% { left: 740px; top: 920px; width: 1040px; height: 70px; padding-top: 18px; }
+  }
+  @keyframes db-move {
+    0%, 20%   { left: 508px; top: 842px; width: 220px; height: 76px; padding-top: 22px; }
+    50%, 100% { left: 140px; top: 920px; width: 560px; height: 70px; padding-top: 18px; }
+  }
+  @keyframes log-move {
+    0%, 50%   { left: 704px; top: 716px; width: 510px; height: 76px; padding-top: 22px; }
+    70%       { left: 704px; top: 830px; width: 510px; height: 70px; padding-top: 18px; }
+    100%      { left: 140px; top: 830px; width: 1640px; height: 70px; padding-top: 18px; }
+  }
+  @keyframes qa-move {
+    0%, 70%   { left: 347px; top: 716px; width: 200px; height: 76px; padding-top: 22px; }
+    100%      { left: 140px; top: 740px; width: 1640px; height: 70px; padding-top: 18px; }
+  }
+  @keyframes qb-move {
+    0%, 70%   { left: 1373px; top: 716px; width: 200px; height: 76px; padding-top: 22px; }
+    100%      { left: 140px; top: 740px; width: 1640px; height: 70px; padding-top: 18px; }
+  }
+
+  /* ---- the system map: drawn at its final size, and moved by the same camera as the loop ---- */
+  /* while the camera moves, the map is cut off at the line, so no domain part is ever seen below it */
+  .map-clip {
+    left: 0; top: 0; width: 1920px; height: 1080px;
+    animation: clip-line 2s var(--ease-in-out) 0.5s both, unclip 0.01s linear 2.5s forwards,
+               fade-out 0.5s ease-in 11.6s forwards;
+  }
+  @keyframes clip-line { from { clip-path: inset(0 0 460px 0); } to { clip-path: inset(0 0 380px 0); } }
+  @keyframes unclip    { to { clip-path: inset(0 0 -100px 0); } }
+  .map {
+    left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0;
+    animation: cam 2s var(--ease-in-out) 0.5s both;
+  }
+  @keyframes cam {
+    from { transform: translate(-1540px, -1304px) scale(4); }   /* the inverse of the loop's final transform */
+    to   { transform: translate(0px, 0px) scale(1); }
+  }
+  .map > * { position: absolute; }
+  .map-wires { animation: fade-in 0.6s ease-out 2.5s both; }
+  .map-cards { left: 0; top: 0; width: 1920px; height: 1080px; animation: fade-in 1.4s linear 1.1s both; }
+  .map-cards > * { position: absolute; }
+
+  /* map components: the theme's classes, at the loop's final scale (0.25) */
+  .m.note { width: 68px; height: 23.5px; min-width: 0; padding: 0; border-radius: 1.75px;
+            box-shadow: 0 0.25px 0 rgba(24, 32, 43, 0.12), 0 3px 5.5px -4px rgba(24, 32, 43, 0.45); }
+  .m.fn   { width: 68px; height: 23.5px; min-width: 0; padding: 0; border-width: 0.75px; border-radius: 10px; }
+  .wire.m { stroke-width: 1.5; }
+  .wire.ask.m { stroke-width: 0.75; stroke-dasharray: 0.75 2.75; }
+  .people circle, .people path { fill: none; stroke: var(--ink-soft); stroke-width: 3; stroke-linecap: round; }
+
+  .flabel, .plabel {
+    font-family: var(--sans); font-size: 22px; line-height: 26px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft);
+  }
+  .flabel { padding: 0 6px; background: var(--paper); }   /* knocks out the wires passing behind */
+  .flabel.own { color: var(--ink); }
+  .plabel { width: 200px; text-align: center; }
+
+  /* ---- the new infrastructure: a socket per box, so a box can slide out and another slide in ---- */
+  .sock { overflow: hidden; animation: fade-in 0.4s ease-out 2.5s both, fade-out 0.5s ease-in 11.6s forwards; }
+  .sock > * { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+  .sock-mark { border: 2px dashed var(--ink-faint); border-radius: 6px; }
+  .s-queue { left: 140px; top: 740px; width: 1640px; height: 70px; }
+  .s-log   { left: 140px; top: 830px; width: 1640px; height: 70px; }
+  .s-db    { left: 140px; top: 920px; width: 560px;  height: 70px; }
+  .s-run   { left: 740px; top: 920px; width: 1040px; height: 70px; }
+  .ibox { display: flex; align-items: center; min-width: 0; padding: 0 0 0 30px; text-align: left; }
+  .ibox .k { flex: none; width: 230px; font-size: 28px; color: var(--infra); }
+  .ibox .t { display: flex; align-items: center; font-size: 36px; font-weight: 600; color: var(--ink); }
+  .ibox.old .t { animation: fade-in 0.5s ease-out 6.9s both; }
+  .tiles { display: flex; gap: 12px; margin-left: 44px; }
+  .tiles i { display: block; width: 58px; height: 40px; border: 2px solid var(--infra); border-radius: 4px; background: var(--flow); }
+
+  .ibox.old { animation: drop-out 0.35s ease-in var(--sw) forwards; }
+  .ibox.new { animation: drop-in 0.45s var(--ease) calc(var(--sw) + 0.45s) both; }
+  @keyframes drop-out { to { translate: 0 100%; } }
+  @keyframes drop-in  { from { translate: 0 -100%; } to { translate: 0 0; } }
+
+  /* ---- beat 19: the five, on the line ---- */
+  .five {
+    top: 546px; width: 305px; text-align: center;
+    animation: arrive 0.6s var(--ease) var(--at) both, fade-out 0.4s ease-in 16.4s forwards;
+  }
+  .five .word { height: 54px; font-family: var(--display); font-size: 48px; line-height: 54px; font-weight: 600; letter-spacing: -0.01em; }
+  .five .gloss { margin-top: 46px; font-size: 26px; line-height: 32px; color: var(--ink-soft); }
+  @keyframes arrive { from { opacity: 0; translate: -28px 0; } to { opacity: 1; translate: 0 0; } }
+
+  .markrow { top: 470px; text-align: center; }
+  .markrow .tag { display: inline-block; font-size: 22px; }
+  .bracket { top: 528px; height: 12px; border: 2px solid var(--ink); border-bottom: 0; }
+  .bracket.aim { border-style: dashed; border-bottom: 0; }
+  .markrow, .bracket { animation: fade-in 0.5s ease-out var(--at) both, fade-out 0.4s ease-in 16.4s forwards; }
+
+  /* ---- beat 20: the title ---- */
+  .wordmark {
+    left: 0; top: 452px; width: 1920px;
+    font-family: var(--display); font-size: 176px; line-height: 1; font-weight: 800;
+    letter-spacing: 0.24em; text-indent: 0.24em;   /* indent balances the trailing letter space */
+    text-align: center; color: var(--ink);
+  }
+  .statement.closing { top: 668px; color: var(--ink); }
+</style>
+</head>
+<body data-duration="21200">
+<div class="stage">
+
+  <!-- REST FRAME: copied exactly -->
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <defs>
+      <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+      </marker>
+    </defs>
+    <path class="wire hop hop-1" marker-end="url(#ah)" />
+    <path class="wire hop hop-2" marker-end="url(#ah)" />
+    <path class="wire hop hop-3" marker-end="url(#ah)" />
+    <path class="wire hop hop-4" marker-end="url(#ah)" />
+    <path class="wire ask" marker-start="url(#ah)" marker-end="url(#ah)" d="M 618 362 L 618 394" />
+  </svg>
+
+  <div class="note query loop-q"><span class="kind">query</span>get_balance</div>
+  <div class="note command loop-1"><span class="kind">command</span>transfer_funds</div>
+  <div class="fn procedure loop-2"><span class="kind">procedure</span>execute_transfer</div>
+  <div class="note event loop-3"><span class="kind">event</span>transfer_rejected</div>
+  <div class="fn policy loop-4"><span class="kind">policy</span>notify_on_rejection</div>
+  <div class="note command loop-5"><span class="kind">command</span>send_notice</div>
+
+  <div class="line"></div>
+  <div class="label line-label above">the domain</div>
+  <div class="label line-label below">the infrastructure<br>between the parts</div>
+  <div class="line-name">DIZZY</div>
+
+  <div class="infra infra-queue-a">queue</div>
+  <div class="infra infra-log">event log</div>
+  <div class="infra infra-queue-b">queue</div>
+  <div class="infra infra-db">database</div>
+  <div class="infra infra-run">runtime: one process</div>
+  <!-- end of the rest frame -->
+
+  <!-- beat 17: a copy of the loop, which the camera moves (see "the hand-over" above) -->
+  <div class="zoom">
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <defs>
+      <marker id="ahz" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+      </marker>
+    </defs>
+    <path class="wire hop hop-1" marker-end="url(#ahz)" />
+    <path class="wire hop hop-2" marker-end="url(#ahz)" />
+    <path class="wire hop hop-3" marker-end="url(#ahz)" />
+    <path class="wire hop hop-4" marker-end="url(#ahz)" />
+    <path class="wire ask" marker-start="url(#ahz)" marker-end="url(#ahz)" d="M 618 362 L 618 394" />
+  </svg>
+
+  <div class="note query loop-q"><span class="kind">query</span>get_balance</div>
+  <div class="note command loop-1"><span class="kind">command</span>transfer_funds</div>
+  <div class="fn procedure loop-2"><span class="kind">procedure</span>execute_transfer</div>
+  <div class="note event loop-3"><span class="kind">event</span>transfer_rejected</div>
+  <div class="fn policy loop-4"><span class="kind">policy</span>notify_on_rejection</div>
+  <div class="note command loop-5"><span class="kind">command</span>send_notice</div>
+  </div>
+
+  <!-- beat 17: the system the loop belongs to -->
+  <div class="map-clip">
+  <div class="map">
+    <svg class="wires map-wires" viewBox="0 0 1920 1080">
+      <defs>
+        <marker id="ahm" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+        </marker>
+      </defs>
+      <path class="wire m" marker-end="url(#ahm)" d="M 312 378 L 352 378 Q 362 378 362 368 L 362 339.75 Q 362 329.75 372 329.75 L 417 329.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 312 378 L 352 378 Q 362 378 362 388 L 362 427.75 Q 362 437.75 372 437.75 L 417 437.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 312 590 L 352 590 Q 362 590 362 580 L 362 555.75 Q 362 545.75 372 545.75 L 417 545.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 312 590 L 352 590 Q 362 590 362 600 L 362 643.75 Q 362 653.75 372 653.75 L 417 653.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 488 329.75 L 490 329.75 Q 493 329.75 493 332.75 L 493 775 L 500.5 775 L 500.5 332.75 Q 500.5 329.75 503.5 329.75 L 503.75 329.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 573.5 329.75 L 575.5 329.75 Q 578.5 329.75 578.5 332.75 L 578.5 865 L 586 865 L 586 332.75 Q 586 329.75 589 329.75 L 589.25 329.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 659 329.75 L 661 329.75 Q 664 329.75 664 332.75 L 664 865 L 671.5 865 L 671.5 332.75 Q 671.5 329.75 674.5 329.75 L 674.75 329.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 744.5 329.75 L 746.5 329.75 Q 749.5 329.75 749.5 332.75 L 749.5 775 L 757 775 L 757 332.75 Q 757 329.75 760 329.75 L 760.25 329.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 830 329.75 L 832 329.75 Q 835 329.75 835 332.75 L 835 775 L 928 775 L 928 332.75 Q 928 329.75 931 329.75 L 931.25 329.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1001 329.75 L 1003 329.75 Q 1006 329.75 1006 332.75 L 1006 865 L 1013.5 865 L 1013.5 332.75 Q 1013.5 329.75 1016.5 329.75 L 1016.75 329.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1086.5 329.75 L 1088.5 329.75 Q 1091.5 329.75 1091.5 332.75 L 1091.5 865 L 1099 865 L 1099 332.75 Q 1099 329.75 1102 329.75 L 1102.25 329.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1172 329.75 L 1174 329.75 Q 1177 329.75 1177 332.75 L 1177 775 L 1184.5 775 L 1184.5 332.75 Q 1184.5 329.75 1187.5 329.75 L 1187.75 329.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1257.5 329.75 L 1259.5 329.75 Q 1262.5 329.75 1262.5 332.75 L 1262.5 775 L 1355.5 775 L 1355.5 332.75 Q 1355.5 329.75 1358.5 329.75 L 1358.75 329.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1428.5 329.75 L 1430.5 329.75 Q 1433.5 329.75 1433.5 332.75 L 1433.5 865 L 1441 865 L 1441 332.75 Q 1441 329.75 1444 329.75 L 1444.25 329.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1514 329.75 L 1516 329.75 Q 1519 329.75 1519 332.75 L 1519 865 L 1526.5 865 L 1526.5 332.75 Q 1526.5 329.75 1529.5 329.75 L 1529.75 329.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1599.5 329.75 L 1601.5 329.75 Q 1604.5 329.75 1604.5 332.75 L 1604.5 775 L 1612 775 L 1612 332.75 Q 1612 329.75 1615 329.75 L 1615.25 329.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 830 437.75 L 832 437.75 Q 835 437.75 835 440.75 L 835 775 L 928 775 L 928 440.75 Q 928 437.75 931 437.75 L 931.25 437.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1001 437.75 L 1003 437.75 Q 1006 437.75 1006 440.75 L 1006 865 L 1013.5 865 L 1013.5 440.75 Q 1013.5 437.75 1016.5 437.75 L 1016.75 437.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1086.5 437.75 L 1088.5 437.75 Q 1091.5 437.75 1091.5 440.75 L 1091.5 865 L 1099 865 L 1099 440.75 Q 1099 437.75 1102 437.75 L 1102.25 437.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1172 437.75 L 1174 437.75 Q 1177 437.75 1177 440.75 L 1177 775 L 1184.5 775 L 1184.5 440.75 Q 1184.5 437.75 1187.5 437.75 L 1187.75 437.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1257.5 437.75 L 1259.5 437.75 Q 1262.5 437.75 1262.5 440.75 L 1262.5 775 L 1355.5 775 L 1355.5 440.75 Q 1355.5 437.75 1358.5 437.75 L 1358.75 437.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1428.5 437.75 L 1430.5 437.75 Q 1433.5 437.75 1433.5 440.75 L 1433.5 865 L 1441 865 L 1441 440.75 Q 1441 437.75 1444 437.75 L 1444.25 437.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 488 545.75 L 490 545.75 Q 493 545.75 493 548.75 L 493 775 L 500.5 775 L 500.5 548.75 Q 500.5 545.75 503.5 545.75 L 503.75 545.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 573.5 545.75 L 575.5 545.75 Q 578.5 545.75 578.5 548.75 L 578.5 865 L 586 865 L 586 548.75 Q 586 545.75 589 545.75 L 589.25 545.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 830 545.75 L 832 545.75 Q 835 545.75 835 548.75 L 835 775 L 842.5 775 L 842.5 548.75 Q 842.5 545.75 845.5 545.75 L 845.75 545.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 915.5 545.75 L 917.5 545.75 Q 920.5 545.75 920.5 548.75 L 920.5 865 L 928 865 L 928 548.75 Q 928 545.75 931 545.75 L 931.25 545.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1001 545.75 L 1003 545.75 Q 1006 545.75 1006 548.75 L 1006 865 L 1013.5 865 L 1013.5 548.75 Q 1013.5 545.75 1016.5 545.75 L 1016.75 545.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1086.5 545.75 L 1088.5 545.75 Q 1091.5 545.75 1091.5 548.75 L 1091.5 775 L 1099 775 L 1099 548.75 Q 1099 545.75 1102 545.75 L 1102.25 545.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1172 545.75 L 1174 545.75 Q 1177 545.75 1177 548.75 L 1177 775 L 1270 775 L 1270 548.75 Q 1270 545.75 1273 545.75 L 1273.25 545.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1343 545.75 L 1345 545.75 Q 1348 545.75 1348 548.75 L 1348 865 L 1355.5 865 L 1355.5 548.75 Q 1355.5 545.75 1358.5 545.75 L 1358.75 545.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1428.5 545.75 L 1430.5 545.75 Q 1433.5 545.75 1433.5 548.75 L 1433.5 865 L 1441 865 L 1441 548.75 Q 1441 545.75 1444 545.75 L 1444.25 545.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1514 545.75 L 1516 545.75 Q 1519 545.75 1519 548.75 L 1519 775 L 1526.5 775 L 1526.5 548.75 Q 1526.5 545.75 1529.5 545.75 L 1529.75 545.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 488 653.75 L 490 653.75 Q 493 653.75 493 656.75 L 493 775 L 500.5 775 L 500.5 656.75 Q 500.5 653.75 503.5 653.75 L 503.75 653.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 573.5 653.75 L 575.5 653.75 Q 578.5 653.75 578.5 656.75 L 578.5 865 L 586 865 L 586 656.75 Q 586 653.75 589 653.75 L 589.25 653.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 659 653.75 L 661 653.75 Q 664 653.75 664 656.75 L 664 865 L 671.5 865 L 671.5 656.75 Q 671.5 653.75 674.5 653.75 L 674.75 653.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 744.5 653.75 L 746.5 653.75 Q 749.5 653.75 749.5 656.75 L 749.5 775 L 757 775 L 757 656.75 Q 757 653.75 760 653.75 L 760.25 653.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 830 653.75 L 832 653.75 Q 835 653.75 835 656.75 L 835 775 L 928 775 L 928 656.75 Q 928 653.75 931 653.75 L 931.25 653.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1001 653.75 L 1003 653.75 Q 1006 653.75 1006 656.75 L 1006 865 L 1013.5 865 L 1013.5 656.75 Q 1013.5 653.75 1016.5 653.75 L 1016.75 653.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1086.5 653.75 L 1088.5 653.75 Q 1091.5 653.75 1091.5 656.75 L 1091.5 865 L 1099 865 L 1099 656.75 Q 1099 653.75 1102 653.75 L 1102.25 653.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1172 653.75 L 1174 653.75 Q 1177 653.75 1177 656.75 L 1177 775 L 1184.5 775 L 1184.5 656.75 Q 1184.5 653.75 1187.5 653.75 L 1187.75 653.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1257.5 653.75 L 1259.5 653.75 Q 1262.5 653.75 1262.5 656.75 L 1262.5 775 L 1355.5 775 L 1355.5 656.75 Q 1355.5 653.75 1358.5 653.75 L 1358.75 653.75" />
+      <path class="wire m" marker-end="url(#ahm)" d="M 1428.5 653.75 L 1430.5 653.75 Q 1433.5 653.75 1433.5 656.75 L 1433.5 865 L 1441 865 L 1441 656.75 Q 1441 653.75 1444 653.75 L 1444.25 653.75" />
+      <path class="wire ask m" marker-start="url(#ahm)" marker-end="url(#ahm)" d="M 539.5 308.5 L 539.5 316.5" />
+      <path class="wire ask m" marker-start="url(#ahm)" marker-end="url(#ahm)" d="M 1138 308.5 L 1138 316.5" />
+      <path class="wire ask m" marker-start="url(#ahm)" marker-end="url(#ahm)" d="M 1394.5 308.5 L 1394.5 316.5" />
+      <path class="wire ask m" marker-start="url(#ahm)" marker-end="url(#ahm)" d="M 1138 416.5 L 1138 424.5" />
+      <path class="wire ask m" marker-start="url(#ahm)" marker-end="url(#ahm)" d="M 1394.5 416.5 L 1394.5 424.5" />
+      <path class="wire ask m" marker-start="url(#ahm)" marker-end="url(#ahm)" d="M 539.5 524.5 L 539.5 532.5" />
+      <path class="wire ask m" marker-start="url(#ahm)" marker-end="url(#ahm)" d="M 1052.5 524.5 L 1052.5 532.5" />
+      <path class="wire ask m" marker-start="url(#ahm)" marker-end="url(#ahm)" d="M 1309 524.5 L 1309 532.5" />
+      <path class="wire ask m" marker-start="url(#ahm)" marker-end="url(#ahm)" d="M 710.5 632.5 L 710.5 640.5" />
+      <path class="wire ask m" marker-start="url(#ahm)" marker-end="url(#ahm)" d="M 967 632.5 L 967 640.5" />
+    </svg>
+    <div class="map-cards">
+    <svg class="wires people" viewBox="0 0 1920 1080">
+      <circle cx="198" cy="350" r="10" /><path d="M 179 394 Q 179 367 198 367 Q 217 367 217 394" />
+      <circle cx="240" cy="344" r="10" /><path d="M 221 388 Q 221 361 240 361 Q 259 361 259 388" />
+      <circle cx="282" cy="350" r="10" /><path d="M 263 394 Q 263 367 282 367 Q 301 367 301 394" />
+      <circle cx="219" cy="562" r="10" /><path d="M 200 606 Q 200 579 219 579 Q 238 579 238 606" />
+      <circle cx="261" cy="562" r="10" /><path d="M 242 606 Q 242 579 261 579 Q 280 579 280 606" />
+    </svg>
+    <div class="plabel" style="left: 140px; top: 410px">customers</div>
+    <div class="plabel" style="left: 140px; top: 622px">staff</div>
+    <div class="note command m" style="left:420px;top:318px"></div>
+    <div class="fn procedure m" style="left:505.5px;top:318px"></div>
+    <div class="note query m" style="left:505.5px;top:283.5px"></div>
+    <div class="note event m" style="left:591px;top:318px"></div>
+    <div class="fn policy m" style="left:676.5px;top:318px"></div>
+    <div class="note command m" style="left:762px;top:318px"></div>
+    <div class="fn procedure m" style="left:933px;top:318px"></div>
+    <div class="note event m" style="left:1018.5px;top:318px"></div>
+    <div class="fn policy m" style="left:1104px;top:318px"></div>
+    <div class="note query m" style="left:1104px;top:283.5px"></div>
+    <div class="note command m" style="left:1189.5px;top:318px"></div>
+    <div class="fn procedure m" style="left:1360.5px;top:318px"></div>
+    <div class="note query m" style="left:1360.5px;top:283.5px"></div>
+    <div class="note event m" style="left:1446px;top:318px"></div>
+    <div class="fn policy m" style="left:1531.5px;top:318px"></div>
+    <div class="note command m" style="left:1617px;top:318px"></div>
+    <div class="fn procedure m" style="left:933px;top:426px"></div>
+    <div class="note event m" style="left:1018.5px;top:426px"></div>
+    <div class="fn policy m" style="left:1104px;top:426px"></div>
+    <div class="note query m" style="left:1104px;top:391.5px"></div>
+    <div class="note command m" style="left:1189.5px;top:426px"></div>
+    <div class="fn procedure m" style="left:1360.5px;top:426px"></div>
+    <div class="note query m" style="left:1360.5px;top:391.5px"></div>
+    <div class="note event m" style="left:1446px;top:426px"></div>
+    <div class="note command m" style="left:420px;top:534px"></div>
+    <div class="fn procedure m" style="left:505.5px;top:534px"></div>
+    <div class="note query m" style="left:505.5px;top:499.5px"></div>
+    <div class="note event m" style="left:591px;top:534px"></div>
+    <div class="note command m" style="left:762px;top:534px"></div>
+    <div class="fn procedure m" style="left:847.5px;top:534px"></div>
+    <div class="note event m" style="left:933px;top:534px"></div>
+    <div class="fn policy m" style="left:1018.5px;top:534px"></div>
+    <div class="note query m" style="left:1018.5px;top:499.5px"></div>
+    <div class="note command m" style="left:1104px;top:534px"></div>
+    <div class="fn procedure m" style="left:1275px;top:534px"></div>
+    <div class="note query m" style="left:1275px;top:499.5px"></div>
+    <div class="note event m" style="left:1360.5px;top:534px"></div>
+    <div class="fn policy m" style="left:1446px;top:534px"></div>
+    <div class="note command m" style="left:1531.5px;top:534px"></div>
+    <div class="note command m" style="left:420px;top:642px"></div>
+    <div class="fn procedure m" style="left:505.5px;top:642px"></div>
+    <div class="note event m" style="left:591px;top:642px"></div>
+    <div class="fn policy m" style="left:676.5px;top:642px"></div>
+    <div class="note query m" style="left:676.5px;top:607.5px"></div>
+    <div class="note command m" style="left:762px;top:642px"></div>
+    <div class="fn procedure m" style="left:933px;top:642px"></div>
+    <div class="note query m" style="left:933px;top:607.5px"></div>
+    <div class="note event m" style="left:1018.5px;top:642px"></div>
+    <div class="fn policy m" style="left:1104px;top:642px"></div>
+    <div class="note command m" style="left:1189.5px;top:642px"></div>
+    <div class="fn procedure m" style="left:1360.5px;top:642px"></div>
+    <div class="note event m" style="left:1446px;top:642px"></div>
+    <div class="flabel" style="left:414px;top:250px">accounts</div>
+    <div class="flabel own" style="left:414px;top:358px">transfers</div>
+    <div class="flabel" style="left:927px;top:358px">notices</div>
+    <div class="flabel" style="left:414px;top:466px">limits</div>
+    <div class="flabel" style="left:756px;top:466px">disputes</div>
+    <div class="flabel" style="left:927px;top:574px">statements</div>
+    </div>
+  </div>
+  </div>
+
+  <!-- a copy of the rest frame's line and infrastructure, which moves (see "the hand-over" above) -->
+  <div class="line c"></div>
+  <div class="label line-label above c">the domain</div>
+  <div class="label line-label below c">the infrastructure<br>between the parts</div>
+  <div class="line-name c">DIZZY</div>
+
+  <div class="infra infra-queue-a c">queue</div>
+  <div class="infra infra-log c">event log</div>
+  <div class="infra infra-queue-b c">queue</div>
+  <div class="infra infra-db c">database</div>
+  <div class="infra infra-run c">runtime: one process</div>
+
+  <!-- the infrastructure under the whole system; each box can be swapped in its socket -->
+  <div class="sock s-queue" style="--sw: 7.4s">
+    <div class="sock-mark"></div>
+    <div class="infra ibox old"><span class="k">queue</span><span class="t">in memory</span></div>
+    <div class="infra ibox new"><span class="k">queue</span><span class="t">Redis</span></div>
+  </div>
+  <div class="sock s-log" style="--sw: 10.1s">
+    <div class="sock-mark"></div>
+    <div class="infra ibox old"><span class="k">event log</span><span class="t">a file</span></div>
+    <div class="infra ibox new"><span class="k">event log</span><span class="t">a log service</span></div>
+  </div>
+  <div class="sock s-db" style="--sw: 8.3s">
+    <div class="sock-mark"></div>
+    <div class="infra ibox old"><span class="k">database</span><span class="t">SQLite</span></div>
+    <div class="infra ibox new"><span class="k">database</span><span class="t">Postgres</span></div>
+  </div>
+  <div class="sock s-run" style="--sw: 9.2s">
+    <div class="sock-mark"></div>
+    <div class="infra ibox old"><span class="k">runtime</span><span class="t">one process<span class="tiles"><i></i></span></span></div>
+    <div class="infra ibox new"><span class="k">runtime</span><span class="t">a fleet<span class="tiles"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span></div>
+  </div>
+
+  <!-- statements 17 and 18 -->
+  <div class="statement with-line in out" style="--at: 2.4s; --out: 6.2s">That was one feature.<br>A system has many, on one contract.</div>
+  <div class="statement with-line in out" style="--at: 6.6s; --out: 11.6s">Bring your software to where it runs best.</div>
+
+  <!-- beat 19: the five, grouped: three guarantees, two aims -->
+  <div class="markrow" style="left: 140px; width: 915px; --at: 12.9s"><span class="tag guarantee">guarantee</span></div>
+  <div class="bracket" style="left: calc(140px + 24px); width: calc(915px - 48px); --at: 12.9s"></div>
+  <div class="markrow" style="left: 1170px; width: 610px; --at: 14.3s"><span class="tag aim">designed for</span></div>
+  <div class="bracket aim" style="left: calc(1170px + 24px); width: calc(610px - 48px); --at: 14.3s"></div>
+  <div class="five" style="left:140px;--at:12.9s"><div class="word">Recoverable</div><div class="gloss">replay the log</div></div>
+  <div class="five" style="left:445px;--at:13.3s"><div class="word">Bounded</div><div class="gloss">declared access only</div></div>
+  <div class="five" style="left:750px;--at:13.7s"><div class="word">Verified</div><div class="gloss">same run, same events</div></div>
+  <div class="five" style="left:1170px;--at:14.3s"><div class="word">Changeable</div><div class="gloss">rewrite one part</div></div>
+  <div class="five" style="left:1475px;--at:14.7s"><div class="word">Validatable</div><div class="gloss">experts read the feat</div></div>
+
+  <!-- beat 20: the title -->
+  <div class="wordmark in fade" style="--at: 16.8s">DIZZY</div>
+  <div class="statement small center closing in" style="--at: 17.3s">Assurable software for programs that never stop changing.</div>
+
+</div>
+<script src="../shared/stage.js"></script>
+</body>
+</html>

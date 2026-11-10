@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scene 4: what is guaranteed</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  /* Scene-local layout and motion. Colours, type and shared motion come from theme.css.
+
+     Timeline (s):
+       beat 13 recoverable  0.0 - 7.0   model loop replaces the business loop, database lost, log replayed
+       beat 14 bounded      7.0 - 10.8  notify_on_rejection reaches for the database, stopped at the line
+       beat 15 verified     10.8 - 15.95 a recorded run, then its replay, matched chip by chip
+       still rest frame     15.95 - 16.6
+
+     Rest-frame elements carry no opacity or transform animation of their own: in Chromium that
+     puts them on compositor layers even before and after the animation runs, which changes their
+     text antialiasing and breaks the pixel match at the joins. Instead their opacity reads a
+     registered custom property (1 unless animated), the event log moves by animating `left`, and
+     every such animation has fill mode none with keyframes ending at the natural value. */
+
+  /* ---------- rest-frame elements: leave and return ---------- */
+
+  @property --f13 { syntax: '<number>'; inherits: false; initial-value: 1; }
+  @property --fdb { syntax: '<number>'; inherits: false; initial-value: 1; }
+  @property --f15 { syntax: '<number>'; inherits: false; initial-value: 1; }
+
+  /* beat 13: the business loop (cards, hops, queues) leaves for the model loop and comes back.
+     active 0.3s to 7.35s (7.05s): out in 0.35s, back from 6.95s */
+  .loop-q, .loop-1, .loop-2, .loop-3, .loop-4, .loop-5,
+  .stage > svg.wires:first-of-type, .infra-queue-a, .infra-queue-b {
+    opacity: var(--f13);
+    animation: hide-13 7.05s linear 0.3s none;
+  }
+  @keyframes hide-13 {
+    0%     { --f13: 1; animation-timing-function: ease-in; }
+    4.96%  { --f13: 0; }
+    94.33% { --f13: 0; animation-timing-function: ease-out; }
+    100%   { --f13: 1; }
+  }
+
+  /* beat 13: the event log slides left to sit under the model loop, and back. active 0.55s to 6.95s */
+  .infra-log { animation: log-13 6.4s linear 0.55s none; }
+  @keyframes log-13 {
+    0%     { left: 704px; animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1); }
+    9.38%  { left: 140px; }
+    93.75% { left: 140px; animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1); }
+    100%   { left: 704px; }
+  }
+
+  /* the database: in beat 13 a scene-local copy (#db2) stands in for it and moves (0.6s to 6.95s);
+     in beat 15 it and the runtime band fade to make room for the run rows */
+  .infra-db  { opacity: calc(var(--fdb) * var(--f15)); animation: gone 6.35s linear 0.6s none, hide-15 5.15s linear 10.8s none; }
+  .infra-run { opacity: var(--f15); animation: hide-15 5.15s linear 10.8s none; }
+  @keyframes gone { from { --fdb: 0; } to { --fdb: 0; } }
+  /* active 10.8s to 15.95s: out in 0.4s, back from 15.75s (after the run rows have gone) */
+  @keyframes hide-15 {
+    0%     { --f15: 1; animation-timing-function: ease-in; }
+    7.77%  { --f15: 0; }
+    96.12% { --f15: 0; animation-timing-function: ease-out; }
+    100%   { --f15: 1; }
+  }
+
+  /* ---------- small local helpers ---------- */
+  .ring  { border: 4px solid var(--ink); opacity: 0; animation: pulse 0.5s ease both; animation-delay: var(--at, 0s); }
+  @keyframes pulse { 0% { opacity: 0; } 30% { opacity: 1; } 60% { opacity: 1; } 100% { opacity: 0; } }
+  .ok-mark { fill: none; stroke: var(--ok); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ---------- beat 13: the model loop ---------- */
+  .mc { width: 272px; min-width: 0; height: 94px; font-size: 22px; padding-left: 18px; padding-right: 6px; }
+  #m-deb  { left: 140px;  top: 335px; }
+  #m-cred { left: 140px;  top: 465px; }
+  #m-proj { left: 596px;  top: 400px; }
+  #m-model { left: 1052px; top: 392px; width: 272px; height: 110px; min-width: 0; font-size: 22px; padding-top: 26px;
+             animation: pop var(--quick) var(--ease) both, dim 0.3s ease forwards, undim 0.4s ease forwards, fade-out var(--quick) ease-in forwards;
+             animation-delay: 1.3s, 2.75s, 5.25s, 6.2s; }
+  @keyframes dim   { to { opacity: 0.25; } }
+  @keyframes undim { from { opacity: 0.25; } to { opacity: 1; } }
+  #m-query { left: 1508px; top: 400px; }
+
+  /* the database, moved up beside the log and enlarged: geometry animates from the rest-frame box and back.
+     active 0.6s to 6.95s (6.35s); opacity 0 outside, so it never shows at a join */
+  #db2 { left: 880px; top: 690px; width: 620px; height: 230px; min-width: 0; padding: 22px 0 0; opacity: 0;
+         animation: db-13 6.35s linear 0.6s none; }
+  @keyframes db-13 {
+    0%     { opacity: 1; left: 508px; top: 842px; width: 220px; height: 76px; animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1); }
+    4.72%  { opacity: 1; left: 880px; top: 842px; width: 220px; height: 76px; animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1); }
+    10.24% { opacity: 1; left: 880px; top: 690px; width: 620px; height: 230px; }
+    91.34% { opacity: 1; left: 880px; top: 690px; width: 620px; height: 230px; animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1); }
+    96.06% { opacity: 1; left: 880px; top: 842px; width: 220px; height: 76px; animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1); }
+    100%   { opacity: 1; left: 508px; top: 842px; width: 220px; height: 76px; }
+  }
+
+  /* the balances table inside the database */
+  #table { left: 1066px; top: 762px; width: 248px; height: 140px; background: var(--flow);
+           border: 2px solid var(--rule); border-radius: 6px; }
+  #table .cell { position: absolute; font-family: var(--mono); font-size: 34px; line-height: 50px; color: var(--ink); }
+  #table .k  { left: 30px; font-weight: 700; }
+  #table .v  { right: 30px; text-align: right; }
+  #table .r1 { top: 14px; }
+  #table .r2 { top: 72px; }
+  #table .rule { position: absolute; left: 16px; right: 16px; top: 68px; height: 2px; background: var(--rule); }
+  .cell.on  { animation: fade-in 0.2s ease-out both; animation-delay: var(--at); }
+  .cell.off { animation: fade-out 0.2s ease-in forwards; animation-delay: var(--out); }
+  .cell.on.off { animation: fade-in 0.2s ease-out both, fade-out 0.2s ease-in forwards; animation-delay: var(--at), var(--out); }
+  .hl { position: absolute; left: 8px; width: 228px; height: 54px; background: var(--paper-deep); border-radius: 4px; opacity: 0;
+        animation: pulse 0.7s ease both; animation-delay: var(--at); }
+
+  /* deleting the database: a strike across it */
+  .strike { stroke: var(--refuse); stroke-width: 7; stroke-linecap: round; fill: none;
+            stroke-dasharray: 1 1.2; stroke-dashoffset: 1.1;
+            animation: strike-draw 0.3s var(--ease-in-out) both, fade-out 0.3s ease-in forwards;
+            animation-delay: var(--at), var(--out); }
+  @keyframes strike-draw { from { stroke-dashoffset: 1.1; } to { stroke-dashoffset: 0; } }
+  #lost { left: 1530px; top: 780px; font-family: var(--sans); font-size: 32px; font-weight: 600; color: var(--refuse); }
+
+  /* the replay: event tokens rise out of the log into balance_ledger; writes run down into the database */
+  #replay-cap { left: 470px; top: 808px; width: 160px; text-align: center; font-size: 30px; font-weight: 600; color: var(--ink-soft); }
+  .rtok { left: 0; top: 0; min-width: 0; padding: 10px 18px; font-size: 26px; white-space: nowrap;
+          offset-path: path("M 550 714 L 550 522"); offset-rotate: 0deg; offset-anchor: center;
+          opacity: 0; animation: rise-tok 0.6s cubic-bezier(0.45, 0, 0.4, 1) both; animation-delay: var(--at); }
+  @keyframes rise-tok {
+    0%   { offset-distance: 0%; opacity: 0; }
+    18%  { opacity: 1; }
+    75%  { opacity: 1; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+  .wdot { left: 0; top: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--edge-data);
+          offset-path: path("M 868 447 L 888 447 Q 900 447 900 459 L 900 750 L 960 750"); offset-rotate: 0deg; offset-anchor: center;
+          opacity: 0; animation: wdot 0.4s linear both; animation-delay: var(--at); }
+  @keyframes wdot { 0% { offset-distance: 0%; opacity: 0; } 10% { opacity: 1; } 85% { opacity: 1; } 100% { offset-distance: 100%; opacity: 0; } }
+
+  #same { left: 1530px; top: 776px; display: flex; align-items: center; gap: 12px;
+          font-family: var(--sans); font-size: 34px; font-weight: 600; color: var(--ok); }
+
+  /* ---------- beat 14: the refused reach ---------- */
+  /* dash 1, gap 1.1, offset 1.05 when hidden: no zero-length dash, so no round-cap dot is left */
+  .reach { stroke-width: 5; stroke-dasharray: 1 1.1; stroke-dashoffset: 1.05;
+           animation: reach-draw 0.6s var(--ease-in-out) both, reach-undraw 0.45s var(--ease-in-out) forwards;
+           animation-delay: var(--at), var(--back); }
+  @keyframes reach-draw   { from { stroke-dashoffset: 1.05; } to { stroke-dashoffset: 0; } }
+  @keyframes reach-undraw { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 1.05; } }
+  #stop { left: 1025px; top: 588px; width: 68px; height: 68px; }
+  #not-declared { left: 760px; top: 552px; width: 250px; text-align: right;
+                  font-family: var(--sans); font-size: 32px; font-weight: 600; color: var(--refuse); }
+  #line-flash { left: 939px; top: 615px; width: 240px; height: 14px; border-radius: 3px; background: var(--refuse); opacity: 0;
+                animation: flash 0.9s ease both; animation-delay: 8.0s; }
+  @keyframes flash { 0% { opacity: 0; } 15% { opacity: 1; } 35% { opacity: 0.2; } 55% { opacity: 1; } 100% { opacity: 0; } }
+  #db-target { left: 502px; top: 836px; width: 232px; height: 88px; border: 4px solid var(--refuse); border-radius: 8px; }
+
+  /* ---------- beat 15: a recorded run and its replay ---------- */
+  .tok { left: 0; top: 0; width: 34px; height: 34px; border-radius: 50%; background: var(--ink); border: 4px solid var(--paper);
+         offset-anchor: center; offset-rotate: 0deg; opacity: 0;
+         animation: run 0.6s cubic-bezier(0.45, 0, 0.55, 1) both; animation-delay: var(--at); }
+  .tok-1 { offset-path: var(--hop1-dip); }
+  .tok-2 { offset-path: var(--hop2-dip); }
+  .tok-3 { offset-path: var(--hop3-dip); }
+  .tok-4 { offset-path: var(--hop4-dip); }
+  @keyframes run {
+    0%   { offset-distance: 0%; opacity: 0; }
+    6%   { opacity: 1; }
+    94%  { opacity: 1; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+
+  .row-label { left: 140px; width: 170px; font-size: 22px; line-height: 1.3; }
+  #lab-rec { top: 822px; }
+  #lab-rep { top: 924px; }
+  .chip { min-width: 0; height: 58px; padding: 0; font-size: 26px; line-height: 58px; text-align: center; }
+  .chip.c1 { left: 317px;  width: 260px; }
+  .chip.c2 { left: 804px;  width: 310px; }
+  .chip.c3 { left: 1353px; width: 240px; }
+  .chip.rec { top: 820px; }
+  .chip.rep { top: 912px; }
+  /* recorded: the chip drops out of the infrastructure box it passed through */
+  .chip.rec { animation: record 0.45s var(--ease) both, fade-out var(--quick) ease-in forwards; animation-delay: var(--at), 15.35s; }
+  @keyframes record { from { opacity: 0; translate: 0 -66px; scale: 0.7; } to { opacity: 1; translate: 0 0; scale: 1; } }
+  .chip.rep, .tick { animation: pop var(--quick) var(--ease) both, fade-out var(--quick) ease-in forwards; animation-delay: var(--at), 15.35s; }
+  .tick { top: 921px; width: 40px; height: 40px; }
+  .tick.c1 { left: 590px; }
+  .tick.c2 { left: 1127px; }
+  .tick.c3 { left: 1606px; }
+</style>
+</head>
+<body data-duration="16600">
+<div class="stage">
+
+  <!-- REST FRAME: copy from here ... -->
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <defs>
+      <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+      </marker>
+    </defs>
+    <path class="wire hop hop-1" marker-end="url(#ah)" />
+    <path class="wire hop hop-2" marker-end="url(#ah)" />
+    <path class="wire hop hop-3" marker-end="url(#ah)" />
+    <path class="wire hop hop-4" marker-end="url(#ah)" />
+    <path class="wire ask" marker-start="url(#ah)" marker-end="url(#ah)" d="M 618 362 L 618 394" />
+  </svg>
+
+  <div class="note query loop-q"><span class="kind">query</span>get_balance</div>
+  <div class="note command loop-1"><span class="kind">command</span>transfer_funds</div>
+  <div class="fn procedure loop-2"><span class="kind">procedure</span>execute_transfer</div>
+  <div class="note event loop-3"><span class="kind">event</span>transfer_rejected</div>
+  <div class="fn policy loop-4"><span class="kind">policy</span>notify_on_rejection</div>
+  <div class="note command loop-5"><span class="kind">command</span>send_notice</div>
+
+  <div class="line"></div>
+  <div class="label line-label above">the domain</div>
+  <div class="label line-label below">the infrastructure<br>between the parts</div>
+  <div class="line-name">DIZZY</div>
+
+  <div class="infra infra-queue-a">queue</div>
+  <div class="infra infra-log">event log</div>
+  <div class="infra infra-queue-b">queue</div>
+  <div class="infra infra-db">database</div>
+  <div class="infra infra-run">runtime: one process</div>
+  <!-- ... to here -->
+
+  <!-- ================= beat 13: recoverable (0.2s to 7.0s) ================= -->
+
+  <div class="statement with-line in out" style="--at: 0.2s; --out: 6.2s">Recoverable. <em>Lose a database, replay the log.</em> <span class="tag guarantee">guarantee</span></div>
+
+  <!-- the database, moved up beside the log (a copy that stands in for the rest-frame box) -->
+  <div id="db2" class="infra">database</div>
+
+  <!-- the model loop's wiring: every hop crosses the line -->
+  <svg class="wires in fade out" viewBox="0 0 1920 1080" style="--at: 1.45s; --out: 6.2s">
+    <defs>
+      <marker id="ah4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+      </marker>
+    </defs>
+    <!-- events down into the log, up out of it into balance_ledger -->
+    <path class="wire data" d="M 412 382 L 508 382 Q 520 382 520 394 L 520 742" />
+    <path class="wire data" marker-end="url(#ah4)" d="M 412 512 L 508 512 Q 520 512 520 524 L 520 742 L 550 742 L 550 459 Q 550 447 562 447 L 589 447" />
+    <!-- balance_ledger writes down into the database; balances is what it holds -->
+    <path class="wire data" marker-end="url(#ah4)" d="M 868 447 L 888 447 Q 900 447 900 459 L 900 750 L 1030 750 L 1030 459 Q 1030 447 1042 447 L 1045 447" />
+    <!-- get_balance reads up from the database -->
+    <path class="wire ask" marker-start="url(#ah4)" marker-end="url(#ah4)" d="M 1331 447 L 1332 447 Q 1344 447 1344 459 L 1344 750 L 1474 750 L 1474 459 Q 1474 447 1486 447 L 1501 447" />
+  </svg>
+
+  <div id="m-deb"  class="note event mc in pop out" style="--at: 1.1s; --out: 6.2s"><span class="kind">event</span>funds_debited</div>
+  <div id="m-cred" class="note event mc in pop out" style="--at: 1.15s; --out: 6.2s"><span class="kind">event</span>funds_credited</div>
+  <div id="m-proj" class="fn projection mc in pop out" style="--at: 1.2s; --out: 6.2s"><span class="kind">projection</span>balance_ledger</div>
+  <div id="m-model" class="db"><span class="kind">model</span>balances</div>
+  <div id="m-query" class="note query mc in pop out" style="--at: 1.4s; --out: 6.2s"><span class="kind">query</span>get_balance</div>
+
+  <!-- the balances table, as it stands, then lost, then rebuilt -->
+  <div id="table" class="in fade out" style="--at: 1.5s; --out: 6.2s">
+    <div class="hl" style="top: 12px; --at: 4.15s"></div>
+    <div class="hl" style="top: 12px; --at: 4.65s"></div>
+    <div class="hl" style="top: 70px; --at: 5.15s"></div>
+    <div class="rule"></div>
+    <span class="cell k r1 off" style="--out: 2.65s">A</span><span class="cell v r1 off" style="--out: 2.65s">70</span>
+    <span class="cell k r2 off" style="--out: 2.65s">B</span><span class="cell v r2 off" style="--out: 2.65s">30</span>
+
+    <span class="cell k r1 on" style="--at: 4.2s">A</span>
+    <span class="cell v r1 on off" style="--at: 4.2s; --out: 4.6s">100</span>
+    <span class="cell v r1 on" style="--at: 4.7s">70</span>
+    <span class="cell k r2 on" style="--at: 5.2s">B</span><span class="cell v r2 on" style="--at: 5.2s">30</span>
+  </div>
+
+  <!-- the database is lost -->
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <path class="strike" pathLength="1" style="--at: 2.65s; --out: 3.3s" d="M 900 702 L 1480 908" />
+    <path class="strike" pathLength="1" style="--at: 2.8s; --out: 3.3s" d="M 900 908 L 1480 702" />
+  </svg>
+  <div id="lost" class="in fade out" style="--at: 2.75s; --out: 3.3s">lost</div>
+
+  <!-- the log replays -->
+  <div id="replay-cap" class="in fade out" style="--at: 3.1s; --out: 5.6s">replay</div>
+  <div class="note event rtok" style="--at: 3.2s">credit A 100</div>
+  <div class="note event rtok" style="--at: 3.7s">debit A 30</div>
+  <div class="note event rtok" style="--at: 4.2s">credit B 30</div>
+  <div class="ring" style="left: 590px; top: 394px; width: 284px; height: 106px; border-radius: 53px; --at: 3.75s"></div>
+  <div class="ring" style="left: 590px; top: 394px; width: 284px; height: 106px; border-radius: 53px; --at: 4.25s"></div>
+  <div class="ring" style="left: 590px; top: 394px; width: 284px; height: 106px; border-radius: 53px; --at: 4.75s"></div>
+  <div class="wdot" style="--at: 3.8s"></div>
+  <div class="wdot" style="--at: 4.3s"></div>
+  <div class="wdot" style="--at: 4.8s"></div>
+
+  <div id="same" class="in pop out" style="--at: 5.35s; --out: 6.2s">
+    <svg width="44" height="44" viewBox="0 0 24 24"><path class="ok-mark" d="M 4 12.5 L 9.5 18 L 20 6" /></svg>
+    same table
+  </div>
+
+  <!-- ================= beat 14: bounded (7.0s to 10.8s) ================= -->
+
+  <div class="statement with-line in out" style="--at: 7.0s; --out: 10.4s">Bounded. <em>A part touches only what it declares.</em> <span class="tag guarantee">guarantee</span></div>
+
+  <div id="db-target" class="in fade out" style="--at: 7.75s; --out: 9.7s"></div>
+  <div id="line-flash"></div>
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <path class="wire refused reach" pathLength="1" style="--at: 7.4s; --back: 9.7s" d="M 1272 497 L 1059 620" />
+  </svg>
+  <div id="stop" class="in pop out" style="--at: 7.98s; --out: 9.65s">
+    <svg width="68" height="68" viewBox="0 0 68 68">
+      <circle cx="34" cy="34" r="29" fill="var(--paper)" stroke="var(--refuse)" stroke-width="7" />
+      <path d="M 13.5 54.5 L 54.5 13.5" stroke="var(--refuse)" stroke-width="7" stroke-linecap="round" />
+    </svg>
+  </div>
+  <div id="not-declared" class="in fade out" style="--at: 8.1s; --out: 9.65s">not declared</div>
+
+  <!-- ================= beat 15: verified (10.8s to 15.95s) ================= -->
+
+  <div class="statement with-line in out" style="--at: 10.8s; --out: 15.35s">Verified. <em>Replay a recorded run<br>and get the same events.</em> <span class="tag guarantee">guarantee</span></div>
+
+  <div id="lab-rec" class="label row-label in fade out" style="--at: 11.0s; --out: 15.35s">recorded<br>run</div>
+  <div id="lab-rep" class="label row-label in fade out" style="--at: 13.75s; --out: 15.35s">replay</div>
+
+  <div class="tok tok-1" style="--at: 11.15s"></div>
+  <div class="tok tok-2" style="--at: 11.75s"></div>
+  <div class="tok tok-3" style="--at: 12.35s"></div>
+  <div class="tok tok-4" style="--at: 12.95s"></div>
+
+  <div class="note command chip rec c1" style="--at: 11.4s">transfer_funds</div>
+  <div class="note event chip rec c2" style="--at: 12.0s">transfer_rejected</div>
+  <div class="note command chip rec c3" style="--at: 13.2s">send_notice</div>
+
+  <div class="note command chip rep c1" style="--at: 13.85s">transfer_funds</div>
+  <div class="note event chip rep c2" style="--at: 14.15s">transfer_rejected</div>
+  <div class="note command chip rep c3" style="--at: 14.45s">send_notice</div>
+  <div class="tick c1" style="--at: 14.0s"><svg width="40" height="40" viewBox="0 0 24 24"><path class="ok-mark" d="M 4 12.5 L 9.5 18 L 20 6" /></svg></div>
+  <div class="tick c2" style="--at: 14.3s"><svg width="40" height="40" viewBox="0 0 24 24"><path class="ok-mark" d="M 4 12.5 L 9.5 18 L 20 6" /></svg></div>
+  <div class="tick c3" style="--at: 14.6s"><svg width="40" height="40" viewBox="0 0 24 24"><path class="ok-mark" d="M 4 12.5 L 9.5 18 L 20 6" /></svg></div>
+
+</div>
+<script src="../shared/stage.js"></script>
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scene 2: the shape</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  /* Scene-local layout and motion only. Colours, type and component shapes come from theme.css.
+
+     The tangle, the nodes and the loop are one object. The bare-loop cards and hops exist from
+     the first frame, hidden and drawn small inside the system box; every animation on them runs
+     *from* that in-box state *to* their own styles, with fill `backwards`, so at the end nothing
+     holds a value on them and the last frame is the bare loop exactly.
+
+     Timeline (s)
+       0.0  the system box, still
+       0.3  "You can't specify what it will do."
+       0.5  the tangle straightens into five straight strokes between six points (to 2.1)
+       2.0  six plain nodes open on those points: white, ink edge (to 2.6)
+       2.2  "You can specify its shape."
+       2.4  the strokes become arrows (crossfade to the hops, to 2.9)
+       2.9  the nodes take the component colours (to 3.5)
+       3.4  the box dissolves (to 3.9)
+       3.8  nodes and arrows travel out and grow to the bare loop (to 5.0); names fade in 4.7
+       5.4  statement leaves
+       5.8  "Declare the domain."  The file writes itself, 6.0 to 8.7
+       9.3  "The people who know the domain can read it."  A person stands beside the file.
+       9.9  a token runs the loop; each card it reaches lights its declaration (to 13.5)
+      13.9  the person draws a check
+      14.6  statement, file and person leave; 15.0 to 15.6 the bare loop, still
+  */
+
+  /* ---------- beat 7: from the tangle to the loop ---------- */
+
+  /* Reference elements fade by colour (stroke, background, border to transparent), not by opacity,
+     so no compositor layer can change their antialiasing at the joins. The box and the tangle leave
+     the frame entirely (display: none) once faded, so nothing of them is left at the end. */
+
+  /* the tangle: each curve straightens onto the line between two node centres, then fades */
+  .tangle path { animation-duration: 1.6s, 0.4s; animation-delay: 0.5s, 2.5s; animation-fill-mode: forwards;
+                 animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1), ease-in; }
+  @keyframes tg-fade { to { stroke: transparent; } }
+  /* the box dissolves */
+  .tangle { animation: gone 0.01s 2.95s forwards; }
+  .system { animation: box-out 0.5s ease-in 3.4s forwards, gone 0.01s 3.95s forwards; }
+  @keyframes box-out { to { border-color: transparent; background-color: transparent; } }
+  @keyframes gone { to { display: none; } }
+  .tangle path:nth-child(1) { animation-name: tg-h4, tg-fade; }
+  .tangle path:nth-child(2) { animation-name: tg-h1, tg-fade; }
+  .tangle path:nth-child(3) { animation-name: tg-q, tg-fade; }
+  .tangle path:nth-child(4) { animation-name: tg-h2, tg-fade; }
+  .tangle path:nth-child(5) { animation-name: tg-h2, tg-fade; }
+  .tangle path:nth-child(6) { animation-name: tg-h3, tg-fade; }
+  .tangle path:nth-child(7) { animation-name: tg-h1, tg-fade; }
+  .tangle path:nth-child(8) { animation-name: tg-h4r, tg-fade; }
+  .tangle path:nth-child(9) { animation-name: tg-h3, tg-fade; }
+  @keyframes tg-h1  { to { d: path("M 1140 662 C 1167 662, 1193 662, 1220 662"); } }
+  @keyframes tg-h2  { to { d: path("M 1220 662 C 1247 662, 1273 662, 1300 662"); } }
+  @keyframes tg-h3  { to { d: path("M 1300 662 C 1327 662, 1353 662, 1380 662"); } }
+  @keyframes tg-h4  { to { d: path("M 1380 662 C 1407 662, 1433 662, 1460 662"); } }
+  @keyframes tg-h4r { to { d: path("M 1460 662 C 1433 662, 1407 662, 1380 662"); } }
+  @keyframes tg-q   { to { d: path("M 1220 662 C 1220 634, 1220 606, 1220 578"); } }
+
+
+  /* the cards: in the box (56 x 34, centred on the tangle's points), neutral, nameless */
+  .loop-1 { --bx: 1112px; --by: 645px; }
+  .loop-2 { --bx: 1192px; --by: 645px; }
+  .loop-3 { --bx: 1272px; --by: 645px; }
+  .loop-4 { --bx: 1352px; --by: 645px; }
+  .loop-5 { --bx: 1432px; --by: 645px; }
+  .loop-q { --bx: 1192px; --by: 561px; }
+  .loop-1, .loop-2, .loop-3, .loop-4, .loop-5, .loop-q {
+    animation: node-geo 3s 2s backwards,
+               node-tint 0.6s ease-in-out 2.9s backwards, node-name 0.5s ease-out 4.7s backwards;
+  }
+  /* notes have no border: their neutral ink edge is an inset outline */
+  .loop-1, .loop-3, .loop-5, .loop-q {
+    animation: node-geo 3s 2s backwards,
+               node-tint 0.6s ease-in-out 2.9s backwards, node-name 0.5s ease-out 4.7s backwards,
+               node-edge 0.6s ease-in-out 2.9s backwards;
+    outline-offset: -3px;
+  }
+  @keyframes node-geo {
+    0%   { visibility: hidden; left: calc(var(--bx) + 28px); top: calc(var(--by) + 17px); width: 0; height: 0; padding: 0;
+           animation-timing-function: cubic-bezier(0.22, 0.8, 0.24, 1); }
+    20%  { left: var(--bx); top: var(--by); width: 56px; height: 34px; padding: 0; }
+    60%  { left: var(--bx); top: var(--by); width: 56px; height: 34px; padding: 0;
+           animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1); }
+    /* 100%: the card's own place and size */
+  }
+  @keyframes node-tint { from { background: var(--flow); border-color: var(--ink); } }
+  @keyframes node-edge { from { outline: 3px solid var(--ink); } to { outline: 3px solid transparent; } }
+  @keyframes node-name { from { color: transparent; } }
+
+  /* the hops: arrows between the in-box nodes, then out with them (same timing as node-geo 60%..100%) */
+  svg.wires .hop-1 { animation: hop1-box 5s backwards, wire-in 0.4s ease-out 2.4s backwards; }
+  svg.wires .hop-2 { animation: hop2-box 5s backwards, wire-in 0.4s ease-out 2.4s backwards; }
+  svg.wires .hop-3 { animation: hop3-box 5s backwards, wire-in 0.4s ease-out 2.4s backwards; }
+  svg.wires .hop-4 { animation: hop4-box 5s backwards, wire-in 0.4s ease-out 2.4s backwards; }
+  svg.wires .wire.ask { animation: ask-box 5s backwards, wire-in 0.4s ease-out 2.4s backwards; }
+  @keyframes wire-in { from { stroke: transparent; } }
+  @keyframes hop1-box {
+    0%, 76% { d: path("M 1168 662 L 1170.41 662 Q 1174.03 662 1174.03 662 L 1174.03 662 L 1183.08 662 L 1183.08 662 Q 1183.08 662 1186.7 662 L 1187 662");
+              animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1); }
+  }
+  @keyframes hop2-box {
+    0%, 76% { d: path("M 1248 662 L 1250.41 662 Q 1254.03 662 1254.03 662 L 1254.03 662 L 1263.08 662 L 1263.08 662 Q 1263.08 662 1266.7 662 L 1267 662");
+              animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1); }
+  }
+  @keyframes hop3-box {
+    0%, 76% { d: path("M 1328 662 L 1330.41 662 Q 1334.03 662 1334.03 662 L 1334.03 662 L 1343.08 662 L 1343.08 662 Q 1343.08 662 1346.7 662 L 1347 662");
+              animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1); }
+  }
+  @keyframes hop4-box {
+    0%, 76% { d: path("M 1408 662 L 1410.41 662 Q 1414.03 662 1414.03 662 L 1414.03 662 L 1423.08 662 L 1423.08 662 Q 1423.08 662 1426.7 662 L 1427 662");
+              animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1); }
+  }
+  @keyframes ask-box {
+    0%, 76% { d: path("M 1220 601 L 1220 639"); animation-timing-function: cubic-bezier(0.6, 0, 0.3, 1); }
+  }
+
+  /* the statement of beat 7: the first sentence steps back when the second arrives */
+  .st7 span { display: inline-block; }
+  .st7a { animation: rise var(--move) var(--ease) 0.3s both, dim 0.8s ease 2.2s both; }
+  @keyframes dim { to { color: var(--ink-soft); } }
+
+  /* ---------- beat 8: the feat file ---------- */
+
+  #feat { left: 330px; top: 532px; width: 1450px; height: 482px; padding: 0;
+          background: var(--flow); border: 2px solid var(--rule); border-radius: 8px; }
+  #feat .fname { position: absolute; left: 30px; top: 14px; font-family: var(--mono); font-size: 24px;
+                 color: var(--ink-soft); }
+  #feat .col { position: absolute; top: 60px; }
+  #feat .col.a { left: 30px; }
+  #feat .col.b { left: 744px; }
+  .ln { position: relative; height: 31px; padding-left: 24px; font-family: var(--mono); font-size: 24px;
+        line-height: 31px; white-space: pre; color: var(--ink);
+        animation: type 0.35s linear both; animation-delay: var(--at); }
+  .ln .k { color: var(--ink-soft); }
+  @keyframes type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 -40px 0 -40px); } }
+  /* the colour bar of an item, one segment per line; first/last leave a gap between items */
+  .ln > b { position: absolute; left: 0; top: 0; bottom: 0; width: 8px; background: var(--c); }
+  .ln > b.f { top: 4px; border-radius: 2px 2px 0 0; }
+  .ln > b.l { bottom: 4px; border-radius: 0 0 2px 2px; }
+  /* a lit line: a band behind it, lit when the token reaches its card */
+  .ln > i { position: absolute; left: -12px; right: -16px; top: 0; bottom: 0; z-index: -1;
+            background: color-mix(in srgb, var(--accent) 17%, transparent);
+            animation: lit 1.0s ease both; animation-delay: var(--lt); }
+  .ln { isolation: isolate; }
+  @keyframes lit { 0% { opacity: 0; } 15% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0.5; } }
+
+  /* ---------- beat 9: a reader ---------- */
+
+  #person { left: 140px; top: 560px; width: 170px; height: 440px; overflow: visible; }
+  #person .p { fill: none; stroke: var(--ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+  #person .head { animation: nod 0.7s ease-in-out 13.9s both; }
+  @keyframes nod { 0%, 100% { translate: 0 0; } 45% { translate: 0 9px; } }
+  #person .arm { transform-origin: 85px 206px; transform-box: view-box;
+                 animation: raise 0.5s var(--ease) 13.5s both; }
+  @keyframes raise { from { rotate: 0deg; } to { rotate: -100deg; } }
+  #person .check { fill: none; stroke: var(--ok); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round;
+                   stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 0.5s var(--ease-in-out) 14.0s both; }
+
+  /* rings around the card the token is at */
+  .ring { width: 290px; height: 112px; border: 3px solid var(--ink); opacity: 0;
+          animation: ring 1.0s ease both; animation-delay: var(--at); }
+  .ring.sq { border-radius: 13px; }
+  .ring.cap { border-radius: 56px; }
+  @keyframes ring { 0% { opacity: 0; } 15% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; } }
+  #r1 { left: 131px;  top: 391px; }
+  #r2 { left: 473px;  top: 391px; }
+  #r3 { left: 815px;  top: 391px; }
+  #r4 { left: 1157px; top: 391px; }
+  #r5 { left: 1499px; top: 391px; }
+  #rq { left: 473px;  top: 253px; }
+
+  /* the token: one per hop, along the hop's own path */
+  .tok { left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--ink);
+         offset-path: var(--p); offset-rotate: 0deg;
+         animation: tok 0.5s linear both; animation-delay: var(--at); }
+  @keyframes tok {
+    0%   { offset-distance: 0%; opacity: 0; }
+    20%  { opacity: 1; }
+    80%  { opacity: 1; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+  .statement u { text-decoration: none; font-style: normal; box-shadow: inset 0 -0.11em 0 var(--accent); }
+</style>
+</head>
+<body data-duration="15600">
+<div class="stage">
+
+  <!-- SYSTEM BOX: copied from scenes/00_system_box.html -->
+  <div class="system"></div>
+  <svg class="wires tangle" viewBox="0 0 1920 1080">
+    <path d="M 1150 480 C 1260 700, 1380 430, 1450 760" />
+    <path d="M 1140 620 C 1300 520, 1330 780, 1460 560" />
+    <path d="M 1180 770 C 1220 560, 1420 640, 1400 460" />
+    <path d="M 1230 450 C 1180 620, 1460 700, 1300 790" />
+    <path d="M 1145 700 C 1290 760, 1340 500, 1465 480" />
+    <path d="M 1330 445 C 1250 560, 1250 700, 1420 780" />
+    <path d="M 1160 540 C 1320 470, 1400 620, 1240 780" />
+    <path d="M 1460 660 C 1340 600, 1260 660, 1150 760" />
+    <path d="M 1270 470 C 1420 520, 1220 640, 1440 700" />
+  </svg>
+
+  <!-- BARE LOOP: copied from scenes/00_bare_loop.html -->
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <defs>
+      <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+      </marker>
+    </defs>
+    <path class="wire hop flat hop-1" marker-end="url(#ah)" />
+    <path class="wire hop flat hop-2" marker-end="url(#ah)" />
+    <path class="wire hop flat hop-3" marker-end="url(#ah)" />
+    <path class="wire hop flat hop-4" marker-end="url(#ah)" />
+    <path class="wire ask" marker-start="url(#ah)" marker-end="url(#ah)" d="M 618 362 L 618 394" />
+  </svg>
+
+  <div class="note query loop-q"><span class="kind">query</span>get_balance</div>
+  <div class="note command loop-1"><span class="kind">command</span>transfer_funds</div>
+  <div class="fn procedure loop-2"><span class="kind">procedure</span>execute_transfer</div>
+  <div class="note event loop-3"><span class="kind">event</span>transfer_rejected</div>
+  <div class="fn policy loop-4"><span class="kind">policy</span>notify_on_rejection</div>
+  <div class="note command loop-5"><span class="kind">command</span>send_notice</div>
+
+  <!-- ===== beat 7: You can't specify what it will do. You can specify its shape. ===== -->
+
+  <div class="statement st7 out" style="--out: 5.4s"><span class="st7a">You can't validate that what it will do is correct,</span><br><span class="in" style="--at: 2.2s"><u>but</u> you can specify its shape.</span></div>
+
+  <!-- ===== beat 8: Declare the domain. ===== -->
+
+  <div class="statement in out" style="--at: 5.8s; --out: 8.9s">Declare the domain.</div>
+
+  <div id="feat" class="in fade out" style="--at: 5.8s; --out: 14.6s">
+    <div class="fname in fade" style="--at: 6.0s">transfer.feat.yaml</div>
+    <div class="col a">
+<div class="ln" style="--at: 6.15s"><span class="k">commands:</span></div>
+<div class="ln command" style="--at: 6.26s; --lt: 9.9s"><b class="f l"></b><i></i>  transfer_funds: someone wants to move money</div>
+<div class="ln command" style="--at: 6.37s; --lt: 13.5s"><b class="f l"></b><i></i>  send_notice: tell the customer</div>
+<div class="ln" style="--at: 6.48s"><span class="k">events:</span></div>
+<div class="ln event" style="--at: 6.59s"><b class="f l"></b>  funds_debited: money left the account</div>
+<div class="ln event" style="--at: 6.70s"><b class="f l"></b>  funds_credited: money reached the account</div>
+<div class="ln event" style="--at: 6.81s; --lt: 11.5s"><b class="f l"></b><i></i>  transfer_rejected: not enough money</div>
+<div class="ln" style="--at: 6.92s"><span class="k">queries:</span></div>
+<div class="ln query" style="--at: 7.03s; --lt: 10.5s"><b class="f l"></b><i></i>  get_balance: what an account holds</div>
+    </div>
+    <div class="col b">
+<div class="ln" style="--at: 7.14s"><span class="k">procedures:</span></div>
+<div class="ln procedure" style="--at: 7.25s; --lt: 10.5s"><b class="f"></b><i></i>  execute_transfer:</div>
+<div class="ln procedure" style="--at: 7.36s; --lt: 10.5s"><b></b><i></i>    <span class="k">description:</span> &gt;-</div>
+<div class="ln procedure" style="--at: 7.47s; --lt: 10.5s"><b></b><i></i>      checks the balance, does the transfer</div>
+<div class="ln procedure" style="--at: 7.58s; --lt: 10.5s"><b></b><i></i>    <span class="k">command:</span> transfer_funds</div>
+<div class="ln procedure" style="--at: 7.69s; --lt: 10.5s"><b></b><i></i>    <span class="k">queries:</span> [get_balance]</div>
+<div class="ln procedure" style="--at: 7.80s; --lt: 10.5s"><b></b><i></i>    <span class="k">emits:</span> [funds_debited, funds_credited,</div>
+<div class="ln procedure" style="--at: 7.91s; --lt: 10.5s"><b class="l"></b><i></i>            transfer_rejected]</div>
+<div class="ln" style="--at: 8.02s"><span class="k">policies:</span></div>
+<div class="ln policy" style="--at: 8.13s; --lt: 12.5s"><b class="f"></b><i></i>  notify_on_rejection:</div>
+<div class="ln policy" style="--at: 8.24s; --lt: 12.5s"><b></b><i></i>    <span class="k">description:</span> decides what happens next</div>
+<div class="ln policy" style="--at: 8.35s; --lt: 12.5s"><b></b><i></i>    <span class="k">event:</span> transfer_rejected</div>
+<div class="ln policy" style="--at: 8.46s; --lt: 12.5s"><b class="l"></b><i></i>    <span class="k">emits:</span> [send_notice]</div>
+    </div>
+  </div>
+
+  <!-- ===== beat 9: The people who know the domain can read it. ===== -->
+
+  <div class="statement in out" style="--at: 9.3s; --out: 14.6s">The people who know the domain can read it.</div>
+
+  <svg id="person" class="in fade out" style="--at: 9.4s; --out: 14.6s" viewBox="0 0 170 440">
+    <g class="head"><circle class="p" cx="85" cy="150" r="34" /></g>
+    <path class="p" d="M 85 184 L 85 330 M 85 330 L 50 432 M 85 330 L 120 432 M 85 206 L 42 290" />
+    <path class="p arm" d="M 85 206 L 132 284" />
+    <path class="check" pathLength="1" d="M 46 54 L 74 82 L 130 18" />
+  </svg>
+
+  <div id="rq" class="ring sq" style="--at: 10.5s"></div>
+  <div id="r1" class="ring sq" style="--at: 9.9s"></div>
+  <div id="r2" class="ring cap" style="--at: 10.5s"></div>
+  <div id="r3" class="ring sq" style="--at: 11.5s"></div>
+  <div id="r4" class="ring cap" style="--at: 12.5s"></div>
+  <div id="r5" class="ring sq" style="--at: 13.5s"></div>
+
+  <div class="tok" style="--p: var(--hop1-flat); --at: 10.0s"></div>
+  <div class="tok" style="--p: var(--hop2-flat); --at: 11.0s"></div>
+  <div class="tok" style="--p: var(--hop3-flat); --at: 12.0s"></div>
+  <div class="tok" style="--p: var(--hop4-flat); --at: 13.0s"></div>
+
+</div>
+<script src="../shared/stage.js"></script>
+</body>
+</html>

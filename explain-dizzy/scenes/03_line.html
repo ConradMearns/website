@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scene 3: the line</title>
+<link rel="stylesheet" href="../shared/theme.css">
+<style>
+  /* Scene-local only. Colours, type and motion come from theme.css.
+
+     Rest-frame elements keep their markup exactly. Their entrances are set here by selector and are
+     filled backwards only, so once an entrance is over no animation is in effect on them and they render
+     as in scenes/00_rest_frame.html. The hops use the theme's .hop.sag (filled forwards to the dip). */
+
+  .stage > .line { animation: grow-x 0.9s var(--ease-in-out) 0.3s backwards; }
+  .stage > .line-label.above { animation: fade-in 0.8s ease 1.0s backwards; }
+  .stage > .line-label.below { animation: fade-in 0.8s ease 1.15s backwards; }
+  .stage > .infra-queue-a { animation: rise 0.8s var(--ease) 1.0s backwards; }
+  .stage > .infra-log     { animation: rise 0.8s var(--ease) 1.15s backwards; }
+  .stage > .infra-queue-b { animation: rise 0.8s var(--ease) 1.3s backwards; }
+  .stage > .infra-db      { animation: fade-in 0.8s ease 5.6s backwards; }   /* last, quietly */
+  .stage > .infra-run     { animation: fade-in 0.8s ease 5.9s backwards; }
+
+  /* DIZZY lands on the line with weight (beat 12): it falls, stops dead at 1.35x, holds through the
+     peak, and settles to its plain size. It is lifted above the dimming veil only while the animation
+     runs (z-index in the keyframes): a z-index in its own style changes its corner pixels at the cut. */
+  .stage > .line-name {
+    transform-origin: 100% 50%;
+    animation: land 3.55s linear 11.05s backwards;
+  }
+  @keyframes land {
+    0%     { z-index: 1; opacity: 0; translate: 0 -90px; scale: 1.35; animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+    3.5%   { opacity: 1; }
+    9.86%  { translate: 0 0; scale: 1.35; animation-timing-function: linear; }
+    85.92% { scale: 1.35; animation-timing-function: var(--ease-in-out); }
+    100%   { z-index: 1; opacity: 1; translate: 0 0; scale: 1; }
+  }
+
+  /* Things that come and go. The element's own opacity is 0; it enters (filled backwards), a hold keeps
+     it visible, and it leaves; nothing is in effect before or after. --at, --out; --fi, --fo durations. */
+  .stage > .shown, .stage > .hl {
+    opacity: 0;
+    animation-name: var(--in-name, fade-in), hold, leave;
+    animation-duration: var(--fi, 0.4s), calc(var(--out) - var(--at) - var(--fi, 0.4s)), var(--fo, 0.4s);
+    animation-delay: var(--at), calc(var(--at) + var(--fi, 0.4s)), var(--out);
+    animation-timing-function: var(--ease), linear, ease-in;
+    animation-fill-mode: backwards, none, none;
+  }
+  .stage > .shown { --in-name: rise; --fi: var(--move); }
+  @keyframes hold  { from, to { opacity: 1; } }
+  @keyframes leave { from { opacity: 1; } to { opacity: 0; } }
+
+  /* beat 10: the token, one crossing of the chain, one element per hop, pausing inside the box */
+  .token {
+    left: 0; top: 0; width: 16px; height: 16px;   /* 16, not 18: crossing the bottom of a queue box it then only grazes the word "queue" */
+    border-radius: 50%;
+    background: var(--ink);
+    offset-rotate: 0deg;
+    opacity: 0;
+    animation: token 0.85s linear none;
+    animation-delay: var(--at);
+  }
+  .token-1 { offset-path: var(--hop1-dip); }
+  .token-2 { offset-path: var(--hop2-dip); }
+  .token-3 { offset-path: var(--hop3-dip); }
+  .token-4 { offset-path: var(--hop4-dip); }
+  /* 46% of a dip is 14px inside its box, on the way down, clear of the box's own text */
+  @keyframes token {
+    0%   { offset-distance: 0%;   opacity: 0; animation-timing-function: var(--ease-in-out); }
+    5%   { opacity: 1; }
+    35%  { offset-distance: 46%;  animation-timing-function: linear; }
+    70%  { offset-distance: 46%;  animation-timing-function: var(--ease-in-out); }
+    95%  { offset-distance: 100%; opacity: 1; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+
+  /* the box the token is in lights briefly: an accent edge and a faint accent wash over the box */
+  .light {
+    top: 716px; height: 76px;
+    border: 3px solid var(--accent);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    --fi: 0.15s; --fo: 0.3s;
+  }
+  .light-qa  { left: 347px;  width: 200px; }
+  .light-log { left: 704px;  width: 510px; }
+  .light-qb  { left: 1373px; width: 200px; }
+
+  /* beat 11: what each property is about, outlined in the accent */
+  .ring-box { border: 3px solid var(--accent); border-radius: 11px; }
+  .about-log { left: 700px; top: 712px; width: 518px; height: 84px; }
+  .about-db  { left: 502px; top: 836px; width: 232px; height: 88px; }
+  .leader-db { left: 738px; top: 896px; width: 30px; height: 3px; background: var(--accent); }
+  .crossing {
+    top: 606px; width: 32px; height: 32px;
+    border: 3px solid var(--accent);
+    border-radius: 50%;
+    --in-name: pop;
+  }
+
+  /* beat 11 and 12: the three properties. The two lines of the third are separate elements, so that they
+     can close up into one line when they gather: across first, then down, so they never overlap.
+     --gx/--gy: where it goes in the contract; --gat: when it starts to go. */
+  .prop {
+    height: 41px;
+    font-family: var(--sans);
+    font-size: 34px;
+    line-height: 41px;
+    font-weight: 500;
+    white-space: pre;
+    color: var(--ink);
+    opacity: 0;
+  }
+  .stage > .prop {
+    animation-name: rise, hold, leave, go, stay;
+    animation-duration: var(--move), calc(var(--out) - var(--at) - var(--move)), var(--quick),
+                        var(--move), calc(var(--out) + var(--quick) - var(--gat) - var(--move));
+    animation-delay: var(--at), calc(var(--at) + var(--move)), var(--out),
+                     var(--gat), calc(var(--gat) + var(--move));
+    animation-timing-function: var(--ease), linear, ease-in, var(--ease-in-out), linear;
+    animation-fill-mode: backwards, none, none, none, none;
+  }
+  .stage > .prop.two-step { animation-name: rise, hold, leave, go-two-step, stay; }
+  @keyframes go   { from { translate: 0 0; } to { translate: var(--gx) var(--gy); } }
+  @keyframes go-two-step {
+    0%   { translate: 0 0; }
+    50%  { translate: var(--gx) 0; }
+    100% { translate: var(--gx) var(--gy); }
+  }
+  @keyframes stay { from, to { translate: var(--gx) var(--gy); } }
+
+  .p1  { left: 809px;  top: 808px; }                                   /* under the event log */
+  .p2  { left: 776px;  top: 877px; }                                   /* right of the database */
+  .p3a { left: 1506px; top: 520px; }                                   /* at the crossings, right of hop 4 */
+  .p3b { left: 1506px; top: 561px; }
+
+  /* beat 12: the veil dims everything but the line, the name, the terms and the statement */
+  .veil {
+    left: 0; top: 0; width: 1920px; height: 1080px;
+    background: var(--paper);
+    opacity: 0;
+    animation: veil 4.3s linear 10.3s none;
+  }
+  @keyframes veil {
+    0%     { opacity: 0; animation-timing-function: var(--ease); }
+    13.95% { opacity: 0.45; }
+    86.05% { opacity: 0.45; animation-timing-function: ease-in-out; }
+    100%   { opacity: 0; }
+  }
+
+  /* the line at the peak: 10px, accent, swept across the full width; then back to 4px ink, then gone,
+     leaving the plain .line beneath it */
+  .peak-line {
+    left: 0; top: 617px; width: 1920px; height: 10px;
+    background: var(--accent);
+    transform-origin: 0 50%;
+    opacity: 0;
+    animation: peak-line 4.3s linear 10.3s none;
+  }
+  @keyframes peak-line {
+    0%     { opacity: 1; scale: 0 1; background: var(--accent); animation-timing-function: var(--ease-in-out); }
+    16.28% { scale: 1 1; }
+    88.37% { scale: 1 1; background: var(--accent); animation-timing-function: var(--ease-in-out); }
+    97.67% { opacity: 1; scale: 1 0.4; background: var(--dizzy); }
+    100%   { opacity: 0; scale: 1 0.4; background: var(--dizzy); }
+  }
+
+  /* the contract's terms, hung from the name */
+  .terms {
+    left: 1120px; top: 710px; width: 660px; height: 219px;
+    background: var(--flow);
+    border: 2px solid var(--rule);         /* quiet edges: the terms pass over them on the way in */
+    border-radius: 0 0 8px 8px;
+  }
+  .terms-top { left: 1120px; top: 710px; width: 660px; height: 4px; background: var(--accent); }
+  .terms { opacity: 0; animation: terms 4.2s linear 10.4s none; }
+  /* the accent edge it hangs from arrives once the third term has dropped through it */
+  .terms-top { opacity: 0; animation: terms-top 3.5s linear 11.1s none; }
+  @keyframes terms-top {
+    0%     { opacity: 0; }
+    11.43% { opacity: 1; }
+    92.86% { opacity: 1; }
+    100%   { opacity: 0; }
+  }
+  /* the stem drops from the name once the name has landed and the third term has passed */
+  .stem {
+    left: 1682px; top: 627px; width: 4px; height: 84px; background: var(--accent);
+    transform-origin: 50% 0;
+    opacity: 0;
+    animation: stem 3.3s linear 11.3s none;
+  }
+  @keyframes stem {
+    0%     { opacity: 1; scale: 1 0; animation-timing-function: var(--ease); }
+    9.09%  { scale: 1 1; }
+    92.42% { opacity: 1; }
+    100%   { opacity: 0; scale: 1 1; }
+  }
+  @keyframes terms {
+    0%   { opacity: 0; }
+    9.52%  { opacity: 1; }
+    94.05% { opacity: 1; }   /* the panel leaves after its terms */
+    100% { opacity: 0; }
+  }
+</style>
+</head>
+<body data-duration="15200">
+<div class="stage">
+
+  <!-- REST FRAME (scenes/00_rest_frame.html), the hops starting flat and sagging -->
+  <svg class="wires" viewBox="0 0 1920 1080">
+    <defs>
+      <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+      </marker>
+    </defs>
+    <path class="wire hop sag hop-1" style="--at: 1.2s" marker-end="url(#ah)" />
+    <path class="wire hop sag hop-2" style="--at: 1.45s" marker-end="url(#ah)" />
+    <path class="wire hop sag hop-3" style="--at: 1.7s" marker-end="url(#ah)" />
+    <path class="wire hop sag hop-4" style="--at: 1.95s" marker-end="url(#ah)" />
+    <path class="wire ask" marker-start="url(#ah)" marker-end="url(#ah)" d="M 618 362 L 618 394" />
+  </svg>
+
+  <div class="note query loop-q"><span class="kind">query</span>get_balance</div>
+  <div class="note command loop-1"><span class="kind">command</span>transfer_funds</div>
+  <div class="fn procedure loop-2"><span class="kind">procedure</span>execute_transfer</div>
+  <div class="note event loop-3"><span class="kind">event</span>transfer_rejected</div>
+  <div class="fn policy loop-4"><span class="kind">policy</span>notify_on_rejection</div>
+  <div class="note command loop-5"><span class="kind">command</span>send_notice</div>
+
+  <div class="line"></div>
+  <div class="label line-label above">the domain</div>
+  <div class="label line-label below">the infrastructure<br>between the parts</div>
+  <div class="line-name">DIZZY</div>
+
+  <div class="infra infra-queue-a">queue</div>
+  <div class="infra infra-log">event log</div>
+  <div class="infra infra-queue-b">queue</div>
+  <div class="infra infra-db">database</div>
+  <div class="infra infra-run">runtime: one process</div>
+  <!-- end of the rest frame -->
+
+  <!-- beat 10: one crossing of the chain; each box lights while the token is in it -->
+  <div class="hl light light-qa"  style="--at: 2.85s; --out: 3.3s"></div>
+  <div class="hl light light-log" style="--at: 3.8s;  --out: 4.25s"></div>
+  <div class="hl light light-log" style="--at: 4.75s; --out: 5.2s"></div>
+  <div class="hl light light-qb"  style="--at: 5.7s;  --out: 6.15s"></div>
+  <div class="token token-1" style="--at: 2.65s"></div>
+  <div class="token token-2" style="--at: 3.6s"></div>
+  <div class="token token-3" style="--at: 4.55s"></div>
+  <div class="token token-4" style="--at: 5.5s"></div>
+
+  <!-- beat 11: what each property is about -->
+  <div class="hl ring-box about-log" style="--at: 7.0s; --out: 10.4s"></div>
+  <div class="hl ring-box about-db"  style="--at: 8.1s; --out: 10.4s"></div>
+  <div class="hl leader-db"          style="--at: 8.1s; --out: 10.4s"></div>
+  <div class="hl crossing" style="left: 416px;  --at: 9.20s; --out: 10.4s"></div>
+  <div class="hl crossing" style="left: 446px;  --at: 9.25s; --out: 10.4s"></div>
+  <div class="hl crossing" style="left: 758px;  --at: 9.30s; --out: 10.4s"></div>
+  <div class="hl crossing" style="left: 788px;  --at: 9.35s; --out: 10.4s"></div>
+  <div class="hl crossing" style="left: 1100px; --at: 9.40s; --out: 10.4s"></div>
+  <div class="hl crossing" style="left: 1130px; --at: 9.45s; --out: 10.4s"></div>
+  <div class="hl crossing" style="left: 1442px; --at: 9.50s; --out: 10.4s"></div>
+  <div class="hl crossing" style="left: 1472px; --at: 9.55s; --out: 10.4s"></div>
+
+  <!-- beat 12: the peak -->
+  <div class="veil"></div>
+  <div class="peak-line"></div>
+  <div class="stem"></div>
+  <div class="terms"></div>
+  <div class="terms-top"></div>
+
+  <!-- beat 11 to 12: the properties, then the contract's terms -->
+  <div class="prop p1"  style="--at: 7.0s; --out: 14.0s; --gat: 10.6s; --gx: 351px;  --gy: -9px">The log only grows.</div>
+  <div class="prop p2"  style="--at: 8.1s; --out: 14.0s; --gat: 10.7s; --gx: 384px;  --gy: -19px">Every model is a fold of the log.</div>
+  <div class="prop two-step p3a" style="--at: 9.2s; --out: 14.0s; --gat: 10.4s; --gx: -346px; --gy: 220px">Each part uses only</div>
+  <div class="prop two-step p3b" style="--at: 9.2s; --out: 14.0s; --gat: 10.4s; --gx: -41px;  --gy: 179px">what it declares.</div>
+
+  <!-- statements, one at a time, last in paint order -->
+  <div class="statement with-line shown" style="--at: 0.3s; --out: 6.2s">Above: the domain.<br>Below: the infrastructure between the parts.</div>
+  <div class="statement with-line shown" style="--at: 6.6s; --out: 9.9s">Infrastructure only needs a few properties.</div>
+  <div class="statement with-line shown" style="--at: 10.3s; --out: 14.0s">DIZZY is the contract between them.</div>
+
+</div>
+<script src="../shared/stage.js"></script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DIZZY, explained</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; height: 100%; background: #f6f7f9; overflow: hidden; font: 13px "Ubuntu Sans", sans-serif; color: #5d6876; }
+  iframe { position: fixed; inset: 0 0 34px 0; width: 100%; height: calc(100% - 34px); border: 0; background: #f6f7f9; }
+  #bar { position: fixed; left: 0; right: 0; bottom: 0; height: 34px; display: flex; cursor: pointer; background: #e9ecf0; }
+  #bar .seg { position: relative; height: 100%; border-right: 1px solid #f6f7f9; overflow: hidden; white-space: nowrap; }
+  #bar .seg span { position: relative; z-index: 1; line-height: 34px; padding-left: 8px; }
+  #bar .seg i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: #cfd6de; }
+  body.bare iframe { inset: 0; height: 100%; }
+  body.bare #bar { display: none; }
+</style>
+</head>
+<body>
+<iframe id="f"></iframe>
+<div id="bar"></div>
+<script src="explain-dizzy/scenes.js"></script>
+<script>
+  // Plays the scenes in order. Space plays and pauses; click a segment to seek. ?bare hides the bar.
+  const S = window.SCENES;
+  const f = document.getElementById('f');
+  const bar = document.getElementById('bar');
+  if (new URLSearchParams(location.search).has('bare')) document.body.classList.add('bare');
+
+  let i = -1, playing = true, pending = 0;
+  const fills = S.map((s) => {
+    const seg = document.createElement('div');
+    seg.className = 'seg';
+    seg.style.flex = s.duration;
+    seg.innerHTML = '<i></i><span></span>';
+    seg.querySelector('span').textContent = s.title;
+    bar.appendChild(seg);
+    seg.addEventListener('click', (e) => {
+      const r = seg.getBoundingClientRect();
+      go(S.indexOf(s), s.duration * (e.clientX - r.left) / r.width);
+    });
+    return seg.querySelector('i');
+  });
+
+  const post = (m) => f.contentWindow.postMessage(m, '*');
+
+  function paint(t) {
+    fills.forEach((el, n) => { el.style.width = n < i ? '100%' : n > i ? '0' : (100 * t / S[i].duration) + '%'; });
+  }
+
+  function go(n, t = 0) {
+    pending = t;
+    if (n === i) { post({ type: 'seek', t }); paint(t); return; }
+    i = n;
+    f.src = 'explain-dizzy/' + S[n].file + '?embed';
+    paint(t);
+  }
+
+  addEventListener('message', (e) => {
+    const m = e.data || {};
+    if (m.type === 'ready') { post({ type: 'seek', t: pending }); if (playing) post({ type: 'play' }); }
+    if (m.type === 'time') paint(m.t);
+    if (m.type === 'ended') { if (i + 1 < S.length) go(i + 1); else { playing = false; paint(S[i].duration); } }
+  });
+
+  addEventListener('keydown', (e) => {
+    if (e.key !== ' ') return;
+    e.preventDefault();
+    playing = !playing;
+    post({ type: playing ? 'play' : 'pause' });
+  });
+
+  go(0);
+</script>
+</body>
+</html>
