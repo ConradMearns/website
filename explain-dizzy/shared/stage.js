@@ -8,7 +8,8 @@
 //
 // Standalone:  open the scene file. Space plays and pauses, arrows step 0.5s, click the bar to seek.
 //              ?t=3000 opens paused at 3s. ?bare hides the bar.
-// Embedded:    index.html loads the scene in an iframe and sends {type: play | pause | seek, t}.
+// Embedded:    index.html loads the scene in an iframe and sends {type: play | pause | seek, t | rate, r};
+//              the scene reports ready, time, ended, and any click or key it receives.
 // Capture:     window.__seek(ms) sets the clock; window.__duration is the length.
 
 (function () {
@@ -28,6 +29,7 @@
   let t = Number(params.get('t') || 0);
   let playing = !embedded && !params.has('t');
   let last = null;
+  let rate = 1;
   let bar = null, fill = null, clock = null;
 
   // Keep every animation ever seen: one that has finished with fill `backwards` or `none`
@@ -51,7 +53,7 @@
 
   function frame(now) {
     if (playing) {
-      if (last !== null) t += now - last;
+      if (last !== null) t += (now - last) * rate;
       last = now;
       if (t >= duration) {
         t = duration;
@@ -77,7 +79,17 @@
     if (m.type === 'play') playing = true;
     if (m.type === 'pause') playing = false;
     if (m.type === 'seek') seek(m.t || 0);
+    if (m.type === 'rate') rate = m.r || 1;
   });
+
+  // Embedded: a click or a key on the picture belongs to the player's controls.
+  if (embedded) {
+    addEventListener('click', () => parent.postMessage({ type: 'click' }, '*'));
+    addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.key.startsWith('Arrow')) e.preventDefault();
+      parent.postMessage({ type: 'key', key: e.key }, '*');
+    });
+  }
 
   if (!embedded && !params.has('bare')) {
     bar = document.createElement('div');

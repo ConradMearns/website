@@ -6,69 +6,155 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  html, body { margin: 0; height: 100%; background: #f6f7f9; overflow: hidden; font: 13px "Ubuntu Sans", sans-serif; color: #5d6876; }
-  iframe { position: fixed; inset: 0 0 34px 0; width: 100%; height: calc(100% - 34px); border: 0; background: #f6f7f9; }
-  #bar { position: fixed; left: 0; right: 0; bottom: 0; height: 34px; display: flex; cursor: pointer; background: #e9ecf0; }
-  #bar .seg { position: relative; height: 100%; border-right: 1px solid #f6f7f9; overflow: hidden; white-space: nowrap; }
-  #bar .seg span { position: relative; z-index: 1; line-height: 34px; padding-left: 8px; }
-  #bar .seg i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: #cfd6de; }
+  html, body { margin: 0; height: 100%; background: #f6f7f9; overflow: hidden; font: 13px "Ubuntu Sans", system-ui, sans-serif; color: #5d6876; }
+  iframe { position: fixed; inset: 0 0 44px 0; width: 100%; height: calc(100% - 44px); border: 0; background: #f6f7f9; }
+  #ctl { position: fixed; left: 0; right: 0; bottom: 0; height: 44px; display: flex; align-items: stretch; background: #e9ecf0; user-select: none; -webkit-user-select: none; }
+  #ctl button { flex: none; width: 44px; height: 44px; padding: 0; border: 0; background: none; color: #18202b; font: 600 14px "Ubuntu Sans", system-ui, sans-serif; cursor: pointer; }
+  #ctl button:hover { background: #dde2e8; }
+  #ctl button:focus-visible { outline: 2px solid #0e6a87; outline-offset: -2px; }
+  #ctl svg { width: 18px; height: 18px; vertical-align: middle; fill: currentColor; }
+  #ctl .pause, #ctl.playing .play { display: none; }
+  #ctl.playing .pause { display: inline; }
+  #clock { flex: none; padding: 0 12px 0 6px; line-height: 44px; font-variant-numeric: tabular-nums; color: #18202b; white-space: nowrap; }
+  #bar { flex: 1; min-width: 0; display: flex; cursor: pointer; touch-action: none; }
+  #bar .seg { position: relative; height: 100%; min-width: 0; border-left: 1px solid #f6f7f9; overflow: hidden; white-space: nowrap; }
+  #bar .seg span { position: relative; z-index: 1; line-height: 44px; padding-left: 8px; pointer-events: none; }
+  #bar .seg i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: #c3ccd6; }
   body.bare iframe { inset: 0; height: 100%; }
-  body.bare #bar { display: none; }
+  body.bare #ctl { display: none; }
+  @media (max-width: 700px) { #bar .seg span { display: none; } }
 </style>
 </head>
 <body>
 <iframe id="f"></iframe>
-<div id="bar"></div>
+<div id="ctl" class="playing">
+  <button id="b-play" title="Play or pause (space)" aria-label="Play or pause"><svg class="play" viewBox="0 0 18 18"><path d="M4 2 L16 9 L4 16 z"/></svg><svg class="pause" viewBox="0 0 18 18"><path d="M3 2 h4 v14 h-4 z M11 2 h4 v14 h-4 z"/></svg></button>
+  <button id="b-restart" title="Back to the start (Home)" aria-label="Back to the start"><svg viewBox="0 0 18 18"><path d="M2 2 h3 v14 h-3 z M16 2 L6 9 L16 16 z"/></svg></button>
+  <span id="clock">0:00 / 0:00</span>
+  <div id="bar"></div>
+  <button id="b-rate" title="Speed" aria-label="Speed">1×</button>
+  <button id="b-full" title="Full screen (f)" aria-label="Full screen"><svg viewBox="0 0 18 18"><path d="M2 2 h5 v2 h-3 v3 h-2 z M16 2 v5 h-2 v-3 h-3 v-2 z M2 16 v-5 h2 v3 h3 v2 z M16 16 h-5 v-2 h3 v-3 h2 z"/></svg></button>
+</div>
 <script src="explain-dizzy/scenes.js"></script>
 <script>
-  // Plays the scenes in order. Space plays and pauses; click a segment to seek. ?bare hides the bar.
+  // Plays the scenes in order, with one set of controls for the whole video.
+  // Space or a click on the picture plays and pauses; left and right step 5s; Home restarts; f is full screen.
+  // Click or drag on the bar to seek. ?bare hides the controls.
   const S = window.SCENES;
   const f = document.getElementById('f');
+  const ctl = document.getElementById('ctl');
   const bar = document.getElementById('bar');
+  const clock = document.getElementById('clock');
   if (new URLSearchParams(location.search).has('bare')) document.body.classList.add('bare');
 
-  let i = -1, playing = true, pending = 0;
-  const fills = S.map((s) => {
+  const starts = [];
+  let total = 0;
+  for (const s of S) { starts.push(total); total += s.duration; }
+
+  let i = -1, playing = true, ended = false, pending = 0, now = 0, rate = 1;
+  let loaded = false;   // false from the moment a scene is requested until it reports ready
+  const segs = S.map((s) => {
     const seg = document.createElement('div');
     seg.className = 'seg';
     seg.style.flex = s.duration;
     seg.innerHTML = '<i></i><span></span>';
     seg.querySelector('span').textContent = s.title;
     bar.appendChild(seg);
-    seg.addEventListener('click', (e) => {
-      const r = seg.getBoundingClientRect();
-      go(S.indexOf(s), s.duration * (e.clientX - r.left) / r.width);
-    });
-    return seg.querySelector('i');
+    return seg;
   });
+  const fills = segs.map((seg) => seg.querySelector('i'));
 
-  const post = (m) => f.contentWindow.postMessage(m, '*');
+  // Nothing is sent to a scene that is still loading: the frame would still hold the previous one.
+  const post = (m) => loaded && f.contentWindow.postMessage(m, '*');
+  const mmss = (ms) => { const s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 
   function paint(t) {
     fills.forEach((el, n) => { el.style.width = n < i ? '100%' : n > i ? '0' : (100 * t / S[i].duration) + '%'; });
+    now = starts[i] + t;
+    clock.textContent = mmss(now) + ' / ' + mmss(total);
   }
 
   function go(n, t = 0) {
     pending = t;
+    ended = false;
     if (n === i) { post({ type: 'seek', t }); paint(t); return; }
     i = n;
+    loaded = false;
     f.src = 'explain-dizzy/' + S[n].file + '?embed';
     paint(t);
   }
 
+  // Seek on the whole video's clock.
+  function seekTo(ms) {
+    ms = Math.max(0, Math.min(total - 1, ms));
+    let n = S.length - 1;
+    while (n > 0 && starts[n] > ms) n--;
+    go(n, ms - starts[n]);
+  }
+
+  function setPlaying(p) {
+    if (p && ended) seekTo(0);
+    playing = p;
+    ctl.classList.toggle('playing', p);
+    post({ type: p ? 'play' : 'pause' });
+  }
+
+  function fullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
+  }
+
+  function key(k) {
+    if (k === ' ' || k === 'k') setPlaying(!playing);
+    else if (k === 'ArrowRight') seekTo(now + 5000);
+    else if (k === 'ArrowLeft') seekTo(now - 5000);
+    else if (k === 'Home' || k === '0') seekTo(0);
+    else if (k === 'f') fullscreen();
+    else return false;
+    return true;
+  }
+
   addEventListener('message', (e) => {
     const m = e.data || {};
-    if (m.type === 'ready') { post({ type: 'seek', t: pending }); if (playing) post({ type: 'play' }); }
-    if (m.type === 'time') paint(m.t);
-    if (m.type === 'ended') { if (i + 1 < S.length) go(i + 1); else { playing = false; paint(S[i].duration); } }
+    if (m.type === 'ready') { loaded = true; post({ type: 'rate', r: rate }); post({ type: 'seek', t: pending }); if (playing) post({ type: 'play' }); }
+    if (m.type === 'time' && loaded) paint(m.t);
+    if (m.type === 'ended' && loaded) {
+      if (i + 1 < S.length) go(i + 1);
+      else { ended = true; playing = false; ctl.classList.remove('playing'); paint(S[i].duration); }
+    }
+    if (m.type === 'click') setPlaying(!playing);     // a click on the picture
+    if (m.type === 'key') key(m.key);                 // a key pressed while the picture has focus
   });
 
   addEventListener('keydown', (e) => {
-    if (e.key !== ' ') return;
-    e.preventDefault();
-    playing = !playing;
-    post({ type: playing ? 'play' : 'pause' });
+    if (e.target.tagName === 'BUTTON' && e.key === ' ') return;   // the button handles its own space
+    if (key(e.key)) e.preventDefault();
   });
+
+  document.getElementById('b-play').addEventListener('click', () => setPlaying(!playing));
+  document.getElementById('b-restart').addEventListener('click', () => seekTo(0));
+  document.getElementById('b-full').addEventListener('click', fullscreen);
+  document.getElementById('b-rate').addEventListener('click', (e) => {
+    const rates = [1, 1.5, 2, 0.5];
+    rate = rates[(rates.indexOf(rate) + 1) % rates.length];
+    e.currentTarget.textContent = rate + '×';
+    post({ type: 'rate', r: rate });
+  });
+
+  // Click or drag along the bar.
+  function at(x) {
+    for (let n = 0; n < segs.length; n++) {
+      const r = segs[n].getBoundingClientRect();
+      if (x < r.right || n === segs.length - 1) {
+        return starts[n] + S[n].duration * Math.max(0, Math.min(1, (x - r.left) / r.width));
+      }
+    }
+  }
+  let dragging = false;
+  bar.addEventListener('pointerdown', (e) => { dragging = true; bar.setPointerCapture(e.pointerId); seekTo(at(e.clientX)); });
+  bar.addEventListener('pointermove', (e) => { if (dragging) seekTo(at(e.clientX)); });
+  bar.addEventListener('pointerup', () => { dragging = false; });
+  bar.addEventListener('pointercancel', () => { dragging = false; });
 
   go(0);
 </script>

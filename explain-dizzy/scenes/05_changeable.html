@@ -29,11 +29,11 @@
   #lang-pol-py                 { left: 1360px; top: 381px; }
   #lang-proc-py {
     animation: pop var(--quick) var(--ease) both, flip-out 0.15s ease-in forwards;
-    animation-delay: 0.8s, 3.85s;
+    animation-delay: 0.8s, 6.65s;
   }
   #lang-proc-rs {
     animation: flip-in 0.15s ease-out both, fade-out var(--quick) ease-in forwards;
-    animation-delay: 4.0s, 7.2s;
+    animation-delay: 6.8s, 12.15s;
   }
   @keyframes flip-out { from { transform: scaleY(1); } to { transform: scaleY(0); } }
   @keyframes flip-in  { from { transform: scaleY(0); } to { transform: scaleY(1); } }
@@ -43,7 +43,7 @@
     left: 140px; top: 536px; width: 1640px; height: 482px;
     background: var(--flow); border: 2px solid var(--ink-soft); border-radius: 10px;
     animation: frame-open 0.7s var(--ease-in-out) both, frame-close 0.6s var(--ease-in-out) forwards;
-    animation-delay: 1.0s, 6.65s;
+    animation-delay: 1.0s, 11.6s;
   }
   @keyframes frame-open {
     0%   { left: 472px; top: 508px; width: 296px; height: 6px; opacity: 0; }
@@ -98,6 +98,12 @@
     font-family: var(--mono); font-size: 22px; line-height: 32px; color: var(--ink);
     border: 2px solid var(--rule); border-radius: 5px; background: var(--paper);
   }
+  /* whose the body is: the counterpart of the legend on the declaration */
+  .impl .yours {
+    display: inline-block; height: 36px; margin-left: 12px; padding: 0 14px;
+    font-family: var(--sans); font-size: 22px; line-height: 32px; color: var(--paper);
+    background: var(--ink); border: 2px solid var(--ink); border-radius: 5px;
+  }
   .impl pre {
     margin-top: 12px;
     font-family: var(--mono); font-size: 24px; line-height: 32px; color: var(--ink);
@@ -107,8 +113,8 @@
   .u-q { box-shadow: inset 0 -4px 0 var(--query); }
   .u-e { box-shadow: inset 0 -4px 0 var(--event); }
 
-  #py { animation: body-out 0.35s ease-in forwards; animation-delay: 3.8s; }
-  #rs { animation: body-in 0.45s var(--ease) both;  animation-delay: 4.05s; }
+  #py { animation: body-out 0.35s ease-in forwards; animation-delay: 6.6s; }
+  #rs { animation: body-in 0.45s var(--ease) both;  animation-delay: 6.85s; }
   @keyframes body-out { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: -70px 0; } }
   @keyframes body-in  { from { opacity: 0; translate: 70px 0; } to { opacity: 1; translate: 0 0; } }
 
@@ -116,7 +122,7 @@
   #cap { left: 824px; top: 276px; font-family: var(--display); font-size: 42px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); white-space: nowrap; }
 </style>
 </head>
-<body data-duration="8200">
+<body data-duration="13200">
 <div class="stage">
 
   <!-- REST FRAME: copied exactly from scenes/00_rest_frame.html -->
@@ -152,25 +158,27 @@
   <div class="infra infra-run">runtime: one process</div>
   <!-- end of REST FRAME -->
 
-  <!-- ===== Beat 16: Changeable (0.3s to 7.6s; still rest frame from 7.6s) ===== -->
-  <div class="statement with-line in out" style="--at: 0.3s; --out: 7.2s">Changeable. <em>Rewrite one part; the rest stays.</em> <span class="tag aim">designed for</span></div>
+  <!-- ===== Beat 16a: the parts are the viewer's code (0.3s to 4.9s) ===== -->
+  <div class="statement with-line in out" style="--at: 0.3s; --out: 4.9s">The transfer is only the example.<br><em>Each part is code you write.</em></div>
+  <!-- ===== Beat 16b: Changeable (5.3s to 12.15s; still rest frame from 12.6s) ===== -->
+  <div class="statement with-line in out" style="--at: 5.3s; --out: 12.15s">Changeable. <span class="tag aim">designed for</span><br><em>Write each part in the language that suits it.</em></div>
 
-  <div id="stem" class="in fade out" style="--at: 1.2s; --out: 6.9s"></div>
-  <div id="outline" class="in fade out" style="--at: 0.55s; --out: 7.2s"></div>
+  <div id="stem" class="in fade out" style="--at: 1.2s; --out: 11.85s"></div>
+  <div id="outline" class="in fade out" style="--at: 0.55s; --out: 12.15s"></div>
 
   <div id="lang-proc-py" class="lang">py</div>
   <div id="lang-proc-rs" class="lang rs">rs</div>
-  <div id="lang-pol-py" class="lang in pop out" style="--at: 0.95s; --out: 7.2s">py</div>
+  <div id="lang-pol-py" class="lang in pop out" style="--at: 0.95s; --out: 12.15s">py</div>
 
   <div id="frame"></div>
 
-  <div id="pc" class="in fade out" style="--at: 1.65s; --out: 6.25s">
+  <div id="pc" class="in fade out" style="--at: 1.65s; --out: 11.2s">
     <div id="decl"><span class="grp"><span class="kw">takes</span><span class="chip command">transfer_funds</span></span><span class="grp"><span class="kw">asks</span><span class="chip query">get_balance</span></span><span class="grp"><span class="kw">emits</span><span class="chip event">funds_debited</span><span class="chip event">funds_credited</span><span class="chip event">transfer_rejected</span></span></div>
 
     <div id="legend"><svg viewBox="0 0 26 26"><path d="M 8 2 L 18 2 L 16.5 9 L 20.5 13.5 L 20.5 15.5 L 5.5 15.5 L 5.5 13.5 L 9.5 9 Z" /><line x1="13" y1="15.5" x2="13" y2="24" /></svg><span class="label">declared in the feat</span></div>
 
     <div id="body">
-      <div id="py" class="impl"><span class="file">execute_transfer.py</span>
+      <div id="py" class="impl"><span class="file">execute_transfer.py</span><span class="yours">your code</span>
 <pre><span class="k">def</span> execute_transfer(context: execute_transfer_context, command: TransferFunds) -&gt; None:
     balance = context.query.<span class="u-q">get_balance</span>(GetBalanceInput(account=command.payer))
     <span class="k">if</span> balance.amount &lt; command.amount:
@@ -179,7 +187,7 @@
         context.emit.<span class="u-e">funds_debited</span>(FundsDebited(payer=command.payer, amount=command.amount))
         context.emit.<span class="u-e">funds_credited</span>(FundsCredited(payee=command.payee, amount=command.amount))</pre></div>
 
-      <div id="rs" class="impl"><span class="file">execute_transfer.rs</span>
+      <div id="rs" class="impl"><span class="file">execute_transfer.rs</span><span class="yours">your code</span>
 <pre><span class="k">pub fn</span> execute_transfer(context: &amp;execute_transfer_context, command: TransferFunds) -&gt; Result&lt;(), Error&gt; {
     <span class="k">let</span> balance = (context.query.<span class="u-q">get_balance</span>)(GetBalanceInput { account: command.payer.clone() })?;
     <span class="k">if</span> balance.amount &lt; command.amount {
@@ -193,7 +201,7 @@
     </div>
   </div>
 
-  <div id="cap" class="in out" style="--at: 4.1s; --out: 6.25s">90% Python. The critical step in Rust.</div>
+  <div id="cap" class="in out" style="--at: 6.9s; --out: 11.2s">Same declaration. Another language.</div>
 
 </div>
 <script src="../shared/stage.js"></script>

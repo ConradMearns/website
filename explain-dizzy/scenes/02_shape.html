@@ -185,6 +185,8 @@
     100% { offset-distance: 100%; opacity: 0; }
   }
   .statement u { text-decoration: none; font-style: normal; box-shadow: inset 0 -0.11em 0 var(--accent); }
+  /* marks the running example as an example, right of the query card */
+  .label.example { position: absolute; left: 824px; top: 294px; white-space: nowrap; }
 </style>
 </head>
 <body data-duration="15600">
@@ -231,6 +233,7 @@
 
   <!-- ===== beat 8: Declare the domain. ===== -->
 
+  <div class="label example in fade out" style="--at: 5.0s; --out: 8.9s">the example: a bank transfer</div>
   <div class="statement in out" style="--at: 5.8s; --out: 8.9s">Declare the domain.</div>
 
   <div id="feat" class="in fade out" style="--at: 5.8s; --out: 14.6s">
